@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard – SurveyBridge</title>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Inter, sans-serif;
+        background: linear-gradient(-45deg, #6ab7ff, #8ec5fc, #6a8dff, #8fd3fe);
+        background-size: 400% 400%;
+        animation: gradientBG 12s infinite;
+        min-height: 100vh;
+        padding: 40px;
+    }
+    @keyframes gradientBG {
+        0%{background-position:0% 50%}
+        50%{background-position:100% 50%}
+        100%{background-position:0% 50%}
+    }
+
+    .title {
+        font-size: 42px;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 25px;
+    }
+
+    .survey-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        width: 280px;
+        display: inline-block;
+        margin-right: 25px;
+        vertical-align: top;
+        box-shadow: 0px 6px 15px rgba(0,0,0,0.12);
+    }
+
+    .survey-card img {
+        width: 100%;
+        border-radius: 8px;
+        height: 150px;
+        object-fit: cover;
+        background: #ddd;
+    }
+
+    a {
+        text-decoration: none;
+        color: #3f6cff;
+        font-weight: 600;
+    }
+</style>
+
+</head>
+
+<body>
+
+<div class="title">Welcome to Your Dashboard</div>
+
+<!-- 你可以替换图片：将 static/survey1.jpg 改成你自己的路径即可 -->
+<div class="survey-card">
+    <img src="/static/campus_life.jpg" alt="Survey">
+    <h3>Campus Life Survey</h3>
+    <a href="#">Take Survey</a>
+</div>
+
+<div class="survey-card">
+    <img src="/static/habit.png" alt="Survey">
+    <h3>Study Habits Research</h3>
+    <a href="#">Take Survey</a>
+</div>
+
+<div class="survey-card">
+    <img src="/static/food.jpeg" alt="Survey">
+    <h3>Food Preference Poll</h3>
+    <a href="#">Take Survey</a>
+</div>
+
+</body>
+</html>
