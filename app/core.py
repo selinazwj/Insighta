@@ -1,21 +1,21 @@
-from fastapi import APIRouter, Request, Depends, Form
+import os
+import re
+from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-import os
 
-from .database import SessionLocal
-from .models import User
+from app.database import SessionLocal
+from app.models import User
 
 router = APIRouter()
 
-# 绝对路径模板
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "app/templates"))
+# 自动根据 core.py 所在位置找 templates
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def get_db():
     db = SessionLocal()
@@ -25,6 +25,7 @@ def get_db():
         db.close()
 
 
+# 首页
 @router.get("/")
 def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -38,16 +39,13 @@ def register_user(
     confirm: str = Form(...),
     db: Session = Depends(get_db)
 ):
-
     if password != confirm:
         return templates.TemplateResponse(
             "index.html",
             {"request": request, "error": "Passwords do not match.", "show": "register"}
         )
 
-    import re
     pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"
-
     if not re.match(pattern, password):
         return templates.TemplateResponse(
             "index.html",
@@ -79,7 +77,6 @@ def login_user(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-
     user = db.query(User).filter(User.email == email).first()
 
     if not user or not pwd_context.verify(password, user.password):
@@ -98,7 +95,6 @@ def dashboard(request: Request):
 
 @router.get("/surveys/{category}")
 def show_category(request: Request, category: str):
-
     sample_surveys = {
         "research": [
             {"title": "AI Adoption Study", "desc": "Help us understand how students use AI tools."},
@@ -116,9 +112,5 @@ def show_category(request: Request, category: str):
 
     return templates.TemplateResponse(
         "category.html",
-        {
-            "request": request,
-            "category": category.capitalize(),
-            "surveys": sample_surveys.get(category, [])
-        }
+        {"request": request, "category": category.capitalize(), "surveys": sample_surveys.get(category, [])}
     )
