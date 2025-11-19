@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ category }} Surveys</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 p-10 text-white">
+
+    <h1 class="text-4xl font-bold mb-6">{{ category | capitalize }} Surveys</h1>
+
+    {% if surveys %}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {% for s in surveys %}
+            <div class="p-6 bg-white/10 rounded-xl shadow-lg backdrop-blur-lg">
+                <h2 class="text-2xl font-semibold">{{ s.title }}</h2>
+                <p class="text-white/70 mt-2">Category: {{ s.category }}</p>
+
+                <a href="/survey/{{ s.id }}" 
+                   class="inline-block mt-4 px-4 py-2 bg-white/30 rounded-lg backdrop-blur hover:bg-white/40 transition">
+                    进入问卷
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-white/80">暂无此分类的问卷。</p>
+    {% endif %}
+
+</body>
+</html>

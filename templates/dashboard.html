@@ -1,83 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Dashboard – SurveyBridge</title>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
 
-<style>
-    body {
-        margin: 0;
-        padding: 0;
-        font-family: Inter, sans-serif;
-        background: linear-gradient(-45deg, #6ab7ff, #8ec5fc, #6a8dff, #8fd3fe);
-        background-size: 400% 400%;
-        animation: gradientBG 12s infinite;
-        min-height: 100vh;
-        padding: 40px;
-    }
-    @keyframes gradientBG {
-        0%{background-position:0% 50%}
-        50%{background-position:100% 50%}
-        100%{background-position:0% 50%}
-    }
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #4a6cf7, #6a9ff8, #74b9ff);
+            background-size: 300% 300%;
+            animation: bgMove 10s ease infinite;
+            color: white;
+        }
 
-    .title {
-        font-size: 42px;
-        font-weight: 800;
-        color: white;
-        margin-bottom: 25px;
-    }
+        @keyframes bgMove {
+            0% {background-position: 0 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0 50%;}
+        }
 
-    .survey-card {
-        background: white;
-        border-radius: 10px;
-        padding: 20px;
-        width: 280px;
-        display: inline-block;
-        margin-right: 25px;
-        vertical-align: top;
-        box-shadow: 0px 6px 15px rgba(0,0,0,0.12);
-    }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
 
-    .survey-card img {
-        width: 100%;
-        border-radius: 8px;
-        height: 150px;
-        object-fit: cover;
-        background: #ddd;
-    }
+        /* Tabs */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
 
-    a {
-        text-decoration: none;
-        color: #3f6cff;
-        font-weight: 600;
-    }
-</style>
+        .tab {
+            font-size: 20px;
+            font-weight: bold;
+            padding-bottom: 8px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
 
+        .tab.active {
+            opacity: 1;
+            border-bottom: 3px solid white;
+        }
+
+        /* Card layout */
+        .cards {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.2);
+            border-radius: 18px;
+            padding: 18px;
+            backdrop-filter: blur(6px);
+            display: flex;
+            gap: 20px;
+            cursor: pointer;
+            transition: transform .25s ease, background .25s ease;
+            text-decoration: none;
+            color: white;
+        }
+
+        .card:hover {
+            background: rgba(255,255,255,0.28);
+            transform: translateY(-5px);
+        }
+
+        .card img {
+            width: 140px;
+            height: 100px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .card p {
+            margin-top: 6px;
+            opacity: 0.9;
+        }
+    </style>
 </head>
 
 <body>
+    <div class="container">
 
-<div class="title">Welcome to Your Dashboard</div>
+        <h1 style="text-align:center;margin-bottom:20px;">
+            Welcome to SurveyBridge
+        </h1>
 
-<!-- 你可以替换图片：将 static/survey1.jpg 改成你自己的路径即可 -->
-<div class="survey-card">
-    <img src="/static/campus_life.jpg" alt="Survey">
-    <h3>Campus Life Survey</h3>
-    <a href="#">Take Survey</a>
-</div>
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('research')">Research</div>
+            <div class="tab" onclick="switchTab('life')">Lifestyle</div>
+            <div class="tab" onclick="switchTab('clubs')">Clubs</div>
+        </div>
 
-<div class="survey-card">
-    <img src="/static/habit.png" alt="Survey">
-    <h3>Study Habits Research</h3>
-    <a href="#">Take Survey</a>
-</div>
+        <!-- Cards container -->
+        <div id="cardsContainer" class="cards"></div>
 
-<div class="survey-card">
-    <img src="/static/food.jpeg" alt="Survey">
-    <h3>Food Preference Poll</h3>
-    <a href="#">Take Survey</a>
-</div>
+    </div>
+
+<script>
+    // Survey data with links
+    const surveys = {
+        research: [
+            {
+                img: "/static/psych.jpg",
+                title: "Cognitive Science Study",
+                desc: "Memory patterns and decision making.",
+                link: "#"
+            },
+            {
+                img: "/static/r2.jpg",
+                title: "Behavior Patterns Survey",
+                desc: "Habits and social behavior.",
+                link: "#"
+            }
+        ],
+
+        life: [
+            {
+                img: "/static/habit.png",
+                title: "Daily Routine Survey",
+                desc: "Lifestyle patterns of students.",
+                link: "#"
+            },
+            {
+                img: "/static/food.jpeg",
+                title: "Food Preference",
+                desc: "Discover what students love to eat.",
+                link: "#"
+            }
+        ],
+
+        clubs: [
+            {
+                img: "/static/campus_life.jpg",
+                title: "Event Interest Form",
+                desc: "Help shape upcoming events.",
+                link: "#"
+            },
+            {
+                img: "/static/fb.jpg",
+                title: "Club Feedback",
+                desc: "Tell us how we can improve our club.",
+                link: "https://forms.gle/B1x2VtRZQ6z31iZb6"   // ⭐ 你的 Google Form
+            }
+        ]
+    };
+
+    // Default tab
+    loadSurveys("research");
+
+    function loadSurveys(category) {
+        const container = document.getElementById("cardsContainer");
+        container.innerHTML = "";
+
+        surveys[category].forEach(s => {
+            container.innerHTML += `
+                <a href="${s.link}" class="card" target="_blank">
+                    <img src="${s.img}">
+                    <div>
+                        <h3>${s.title}</h3>
+                        <p>${s.desc}</p>
+                    </div>
+                </a>
+            `;
+        });
+    }
+
+    function switchTab(category) {
+        document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
+        event.target.classList.add("active");
+
+        loadSurveys(category);
+    }
+</script>
 
 </body>
 </html>
