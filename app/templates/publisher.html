@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Surveys - SurveyBridge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<nav class="navbar">
+    <div class="navbar-left">
+        <a href="/choice" class="back-btn">
+            <span>←</span>
+            <span>Back</span>
+        </a>
+        <div class="logo">SurveyBridge</div>
+    </div>
+</nav>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #4a6cf7, #74b9ff);
+    min-height: 100vh;
+    color: white;
+}
+
+.navbar {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.back-btn {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateX(-3px);
+}
+
+.logo {
+    font-size: 1.6em;
+    font-weight: bold;
+}
+
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    margin: 0;
+}
+
+.create-btn {
+    padding: 12px 22px;
+    background: white;
+    color: #4a6cf7;
+    border-radius: 10px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.card {
+    background: rgba(255,255,255,0.18);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.card h3 {
+    margin-top: 0;
+}
+
+.meta {
+    opacity: 0.85;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.actions {
+    display: flex;
+    gap: 15px;
+}
+
+.delete-btn {
+    background: #ff6b6b;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    background: #ff5252;
+}
+</style>
+</head>
+
+<body>
+
+<div class="navbar">SurveyBridge · Publisher</div>
+
+<div class="container">
+    <div class="header">
+        <h1>My Surveys</h1>
+        <a href="/publish" class="create-btn">+ New Survey</a>
+    </div>
+
+    {% if surveys|length == 0 %}
+        <p>You haven’t published any surveys yet.</p>
+    {% endif %}
+
+    {% for s in surveys %}
+    <div class="card">
+        <h3>{{ s.title }}</h3>
+        <div class="meta">
+            Category: {{ s.category }} · Reward: ${{ s.reward_amount }}
+        </div>
+
+        <div class="actions">
+            <form method="post" action="/publisher/delete/{{ s.id }}">
+                <button class="delete-btn">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+</body>
+</html>

@@ -125,6 +125,15 @@ input {
     font-weight: bold;
     cursor: pointer;
 }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.25s ease-out;
+}
 </style>
 </head>
 <body>
@@ -139,65 +148,43 @@ input {
 <div id="loginModal" class="modal" style="{% if show == 'login' %}display:flex;{% endif %}">
     <div class="modal-content">
         <span class="close" onclick="closeLogin()">&times;</span>
-
         <h2>Login</h2>
-
-        <!-- 错误提示 -->
         {% if show == "login" and error %}
-        <div class="animate-fadeIn bg-red-500 text-white px-4 py-2 rounded-lg mb-4 shadow-lg text-center">
+        <div class="animate-fadeIn" style="background:#f87171;color:white;padding:10px;border-radius:8px;margin-bottom:10px;text-align:center;">
             {{ error }}
         </div>
         {% endif %}
-
         <form method="POST" action="/login" class="form-box">
             <label>Email</label>
             <input type="email" name="email" required>
-
             <label>Password</label>
             <input type="password" name="password" required>
-
             <button type="submit" class="btn-primary">Login</button>
         </form>
-
-        <p class="switch-text">
-            Don't have an account?
-            <a onclick="switchToRegister()">Register</a>
-        </p>
+        <p class="switch-text">Don't have an account? <a onclick="switchToRegister()">Register</a></p>
     </div>
 </div>
-
 
 <!-- ====== Register Modal ====== -->
 <div id="registerModal" class="modal" style="{% if show == 'register' %}display:flex;{% endif %}">
     <div class="modal-content">
         <span class="close" onclick="closeRegister()">&times;</span>
-
         <h2>Create Account</h2>
-
-        <!-- 错误提示 -->
         {% if show == "register" and error %}
-        <div class="animate-fadeIn bg-red-500 text-white px-4 py-2 rounded-lg mb-4 shadow-lg text-center">
+        <div class="animate-fadeIn" style="background:#f87171;color:white;padding:10px;border-radius:8px;margin-bottom:10px;text-align:center;">
             {{ error }}
         </div>
         {% endif %}
-
         <form method="POST" action="/register" class="form-box">
             <label>Email</label>
             <input type="email" name="email" required>
-
             <label>Password</label>
             <input type="password" name="password" required>
-
             <label>Confirm Password</label>
             <input type="password" name="confirm" required>
-
             <button type="submit" class="btn-primary">Register</button>
         </form>
-
-        <p class="switch-text">
-            Already have an account?
-            <a onclick="switchToLogin()">Login</a>
-        </p>
+        <p class="switch-text">Already have an account? <a onclick="switchToLogin()">Login</a></p>
     </div>
 </div>
 
@@ -209,15 +196,6 @@ function closeRegister() { document.getElementById("registerModal").style.displa
 function switchToRegister() { closeLogin(); openRegister(); }
 function switchToLogin() { closeRegister(); openLogin(); }
 </script>
-<style>
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.animate-fadeIn {
-    animation: fadeIn 0.25s ease-out;
-}
-</style>
 
 </body>
 </html>

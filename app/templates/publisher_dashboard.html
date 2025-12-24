@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Surveys</title>
+</head>
+<body>
+    <h1>My Published Surveys</h1>
+
+    <a href="/publish">➕ Create New Survey</a>
+    <hr>
+
+    {% if surveys %}
+        <ul>
+            {% for s in surveys %}
+                <li>
+                    <strong>{{ s.title }}</strong>
+                    — {{ s.category }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>You haven’t published any surveys yet.</p>
+    {% endif %}
+
+    <br>
+    <a href="/choice">⬅ Back</a>
+</body>
+</html>

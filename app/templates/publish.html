@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publish Survey - SurveyBridge</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #4a6cf7, #6a9ff8, #74b9ff);
+            background-size: 300% 300%;
+            animation: bgMove 10s ease infinite;
+            color: white;
+            min-height: 100vh;
+        }
+
+        @keyframes bgMove {
+            0% {background-position: 0 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0 50%;}
+        }
+
+        /* 导航栏 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-3px);
+        }
+
+        .logo {
+            font-size: 1.6em;
+            font-weight: bold;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .balance {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            background: white;
+            color: #4a6cf7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* 页面标题 */
+        .page-header {
+            margin-bottom: 40px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .page-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .page-header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        /* 表单卡片 */
+        .form-card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            animation: fadeInUp 0.6s ease-out 0.2s both;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.05em;
+        }
+
+        .form-group .label-description {
+            font-size: 0.9em;
+            opacity: 0.85;
+            font-weight: normal;
+            margin-top: 4px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 18px center;
+            padding-right: 45px;
+        }
+
+        .form-group select option {
+            background: #4a6cf7;
+            color: white;
+        }
+
+        /* 分割线 */
+        .form-divider {
+            height: 2px;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
+            margin: 35px 0;
+        }
+
+        /* 两列布局 */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* 信息提示 */
+        .info-box {
+            background: rgba(255, 255, 255, 0.15);
+            border-left: 4px solid white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-size: 0.95em;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* 提交按钮 */
+        .submit-section {
+            margin-top: 35px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px 32px;
+            border-radius: 12px;
+            border: none;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #4a6cf7;
+        }
+
+        .btn-primary:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .form-card {
+                padding: 30px 20px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header h1 {
+                font-size: 2em;
+            }
+
+            .submit-section {
+                flex-direction: column-reverse;
+            }
+        }
+
+        /* 动画 */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 成功提示 */
+        .success-message {
+            display: none;
+            background: rgba(72, 187, 120, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="/choice" class="back-btn">
+                <span>←</span>
+                <span>Back</span>
+            </a>
+            <div class="logo">SurveyBridge</div>
+        </div>
+        <div class="navbar-right">
+            <div class="balance">💰 $25.50</div>
+            <div class="user-menu">
+                <div class="avatar">U</div>
+                <span>Publisher</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 页面标题 -->
+        <div class="page-header">
+            <h1>📋 Publish a Survey</h1>
+            <p>Share your Google Form and get quality responses from our community</p>
+        </div>
+
+        <!-- 成功提示 -->
+        <div id="successMessage" class="success-message">
+            ✅ Survey published successfully! Redirecting to your dashboard...
+        </div>
+
+        <!-- 表单卡片 -->
+        <div class="form-card">
+            <form id="publishForm" method="POST" action="/publish">
+                
+                <!-- 基本信息 -->
+                <div class="info-box">
+                    <strong>📝 Before you start:</strong>
+                    Make sure your Google Form is set to "Anyone with the link" and accepting responses.
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Survey Title
+                        <div class="label-description">Give your survey a clear, descriptive title</div>
+                    </label>
+                    <input type="text" name="title" placeholder="e.g., Student Mental Health Study" required>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Description
+                        <div class="label-description">Explain what your survey is about and why responses matter</div>
+                    </label>
+                    <textarea name="description" placeholder="We're researching student mental health patterns to improve campus wellness programs..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Google Form Link
+                        <div class="label-description">Paste your complete Google Form URL</div>
+                    </label>
+                    <input type="url" name="form_url" placeholder="https://forms.gle/..." required>
+                </div>
+
+                <div class="form-divider"></div>
+
+                <!-- 问卷详情 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            Category
+                        </label>
+                        <select name="category" required>
+                            <option value="">Select a category</option>
+                            <option value="research">🔬 Research</option>
+                            <option value="life">🌟 Lifestyle</option>
+                            <option value="clubs">🎯 Clubs & Events</option>
+                            <option value="market">📊 Market Research</option>
+                            <option value="academic">📚 Academic</option>
+                            <option value="other">🔷 Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Estimated Time
+                        </label>
+                        <select name="estimated_time" required>
+                            <option value="">How long to complete?</option>
+                            <option value="5">⚡ 5 minutes</option>
+                            <option value="10">🕐 10 minutes</option>
+                            <option value="15">🕑 15 minutes</option>
+                            <option value="20">🕒 20 minutes</option>
+                            <option value="30">🕔 30 minutes</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-divider"></div>
+
+                <!-- 奖励设置 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            Reward per Response
+                            <div class="label-description">How much will you pay each respondent?</div>
+                        </label>
+                        <input type="number" name="reward_amount" placeholder="5.00" step="0.50" min="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Target Responses
+                            <div class="label-description">How many responses do you need?</div>
+                        </label>
+                        <input type="number" name="target_responses" placeholder="100" min="10" required>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>💰 Total Budget:</strong>
+                    <span id="totalBudget">Calculate based on your inputs</span>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="submit-section">
+                    <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Publish Survey 🚀</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    // 实时计算总预算
+    const rewardInput = document.querySelector('input[name="reward_amount"]');
+    const targetInput = document.querySelector('input[name="target_responses"]');
+    const budgetDisplay = document.getElementById('totalBudget');
+
+    function updateBudget() {
+        const reward = parseFloat(rewardInput.value) || 0;
+        const target = parseInt(targetInput.value) || 0;
+        const total = reward * target;
+        
+        if (total > 0) {
+            budgetDisplay.textContent = `$${total.toFixed(2)} (${target} responses × $${reward.toFixed(2)})`;
+        } else {
+            budgetDisplay.textContent = 'Calculate based on your inputs';
+        }
+    }
+
+    rewardInput.addEventListener('input', updateBudget);
+    targetInput.addEventListener('input', updateBudget);
+
+    // 表单提交处理
+    document.getElementById('publishForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 显示成功消息
+        const successMsg = document.getElementById('successMessage');
+        successMsg.style.display = 'block';
+        
+        // 模拟提交（实际会提交到后端）
+        setTimeout(() => {
+            this.submit();
+        }, 1500);
+    });
+</script>
+
+</body>
+</html>

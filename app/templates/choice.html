@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SurveyBridge - Choose Your Path</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(120deg, #4a6cf7, #6a9ff8, #74b9ff);
+    background-size: 300% 300%;
+    animation: gradientMove 10s ease infinite;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    padding: 20px;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.container {
+    max-width: 1100px;
+    width: 100%;
+    text-align: center;
+}
+
+.header {
+    margin-bottom: 60px;
+    animation: fadeInDown 0.6s ease-out;
+}
+
+.header h1 {
+    font-size: 3em;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.header p {
+    font-size: 1.3em;
+    opacity: 0.95;
+}
+
+.choice-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 30px;
+}
+
+@media (max-width: 768px) {
+    .choice-container {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+    .header h1 {
+        font-size: 2.2em;
+    }
+}
+
+.choice-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 50px 40px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    animation: fadeInUp 0.6s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.choice-card:nth-child(1) { animation-delay: 0.1s; }
+.choice-card:nth-child(2) { animation-delay: 0.2s; }
+
+.choice-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.choice-card:hover {
+    transform: translateY(-12px) scale(1.02);
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.choice-card:hover::before { opacity: 1; }
+
+.icon {
+    font-size: 5em;
+    margin-bottom: 25px;
+    display: inline-block;
+    transition: transform 0.4s ease;
+}
+
+.choice-card:hover .icon { transform: scale(1.15) rotate(5deg); }
+
+.choice-card h2 {
+    font-size: 2em;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.choice-card p {
+    font-size: 1.1em;
+    line-height: 1.6;
+    opacity: 0.9;
+    margin-bottom: 25px;
+}
+
+.choice-card .btn {
+    display: inline-block;
+    padding: 14px 36px;
+    background: white;
+    color: #4a6cf7;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 1.05em;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.choice-card .btn:hover { background: #f0f0f0; transform: scale(1.05); }
+
+.publish-card .btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+.publish-card .btn:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.respond-card .btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+.respond-card .btn:hover {
+    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+}
+
+.footer-text {
+    margin-top: 30px;
+    opacity: 0.8;
+    animation: fadeIn 0.6s ease-out 0.4s both;
+}
+
+.footer-text a {
+    color: white;
+    text-decoration: underline;
+    font-weight: bold;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.highlight {
+    background: linear-gradient(120deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+    padding: 3px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Welcome to SurveyBridge</h1>
+        <p>What would you like to do today?</p>
+    </div>
+
+    <div class="choice-container">
+        <!-- 发布问卷 -->
+        <div class="choice-card publish-card" onclick="window.location.href='/publisher'">
+            <div class="icon">📋</div>
+            <h2>Publish Survey</h2>
+            <p>
+                Need quality responses for your research?
+                Post your Google Form and manage your surveys in one place.
+            </p>
+            <p class="highlight">Manage & publish surveys</p>
+            <button class="btn">Go to Dashboard</button>
+        </div>
+
+        <!-- 填写问卷 -->
+        <div class="choice-card respond-card" onclick="window.location.href='/browse'">
+            <div class="icon">💰</div>
+            <h2>Fill Surveys</h2>
+            <p>Earn money by sharing your opinions! Browse available surveys, complete them at your own pace, and get paid for your time.</p>
+            <p class="highlight">Start earning today</p>
+            <button class="btn">Browse Surveys</button>
+        </div>
+    </div>
+
+    <div class="footer-text">
+        <p>Not sure? You can always switch between modes anytime.</p>
+    </div>
+</div>
+
+</body>
+</html>

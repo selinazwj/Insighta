@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Surveys</title>
+</head>
+<body>
+    <h1>📋 My Surveys</h1>
+
+    {% if surveys %}
+        <ul>
+        {% for survey in surveys %}
+            <li>
+                <strong>{{ survey.title }}</strong>
+
+                <!-- 查看链接（filler 也能填） -->
+                <a href="/survey/{{ survey.id }}">View</a>
+
+                <!-- 删除 -->
+                <form action="/publisher/delete-survey/{{ survey.id }}" method="post" style="display:inline;">
+                    <button type="submit">🗑 Delete</button>
+                </form>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>You haven't created any surveys yet.</p>
+    {% endif %}
+
+    <a href="/publisher/dashboard">⬅ Back to Dashboard</a>
+</body>
+</html>
