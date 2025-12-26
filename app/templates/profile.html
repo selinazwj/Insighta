@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile - SurveyBridge</title>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+        font-family: 'Arial', sans-serif;
+        background: linear-gradient(135deg, #4a6cf7, #6a9ff8, #74b9ff);
+        background-size: 300% 300%;
+        animation: bgMove 10s ease infinite;
+        color: white;
+        min-height: 100vh;
+    }
+    @keyframes bgMove {
+        0% {background-position: 0 50%;}
+        50% {background-position: 100% 50%;}
+        100% {background-position: 0 50%;}
+    }
+    nav.navbar {
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(12px);
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    .logo { font-size: 1.6em; font-weight: bold; }
+    .container { max-width: 800px; margin: auto; padding: 20px; }
+    .page-header { margin-bottom: 30px; text-align:center; }
+    .page-header h1 { font-size: 2.2em; margin-bottom: 5px; }
+    .page-header p { font-size: 1em; opacity: 0.85; }
+    .form-card {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        padding: 30px 40px;
+    }
+    .form-group { margin-bottom: 25px; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; }
+    input, select { width: 100%; padding: 14px 18px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.25); color: white; font-size: 1em; }
+    input::placeholder, select option { color: white; }
+    input:focus, select:focus { outline:none; border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.3); }
+    .btn { padding: 16px 32px; border-radius: 12px; border:none; font-size:1.1em; font-weight:bold; cursor:pointer; }
+    .btn-primary { background: white; color: #4a6cf7; width: 100%; }
+    .btn-primary:hover { background:#f0f0f0; transform:translateY(-2px); }
+    @media (max-width:768px){ .form-card{padding:20px;} }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">SurveyBridge</div>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <h1>🧑 My Profile</h1>
+        <p>View and edit your personal information</p>
+    </div>
+
+    <div class="form-card">
+        <form method="post" action="/profile">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Enter your username" value="{{ user.email }}">
+            </div>
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" value="{{ user.email }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Age Range</label>
+                <select name="age_range">
+                    <option value="">Select age range</option>
+                    <option value="18-24" {% if user.age_range=='18-24' %}selected{% endif %}>18-24</option>
+                    <option value="25-34" {% if user.age_range=='25-34' %}selected{% endif %}>25-34</option>
+                    <option value="35-44" {% if user.age_range=='35-44' %}selected{% endif %}>35-44</option>
+                    <option value="45+" {% if user.age_range=='45+' %}selected{% endif %}>45+</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Education Level</label>
+                <select name="education_level">
+                    <option value="">Select education</option>
+                    <option value="Undergraduate" {% if user.education_level=='Undergraduate' %}selected{% endif %}>Undergraduate</option>
+                    <option value="Graduate" {% if user.education_level=='Graduate' %}selected{% endif %}>Graduate</option>
+                    <option value="Other" {% if user.education_level=='Other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Field</label>
+                <input type="text" name="field" value="{{ user.field }}" placeholder="e.g., CS, Econ, Bio">
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status">
+                    <option value="">Select status</option>
+                    <option value="student" {% if user.status=='student' %}selected{% endif %}>Student</option>
+                    <option value="working" {% if user.status=='working' %}selected{% endif %}>Working</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Country</label>
+                <input type="text" name="country" value="{{ user.country }}" placeholder="Your country">
+            </div>
+
+            <div class="form-group">
+                <label>Language</label>
+                <input type="text" name="language" value="{{ user.language }}" placeholder="Your preferred language">
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

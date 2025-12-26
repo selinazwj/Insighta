@@ -23,7 +23,6 @@ body {
     100% { background-position: 0% 50%; }
 }
 
-/* 主界面 */
 .hero-container {
     text-align: center;
     backdrop-filter: blur(3px);
@@ -48,10 +47,13 @@ button.main-btn {
     cursor: pointer;
     color: #4a6cf7;
     font-weight: bold;
+    margin: 0 8px;
+    transition: all 0.2s ease;
 }
 
 button.main-btn:hover {
     background: #f0f0f0;
+    transform: translateY(-2px);
 }
 
 /* 弹窗 */
@@ -142,6 +144,7 @@ input {
     <h1>SurveyBridge</h1>
     <p>Connecting insights and innovation.</p>
     <button class="main-btn" onclick="openLogin()">Login</button>
+    <a href="/register"><button class="main-btn">Register</button></a>
 </div>
 
 <!-- ====== Login Modal ====== -->
@@ -161,40 +164,13 @@ input {
             <input type="password" name="password" required>
             <button type="submit" class="btn-primary">Login</button>
         </form>
-        <p class="switch-text">Don't have an account? <a onclick="switchToRegister()">Register</a></p>
-    </div>
-</div>
-
-<!-- ====== Register Modal ====== -->
-<div id="registerModal" class="modal" style="{% if show == 'register' %}display:flex;{% endif %}">
-    <div class="modal-content">
-        <span class="close" onclick="closeRegister()">&times;</span>
-        <h2>Create Account</h2>
-        {% if show == "register" and error %}
-        <div class="animate-fadeIn" style="background:#f87171;color:white;padding:10px;border-radius:8px;margin-bottom:10px;text-align:center;">
-            {{ error }}
-        </div>
-        {% endif %}
-        <form method="POST" action="/register" class="form-box">
-            <label>Email</label>
-            <input type="email" name="email" required>
-            <label>Password</label>
-            <input type="password" name="password" required>
-            <label>Confirm Password</label>
-            <input type="password" name="confirm" required>
-            <button type="submit" class="btn-primary">Register</button>
-        </form>
-        <p class="switch-text">Already have an account? <a onclick="switchToLogin()">Login</a></p>
+        <p class="switch-text">Don't have an account? <a href="/register">Register</a></p>
     </div>
 </div>
 
 <script>
 function openLogin() { document.getElementById("loginModal").style.display="flex"; }
 function closeLogin() { document.getElementById("loginModal").style.display="none"; }
-function openRegister() { document.getElementById("registerModal").style.display="flex"; }
-function closeRegister() { document.getElementById("registerModal").style.display="none"; }
-function switchToRegister() { closeLogin(); openRegister(); }
-function switchToLogin() { closeRegister(); openLogin(); }
 </script>
 
 </body>

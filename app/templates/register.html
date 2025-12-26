@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Register - SurveyBridge</title>
+<style>
+/* 背景渐变 */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #4a6cf7, #6a9ff8, #74b9ff);
+    background-size: 300% 300%;
+    animation: gradientMove 10s ease infinite;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 注册容器 */
+.register-container {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 40px 30px;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    width: 400px;
+    max-width: 90%;
+    text-align: center;
+}
+
+/* 标题 */
+.register-container h2 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+}
+
+/* 错误提示 */
+.error-box {
+    background: #f87171;
+    color: white;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+/* 表单样式 */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+input, select {
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+}
+
+input::placeholder {
+    color: #555;
+}
+
+/* 按钮 */
+button {
+    background: linear-gradient(135deg, #4A90E2, #157AFF);
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #157AFF, #4A90E2);
+    transform: translateY(-2px);
+}
+
+/* 已有账号 */
+.login-link {
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.login-link a {
+    color: #ffffff;
+    font-weight: bold;
+    text-decoration: underline;
+}
+</style>
+</head>
+<body>
+
+<div class="register-container">
+    <h2>Create Account</h2>
+
+    {% if error %}
+    <div class="error-box">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/register">
+        <input name="email" type="email" required placeholder="Email">
+        <input name="password" type="password" required placeholder="Password">
+        <input name="confirm" type="password" required placeholder="Confirm Password">
+
+        <select name="age_range">
+            <option value="">Age Range (optional)</option>
+            <option>18–24</option>
+            <option>25–34</option>
+            <option>35–44</option>
+            <option>45+</option>
+        </select>
+
+        <select name="education_level">
+            <option value="">Education Level</option>
+            <option>High School</option>
+            <option>Undergraduate</option>
+            <option>Graduate</option>
+            <option>PhD</option>
+        </select>
+
+        <input name="field" placeholder="Field / Major">
+        <select name="status">
+            <option value="">Status</option>
+            <option>Student</option>
+            <option>Employed</option>
+            <option>Freelancer</option>
+            <option>Other</option>
+        </select>
+
+        <input name="country" placeholder="Country">
+        <input name="language" placeholder="Primary Language">
+
+        <button type="submit">Register</button>
+    </form>
+
+    <p class="login-link">
+        Already have an account? <a href="/">Login</a>
+    </p>
+</div>
+
+</body>
+</html>
