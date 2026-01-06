@@ -5,3 +5,4 @@ sqlalchemy
 asyncpg
 python-multipart
 passlib[bcrypt]
+bcrypt==4.2.0
