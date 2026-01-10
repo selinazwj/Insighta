@@ -26,6 +26,8 @@ class User(Base):
 
     # 关系：我发布的 surveys
     surveys = relationship("Survey", back_populates="publisher")
+    responses = relationship("Response", back_populates="participant")
+
 
 
 # ======================
@@ -61,13 +63,30 @@ class Survey(Base):
     current_responses = Column(Integer, default=0)
 
     # ===== 状态 =====
-    status = Column(String, default="active")  # active / paused / completed
+    status = Column(String, default="draft")  # draft / published / closed
+    published_at = Column(DateTime, nullable=True)
+    closed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # 关系
     publisher = relationship("User", back_populates="surveys")
+    responses = relationship("Response", back_populates="survey")
 
-  # 新增 target audience 字段
-    target_age_range = Column(String, nullable=True)
-    target_education = Column(String, nullable=True)
-    target_country = Column(String, nullable=True)
+
+# ======================
+# Response（参与者填写记录）
+# ======================
+class Response(Base):
+    __tablename__ = "responses"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
+    participant_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    status = Column(String, default="started")  # started / completed
+    started_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    survey = relationship("Survey", back_populates="responses")
+    participant = relationship("User", back_populates="responses")
