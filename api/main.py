@@ -3,11 +3,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from sqlalchemy import or_
+from sqlalchemy import or_, func, case
 from pathlib import Path
 
-from app.database import engine, Base, get_db
-from app.models import User, Survey
+from app.database import engine, get_db
+from app.models import Base, User, Survey, Response
 
 
 app = FastAPI()
@@ -147,10 +147,27 @@ def publisher_dashboard(
     db: Session = Depends(get_db)
 ):
     surveys = db.query(Survey).filter(Survey.publisher_id == current_user.id).all()
+    survey_ids = [s.id for s in surveys]
+
+    if not survey_ids:
+        completed_map = {}
+    else:
+        completed_map = dict(
+            db.query(
+                Response.survey_id,
+                func.sum(case((Response.status == "completed", 1), else_=0)).label("completed_cnt"),
+            )
+            .filter(Response.survey_id.in_(survey_ids))
+            .group_by(Response.survey_id)
+            .all()
+        )
+
     return templates.TemplateResponse(
         "publisher.html",
-        {"request": request, "surveys": surveys}
+        {"request": request, "surveys": surveys, "completed_map": completed_map}
     )
+
+
 
 # ---------------------------
 # 删除 survey
@@ -191,9 +208,18 @@ def dashboard(
         or_(Survey.target_language == None, Survey.target_language == current_user.language)
     ).all()
 
+    surveys_data = []
+    for s in surveys:
+        started_cnt = db.query(Response).filter(
+            Response.survey_id == s.id
+        ).count()
 
-    surveys_data = [
-        {
+        completed_cnt = db.query(Response).filter(
+            Response.survey_id == s.id,
+            Response.status == "completed"
+        ).count()
+
+        surveys_data.append({
             "id": s.id,
             "title": s.title,
             "desc": s.description,
@@ -201,16 +227,69 @@ def dashboard(
             "category": s.category,
             "time": f"{s.estimated_time} min",
             "reward": f"${s.reward_amount}",
-            "responses": f"{s.current_responses}/{s.target_responses}",
+            "responses": f"{completed_cnt}/{s.target_responses}",
+            "started": started_cnt,
             "img": "/static/default.jpg"
-        }
-        for s in surveys
-    ]
+        })
 
     return templates.TemplateResponse(
         "dashboard.html",
         {"request": request, "surveys": surveys_data}
     )
+
+
+@app.post("/surveys/{survey_id}/start")
+def start_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    if survey.status != "published":
+        raise HTTPException(400, "Survey not published")
+
+    # 防重复：同一用户同一 survey 只创建一条 started
+    existing = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.participant_id == current_user.id
+    ).first()
+
+    if not existing:
+        db.add(Response(survey_id=survey_id, participant_id=current_user.id, status="started"))
+        db.commit()
+
+    return RedirectResponse(url=survey.form_url, status_code=302)
+
+@app.post("/surveys/{survey_id}/complete")
+def complete_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    if survey.status != "published":
+        raise HTTPException(400, "Survey not published")
+
+    r = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.participant_id == current_user.id
+    ).first()
+
+    if not r:
+        r = Response(survey_id=survey_id, participant_id=current_user.id, status="started")
+        db.add(r)
+
+    if r.status != "completed":
+        r.status = "completed"
+        r.completed_at = datetime.utcnow()
+
+    db.commit()
+    return RedirectResponse(url="/dashboard", status_code=302)
+
 
 # ---------------------------
 # 发布页面
@@ -238,23 +317,68 @@ def publish_survey(
     db: Session = Depends(get_db)
 ):
     survey = Survey(
-        publisher_id=current_user.id,
-        title=title,
-        description=description,
-        form_url=form_url,
-        category=category,
-        estimated_time=estimated_time,
-        reward_amount=reward_amount,
-        target_responses=target_responses,
-        current_responses=0,
-        target_age_range=target_age_range,
-        target_education=target_education,
-        target_country=target_country
+    publisher_id=current_user.id,
+    title=title,
+    description=description,
+    form_url=form_url,
+    category=category,
+    estimated_time=estimated_time,
+    reward_amount=reward_amount,
+    target_responses=target_responses,
+    target_age_range=target_age_range,
+    target_education=target_education,
+    target_country=target_country,
+    status="draft",
+    published_at=None,
+    closed_at=None,
     )
     db.add(survey)
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
 
+from datetime import datetime
+
+@app.post("/surveys/{survey_id}/publish")
+def publish_existing_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    s = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not s:
+        raise HTTPException(404, "Survey not found")
+
+    if s.status != "published":
+        s.status = "published"
+        s.published_at = datetime.utcnow()
+        s.closed_at = None
+
+    db.commit()
+    return RedirectResponse("/publisher", status_code=303)
+
+
+@app.post("/surveys/{survey_id}/close")
+def close_existing_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    s = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not s:
+        raise HTTPException(404, "Survey not found")
+
+    if s.status != "closed":
+        s.status = "closed"
+        s.closed_at = datetime.utcnow()
+
+    db.commit()
+    return RedirectResponse("/publisher", status_code=303)
 
 @app.get("/publisher/edit/{survey_id}")
 def edit_survey_get(request: Request, survey_id: int, db: Session = Depends(get_db)):
