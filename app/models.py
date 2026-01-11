@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey,func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -84,9 +84,9 @@ class Response(Base):
     survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
     participant_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    status = Column(String, default="started")  # started / completed
-    started_at = Column(DateTime, default=datetime.utcnow)
-    completed_at = Column(DateTime, nullable=True)
+    status = Column(String, default="started")
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
 
     survey = relationship("Survey", back_populates="responses")
     participant = relationship("User", back_populates="responses")
