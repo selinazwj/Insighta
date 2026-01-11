@@ -1,181 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>My Surveys - SurveyBridge</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<nav class="navbar">
-    <div class="navbar-left">
+  <head>
+    <meta charset="UTF-8" />
+    <title>My Surveys - SurveyBridge</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <nav class="navbar">
+      <div class="navbar-left">
         <a href="/choice" class="back-btn">
-            <span>←</span>
-            <span>Back</span>
+          <span>←</span>
+          <span>Back</span>
         </a>
         <div class="logo">SurveyBridge</div>
-    </div>
-</nav>
+      </div>
+    </nav>
 
-<style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #4a6cf7, #74b9ff);
-    min-height: 100vh;
-    color: white;
-}
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #4a6cf7, #74b9ff);
+        min-height: 100vh;
+        color: white;
+      }
 
-.navbar {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
+      .navbar {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
 
-.navbar-left {
-    display: flex;
-    align-items: center;
-    gap: 25px;
-}
+      .navbar-left {
+        display: flex;
+        align-items: center;
+        gap: 25px;
+      }
 
-.back-btn {
-    color: white;
-    text-decoration: none;
-    font-weight: 600;
-    padding: 10px 20px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-}
+      .back-btn {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 10px 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+      }
 
-.back-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateX(-3px);
-}
+      .back-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateX(-3px);
+      }
 
-.logo {
-    font-size: 1.6em;
-    font-weight: bold;
-}
+      .logo {
+        font-size: 1.6em;
+        font-weight: bold;
+      }
 
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+      }
 
-.container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
-}
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-}
+      .header h1 {
+        margin: 0;
+      }
 
-.header h1 {
-    margin: 0;
-}
+      .create-btn {
+        padding: 12px 22px;
+        background: white;
+        color: #4a6cf7;
+        border-radius: 10px;
+        font-weight: bold;
+        text-decoration: none;
+      }
 
-.create-btn {
-    padding: 12px 22px;
-    background: white;
-    color: #4a6cf7;
-    border-radius: 10px;
-    font-weight: bold;
-    text-decoration: none;
-}
+      .card {
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
 
-.card {
-    background: rgba(255,255,255,0.18);
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 20px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.3);
-}
+      .card h3 {
+        margin-top: 0;
+      }
 
-.card h3 {
-    margin-top: 0;
-}
+      .meta {
+        opacity: 0.85;
+        font-size: 0.9em;
+        margin-bottom: 10px;
+      }
 
-.meta {
-    opacity: 0.85;
-    font-size: 0.9em;
-    margin-bottom: 10px;
-}
+      .actions {
+        display: flex;
+        gap: 15px;
+      }
 
-.actions {
-    display: flex;
-    gap: 15px;
-}
+      .delete-btn {
+        background: #ff6b6b;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+      }
 
-.delete-btn {
-    background: #ff6b6b;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 8px;
-    color: white;
-    cursor: pointer;
-}
+      .delete-btn:hover {
+        background: #ff5252;
+      }
 
-.delete-btn:hover {
-    background: #ff5252;
-}
-.edit-btn {
-    color: white;
-    text-decoration: none;
-    font-weight: 600;
-    padding: 8px 16px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-.edit-btn:hover {
-    background: rgba(255,255,255,0.3);
-    transform: translateY(-2px);
-}
+      .edit-btn {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        border: 2px solid black;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
 
-</style>
-</head>
+      .edit-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+      }
 
-<body>
+      .status-badge {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.8em;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+      }
 
-<div class="navbar">SurveyBridge · Publisher</div>
+      .status-draft {
+        opacity: 0.85;
+      }
+      .status-published {
+        opacity: 1;
+      }
+      .status-closed {
+        opacity: 0.7;
+      }
+      .disabled-btn {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+      .progress-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 10px 0 14px;
+      }
 
-<div class="container">
-    <div class="header">
+      .progress-bar {
+        flex: 1;
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.25);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+      }
+
+      .progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.7);
+      }
+
+      .progress-text {
+        min-width: 64px;
+        text-align: right;
+        font-size: 0.9em;
+        opacity: 0.9;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">SurveyBridge · Publisher</div>
+
+    <div class="container">
+      <div class="header">
         <h1>My Surveys</h1>
         <a href="/publish" class="create-btn">+ New Survey</a>
-    </div>
+      </div>
 
-    {% if surveys|length == 0 %}
-        <p>You haven’t published any surveys yet.</p>
-    {% endif %}
+      {% if surveys|length == 0 %}
+      <p>You haven't published any surveys yet.</p>
+      {% endif %} {% for s in surveys %}
+      <div class="card">
+        <h3>
+          {{ s.title }}
+          <span class="status-badge status-{{ s.status }}">{{ s.status }}</span>
+        </h3>
+        <p>Category: {{ s.category }} · Reward: ${{ s.reward_amount }}</p>
+        {% set completed = completed_map.get(s.id, 0) %} {% set target =
+        s.target_responses or 0 %} {% set pct = (completed * 100 // target) if
+        target > 0 else 0 %}
 
-    {% for s in surveys %}
-    <div class="card">
-        <h3>{{ s.title }}</h3>
-        <div class="meta">
-            Category: {{ s.category }} · Reward: ${{ s.reward_amount }}
+        <div class="progress-row">
+          <div class="progress-bar">
+            <div class="progress-fill" data-pct="{{ pct }}"></div>
+          </div>
+          <div class="progress-text">{{ completed }}/{{ target }}</div>
         </div>
 
-        <div class="actions">
-            <form method="post" action="/publisher/delete/{{ s.id }}">
-                <button class="delete-btn">Delete</button>
-            </form>
-            <a href="/publisher/edit/{{ s.id }}" class="edit-btn">Edit</a>
-        </div>
-    </div>
-    {% endfor %}
-</div>
+        {% if s.status == "draft" %}
+        <form
+          method="post"
+          action="/surveys/{{ s.id }}/publish"
+          style="display: inline"
+        >
+          <button class="edit-btn">Publish</button>
+        </form>
+        {% else %}
+        <button class="edit-btn disabled-btn">Publish</button>
+        {% endif %} {% if s.status == "published" %}
+        <form
+          method="post"
+          action="/surveys/{{ s.id }}/close"
+          style="display: inline"
+        >
+          <button class="edit-btn">Close</button>
+        </form>
+        {% else %}
+        <button class="edit-btn disabled-btn">Close</button>
+        {% endif %}
 
-</body>
+        <form
+          method="get"
+          action="/publisher/edit/{{ s.id }}"
+          style="display: inline"
+        >
+          <button class="edit-btn">Edit</button>
+        </form>
+
+        <form
+          method="post"
+          action="/publisher/delete/{{ s.id }}"
+          style="display: inline"
+        >
+          <button class="delete-btn">Delete</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    <script>
+      document.querySelectorAll(".progress-fill").forEach((el) => {
+        const pct = Number(el.dataset.pct || 0);
+        el.style.width = pct + "%";
+      });
+    </script>
+  </body>
 </html>
