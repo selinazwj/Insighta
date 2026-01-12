@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SQLALCHEMY_DATABASE_URL = os.environ["DATABASE_URL"]
+DATABASE_URL = os.environ["DATABASE_URL"]  # ✅ 定义 DATABASE_URL
 
 engine = create_engine(DATABASE_URL, connect_args={"sslmode": "require"})
 
