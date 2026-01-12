@@ -6,3 +6,4 @@ asyncpg
 python-multipart
 passlib[bcrypt]
 bcrypt==4.2.0
+python-dotenv
