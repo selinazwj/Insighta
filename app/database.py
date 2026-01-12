@@ -7,7 +7,7 @@ load_dotenv()
 
 SQLALCHEMY_DATABASE_URL = os.environ["DATABASE_URL"]
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(DATABASE_URL, connect_args={"sslmode": "require"})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
