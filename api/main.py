@@ -215,12 +215,13 @@ def dashboard(
     db: Session = Depends(get_db)
 ):
     surveys = db.query(Survey).filter(
-        or_(Survey.target_age_range == None, Survey.target_age_range == current_user.age_range),
-        or_(Survey.target_education == None, Survey.target_education == current_user.education_level),
-        or_(Survey.target_field == None, Survey.target_field == current_user.field),
-        or_(Survey.target_status == None, Survey.target_status == current_user.status),
-        or_(Survey.target_country == None, Survey.target_country == current_user.country),
-        or_(Survey.target_language == None, Survey.target_language == current_user.language)
+        Survey.status == "published",
+        or_(Survey.target_age_range == None, Survey.target_age_range == '', Survey.target_age_range == current_user.age_range),
+        or_(Survey.target_education == None, Survey.target_education == '', Survey.target_education == current_user.education_level),
+        or_(Survey.target_field == None, Survey.target_field == '', Survey.target_field == current_user.field),
+        or_(Survey.target_status == None, Survey.target_status == '', Survey.target_status == current_user.status),
+        or_(Survey.target_country == None, Survey.target_country == '', Survey.target_country == current_user.country),
+        or_(Survey.target_language == None, Survey.target_language == '', Survey.target_language == current_user.language)
     ).all()
 
     surveys_data = []
@@ -234,6 +235,22 @@ def dashboard(
             Response.status == "completed"
         ).count()
 
+        user_response = db.query(Response).filter(
+            Response.survey_id == s.id,
+            Response.participant_id == current_user.id
+        ).first()
+        
+        is_completed = user_response and user_response.status == "completed"
+
+        category_images = {
+            "research": "/static/psych.jpg",
+            "life": "/static/campus_life.jpg",
+            "clubs": "/static/fb.jpg",
+            "market": "/static/habit.png",
+            "academic": "/static/r2.jpg",
+            "other": "/static/food.jpeg"
+        }
+        
         surveys_data.append({
             "id": s.id,
             "title": s.title,
@@ -244,12 +261,40 @@ def dashboard(
             "reward": f"${s.reward_amount}",
             "responses": f"{completed_cnt}/{s.target_responses}",
             "started": started_cnt,
-            "img": "/static/default.jpg"
+            "img": category_images.get(s.category, "/static/psych.jpg"),
+            "is_completed": is_completed
         })
 
+    from datetime import datetime, timedelta
+    
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    completed_today = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed",
+        Response.completed_at >= today_start
+    ).count()
+    
+    completed_responses = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed"
+    ).all()
+    
+    total_earned = 0.0
+    for resp in completed_responses:
+        survey = db.query(Survey).filter(Survey.id == resp.survey_id).first()
+        if survey:
+            total_earned += survey.reward_amount
+    
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "surveys": surveys_data}
+        {
+            "request": request,
+            "surveys": surveys_data,
+            "completed_today": completed_today,
+            "total_earned": total_earned,
+            "available_surveys": len(surveys_data)
+        }
     )
 
 
@@ -275,7 +320,7 @@ def start_survey(
         db.add(Response(survey_id=survey_id, participant_id=current_user.id, status="started"))
         db.commit()
 
-    return RedirectResponse(url=survey.form_url, status_code=302)
+    return {"message": "Survey started successfully"}
 
 @app.post("/surveys/{survey_id}/complete")
 def complete_survey(
@@ -327,7 +372,10 @@ def publish_survey(
     target_responses: int = Form(...),
     target_age_range: str = Form(None),
     target_education: str = Form(None),
+    target_field: str = Form(None),
+    target_status: str = Form(None),
     target_country: str = Form(None),
+    target_language: str = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -340,9 +388,12 @@ def publish_survey(
     estimated_time=estimated_time,
     reward_amount=reward_amount,
     target_responses=target_responses,
-    target_age_range=target_age_range,
-    target_education=target_education,
-    target_country=target_country,
+    target_age_range=target_age_range or '',
+    target_education=target_education or '',
+    target_field=target_field or '',
+    target_status=target_status or '',
+    target_country=target_country or '',
+    target_language=target_language or '',
     status="draft",
     published_at=None,
     closed_at=None,

@@ -230,6 +230,31 @@
         text-decoration: none;
         color: white;
         overflow: hidden;
+        position: relative;
+      }
+
+      .card.completed {
+        opacity: 0.6;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .card.completed .card-image {
+        filter: grayscale(50%);
+      }
+
+      .completed-badge {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.85em;
+        display: flex;
+        align-items: center;
+        gap: 5px;
       }
 
       .card:hover {
@@ -391,6 +416,51 @@
         background: rgba(255, 255, 255, 0.28);
         transform: translateY(-1px);
       }
+
+      .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        opacity: 0.9;
+      }
+
+      .empty-state-icon {
+        font-size: 5em;
+        margin-bottom: 20px;
+      }
+
+      .empty-state h3 {
+        font-size: 1.8em;
+        margin-bottom: 10px;
+      }
+
+      .empty-state p {
+        font-size: 1.1em;
+        opacity: 0.8;
+      }
+
+      .loading-state {
+        text-align: center;
+        padding: 80px 20px;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        margin: 0 auto 20px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .loading-state p {
+        font-size: 1.2em;
+        opacity: 0.9;
+      }
     </style>
   </head>
 
@@ -424,15 +494,15 @@
       <div class="stats-row">
         <div class="stat-card">
           <div class="label">Completed Today</div>
-          <div class="value">3</div>
+          <div class="value">{{ completed_today }}</div>
         </div>
         <div class="stat-card">
           <div class="label">Total Earned</div>
-          <div class="value">$25.50</div>
+          <div class="value">${{ "%.2f"|format(total_earned) }}</div>
         </div>
         <div class="stat-card">
           <div class="label">Available Surveys</div>
-          <div class="value">12</div>
+          <div class="value">{{ available_surveys }}</div>
         </div>
       </div>
 
@@ -441,6 +511,9 @@
         <div class="tab active" onclick="switchTab('research')">Research</div>
         <div class="tab" onclick="switchTab('life')">Lifestyle</div>
         <div class="tab" onclick="switchTab('clubs')">Clubs</div>
+        <div class="tab" onclick="switchTab('market')">Market</div>
+        <div class="tab" onclick="switchTab('academic')">Academic</div>
+        <div class="tab" onclick="switchTab('other')">Other</div>
       </div>
 
       <!-- Cards container -->
@@ -448,50 +521,92 @@
     </div>
 
     <script>
-      // Survey data with rewards
-      const surveysFromDB = JSON.parse("{{ surveys | tojson | safe }}");
+      const surveysFromDB = {{ surveys | tojson | safe }};
 
-      // 按类别分组
       const surveys = {
         research: surveysFromDB.filter((s) => s.category === "research"),
         life: surveysFromDB.filter((s) => s.category === "life"),
         clubs: surveysFromDB.filter((s) => s.category === "clubs"),
+        market: surveysFromDB.filter((s) => s.category === "market"),
+        academic: surveysFromDB.filter((s) => s.category === "academic"),
+        other: surveysFromDB.filter((s) => s.category === "other"),
       };
 
-      // Load default tab
-      loadSurveys("research");
+      showLoading();
+      setTimeout(() => {
+        loadSurveys("research");
+      }, 500);
+
+      function showLoading() {
+        const container = document.getElementById("cardsContainer");
+        container.innerHTML = `
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading surveys...</p>
+          </div>
+        `;
+      }
+
+      function showEmptyState(category) {
+        const container = document.getElementById("cardsContainer");
+        const categoryNames = {
+          research: "Research",
+          life: "Lifestyle", 
+          clubs: "Clubs & Events",
+          market: "Market Research",
+          academic: "Academic",
+          other: "Other"
+        };
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <h3>No ${categoryNames[category]} Surveys Available</h3>
+            <p>Check back later for new opportunities!</p>
+          </div>
+        `;
+      }
 
       function loadSurveys(category) {
         const container = document.getElementById("cardsContainer");
+        
+        if (surveys[category].length === 0) {
+          showEmptyState(category);
+          return;
+        }
+
         container.innerHTML = "";
 
         surveys[category].forEach((s) => {
+          const completedClass = s.is_completed ? 'completed' : '';
+          const completedBadge = s.is_completed ? '<div class="completed-badge">✓ Completed</div>' : '';
+          const startBtnDisabled = s.is_completed ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
+          const completeBtnDisabled = s.is_completed ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
+          
           container.innerHTML += `
-                          <div class="card">
-                <img src="${s.img}" class="card-image" alt="${s.title}">
-                <div class="card-content">
-                    <div>
-                        <div class="card-header">
-                            <h3>${s.title}</h3>
-                            <div class="reward-badge">${s.reward}</div>
-                        </div>
-                        <p>${s.desc}</p>
-                    </div>
-
-                    <div class="card-footer">
-                        <div class="card-meta">
-                            <div class="meta-item">⏱️ ${s.time}</div>
-                            <div class="meta-item">👥 ${s.responses}</div>
-                        </div>
-
-                        <div class="card-actions">
-                            <button class="action-btn" onclick="startSurvey(event, ${s.id}, '${s.link}')">Start</button>
-                            <button class="action-btn" onclick="completeSurvey(event, ${s.id})">I Completed</button>
-                        </div>
-                    </div>
+            <div class="card ${completedClass}">
+              ${completedBadge}
+              <img src="${s.img}" class="card-image" alt="${s.title}">
+              <div class="card-content">
+                <div>
+                  <div class="card-header">
+                    <h3>${s.title}</h3>
+                    <div class="reward-badge">${s.reward}</div>
+                  </div>
+                  <p>${s.desc}</p>
                 </div>
+                <div class="card-footer">
+                  <div class="card-meta">
+                    <div class="meta-item">⏱️ ${s.time}</div>
+                    <div class="meta-item">👥 ${s.responses}</div>
+                  </div>
+                  <div class="card-actions">
+                    <button class="action-btn" ${startBtnDisabled} onclick="startSurvey(event, ${s.id}, '${s.link}')">Start</button>
+                    <button class="action-btn" ${completeBtnDisabled} onclick="completeSurvey(event, ${s.id})">I Completed</button>
+                  </div>
+                </div>
+              </div>
             </div>
-                      `;
+          `;
         });
       }
 
