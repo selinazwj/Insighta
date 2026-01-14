@@ -56,6 +56,7 @@ class Survey(Base):
 
     category = Column(String, nullable=False)        # research / life / clubs
     estimated_time = Column(Integer, nullable=False) # minutes
+    image_url = Column(String, nullable=True)        # custom image
 
     # ===== 奖励与进度 =====
     reward_amount = Column(Float, nullable=False)

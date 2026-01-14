@@ -59,7 +59,7 @@
         </div>
 
         <div class="form-card">
-            <form method="POST" action="/publisher/edit/{{ survey.id }}">
+            <form method="POST" action="/publisher/edit/{{ survey.id }}" enctype="multipart/form-data">
                 <div class="form-group">
                     <label>Survey Title</label>
                     <input type="text" name="title" value="{{ survey.title }}" required>
@@ -99,54 +99,106 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label>Survey Cover Image (Optional)</label>
+                    <div style="position: relative;">
+                        <input type="file" id="coverImageInput" name="cover_image" accept="image/*" style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 16px; background: white;">
+                        <span id="imagePreview" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #4CAF50; font-size: 24px; pointer-events: none;">✓</span>
+                    </div>
+                    <small style="color: #666; font-size: 14px;">Upload a new cover image (or leave empty to keep current)</small>
+                    {% if survey.image_url %}
+                    <div style="margin-top: 10px; padding: 12px; background: #f5f5f5; border-radius: 8px; border: 1px solid #ddd;">
+                        <span style="color: #666; font-weight: 600;">Current: </span>
+                        <span style="color: #666;">{{ survey.image_url.split('/')[-1] }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="info-box">
+                    <strong>Current Progress</strong>
+                    Completed: {{ survey.current_responses }} / {{ survey.target_responses }} responses
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Reward per Response</label>
                         <input type="number" name="reward_amount" value="{{ survey.reward_amount }}" step="0.5" min="1" required>
                     </div>
                     <div class="form-group">
-                        <label>Target Responses</label>
-                        <input type="number" name="target_responses" value="{{ survey.target_responses }}" min="1" required>
+                        <label>Additional Responses Needed</label>
+                        <input type="number" id="additionalNeeded" name="additional_needed" value="{{ survey.target_responses - survey.current_responses }}" min="0" required>
+                        <small style="color: #666; font-size: 14px;">How many more responses do you still need?</small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Target Age Range</label>
-                        <input type="text" name="target_age_range" value="{{ survey.target_age_range }}">
+                        <label>Age Range</label>
+                        <select name="target_age_range">
+                            <option value="" {% if not survey.target_age_range %}selected{% endif %}>All</option>
+                            <option value="18-24" {% if survey.target_age_range=='18-24' %}selected{% endif %}>18-24</option>
+                            <option value="25-34" {% if survey.target_age_range=='25-34' %}selected{% endif %}>25-34</option>
+                            <option value="35-50" {% if survey.target_age_range=='35-50' %}selected{% endif %}>35-50</option>
+                            <option value="50+" {% if survey.target_age_range=='50+' %}selected{% endif %}>50+</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label>Target Education</label>
-                        <input type="text" name="target_education" value="{{ survey.target_education }}">
+                        <label>Education Level</label>
+                        <select name="target_education">
+                            <option value="" {% if not survey.target_education %}selected{% endif %}>All</option>
+                            <option value="Undergraduate" {% if survey.target_education=='Undergraduate' %}selected{% endif %}>Undergraduate</option>
+                            <option value="Graduate" {% if survey.target_education=='Graduate' %}selected{% endif %}>Graduate</option>
+                            <option value="PhD" {% if survey.target_education=='PhD' %}selected{% endif %}>PhD</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Target Field</label>
-                        <input type="text" name="target_field" value="{{ survey.target_field }}">
+                        <label>Field</label>
+                        <select name="target_field">
+                            <option value="" {% if not survey.target_field %}selected{% endif %}>All</option>
+                            <option value="CS" {% if survey.target_field=='CS' %}selected{% endif %}>CS</option>
+                            <option value="Econ" {% if survey.target_field=='Econ' %}selected{% endif %}>Econ</option>
+                            <option value="Bio" {% if survey.target_field=='Bio' %}selected{% endif %}>Bio</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label>Target Status</label>
-                        <input type="text" name="target_status" value="{{ survey.target_status }}">
+                        <label>Status</label>
+                        <select name="target_status">
+                            <option value="" {% if not survey.target_status %}selected{% endif %}>All</option>
+                            <option value="student" {% if survey.target_status=='student' %}selected{% endif %}>Student</option>
+                            <option value="working" {% if survey.target_status=='working' %}selected{% endif %}>Working</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Target Country</label>
-                        <input type="text" name="target_country" value="{{ survey.target_country }}">
+                        <label>Country</label>
+                        <input type="text" name="target_country" value="{{ survey.target_country }}" placeholder="e.g., USA, China">
                     </div>
                     <div class="form-group">
-                        <label>Target Language</label>
-                        <input type="text" name="target_language" value="{{ survey.target_language }}">
+                        <label>Language</label>
+                        <input type="text" name="target_language" value="{{ survey.target_language }}" placeholder="e.g., English, Chinese">
                     </div>
                 </div>
 
                 <div class="submit-section">
-                    <button type="submit" class="btn btn-primary">Update Survey</button>
                     <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Survey</button>
                 </div>
             </form>
         </div>
     </div>
+
+<script>
+    document.getElementById('coverImageInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('imagePreview').style.display = 'inline';
+        } else {
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+    });
+</script>
 </body>
 </html>

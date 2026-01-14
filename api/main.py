@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie
+from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from sqlalchemy import or_, func, case
 from pathlib import Path
+import shutil
+import uuid
 
 from app.database import engine, get_db
 from app.models import Base, User, Survey, Response
@@ -244,7 +246,14 @@ def dashboard(
             "reward": f"${s.reward_amount}",
             "responses": f"{completed_cnt}/{s.target_responses}",
             "started": started_cnt,
-            "img": "/static/default.jpg"
+            "img": s.image_url if s.image_url else {
+                "research": "/static/psych.jpg",
+                "life": "/static/campus_life.jpg",
+                "clubs": "/static/fb.jpg",
+                "market": "/static/habit.png",
+                "academic": "/static/r2.jpg",
+                "other": "/static/food.jpeg"
+            }.get(s.category, "/static/psych.jpg")
         })
 
     return templates.TemplateResponse(
@@ -317,7 +326,7 @@ def publish_page(request: Request):
 # 发布 survey
 # ---------------------------
 @app.post("/publish")
-def publish_survey(
+async def publish_survey(
     title: str = Form(...),
     description: str = Form(...),
     form_url: str = Form(...),
@@ -327,25 +336,47 @@ def publish_survey(
     target_responses: int = Form(...),
     target_age_range: str = Form(None),
     target_education: str = Form(None),
+    target_field: str = Form(None),
+    target_status: str = Form(None),
     target_country: str = Form(None),
+    target_language: str = Form(None),
+    cover_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    image_url = None
+    if cover_image and cover_image.filename:
+        uploads_dir = Path("app/static/uploads")
+        uploads_dir.mkdir(exist_ok=True)
+        
+        file_extension = Path(cover_image.filename).suffix
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = uploads_dir / unique_filename
+        
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(cover_image.file, buffer)
+        
+        image_url = f"/static/uploads/{unique_filename}"
+    
     survey = Survey(
-    publisher_id=current_user.id,
-    title=title,
-    description=description,
-    form_url=form_url,
-    category=category,
-    estimated_time=estimated_time,
-    reward_amount=reward_amount,
-    target_responses=target_responses,
-    target_age_range=target_age_range,
-    target_education=target_education,
-    target_country=target_country,
-    status="draft",
-    published_at=None,
-    closed_at=None,
+        publisher_id=current_user.id,
+        title=title,
+        description=description,
+        form_url=form_url,
+        category=category,
+        estimated_time=estimated_time,
+        reward_amount=reward_amount,
+        target_responses=target_responses,
+        target_age_range=target_age_range or '',
+        target_education=target_education or '',
+        target_field=target_field or '',
+        target_status=target_status or '',
+        target_country=target_country or '',
+        target_language=target_language or '',
+        image_url=image_url,
+        status="draft",
+        published_at=None,
+        closed_at=None,
     )
     db.add(survey)
     db.commit()
@@ -395,13 +426,38 @@ def close_existing_survey(
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
 
+@app.post("/surveys/{survey_id}/reopen")
+def reopen_closed_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    s = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not s:
+        raise HTTPException(404, "Survey not found")
+
+    if s.status == "closed":
+        s.status = "published"
+        s.closed_at = None
+
+    db.commit()
+    return RedirectResponse("/publisher", status_code=303)
+
 @app.get("/publisher/edit/{survey_id}")
 def edit_survey_get(request: Request, survey_id: int, db: Session = Depends(get_db)):
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    current_responses = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed"
+    ).count()
+    survey.current_responses = current_responses
     return templates.TemplateResponse("edit_publish.html", {"request": request, "survey": survey})
 
 @app.post("/publisher/edit/{survey_id}")
-def edit_survey_post(
+async def edit_survey_post(
     request: Request,
     survey_id: int,
     title: str = Form(...),
@@ -410,30 +466,50 @@ def edit_survey_post(
     category: str = Form(...),
     estimated_time: int = Form(...),
     reward_amount: float = Form(...),
-    target_responses: int = Form(...),
+    additional_needed: int = Form(...),
     target_age_range: str = Form(None),
     target_education: str = Form(None),
     target_field: str = Form(None),
     target_status: str = Form(None),
     target_country: str = Form(None),
     target_language: str = Form(None),
+    cover_image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if survey:
+        current_responses = db.query(Response).filter(
+            Response.survey_id == survey_id,
+            Response.status == "completed"
+        ).count()
+        
         survey.title = title
         survey.description = description
         survey.form_url = form_url
         survey.category = category
         survey.estimated_time = estimated_time
         survey.reward_amount = reward_amount
-        survey.target_responses = target_responses
-        survey.target_age_range = target_age_range
-        survey.target_education = target_education
-        survey.target_field = target_field
-        survey.target_status = target_status
-        survey.target_country = target_country
-        survey.target_language = target_language
+        survey.target_responses = current_responses + additional_needed
+        survey.target_age_range = target_age_range or ''
+        survey.target_education = target_education or ''
+        survey.target_field = target_field or ''
+        survey.target_status = target_status or ''
+        survey.target_country = target_country or ''
+        survey.target_language = target_language or ''
+        
+        if cover_image and cover_image.filename:
+            uploads_dir = Path("app/static/uploads")
+            uploads_dir.mkdir(exist_ok=True)
+            
+            file_extension = Path(cover_image.filename).suffix
+            unique_filename = f"{uuid.uuid4()}{file_extension}"
+            file_path = uploads_dir / unique_filename
+            
+            with file_path.open("wb") as buffer:
+                shutil.copyfileobj(cover_image.file, buffer)
+            
+            survey.image_url = f"/static/uploads/{unique_filename}"
+        
         db.commit()
     return RedirectResponse("/publisher", status_code=303)
 

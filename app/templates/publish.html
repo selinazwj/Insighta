@@ -374,7 +374,7 @@
 
         <!-- 表单卡片 -->
         <div class="form-card">
-            <form id="publishForm" method="POST" action="/publish">
+            <form id="publishForm" method="POST" action="/publish" enctype="multipart/form-data">
                 
                 <!-- 基本信息 -->
                 <div class="info-box">
@@ -423,6 +423,17 @@
                             <option value="academic">📚 Academic</option>
                             <option value="other">🔷 Other</option>
                         </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Survey Cover Image (Optional)
+                        </label>
+                        <div style="position: relative;">
+                            <input type="file" id="coverImageInput" name="cover_image" accept="image/*" style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 16px; background: white;">
+                            <span id="imagePreview" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #4CAF50; font-size: 24px; pointer-events: none;">✓</span>
+                        </div>
+                        <small style="color: #666; font-size: 14px;">Upload a custom cover image for your survey (JPG, PNG, or leave empty for default)</small>
                     </div>
 
                     <div class="form-group">
@@ -559,15 +570,21 @@
     rewardInput.addEventListener('input', updateBudget);
     targetInput.addEventListener('input', updateBudget);
 
-    // 表单提交处理
+    document.getElementById('coverImageInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('imagePreview').style.display = 'inline';
+        } else {
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+    });
+
     document.getElementById('publishForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // 显示成功消息
         const successMsg = document.getElementById('successMessage');
         successMsg.style.display = 'block';
         
-        // 模拟提交（实际会提交到后端）
         setTimeout(() => {
             this.submit();
         }, 1500);

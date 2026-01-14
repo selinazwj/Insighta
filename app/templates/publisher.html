@@ -253,13 +253,21 @@
         </form>
         {% else %}
         <button class="edit-btn disabled-btn">Publish</button>
-        {% endif %} {% if s.status == "published" %}
+        {% endif %}         {% if s.status == "published" %}
         <form
           method="post"
           action="/surveys/{{ s.id }}/close"
           style="display: inline"
         >
           <button class="edit-btn">Close</button>
+        </form>
+        {% elif s.status == "closed" %}
+        <form
+          method="post"
+          action="/surveys/{{ s.id }}/reopen"
+          style="display: inline"
+        >
+          <button class="edit-btn" style="background: #4CAF50;">Reopen</button>
         </form>
         {% else %}
         <button class="edit-btn disabled-btn">Close</button>
