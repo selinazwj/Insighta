@@ -122,7 +122,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Reward per Response</label>
-                        <input type="number" name="reward_amount" value="{{ survey.reward_amount }}" step="0.5" min="1" required>
+                        <input type="number" id="rewardAmount" name="reward_amount" value="{{ "%.2f"|format(survey.reward_amount) }}" step="0.5" min="1" required>
                     </div>
                     <div class="form-group">
                         <label>Additional Responses Needed</label>
@@ -199,6 +199,20 @@
             document.getElementById('imagePreview').style.display = 'none';
         }
     });
+
+    const rewardInput = document.getElementById('rewardAmount');
+    if (rewardInput) {
+        rewardInput.addEventListener('input', function() {
+            const cursorPos = this.selectionStart;
+            const oldLength = this.value.length;
+            if (this.value && !isNaN(this.value)) {
+                this.value = parseFloat(this.value).toFixed(2);
+                const newLength = this.value.length;
+                const newCursorPos = cursorPos + (newLength - oldLength);
+                this.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        });
+    }
 </script>
 </body>
 </html>
