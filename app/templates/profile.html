@@ -28,7 +28,23 @@
         align-items: center;
         margin-bottom: 30px;
     }
+    .nav-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .back-link {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        opacity: 0.9;
+    }
+    .back-link:hover {
+        opacity: 1;
+        text-decoration: underline;
+    }
     .logo { font-size: 1.6em; font-weight: bold; }
+
     .container { max-width: 800px; margin: auto; padding: 20px; }
     .page-header { margin-bottom: 30px; text-align:center; }
     .page-header h1 { font-size: 2.2em; margin-bottom: 5px; }
@@ -42,19 +58,51 @@
     }
     .form-group { margin-bottom: 25px; }
     label { display: block; font-weight: 600; margin-bottom: 8px; }
-    input, select { width: 100%; padding: 14px 18px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.25); color: white; font-size: 1em; }
-    input::placeholder, select option { color: white; }
-    input:focus, select:focus { outline:none; border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.3); }
-    .btn { padding: 16px 32px; border-radius: 12px; border:none; font-size:1.1em; font-weight:bold; cursor:pointer; }
-    .btn-primary { background: white; color: #4a6cf7; width: 100%; }
-    .btn-primary:hover { background:#f0f0f0; transform:translateY(-2px); }
-    @media (max-width:768px){ .form-card{padding:20px;} }
+    input, select {
+        width: 100%;
+        padding: 14px 18px;
+        border-radius: 12px;
+        border: 2px solid rgba(255,255,255,0.3);
+        background: rgba(255,255,255,0.25);
+        color: white;
+        font-size: 1em;
+    }
+    input::placeholder { color: rgba(255,255,255,0.9); }
+    input:focus, select:focus {
+        outline:none;
+        border-color: rgba(255,255,255,0.6);
+        background: rgba(255,255,255,0.3);
+    }
+    .btn {
+        padding: 16px 32px;
+        border-radius: 12px;
+        border:none;
+        font-size:1.1em;
+        font-weight:bold;
+        cursor:pointer;
+    }
+    .btn-primary {
+        background: white;
+        color: #4a6cf7;
+        width: 100%;
+    }
+    .btn-primary:hover {
+        background:#f0f0f0;
+        transform:translateY(-2px);
+    }
+    @media (max-width:768px){
+        .form-card{padding:20px;}
+    }
 </style>
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="logo">SurveyBridge</div>
+    <div class="nav-left">
+        <!-- ✅ 返回上一个页面 -->
+        <a href="{{ prev_url }}" class="back-link">⬅ Back</a>
+        <div class="logo">SurveyBridge</div>
+    </div>
 </nav>
 
 <div class="container">
@@ -65,9 +113,12 @@
 
     <div class="form-card">
         <form method="post" action="/profile">
+
             <div class="form-group">
                 <label>Username</label>
-                <input type="text" name="username" placeholder="Enter your username" value="{{ user.username or '' }}">
+                <input type="text" name="username"
+                       placeholder="Enter your username"
+                       value="{{ user.username or '' }}">
             </div>
 
             <div class="form-group">
@@ -98,7 +149,7 @@
 
             <div class="form-group">
                 <label>Field</label>
-                <input type="text" name="field" value="{{ user.field }}" placeholder="e.g., CS, Econ, Bio">
+                <input type="text" name="field" value="{{ user.field or '' }}" placeholder="e.g., CS, Econ, Bio">
             </div>
 
             <div class="form-group">
@@ -112,12 +163,12 @@
 
             <div class="form-group">
                 <label>Country</label>
-                <input type="text" name="country" value="{{ user.country }}" placeholder="Your country">
+                <input type="text" name="country" value="{{ user.country or '' }}">
             </div>
 
             <div class="form-group">
                 <label>Language</label>
-                <input type="text" name="language" value="{{ user.language }}" placeholder="Your preferred language">
+                <input type="text" name="language" value="{{ user.language or '' }}">
             </div>
 
             <button type="submit" class="btn btn-primary">Save Changes</button>
