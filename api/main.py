@@ -34,21 +34,29 @@ def index(request: Request):
 # ---------------------------
 # 登录
 # ---------------------------
+from fastapi import Request
+
 @app.post("/login")
 def login(
+    request: Request,              # 👈 必须加
     email: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.email == email).first()
+
     if not user or not pwd_context.verify(password, user.password):
         return templates.TemplateResponse(
             "index.html",
-            {"request": {}, "show": "login", "error": "Invalid email or password"}
+            {
+                "request": request,  # 👈 必须是真实 request
+                "show": "login",
+                "error": "Invalid email or password"
+            }
         )
 
     response = RedirectResponse("/choice", status_code=303)
-    response.set_cookie("user_id", str(user.id))
+    response.set_cookie("user_id", str(user.id), httponly=True)
     return response
 
 # ---------------------------

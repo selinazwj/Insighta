@@ -1,9 +1,10 @@
 # app/database.py
 
+from dotenv import load_dotenv
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-
+load_dotenv()
 # 1️⃣ 从环境变量读取 DATABASE_URL
 # 在 Render 上，请在 Environment Variables 里设置：
 # DATABASE_URL=postgresql://postgres:yourpassword@db.gdqxveuougniwuztyltc.supabase.co:5432/postgres
