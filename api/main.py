@@ -1,6 +1,7 @@
 from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from sqlalchemy import or_, func, case
@@ -15,6 +16,9 @@ app = FastAPI()
 # 确保模板路径正确
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory="app/templates")
+
+# 挂载静态文件
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 Base.metadata.create_all(bind=engine)
@@ -432,7 +436,7 @@ def profile_get(request: Request, current_user: User = Depends(get_current_user)
 @app.post("/profile")
 def profile_post(
     request: Request,
-    username: str = Form(None),  # 新加 username
+    username: str = Form(None),
     email: str = Form(...),
     age_range: str = Form(None),
     education_level: str = Form(None),
@@ -443,7 +447,7 @@ def profile_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # 更新用户信息
+    current_user.username = username
     current_user.email = email
     current_user.age_range = age_range
     current_user.education_level = education_level
@@ -454,7 +458,6 @@ def profile_post(
 
     db.commit()
 
-    # 保存后跳回 choice 页面
     return RedirectResponse("/choice", status_code=303)
 
 

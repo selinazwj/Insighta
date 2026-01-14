@@ -13,12 +13,12 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
+    username = Column(String, nullable=True)
 
-    # ===== 用户画像（用于匹配 survey）=====
-    age_range = Column(String, nullable=True)        # "18-24"
-    education_level = Column(String, nullable=True)  # Undergraduate / Graduate
-    field = Column(String, nullable=True)            # CS / Econ / Bio
-    status = Column(String, nullable=True)           # student / working
+    age_range = Column(String, nullable=True)
+    education_level = Column(String, nullable=True)
+    field = Column(String, nullable=True)
+    status = Column(String, nullable=True)
     country = Column(String, nullable=True)
     language = Column(String, nullable=True)
 
