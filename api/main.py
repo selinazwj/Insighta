@@ -42,21 +42,24 @@ from fastapi import Request
 
 @app.post("/login")
 def login(
-    request: Request,              # 👈 必须加
+    request: Request,
     email: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.email == email).first()
+    try:
+        user = db.query(User).filter(User.email == email).first()
+    except Exception as e:
+        # 数据库连接/查询报错时返回前端
+        return templates.TemplateResponse(
+            "index.html",
+            {"request": request, "show": "login", "error": f"Database error: {e}"}
+        )
 
     if not user or not pwd_context.verify(password, user.password):
         return templates.TemplateResponse(
             "index.html",
-            {
-                "request": request,  # 👈 必须是真实 request
-                "show": "login",
-                "error": "Invalid email or password"
-            }
+            {"request": request, "show": "login", "error": "Invalid email or password"}
         )
 
     response = RedirectResponse("/choice", status_code=303)
@@ -436,9 +439,15 @@ def edit_survey_post(
 
 @app.get("/profile", response_class=HTMLResponse)
 def profile_get(request: Request, current_user: User = Depends(get_current_user)):
+    prev_url = request.headers.get("referer", "/choice")
+
     return templates.TemplateResponse(
         "profile.html",
-        {"request": request, "user": current_user}
+        {
+            "request": request,
+            "user": current_user,
+            "prev_url": prev_url
+        }
     )
 
 @app.post("/profile")

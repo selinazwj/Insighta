@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey,func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
-from app.database import Base
-
+#from app.database import Base
+Base = declarative_base()
 
 # ======================
 # User（填写者 & 发布者）
