@@ -181,7 +181,7 @@ def publisher_dashboard(
 
     return templates.TemplateResponse(
         "publisher.html",
-        {"request": request, "surveys": surveys, "completed_map": completed_map}
+        {"request": request, "surveys": surveys, "completed_map": completed_map, "current_user": current_user}
     )
 
 
@@ -217,12 +217,13 @@ def dashboard(
     db: Session = Depends(get_db)
 ):
     surveys = db.query(Survey).filter(
-        or_(Survey.target_age_range == None, Survey.target_age_range == current_user.age_range),
-        or_(Survey.target_education == None, Survey.target_education == current_user.education_level),
-        or_(Survey.target_field == None, Survey.target_field == current_user.field),
-        or_(Survey.target_status == None, Survey.target_status == current_user.status),
-        or_(Survey.target_country == None, Survey.target_country == current_user.country),
-        or_(Survey.target_language == None, Survey.target_language == current_user.language)
+        Survey.status == "published",
+        or_(Survey.target_age_range == None, Survey.target_age_range == '', Survey.target_age_range == current_user.age_range),
+        or_(Survey.target_education == None, Survey.target_education == '', Survey.target_education == current_user.education_level),
+        or_(Survey.target_field == None, Survey.target_field == '', Survey.target_field == current_user.field),
+        or_(Survey.target_status == None, Survey.target_status == '', Survey.target_status == current_user.status),
+        or_(Survey.target_country == None, Survey.target_country == '', Survey.target_country == current_user.country),
+        or_(Survey.target_language == None, Survey.target_language == '', Survey.target_language == current_user.language)
     ).all()
 
     surveys_data = []
@@ -236,6 +237,22 @@ def dashboard(
             Response.status == "completed"
         ).count()
 
+        user_response = db.query(Response).filter(
+            Response.survey_id == s.id,
+            Response.participant_id == current_user.id
+        ).first()
+        
+        is_completed = user_response and user_response.status == "completed"
+
+        category_images = {
+            "research": "/static/psych.jpg",
+            "life": "/static/campus_life.jpg",
+            "clubs": "/static/fb.jpg",
+            "market": "/static/habit.png",
+            "academic": "/static/r2.jpg",
+            "other": "/static/food.jpeg"
+        }
+        
         surveys_data.append({
             "id": s.id,
             "title": s.title,
@@ -246,19 +263,41 @@ def dashboard(
             "reward": f"${s.reward_amount}",
             "responses": f"{completed_cnt}/{s.target_responses}",
             "started": started_cnt,
-            "img": s.image_url if s.image_url else {
-                "research": "/static/psych.jpg",
-                "life": "/static/campus_life.jpg",
-                "clubs": "/static/fb.jpg",
-                "market": "/static/habit.png",
-                "academic": "/static/r2.jpg",
-                "other": "/static/food.jpeg"
-            }.get(s.category, "/static/psych.jpg")
+            "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
+            "is_completed": is_completed
         })
 
+    from datetime import datetime, timedelta
+    
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    completed_today = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed",
+        Response.completed_at >= today_start
+    ).count()
+    
+    completed_responses = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed"
+    ).all()
+    
+    total_earned = 0.0
+    for resp in completed_responses:
+        survey = db.query(Survey).filter(Survey.id == resp.survey_id).first()
+        if survey:
+            total_earned += survey.reward_amount
+    
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "surveys": surveys_data}
+        {
+            "request": request,
+            "surveys": surveys_data,
+            "completed_today": completed_today,
+            "total_earned": total_earned,
+            "available_surveys": len(surveys_data),
+            "current_user": current_user
+        }
     )
 
 
@@ -284,7 +323,7 @@ def start_survey(
         db.add(Response(survey_id=survey_id, participant_id=current_user.id, status="started"))
         db.commit()
 
-    return RedirectResponse(url=survey.form_url, status_code=302)
+    return {"message": "Survey started successfully"}
 
 @app.post("/surveys/{survey_id}/complete")
 def complete_survey(
@@ -313,6 +352,25 @@ def complete_survey(
 
     db.commit()
     return RedirectResponse(url="/dashboard", status_code=302)
+
+@app.post("/surveys/{survey_id}/modify")
+def modify_completed_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    r = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.participant_id == current_user.id
+    ).first()
+    
+    if r and r.status == "completed":
+        r.status = "started"
+        r.completed_at = None
+        db.commit()
+        return {"message": "Response modified"}
+    
+    return JSONResponse({"detail": "Response not found or not completed"}, status_code=404)
 
 
 # ---------------------------

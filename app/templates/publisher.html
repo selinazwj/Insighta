@@ -209,10 +209,11 @@
         SurveyBridge · Publisher
       </div>
       <div class="navbar-right">
-        <a href="/profile">
-          <img src="{{ url_for('static', path='default.jpg') }}" 
-              alt="Profile" 
-              style="width:40px; height:40px; border-radius:50%; object-fit:cover; cursor:pointer;">
+        <a href="/profile" style="text-decoration: none; color: white; display: flex; align-items: center; gap: 10px;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px;">
+            {{ current_user.username[0].upper() if current_user.username else 'U' }}
+          </div>
+          <span>Profile</span>
         </a>
       </div>
     </div>
