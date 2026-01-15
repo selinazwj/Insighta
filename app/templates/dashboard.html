@@ -449,7 +449,7 @@
         <span>SurveyBridge · Filler</span>
       </div>
       <div class="navbar-right">
-        <div class="balance">💰 ${{ "%.2f"|format(total_earned) }}</div>
+        <div class="balance">💎 {{ "%.2f"|format(total_earned) }}</div>
         <a href="/profile" style="text-decoration: none; color: #37352F; display: flex; align-items: center; gap: 10px;">
           <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 1px solid #E9E9E7;">
             {{ current_user.username[0].upper() if current_user.username else 'U' }}
