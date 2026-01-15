@@ -230,7 +230,27 @@ def dashboard(
     surveys = db.query(Survey).filter(
         Survey.status == "published",
         or_(Survey.target_age_range == None, Survey.target_age_range == '', Survey.target_age_range == current_user.age_range),
-        or_(Survey.target_education == None, Survey.target_education == '', Survey.target_education == current_user.education_level),
+        or_(
+            Survey.target_education_min == None,
+            Survey.target_education_min <= case(
+                (current_user.education_level == "High School", 1),
+                (current_user.education_level == "Undergraduate", 2),
+                (current_user.education_level == "Graduate", 3),
+                (current_user.education_level == "PhD", 4),
+                else_=0
+            )
+        ),
+        or_(
+            Survey.target_education_max == None,
+            Survey.target_education_max >= case(
+                (current_user.education_level == "High School", 1),
+                (current_user.education_level == "Undergraduate", 2),
+                (current_user.education_level == "Graduate", 3),
+                (current_user.education_level == "PhD", 4),
+                else_=999
+            )
+        ),
+
         or_(Survey.target_field == None, Survey.target_field == '', Survey.target_field == current_user.field),
         or_(Survey.target_status == None, Survey.target_status == '', Survey.target_status == current_user.status),
         or_(Survey.target_country == None, Survey.target_country == '', Survey.target_country == current_user.country),
@@ -455,7 +475,8 @@ async def publish_survey(
     reward_amount: float = Form(...),
     target_responses: int = Form(...),
     target_age_range: str = Form(None),
-    target_education: str = Form(None),
+    target_education_min: int = Form(None),
+    target_education_max: int = Form(None),
     target_field: str = Form(None),
     target_status: str = Form(None),
     target_country: str = Form(None),
@@ -488,7 +509,9 @@ async def publish_survey(
         reward_amount=reward_amount,
         target_responses=target_responses,
         target_age_range='' if not target_age_range or target_age_range == 'all' else target_age_range,
-        target_education='' if not target_education or target_education == 'all' else target_education,
+        target_education_min=target_education_min,
+        target_education_max=target_education_max,
+
         target_field='' if not target_field or target_field == 'all' else target_field,
         target_status='' if not target_status or target_status == 'all' else target_status,
         target_country='' if not target_country or target_country == 'all' else target_country,
@@ -588,7 +611,9 @@ async def edit_survey_post(
     reward_amount: float = Form(...),
     additional_needed: int = Form(...),
     target_age_range: str = Form(None),
-    target_education: str = Form(None),
+    target_education_min: int = Form(None),
+    target_education_max: int = Form(None),
+
     target_field: str = Form(None),
     target_status: str = Form(None),
     target_country: str = Form(None),
@@ -611,7 +636,9 @@ async def edit_survey_post(
         survey.reward_amount = reward_amount
         survey.target_responses = current_responses + additional_needed
         survey.target_age_range = '' if not target_age_range or target_age_range == 'all' else target_age_range
-        survey.target_education = '' if not target_education or target_education == 'all' else target_education
+        survey.target_education_min = target_education_min
+        survey.target_education_max = target_education_max
+
         survey.target_field = '' if not target_field or target_field == 'all' else target_field
         survey.target_status = '' if not target_status or target_status == 'all' else target_status
         survey.target_country = '' if not target_country or target_country == 'all' else target_country
