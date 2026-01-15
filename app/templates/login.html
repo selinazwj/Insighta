@@ -1,55 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-blue-400 to-indigo-600 min-h-screen flex items-center justify-center">
-
-<div class="bg-white/20 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-96 text-white">
-
-    <h2 class="text-3xl font-bold mb-6 text-center">Welcome Back</h2>
-
-    <!-- Error message -->
-    {% if error %}
-    <div class="animate-fadeIn bg-red-500 text-white px-4 py-2 rounded-lg mb-4 shadow-lg text-center">
-        {{ error }}
-    </div>
-    {% endif %}
-
-    <form method="post" action="/login" class="space-y-4">
-        <div>
-            <label class="block text-sm mb-1">Email</label>
-            <input type="email" name="email"
-                   class="w-full px-3 py-2 rounded-lg bg-white text-black focus:outline-none">
-        </div>
-
-        <div>
-            <label class="block text-sm mb-1">Password</label>
-            <input type="password" name="password"
-                   class="w-full px-3 py-2 rounded-lg bg-white text-black focus:outline-none">
-        </div>
-
-        <button class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg font-semibold">
-            Login
-        </button>
-    </form>
-
-    <p class="mt-4 text-center text-sm">
-        No account?
-        <a href="/register" class="underline">Register here</a>
-    </p>
-</div>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - SurveyBridge</title>
 <style>
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-.animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    background: #FFFFFF;
+    color: #37352F;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.login-container {
+    background: #FAFAF9;
+    padding: 40px 50px;
+    border-radius: 16px;
+    border: 1px solid #E9E9E7;
+    width: 100%;
+    max-width: 500px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.header h1 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #000000;
+    letter-spacing: -1px;
+}
+
+.header p {
+    font-size: 16px;
+    color: #787774;
+}
+
+.error-box {
+    background: #FEE;
+    color: #C00;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border: 1px solid #FCC;
+}
+
+.form-box {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-box label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #37352F;
+    margin-bottom: -8px;
+}
+
+.form-box input {
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #E9E9E7;
+    font-size: 15px;
+    background: #FFFFFF;
+    color: #37352F;
+    transition: all 0.2s;
+}
+
+.form-box input:focus {
+    outline: none;
+    border-color: #000000;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.form-box input::placeholder {
+    color: #9B9A97;
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 14px;
+    background: #000000;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 8px;
+}
+
+.btn-submit:hover {
+    background: #2F2F2F;
+}
+
+.register-link {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 15px;
+    color: #787774;
+}
+
+.register-link a {
+    color: #000000;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.register-link a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+    body {
+        padding: 10px;
+    }
+    
+    .login-container {
+        padding: 30px 24px;
+    }
+    
+    .header {
+        margin-bottom: 24px;
+    }
+    
+    .header h1 {
+        font-size: 28px;
+        margin-bottom: 6px;
+    }
+    
+    .header p {
+        font-size: 14px;
+    }
+}
 </style>
+</head>
+<body>
+
+<div class="login-container">
+    <div class="header">
+        <h1>Welcome Back</h1>
+        <p>Sign in to your account</p>
+    </div>
+
+    {% if error %}
+    <div class="error-box">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/login" class="form-box">
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="Email address">
+        
+        <label>Password</label>
+        <input type="password" name="password" required placeholder="Password">
+        
+        <button type="submit" class="btn-submit">Sign In</button>
+    </form>
+
+    <p class="register-link">
+        Don't have an account? <a href="/register">Create Account</a>
+    </p>
+</div>
 
 </body>
 </html>

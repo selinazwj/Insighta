@@ -1,5 +1,5 @@
-from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -42,6 +42,10 @@ def index(request: Request):
 # ---------------------------
 from fastapi import Request
 
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
 @app.post("/login")
 def login(
     request: Request,
@@ -54,14 +58,14 @@ def login(
     except Exception as e:
         # 数据库连接/查询报错时返回前端
         return templates.TemplateResponse(
-            "index.html",
-            {"request": request, "show": "login", "error": f"Database error: {e}"}
+            "login.html",
+            {"request": request, "error": f"Database error: {e}"}
         )
 
     if not user or not pwd_context.verify(password, user.password):
         return templates.TemplateResponse(
-            "index.html",
-            {"request": request, "show": "login", "error": "Invalid email or password"}
+            "login.html",
+            {"request": request, "error": "Invalid email or password"}
         )
 
     response = RedirectResponse("/choice", status_code=303)
@@ -151,8 +155,14 @@ def get_current_user(
 # 选择页
 # ---------------------------
 @app.get("/choice", response_class=HTMLResponse)
-def choice(request: Request):
-    return templates.TemplateResponse("choice.html", {"request": request})
+def choice(request: Request, user_id: str = Cookie(None), db: Session = Depends(get_db)):
+    current_user = None
+    if user_id:
+        try:
+            current_user = db.query(User).filter(User.id == int(user_id)).first()
+        except:
+            pass
+    return templates.TemplateResponse("choice.html", {"request": request, "current_user": current_user})
 
 # ---------------------------
 # Publisher Dashboard
@@ -213,6 +223,7 @@ def delete_survey(
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
     request: Request,
+    timezone_offset: int = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -267,19 +278,28 @@ def dashboard(
             "is_completed": is_completed
         })
 
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    if timezone_offset is not None:
+        user_tz = timezone(timedelta(minutes=-timezone_offset))
+        now_user = datetime.now(user_tz)
+        today_start_user = now_user.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start_utc = today_start_user.astimezone(timezone.utc)
+    else:
+        now_utc = datetime.now(timezone.utc)
+        today_start_utc = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
     
     completed_today = db.query(Response).filter(
         Response.participant_id == current_user.id,
         Response.status == "completed",
-        Response.completed_at >= today_start
+        Response.completed_at.isnot(None),
+        Response.completed_at >= today_start_utc
     ).count()
     
     completed_responses = db.query(Response).filter(
         Response.participant_id == current_user.id,
-        Response.status == "completed"
+        Response.status == "completed",
+        Response.completed_at.isnot(None)
     ).all()
     
     total_earned = 0.0
@@ -299,6 +319,47 @@ def dashboard(
             "current_user": current_user
         }
     )
+
+@app.get("/api/dashboard/stats")
+def get_dashboard_stats(
+    timezone_offset: int = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from datetime import datetime, timedelta, timezone
+    
+    if timezone_offset is not None:
+        user_tz = timezone(timedelta(minutes=-timezone_offset))
+        now_user = datetime.now(user_tz)
+        today_start_user = now_user.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start_utc = today_start_user.astimezone(timezone.utc)
+    else:
+        now_utc = datetime.now(timezone.utc)
+        today_start_utc = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    completed_today = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed",
+        Response.completed_at.isnot(None),
+        Response.completed_at >= today_start_utc
+    ).count()
+    
+    completed_responses = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed",
+        Response.completed_at.isnot(None)
+    ).all()
+    
+    total_earned = 0.0
+    for resp in completed_responses:
+        survey = db.query(Survey).filter(Survey.id == resp.survey_id).first()
+        if survey:
+            total_earned += survey.reward_amount
+    
+    return JSONResponse({
+        "completed_today": completed_today,
+        "total_earned": total_earned
+    })
 
 
 @app.post("/surveys/{survey_id}/start")
@@ -348,7 +409,8 @@ def complete_survey(
 
     if r.status != "completed":
         r.status = "completed"
-        r.completed_at = datetime.utcnow()
+        from datetime import timezone
+        r.completed_at = datetime.now(timezone.utc)
 
     db.commit()
     return RedirectResponse(url="/dashboard", status_code=302)
@@ -425,12 +487,12 @@ async def publish_survey(
         estimated_time=estimated_time,
         reward_amount=reward_amount,
         target_responses=target_responses,
-        target_age_range=target_age_range or '',
-        target_education=target_education or '',
-        target_field=target_field or '',
-        target_status=target_status or '',
-        target_country=target_country or '',
-        target_language=target_language or '',
+        target_age_range='' if not target_age_range or target_age_range == 'all' else target_age_range,
+        target_education='' if not target_education or target_education == 'all' else target_education,
+        target_field='' if not target_field or target_field == 'all' else target_field,
+        target_status='' if not target_status or target_status == 'all' else target_status,
+        target_country='' if not target_country or target_country == 'all' else target_country,
+        target_language='' if not target_language or target_language == 'all' else target_language,
         image_url=image_url,
         status="draft",
         published_at=None,
@@ -548,12 +610,12 @@ async def edit_survey_post(
         survey.estimated_time = estimated_time
         survey.reward_amount = reward_amount
         survey.target_responses = current_responses + additional_needed
-        survey.target_age_range = target_age_range or ''
-        survey.target_education = target_education or ''
-        survey.target_field = target_field or ''
-        survey.target_status = target_status or ''
-        survey.target_country = target_country or ''
-        survey.target_language = target_language or ''
+        survey.target_age_range = '' if not target_age_range or target_age_range == 'all' else target_age_range
+        survey.target_education = '' if not target_education or target_education == 'all' else target_education
+        survey.target_field = '' if not target_field or target_field == 'all' else target_field
+        survey.target_status = '' if not target_status or target_status == 'all' else target_status
+        survey.target_country = '' if not target_country or target_country == 'all' else target_country
+        survey.target_language = '' if not target_language or target_language == 'all' else target_language
         
         if cover_image and cover_image.filename:
             uploads_dir = Path("app/static/uploads")
