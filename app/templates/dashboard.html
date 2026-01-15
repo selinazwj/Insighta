@@ -13,55 +13,43 @@
       }
 
       body {
-        font-family: "Arial", sans-serif;
-        background: linear-gradient(135deg, #4a6cf7, #6a9ff8, #74b9ff);
-        background-size: 300% 300%;
-        animation: bgMove 10s ease infinite;
-        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        background: #FFFFFF;
+        color: #37352F;
         min-height: 100vh;
-      }
-
-      @keyframes bgMove {
-        0% {
-          background-position: 0 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0 50%;
-        }
       }
 
       /* 专业导航栏 */
       .navbar {
-        background: rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        padding: 15px 30px;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid #E9E9E7;
+        padding: 16px 40px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         position: sticky;
         top: 0;
         z-index: 100;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
       }
 
       .navbar-left {
         display: flex;
         align-items: center;
-        gap: 25px;
+        gap: 16px;
+        font-size: 20px;
+        font-weight: 700;
+        color: #37352F;
+        letter-spacing: -0.5px;
       }
 
       .back-btn {
-        color: white;
+        color: #37352F;
         text-decoration: none;
         font-weight: 600;
-        padding: 10px 20px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 10px;
-        transition: all 0.3s ease;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.15s ease;
         display: flex;
         align-items: center;
         gap: 8px;
@@ -69,14 +57,8 @@
       }
 
       .back-btn:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: translateX(-3px);
-      }
-
-      .logo {
-        font-size: 1.6em;
-        font-weight: bold;
-        letter-spacing: -0.5px;
+        background: #F7F6F3;
+        color: #000000;
       }
 
       .navbar-right {
@@ -86,11 +68,12 @@
       }
 
       .balance {
-        background: rgba(255, 255, 255, 0.2);
+        background: #F7F6F3;
         padding: 8px 16px;
-        border-radius: 20px;
+        border-radius: 8px;
         font-weight: 600;
         font-size: 14px;
+        color: #37352F;
       }
 
       .user-menu {
@@ -99,26 +82,14 @@
         gap: 10px;
         cursor: pointer;
         padding: 8px 16px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 20px;
-        transition: background 0.3s ease;
+        border-radius: 8px;
+        transition: background 0.15s ease;
+        text-decoration: none;
+        color: #37352F;
       }
 
       .user-menu:hover {
-        background: rgba(255, 255, 255, 0.3);
-      }
-
-      .avatar {
-        width: 32px;
-        height: 32px;
-        background: white;
-        color: #4a6cf7;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 14px;
+        background: #F7F6F3;
       }
 
       /* 主容器 */
@@ -135,14 +106,16 @@
       }
 
       .page-header h1 {
-        font-size: 2.5em;
+        font-size: 36px;
         margin-bottom: 8px;
-        font-weight: bold;
+        font-weight: 700;
+        color: #000000;
+        letter-spacing: -1px;
       }
 
       .page-header p {
-        font-size: 1.1em;
-        opacity: 0.9;
+        font-size: 18px;
+        color: #787774;
       }
 
       /* 统计卡片 */
@@ -155,58 +128,59 @@
       }
 
       .stat-card {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        border-radius: 16px;
-        padding: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: #FAFAF9;
+        border: 1px solid #E9E9E7;
+        border-radius: 12px;
+        padding: 24px;
         transition: all 0.3s ease;
       }
 
       .stat-card:hover {
-        transform: translateY(-5px);
-        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+        border-color: #D9D9D9;
       }
 
       .stat-card .label {
-        font-size: 0.9em;
-        opacity: 0.85;
+        font-size: 14px;
+        color: #787774;
         margin-bottom: 8px;
+        font-weight: 500;
       }
 
       .stat-card .value {
-        font-size: 2em;
-        font-weight: bold;
+        font-size: 32px;
+        font-weight: 700;
+        color: #000000;
       }
 
       /* Tabs */
       .tabs {
         display: flex;
         justify-content: center;
-        gap: 30px;
-        margin-bottom: 35px;
-        border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-        animation: fadeIn 0.6s ease-out 0.2s both;
+        gap: 8px;
+        margin-bottom: 32px;
+        border-bottom: 1px solid #E9E9E7;
       }
 
       .tab {
-        font-size: 1.1em;
+        font-size: 15px;
         font-weight: 600;
-        padding: 12px 24px;
+        padding: 12px 20px;
         cursor: pointer;
-        opacity: 0.7;
-        transition: all 0.3s ease;
-        border-bottom: 3px solid transparent;
-        margin-bottom: -2px;
+        color: #787774;
+        transition: all 0.15s ease;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
       }
 
       .tab:hover {
-        opacity: 0.9;
+        color: #37352F;
       }
 
       .tab.active {
-        opacity: 1;
-        border-bottom-color: white;
+        color: #000000;
+        border-bottom-color: #000000;
       }
 
       /* Card layout */
@@ -218,33 +192,49 @@
       }
 
       .card {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 18px;
-        padding: 20px;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: #FAFAF9;
+        border: 1px solid #E9E9E7;
+        border-radius: 12px;
+        padding: 24px;
         display: flex;
         gap: 20px;
         cursor: pointer;
         transition: all 0.3s ease;
         text-decoration: none;
-        color: white;
+        color: #37352F;
         overflow: hidden;
+        position: relative;
+      }
+
+      .completed-badge {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: #10B981;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
       }
 
       .card:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        background: #FFFFFF;
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+        border-color: #D9D9D9;
       }
 
       .card-image {
         width: 160px;
         min-width: 160px;
         height: 120px;
-        border-radius: 12px;
+        border-radius: 8px;
         object-fit: cover;
-        border: 2px solid rgba(255, 255, 255, 0.3);
+        border: 1px solid #E9E9E7;
       }
 
       .card-content {
@@ -262,24 +252,27 @@
       }
 
       .card h3 {
-        font-size: 1.4em;
-        font-weight: bold;
+        font-size: 20px;
+        font-weight: 700;
         margin-bottom: 8px;
+        color: #000000;
       }
 
       .card p {
-        opacity: 0.9;
-        line-height: 1.5;
+        color: #787774;
+        line-height: 1.6;
         margin-bottom: 12px;
+        font-size: 15px;
       }
 
       .reward-badge {
-        background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-weight: bold;
-        font-size: 0.9em;
+        background: #F7F6F3;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
         white-space: nowrap;
+        color: #37352F;
       }
 
       .card-footer {
@@ -287,14 +280,14 @@
         justify-content: space-between;
         align-items: center;
         padding-top: 12px;
-        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        border-top: 1px solid #E9E9E7;
       }
 
       .card-meta {
         display: flex;
         gap: 15px;
-        font-size: 0.9em;
-        opacity: 0.85;
+        font-size: 14px;
+        color: #787774;
       }
 
       .meta-item {
@@ -310,11 +303,13 @@
         }
 
         .navbar-left {
-          gap: 15px;
+          font-size: 18px;
+          gap: 12px;
         }
 
-        .logo {
-          font-size: 1.2em;
+        .back-btn {
+          font-size: 13px;
+          padding: 6px 12px;
         }
 
         .balance {
@@ -377,19 +372,68 @@
       }
 
       .action-btn {
-        padding: 8px 12px;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.35);
-        background: rgba(255, 255, 255, 0.18);
-        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid #E9E9E7;
+        background: #FFFFFF;
+        color: #37352F;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.15s ease;
+        font-size: 14px;
       }
 
       .action-btn:hover {
-        background: rgba(255, 255, 255, 0.28);
-        transform: translateY(-1px);
+        background: #F7F6F3;
+        border-color: #D9D9D9;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: #787774;
+      }
+
+      .empty-state-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
+
+      .empty-state h3 {
+        font-size: 24px;
+        margin-bottom: 10px;
+        color: #000000;
+        font-weight: 700;
+      }
+
+      .empty-state p {
+        font-size: 16px;
+        color: #787774;
+      }
+
+      .loading-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: #787774;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        margin: 0 auto 20px;
+        border: 4px solid #E9E9E7;
+        border-top-color: #000000;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .loading-state p {
+        font-size: 16px;
+        color: #787774;
       }
     </style>
   </head>
@@ -402,13 +446,15 @@
           <span>←</span>
           <span>Back</span>
         </a>
-        <div class="logo">SurveyBridge</div>
+        <span>SurveyBridge · Filler</span>
       </div>
       <div class="navbar-right">
-        <div class="balance">💰 $25.50</div>
-        <a href="/profile" class="user-menu">
-          <div class="avatar">U</div>
-          <span>Publisher</span>
+        <div class="balance">💰 ${{ "%.2f"|format(total_earned) }}</div>
+        <a href="/profile" style="text-decoration: none; color: #37352F; display: flex; align-items: center; gap: 10px;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 1px solid #E9E9E7;">
+            {{ current_user.username[0].upper() if current_user.username else 'U' }}
+          </div>
+          <span>Profile</span>
         </a>
       </div>
     </nav>
@@ -424,23 +470,26 @@
       <div class="stats-row">
         <div class="stat-card">
           <div class="label">Completed Today</div>
-          <div class="value">3</div>
+          <div class="value" id="completedToday">{{ completed_today }}</div>
         </div>
         <div class="stat-card">
           <div class="label">Total Earned</div>
-          <div class="value">$25.50</div>
+          <div class="value" id="totalEarned">${{ "%.2f"|format(total_earned) }}</div>
         </div>
         <div class="stat-card">
           <div class="label">Available Surveys</div>
-          <div class="value">12</div>
+          <div class="value">{{ available_surveys }}</div>
         </div>
       </div>
 
       <!-- Tabs -->
       <div class="tabs">
-        <div class="tab active" onclick="switchTab('research')">Research</div>
+        <div class="tab" onclick="switchTab('research')">Research</div>
         <div class="tab" onclick="switchTab('life')">Lifestyle</div>
         <div class="tab" onclick="switchTab('clubs')">Clubs</div>
+        <div class="tab" onclick="switchTab('market')">Market</div>
+        <div class="tab" onclick="switchTab('academic')">Academic</div>
+        <div class="tab" onclick="switchTab('other')">Other</div>
       </div>
 
       <!-- Cards container -->
@@ -448,50 +497,111 @@
     </div>
 
     <script>
-      // Survey data with rewards
-      const surveysFromDB = JSON.parse("{{ surveys | tojson | safe }}");
+      const surveysFromDB = {{ surveys | tojson | safe }};
+      
+      const timezoneOffset = new Date().getTimezoneOffset();
+      
+      fetch(`/api/dashboard/stats?timezone_offset=${timezoneOffset}`)
+        .then(response => response.json())
+        .then(data => {
+          const completedTodayEl = document.getElementById('completedToday');
+          const totalEarnedEl = document.getElementById('totalEarned');
+          if (completedTodayEl) {
+            completedTodayEl.textContent = data.completed_today;
+          }
+          if (totalEarnedEl) {
+            totalEarnedEl.textContent = '$' + data.total_earned.toFixed(2);
+          }
+        })
+        .catch(err => console.error('Failed to fetch stats:', err));
 
-      // 按类别分组
       const surveys = {
         research: surveysFromDB.filter((s) => s.category === "research"),
         life: surveysFromDB.filter((s) => s.category === "life"),
         clubs: surveysFromDB.filter((s) => s.category === "clubs"),
+        market: surveysFromDB.filter((s) => s.category === "market"),
+        academic: surveysFromDB.filter((s) => s.category === "academic"),
+        other: surveysFromDB.filter((s) => s.category === "other"),
       };
 
-      // Load default tab
-      loadSurveys("research");
+      const savedCategory = localStorage.getItem('dashboardActiveCategory') || 'research';
+      showLoading();
+      setTimeout(() => {
+        switchTab(savedCategory);
+      }, 500);
+
+      function showLoading() {
+        const container = document.getElementById("cardsContainer");
+        container.innerHTML = `
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading surveys...</p>
+          </div>
+        `;
+      }
+
+      function showEmptyState(category) {
+        const container = document.getElementById("cardsContainer");
+        const categoryNames = {
+          research: "Research",
+          life: "Lifestyle", 
+          clubs: "Clubs & Events",
+          market: "Market Research",
+          academic: "Academic",
+          other: "Other"
+        };
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <h3>No ${categoryNames[category]} Surveys Available</h3>
+            <p>Check back later for new opportunities!</p>
+          </div>
+        `;
+      }
 
       function loadSurveys(category) {
         const container = document.getElementById("cardsContainer");
+        
+        if (surveys[category].length === 0) {
+          showEmptyState(category);
+          return;
+        }
+
         container.innerHTML = "";
 
         surveys[category].forEach((s) => {
+          const completedClass = s.is_completed ? 'completed' : '';
+          const completedBadge = s.is_completed ? '<div class="completed-badge">✓ Completed</div>' : '';
+          
+          const actionButtons = s.is_completed 
+            ? `<button class="action-btn" style="background: #000000; color: white;" onclick="modifySurvey(event, ${s.id})">Modify Response</button>`
+            : `<button class="action-btn" onclick="startSurvey(event, ${s.id}, '${s.link}')">Start</button>
+               <button class="action-btn" onclick="completeSurvey(event, ${s.id})">I Completed</button>`;
+          
           container.innerHTML += `
-                          <div class="card">
-                <img src="${s.img}" class="card-image" alt="${s.title}">
-                <div class="card-content">
-                    <div>
-                        <div class="card-header">
-                            <h3>${s.title}</h3>
-                            <div class="reward-badge">${s.reward}</div>
-                        </div>
-                        <p>${s.desc}</p>
-                    </div>
-
-                    <div class="card-footer">
-                        <div class="card-meta">
-                            <div class="meta-item">⏱️ ${s.time}</div>
-                            <div class="meta-item">👥 ${s.responses}</div>
-                        </div>
-
-                        <div class="card-actions">
-                            <button class="action-btn" onclick="startSurvey(event, ${s.id}, '${s.link}')">Start</button>
-                            <button class="action-btn" onclick="completeSurvey(event, ${s.id})">I Completed</button>
-                        </div>
-                    </div>
+            <div class="card ${completedClass}">
+              ${completedBadge}
+              <img src="${s.img}" class="card-image" alt="${s.title}">
+              <div class="card-content">
+                <div>
+                  <div class="card-header">
+                    <h3>${s.title}</h3>
+                    <div class="reward-badge">${s.reward}</div>
+                  </div>
+                  <p>${s.desc}</p>
                 </div>
+                <div class="card-footer">
+                  <div class="card-meta">
+                    <div class="meta-item">⏱️ ${s.time}</div>
+                    <div class="meta-item">👥 ${s.responses}</div>
+                  </div>
+                  <div class="card-actions">
+                    ${actionButtons}
+                  </div>
+                </div>
+              </div>
             </div>
-                      `;
+          `;
         });
       }
 
@@ -499,7 +609,23 @@
         document
           .querySelectorAll(".tab")
           .forEach((tab) => tab.classList.remove("active"));
-        event.target.classList.add("active");
+        if (event && event.target) {
+          event.target.classList.add("active");
+        } else {
+          const tabs = document.querySelectorAll(".tab");
+          const categoryMap = {
+            'research': 0,
+            'life': 1,
+            'clubs': 2,
+            'market': 3,
+            'academic': 4,
+            'other': 5
+          };
+          if (categoryMap[category] !== undefined) {
+            tabs[categoryMap[category]].classList.add("active");
+          }
+        }
+        localStorage.setItem('dashboardActiveCategory', category);
         loadSurveys(category);
       }
 
@@ -542,6 +668,31 @@
             return;
           }
 
+          window.location.reload();
+        } catch (err) {
+          alert("Network error");
+        }
+      }
+
+      async function modifySurvey(e, surveyId) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const currentCategory = localStorage.getItem('dashboardActiveCategory') || 'research';
+        
+        try {
+          const res = await fetch(`/surveys/${surveyId}/modify`, {
+            method: "POST",
+            credentials: "same-origin",
+          });
+
+          if (!res.ok) {
+            const msg = await res.text();
+            alert(msg || "Failed to modify");
+            return;
+          }
+
+          localStorage.setItem('dashboardActiveCategory', currentCategory);
           window.location.reload();
         } catch (err) {
           alert("Network error");

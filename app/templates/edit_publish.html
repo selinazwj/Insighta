@@ -6,49 +6,342 @@
     <title>Edit Survey - SurveyBridge</title>
 
     <style>
-        /* 与 publish.html 完全一致的样式，可直接复制过来 */
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Arial', sans-serif; background: linear-gradient(135deg,#4a6cf7,#6a9ff8,#74b9ff); background-size:300% 300%; animation:bgMove 10s ease infinite; color:white; min-height:100vh; }
-        @keyframes bgMove { 0% {background-position:0 50%;} 50% {background-position:100% 50%;} 100% {background-position:0 50%;} }
-        .navbar { background:rgba(255,255,255,0.15); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,0.2); padding:15px 30px; display:flex; justify-content:space-between; align-items:center; }
-        .navbar-left { display:flex; align-items:center; gap:25px; }
-        .back-btn { color:white; text-decoration:none; font-weight:600; padding:10px 20px; background:rgba(255,255,255,0.2); border-radius:10px; transition:all 0.3s ease; display:flex; align-items:center; gap:8px; font-size:14px; }
-        .back-btn:hover { background:rgba(255,255,255,0.3); transform:translateX(-3px); }
-        .logo { font-size:1.6em; font-weight:bold; }
-        .container { max-width:800px; margin:0 auto; padding:40px 20px; }
-        .page-header { margin-bottom:40px; animation:fadeInDown 0.6s ease-out; }
-        .page-header h1 { font-size:2.5em; margin-bottom:8px; font-weight:bold; }
-        .page-header p { font-size:1.1em; opacity:0.9; }
-        .form-card { background:rgba(255,255,255,0.2); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.3); border-radius:20px; padding:40px; animation:fadeInUp 0.6s ease-out 0.2s both; box-shadow:0 10px 40px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom:28px; }
-        .form-group label { display:block; font-weight:600; margin-bottom:10px; font-size:1.05em; }
-        .form-group .label-description { font-size:0.9em; opacity:0.85; font-weight:normal; margin-top:4px; }
-        .form-group input, .form-group textarea, .form-group select { width:100%; padding:14px 18px; border-radius:12px; border:2px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.25); color:white; font-size:1em; transition:all 0.3s ease; font-family:inherit; }
-        .form-group input::placeholder, .form-group textarea::placeholder { color:rgba(255,255,255,0.6); }
-        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline:none; border-color:rgba(255,255,255,0.6); background:rgba(255,255,255,0.3); }
-        .form-group textarea { resize:vertical; min-height:100px; }
-        .form-group select { cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 9L1 4h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 18px center; padding-right:45px; }
-        .form-group select option { background:#4a6cf7; color:white; }
-        .form-divider { height:2px; background:linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent); margin:35px 0; }
-        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-        .info-box { background:rgba(255,255,255,0.15); border-left:4px solid white; padding:15px 20px; border-radius:10px; margin-bottom:25px; font-size:0.95em; }
-        .info-box strong { display:block; margin-bottom:5px; }
-        .submit-section { margin-top:35px; display:flex; gap:15px; }
-        .btn { flex:1; padding:16px 32px; border-radius:12px; border:none; font-size:1.1em; font-weight:bold; cursor:pointer; transition:all 0.3s ease; font-family:inherit; }
-        .btn-primary { background:white; color:#4a6cf7; }
-        .btn-primary:hover { background:#f0f0f0; transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.2); }
-        .btn-secondary { background:rgba(255,255,255,0.2); color:white; border:2px solid rgba(255,255,255,0.4); }
-        .btn-secondary:hover { background:rgba(255,255,255,0.3); }
-        @media (max-width:768px) { .form-card { padding:30px 20px; } .form-row { grid-template-columns:1fr; } .page-header h1 { font-size:2em; } .submit-section { flex-direction:column-reverse; } }
-        @keyframes fadeInDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes fadeInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            background: #FFFFFF;
+            color: #37352F;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #E9E9E7;
+            padding: 16px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #37352F;
+            letter-spacing: -0.5px;
+        }
+
+        .back-btn {
+            color: #37352F;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background: #F7F6F3;
+            color: #000000;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .page-header {
+            margin-bottom: 40px;
+        }
+
+        .page-header h1 {
+            font-size: 36px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: #000000;
+            letter-spacing: -1px;
+        }
+
+        .page-header p {
+            font-size: 18px;
+            color: #787774;
+        }
+
+        .form-card {
+            background: #FAFAF9;
+            border: 1px solid #E9E9E7;
+            border-radius: 16px;
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-row .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group.upload-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #37352F;
+        }
+
+        .form-group .label-description {
+            font-size: 13px;
+            color: #787774;
+            font-weight: normal;
+            margin-top: 4px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #E9E9E7;
+            background: #FFFFFF;
+            color: #37352F;
+            font-size: 15px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #9B9A97;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2337352F' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+            color: #9B9A97;
+        }
+
+        .form-group select:not(:invalid) {
+            color: #37352F;
+        }
+
+        .form-group select:not(:invalid) {
+            color: #37352F;
+        }
+
+        .form-group select option {
+            background: #FFFFFF;
+            color: #37352F;
+        }
+
+        .form-group select option[value=""] {
+            color: #9B9A97;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            border: 1px solid #E9E9E7;
+            border-radius: 8px;
+            background: #FFFFFF;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .file-input-button {
+            padding: 8px 16px;
+            border: none;
+            border-right: 1px solid #E9E9E7;
+            border-radius: 0;
+            background: #FFFFFF;
+            color: #37352F;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .file-input-button:hover {
+            background: #F7F6F3;
+        }
+
+        .file-input-label {
+            flex: 1;
+            padding: 12px 16px;
+            color: #9B9A97;
+            font-size: 15px;
+            pointer-events: none;
+        }
+
+        .file-input-label.has-file {
+            color: #37352F;
+        }
+
+        .form-divider {
+            height: 1px;
+            background: #E9E9E7;
+            margin: 32px 0;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-row.three-columns {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .page-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 8px;
+        }
+
+        .info-box {
+            background: #F7F6F3;
+            border-left: 4px solid #000000;
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #37352F;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #000000;
+        }
+
+        .submit-section {
+            margin-top: 32px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 24px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #000000;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2F2F2F;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #37352F;
+            border: 1.5px solid #D9D9D9;
+        }
+
+        .btn-secondary:hover {
+            background: #F7F6F3;
+            border-color: #37352F;
+        }
+
+        @media (max-width: 768px) {
+            .form-card {
+                padding: 30px 20px;
+            }
+
+            .form-row,
+            .form-row.three-columns {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header h1 {
+                font-size: 28px;
+            }
+
+            .submit-section {
+                flex-direction: column-reverse;
+            }
+        }
     </style>
 </head>
 <body>
     <nav class="navbar">
         <div class="navbar-left">
-            <a href="/publisher" class="back-btn">← Back</a>
-            <div class="logo">SurveyBridge</div>
+            <a href="/publisher" class="back-btn">
+                <span>←</span>
+                <span>Back</span>
+            </a>
+            <span>SurveyBridge · Publisher</span>
+        </div>
+        <div class="navbar-right">
+            <a href="/profile" style="text-decoration: none; color: #37352F; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 1px solid #E9E9E7;">
+                    U
+                </div>
+                <span>Profile</span>
+            </a>
         </div>
     </nav>
 
@@ -59,7 +352,13 @@
         </div>
 
         <div class="form-card">
-            <form method="POST" action="/publisher/edit/{{ survey.id }}">
+            <form method="POST" action="/publisher/edit/{{ survey.id }}" enctype="multipart/form-data">
+                <!-- 基本信息 -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">📝 Basic Information</h2>
+                    <p style="font-size: 15px; color: #787774; margin: 0;">Provide essential details about your survey</p>
+                </div>
+
                 <div class="form-group">
                     <label>Survey Title</label>
                     <input type="text" name="title" value="{{ survey.title }}" required>
@@ -75,6 +374,14 @@
                     <input type="url" name="form_url" value="{{ survey.form_url }}" required>
                 </div>
 
+                <div class="form-divider"></div>
+
+                <!-- 问卷详情 -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">📋 Survey Details</h2>
+                    <p style="font-size: 15px; color: #787774; margin: 0;">Configure category, time, and cover image</p>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Category</label>
@@ -87,66 +394,230 @@
                             <option value="other" {% if survey.category=='other' %}selected{% endif %}>🔷 Other</option>
                         </select>
                     </div>
+
                     <div class="form-group">
                         <label>Estimated Time</label>
                         <select name="estimated_time" required>
-                            <option value="5" {% if survey.estimated_time==5 %}selected{% endif %}>⚡ 5 min</option>
-                            <option value="10" {% if survey.estimated_time==10 %}selected{% endif %}>🕐 10 min</option>
-                            <option value="15" {% if survey.estimated_time==15 %}selected{% endif %}>🕑 15 min</option>
-                            <option value="20" {% if survey.estimated_time==20 %}selected{% endif %}>🕒 20 min</option>
-                            <option value="30" {% if survey.estimated_time==30 %}selected{% endif %}>🕔 30 min</option>
+                            <option value="5" {% if survey.estimated_time==5 %}selected{% endif %}>⚡ 5 minutes</option>
+                            <option value="10" {% if survey.estimated_time==10 %}selected{% endif %}>🕐 10 minutes</option>
+                            <option value="15" {% if survey.estimated_time==15 %}selected{% endif %}>🕑 15 minutes</option>
+                            <option value="20" {% if survey.estimated_time==20 %}selected{% endif %}>🕒 20 minutes</option>
+                            <option value="30" {% if survey.estimated_time==30 %}selected{% endif %}>🕔 30 minutes</option>
                         </select>
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Reward per Response</label>
-                        <input type="number" name="reward_amount" value="{{ survey.reward_amount }}" step="0.5" min="1" required>
+                <div class="form-group upload-group">
+                    <label>Survey Cover Image (Optional)</label>
+                    <div class="file-input-wrapper">
+                        <button type="button" class="file-input-button">Choose File</button>
+                        <span class="file-input-label" id="fileInputLabel">No file chosen</span>
+                        <input type="file" id="coverImageInput" name="cover_image" accept="image/*">
+                        <span id="imagePreview" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #10B981; font-size: 20px; pointer-events: none; z-index: 1;">✓</span>
                     </div>
-                    <div class="form-group">
-                        <label>Target Responses</label>
-                        <input type="number" name="target_responses" value="{{ survey.target_responses }}" min="1" required>
+                    <small style="color: #787774; font-size: 13px; margin-top: 4px; display: block;">Upload a new cover image (or leave empty to keep current)</small>
+                    {% if survey.image_url %}
+                    <div style="margin-top: 8px; padding: 12px; background: #F7F6F3; border-radius: 8px; border: 1px solid #E9E9E7;">
+                        <span style="color: #787774; font-weight: 600; font-size: 13px;">Current: </span>
+                        <span style="color: #37352F; font-size: 13px;">{{ survey.image_url.split('/')[-1] }}</span>
                     </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-divider"></div>
+
+                <!-- 奖励设置 -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">💰 Reward Settings</h2>
+                    <p style="font-size: 15px; color: #787774; margin: 0;">Set payment amount and target number of responses</p>
+                </div>
+
+                <div class="info-box">
+                    <strong>Current Progress</strong>
+                    Completed: {{ survey.current_responses }} / {{ survey.target_responses }} responses
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Target Age Range</label>
-                        <input type="text" name="target_age_range" value="{{ survey.target_age_range }}">
+                        <label>
+                            Reward per Response
+                            <div class="label-description">How much will you pay each respondent?</div>
+                        </label>
+                        <input type="number" id="rewardAmount" name="reward_amount" value="{{ "%.2f"|format(survey.reward_amount) }}" step="0.01" min="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Additional Responses Needed
+                            <div class="label-description">How many more responses do you still need?</div>
+                        </label>
+                        <input type="number" id="additionalNeeded" name="additional_needed" value="{{ survey.target_responses - survey.current_responses }}" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-divider"></div>
+
+                <!-- Target Audience -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">🎯 Target Audience</h2>
+                    <p style="font-size: 15px; color: #787774; margin: 0;">Specify who can see this survey. Leave blank to allow all users.</p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Age Range</label>
+                        <select name="target_age_range">
+                            <option value="" disabled {% if not survey.target_age_range or survey.target_age_range=='' %}selected{% endif %}>Select age range</option>
+                            <option value="all" {% if survey.target_age_range=='' %}selected{% endif %}>All</option>
+                            <option value="18-24" {% if survey.target_age_range=='18-24' %}selected{% endif %}>18-24</option>
+                            <option value="25-34" {% if survey.target_age_range=='25-34' %}selected{% endif %}>25-34</option>
+                            <option value="35-44" {% if survey.target_age_range=='35-44' %}selected{% endif %}>35-44</option>
+                            <option value="45+" {% if survey.target_age_range=='45+' %}selected{% endif %}>45+</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label>Target Education</label>
-                        <input type="text" name="target_education" value="{{ survey.target_education }}">
+                        <label>Education Level</label>
+                        <select name="target_education">
+                            <option value="" disabled {% if not survey.target_education or survey.target_education=='' %}selected{% endif %}>Select education level</option>
+                            <option value="all" {% if survey.target_education=='' %}selected{% endif %}>All</option>
+                            <option value="High School" {% if survey.target_education=='High School' %}selected{% endif %}>High School</option>
+                            <option value="Undergraduate" {% if survey.target_education=='Undergraduate' %}selected{% endif %}>Undergraduate</option>
+                            <option value="Graduate" {% if survey.target_education=='Graduate' %}selected{% endif %}>Graduate</option>
+                            <option value="PhD" {% if survey.target_education=='PhD' %}selected{% endif %}>PhD</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Target Field</label>
-                        <input type="text" name="target_field" value="{{ survey.target_field }}">
+                        <label>Field</label>
+                        <select name="target_field">
+                            <option value="" disabled {% if not survey.target_field or survey.target_field=='' %}selected{% endif %}>Select field / major</option>
+                            <option value="all" {% if survey.target_field=='' %}selected{% endif %}>All</option>
+                            <option value="Computer Science & Engineering" {% if survey.target_field=='Computer Science & Engineering' or survey.target_field=='Computer Science' or survey.target_field=='Engineering' %}selected{% endif %}>Computer Science & Engineering</option>
+                            <option value="Business & Economics" {% if survey.target_field=='Business & Economics' or survey.target_field=='Business' %}selected{% endif %}>Business & Economics</option>
+                            <option value="Medicine & Healthcare" {% if survey.target_field=='Medicine & Healthcare' or survey.target_field=='Medicine / Healthcare' %}selected{% endif %}>Medicine & Healthcare</option>
+                            <option value="Natural Sciences" {% if survey.target_field=='Natural Sciences' %}selected{% endif %}>Natural Sciences</option>
+                            <option value="Social Sciences" {% if survey.target_field=='Social Sciences' %}selected{% endif %}>Social Sciences</option>
+                            <option value="Arts & Humanities" {% if survey.target_field=='Arts & Humanities' %}selected{% endif %}>Arts & Humanities</option>
+                            <option value="Education" {% if survey.target_field=='Education' %}selected{% endif %}>Education</option>
+                            <option value="Law" {% if survey.target_field=='Law' %}selected{% endif %}>Law</option>
+                            <option value="Other" {% if survey.target_field=='Other' %}selected{% endif %}>Other</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label>Target Status</label>
-                        <input type="text" name="target_status" value="{{ survey.target_status }}">
+                        <label>Status</label>
+                        <select name="target_status">
+                            <option value="" disabled {% if not survey.target_status or survey.target_status=='' %}selected{% endif %}>Select current status</option>
+                            <option value="all" {% if survey.target_status=='' %}selected{% endif %}>All</option>
+                            <option value="student" {% if survey.target_status=='student' %}selected{% endif %}>Student</option>
+                            <option value="working" {% if survey.target_status=='working' %}selected{% endif %}>Working</option>
+                            <option value="freelancer" {% if survey.target_status=='freelancer' %}selected{% endif %}>Freelancer</option>
+                            <option value="other" {% if survey.target_status=='other' %}selected{% endif %}>Other</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Target Country</label>
-                        <input type="text" name="target_country" value="{{ survey.target_country }}">
+                        <label>Country</label>
+                        <select name="target_country">
+                            <option value="" disabled {% if not survey.target_country or survey.target_country=='' %}selected{% endif %}>Select country</option>
+                            <option value="all" {% if survey.target_country=='' %}selected{% endif %}>All</option>
+                            <option value="Australia" {% if survey.target_country=='Australia' %}selected{% endif %}>Australia</option>
+                            <option value="Canada" {% if survey.target_country=='Canada' %}selected{% endif %}>Canada</option>
+                            <option value="China" {% if survey.target_country=='China' %}selected{% endif %}>China</option>
+                            <option value="France" {% if survey.target_country=='France' %}selected{% endif %}>France</option>
+                            <option value="Germany" {% if survey.target_country=='Germany' %}selected{% endif %}>Germany</option>
+                            <option value="India" {% if survey.target_country=='India' %}selected{% endif %}>India</option>
+                            <option value="Japan" {% if survey.target_country=='Japan' %}selected{% endif %}>Japan</option>
+                            <option value="Mexico" {% if survey.target_country=='Mexico' %}selected{% endif %}>Mexico</option>
+                            <option value="Saudi Arabia" {% if survey.target_country=='Saudi Arabia' %}selected{% endif %}>Saudi Arabia</option>
+                            <option value="Singapore" {% if survey.target_country=='Singapore' %}selected{% endif %}>Singapore</option>
+                            <option value="South Korea" {% if survey.target_country=='South Korea' %}selected{% endif %}>South Korea</option>
+                            <option value="Spain" {% if survey.target_country=='Spain' %}selected{% endif %}>Spain</option>
+                            <option value="United Arab Emirates" {% if survey.target_country=='United Arab Emirates' %}selected{% endif %}>United Arab Emirates</option>
+                            <option value="United Kingdom" {% if survey.target_country=='United Kingdom' %}selected{% endif %}>United Kingdom</option>
+                            <option value="United States" {% if survey.target_country=='United States' %}selected{% endif %}>United States</option>
+                            <option value="Other" {% if survey.target_country=='Other' %}selected{% endif %}>Other</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label>Target Language</label>
-                        <input type="text" name="target_language" value="{{ survey.target_language }}">
+                        <label>Language</label>
+                        <select name="target_language">
+                            <option value="" disabled {% if not survey.target_language or survey.target_language=='' %}selected{% endif %}>Select primary language</option>
+                            <option value="all" {% if survey.target_language=='' %}selected{% endif %}>All</option>
+                            <option value="Arabic" {% if survey.target_language=='Arabic' %}selected{% endif %}>Arabic</option>
+                            <option value="English" {% if survey.target_language=='English' %}selected{% endif %}>English</option>
+                            <option value="French" {% if survey.target_language=='French' %}selected{% endif %}>French</option>
+                            <option value="German" {% if survey.target_language=='German' %}selected{% endif %}>German</option>
+                            <option value="Hindi" {% if survey.target_language=='Hindi' %}selected{% endif %}>Hindi</option>
+                            <option value="Japanese" {% if survey.target_language=='Japanese' %}selected{% endif %}>Japanese</option>
+                            <option value="Korean" {% if survey.target_language=='Korean' %}selected{% endif %}>Korean</option>
+                            <option value="Mandarin Chinese" {% if survey.target_language=='Mandarin Chinese' %}selected{% endif %}>Mandarin Chinese</option>
+                            <option value="Spanish" {% if survey.target_language=='Spanish' %}selected{% endif %}>Spanish</option>
+                            <option value="Other" {% if survey.target_language=='Other' %}selected{% endif %}>Other</option>
+                        </select>
                     </div>
                 </div>
 
                 <div class="submit-section">
-                    <button type="submit" class="btn btn-primary">Update Survey</button>
                     <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Survey</button>
                 </div>
             </form>
         </div>
     </div>
+
+<script>
+    const coverImageInput = document.getElementById('coverImageInput');
+    const fileInputLabel = document.getElementById('fileInputLabel');
+    const fileInputButton = document.querySelector('.file-input-button');
+    
+    fileInputButton.addEventListener('click', function() {
+        coverImageInput.click();
+    });
+    
+    coverImageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('imagePreview').style.display = 'inline';
+            fileInputLabel.textContent = file.name;
+            fileInputLabel.classList.add('has-file');
+        } else {
+            document.getElementById('imagePreview').style.display = 'none';
+            fileInputLabel.textContent = 'No file chosen';
+            fileInputLabel.classList.remove('has-file');
+        }
+    });
+
+    document.querySelectorAll('select[name^="target_"]').forEach(select => {
+        select.addEventListener('change', function() {
+            if (this.value === '' || this.value === null) {
+                this.style.color = '#9B9A97';
+            } else {
+                this.style.color = '#37352F';
+            }
+        });
+        
+        if (select.value === '' || select.value === null) {
+            select.style.color = '#9B9A97';
+        } else {
+            select.style.color = '#37352F';
+        }
+    });
+
+    const rewardInput = document.getElementById('rewardAmount');
+    if (rewardInput) {
+        rewardInput.addEventListener('input', function() {
+            const cursorPos = this.selectionStart;
+            const oldLength = this.value.length;
+            if (this.value && !isNaN(this.value)) {
+                this.value = parseFloat(this.value).toFixed(2);
+                const newLength = this.value.length;
+                const newCursorPos = cursorPos + (newLength - oldLength);
+                this.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        });
+    }
+</script>
 </body>
 </html>

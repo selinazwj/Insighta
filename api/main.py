@@ -1,11 +1,13 @@
-from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from sqlalchemy import or_, func, case
 from pathlib import Path
+import shutil
+import uuid
 
 from app.database import engine, get_db
 from app.models import Base, User, Survey, Response
@@ -40,6 +42,10 @@ def index(request: Request):
 # ---------------------------
 from fastapi import Request
 
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
 @app.post("/login")
 def login(
     request: Request,
@@ -52,14 +58,14 @@ def login(
     except Exception as e:
         # 数据库连接/查询报错时返回前端
         return templates.TemplateResponse(
-            "index.html",
-            {"request": request, "show": "login", "error": f"Database error: {e}"}
+            "login.html",
+            {"request": request, "error": f"Database error: {e}"}
         )
 
     if not user or not pwd_context.verify(password, user.password):
         return templates.TemplateResponse(
-            "index.html",
-            {"request": request, "show": "login", "error": "Invalid email or password"}
+            "login.html",
+            {"request": request, "error": "Invalid email or password"}
         )
 
     response = RedirectResponse("/choice", status_code=303)
@@ -149,8 +155,14 @@ def get_current_user(
 # 选择页
 # ---------------------------
 @app.get("/choice", response_class=HTMLResponse)
-def choice(request: Request):
-    return templates.TemplateResponse("choice.html", {"request": request})
+def choice(request: Request, user_id: str = Cookie(None), db: Session = Depends(get_db)):
+    current_user = None
+    if user_id:
+        try:
+            current_user = db.query(User).filter(User.id == int(user_id)).first()
+        except:
+            pass
+    return templates.TemplateResponse("choice.html", {"request": request, "current_user": current_user})
 
 # ---------------------------
 # Publisher Dashboard
@@ -179,7 +191,7 @@ def publisher_dashboard(
 
     return templates.TemplateResponse(
         "publisher.html",
-        {"request": request, "surveys": surveys, "completed_map": completed_map}
+        {"request": request, "surveys": surveys, "completed_map": completed_map, "current_user": current_user}
     )
 
 
@@ -211,16 +223,18 @@ def delete_survey(
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
     request: Request,
+    timezone_offset: int = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     surveys = db.query(Survey).filter(
-        or_(Survey.target_age_range == None, Survey.target_age_range == current_user.age_range),
-        or_(Survey.target_education == None, Survey.target_education == current_user.education_level),
-        or_(Survey.target_field == None, Survey.target_field == current_user.field),
-        or_(Survey.target_status == None, Survey.target_status == current_user.status),
-        or_(Survey.target_country == None, Survey.target_country == current_user.country),
-        or_(Survey.target_language == None, Survey.target_language == current_user.language)
+        Survey.status == "published",
+        or_(Survey.target_age_range == None, Survey.target_age_range == '', Survey.target_age_range == current_user.age_range),
+        or_(Survey.target_education == None, Survey.target_education == '', Survey.target_education == current_user.education_level),
+        or_(Survey.target_field == None, Survey.target_field == '', Survey.target_field == current_user.field),
+        or_(Survey.target_status == None, Survey.target_status == '', Survey.target_status == current_user.status),
+        or_(Survey.target_country == None, Survey.target_country == '', Survey.target_country == current_user.country),
+        or_(Survey.target_language == None, Survey.target_language == '', Survey.target_language == current_user.language)
     ).all()
 
     surveys_data = []
@@ -234,6 +248,22 @@ def dashboard(
             Response.status == "completed"
         ).count()
 
+        user_response = db.query(Response).filter(
+            Response.survey_id == s.id,
+            Response.participant_id == current_user.id
+        ).first()
+        
+        is_completed = user_response and user_response.status == "completed"
+
+        category_images = {
+            "research": "/static/psych.jpg",
+            "life": "/static/campus_life.jpg",
+            "clubs": "/static/fb.jpg",
+            "market": "/static/habit.png",
+            "academic": "/static/r2.jpg",
+            "other": "/static/food.jpeg"
+        }
+        
         surveys_data.append({
             "id": s.id,
             "title": s.title,
@@ -244,13 +274,92 @@ def dashboard(
             "reward": f"${s.reward_amount}",
             "responses": f"{completed_cnt}/{s.target_responses}",
             "started": started_cnt,
-            "img": "/static/default.jpg"
+            "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
+            "is_completed": is_completed
         })
 
+    from datetime import datetime, timedelta, timezone
+    
+    if timezone_offset is not None:
+        user_tz = timezone(timedelta(minutes=-timezone_offset))
+        now_user = datetime.now(user_tz)
+        today_start_user = now_user.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start_utc = today_start_user.astimezone(timezone.utc)
+    else:
+        now_utc = datetime.now(timezone.utc)
+        today_start_utc = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    completed_today = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed",
+        Response.completed_at.isnot(None),
+        Response.completed_at >= today_start_utc
+    ).count()
+    
+    completed_responses = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed",
+        Response.completed_at.isnot(None)
+    ).all()
+    
+    total_earned = 0.0
+    for resp in completed_responses:
+        survey = db.query(Survey).filter(Survey.id == resp.survey_id).first()
+        if survey:
+            total_earned += survey.reward_amount
+    
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "surveys": surveys_data}
+        {
+            "request": request,
+            "surveys": surveys_data,
+            "completed_today": completed_today,
+            "total_earned": total_earned,
+            "available_surveys": len(surveys_data),
+            "current_user": current_user
+        }
     )
+
+@app.get("/api/dashboard/stats")
+def get_dashboard_stats(
+    timezone_offset: int = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from datetime import datetime, timedelta, timezone
+    
+    if timezone_offset is not None:
+        user_tz = timezone(timedelta(minutes=-timezone_offset))
+        now_user = datetime.now(user_tz)
+        today_start_user = now_user.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start_utc = today_start_user.astimezone(timezone.utc)
+    else:
+        now_utc = datetime.now(timezone.utc)
+        today_start_utc = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    completed_today = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed",
+        Response.completed_at.isnot(None),
+        Response.completed_at >= today_start_utc
+    ).count()
+    
+    completed_responses = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed",
+        Response.completed_at.isnot(None)
+    ).all()
+    
+    total_earned = 0.0
+    for resp in completed_responses:
+        survey = db.query(Survey).filter(Survey.id == resp.survey_id).first()
+        if survey:
+            total_earned += survey.reward_amount
+    
+    return JSONResponse({
+        "completed_today": completed_today,
+        "total_earned": total_earned
+    })
 
 
 @app.post("/surveys/{survey_id}/start")
@@ -275,7 +384,7 @@ def start_survey(
         db.add(Response(survey_id=survey_id, participant_id=current_user.id, status="started"))
         db.commit()
 
-    return RedirectResponse(url=survey.form_url, status_code=302)
+    return {"message": "Survey started successfully"}
 
 @app.post("/surveys/{survey_id}/complete")
 def complete_survey(
@@ -300,10 +409,30 @@ def complete_survey(
 
     if r.status != "completed":
         r.status = "completed"
-        r.completed_at = datetime.utcnow()
+        from datetime import timezone
+        r.completed_at = datetime.now(timezone.utc)
 
     db.commit()
     return RedirectResponse(url="/dashboard", status_code=302)
+
+@app.post("/surveys/{survey_id}/modify")
+def modify_completed_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    r = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.participant_id == current_user.id
+    ).first()
+    
+    if r and r.status == "completed":
+        r.status = "started"
+        r.completed_at = None
+        db.commit()
+        return {"message": "Response modified"}
+    
+    return JSONResponse({"detail": "Response not found or not completed"}, status_code=404)
 
 
 # ---------------------------
@@ -317,7 +446,7 @@ def publish_page(request: Request):
 # 发布 survey
 # ---------------------------
 @app.post("/publish")
-def publish_survey(
+async def publish_survey(
     title: str = Form(...),
     description: str = Form(...),
     form_url: str = Form(...),
@@ -327,25 +456,47 @@ def publish_survey(
     target_responses: int = Form(...),
     target_age_range: str = Form(None),
     target_education: str = Form(None),
+    target_field: str = Form(None),
+    target_status: str = Form(None),
     target_country: str = Form(None),
+    target_language: str = Form(None),
+    cover_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    image_url = None
+    if cover_image and cover_image.filename:
+        uploads_dir = Path("app/static/uploads")
+        uploads_dir.mkdir(exist_ok=True)
+        
+        file_extension = Path(cover_image.filename).suffix
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = uploads_dir / unique_filename
+        
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(cover_image.file, buffer)
+        
+        image_url = f"/static/uploads/{unique_filename}"
+    
     survey = Survey(
-    publisher_id=current_user.id,
-    title=title,
-    description=description,
-    form_url=form_url,
-    category=category,
-    estimated_time=estimated_time,
-    reward_amount=reward_amount,
-    target_responses=target_responses,
-    target_age_range=target_age_range,
-    target_education=target_education,
-    target_country=target_country,
-    status="draft",
-    published_at=None,
-    closed_at=None,
+        publisher_id=current_user.id,
+        title=title,
+        description=description,
+        form_url=form_url,
+        category=category,
+        estimated_time=estimated_time,
+        reward_amount=reward_amount,
+        target_responses=target_responses,
+        target_age_range='' if not target_age_range or target_age_range == 'all' else target_age_range,
+        target_education='' if not target_education or target_education == 'all' else target_education,
+        target_field='' if not target_field or target_field == 'all' else target_field,
+        target_status='' if not target_status or target_status == 'all' else target_status,
+        target_country='' if not target_country or target_country == 'all' else target_country,
+        target_language='' if not target_language or target_language == 'all' else target_language,
+        image_url=image_url,
+        status="draft",
+        published_at=None,
+        closed_at=None,
     )
     db.add(survey)
     db.commit()
@@ -395,13 +546,38 @@ def close_existing_survey(
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
 
+@app.post("/surveys/{survey_id}/reopen")
+def reopen_closed_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    s = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not s:
+        raise HTTPException(404, "Survey not found")
+
+    if s.status == "closed":
+        s.status = "published"
+        s.closed_at = None
+
+    db.commit()
+    return RedirectResponse("/publisher", status_code=303)
+
 @app.get("/publisher/edit/{survey_id}")
 def edit_survey_get(request: Request, survey_id: int, db: Session = Depends(get_db)):
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    current_responses = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed"
+    ).count()
+    survey.current_responses = current_responses
     return templates.TemplateResponse("edit_publish.html", {"request": request, "survey": survey})
 
 @app.post("/publisher/edit/{survey_id}")
-def edit_survey_post(
+async def edit_survey_post(
     request: Request,
     survey_id: int,
     title: str = Form(...),
@@ -410,30 +586,50 @@ def edit_survey_post(
     category: str = Form(...),
     estimated_time: int = Form(...),
     reward_amount: float = Form(...),
-    target_responses: int = Form(...),
+    additional_needed: int = Form(...),
     target_age_range: str = Form(None),
     target_education: str = Form(None),
     target_field: str = Form(None),
     target_status: str = Form(None),
     target_country: str = Form(None),
     target_language: str = Form(None),
+    cover_image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if survey:
+        current_responses = db.query(Response).filter(
+            Response.survey_id == survey_id,
+            Response.status == "completed"
+        ).count()
+        
         survey.title = title
         survey.description = description
         survey.form_url = form_url
         survey.category = category
         survey.estimated_time = estimated_time
         survey.reward_amount = reward_amount
-        survey.target_responses = target_responses
-        survey.target_age_range = target_age_range
-        survey.target_education = target_education
-        survey.target_field = target_field
-        survey.target_status = target_status
-        survey.target_country = target_country
-        survey.target_language = target_language
+        survey.target_responses = current_responses + additional_needed
+        survey.target_age_range = '' if not target_age_range or target_age_range == 'all' else target_age_range
+        survey.target_education = '' if not target_education or target_education == 'all' else target_education
+        survey.target_field = '' if not target_field or target_field == 'all' else target_field
+        survey.target_status = '' if not target_status or target_status == 'all' else target_status
+        survey.target_country = '' if not target_country or target_country == 'all' else target_country
+        survey.target_language = '' if not target_language or target_language == 'all' else target_language
+        
+        if cover_image and cover_image.filename:
+            uploads_dir = Path("app/static/uploads")
+            uploads_dir.mkdir(exist_ok=True)
+            
+            file_extension = Path(cover_image.filename).suffix
+            unique_filename = f"{uuid.uuid4()}{file_extension}"
+            file_path = uploads_dir / unique_filename
+            
+            with file_path.open("wb") as buffer:
+                shutil.copyfileobj(cover_image.file, buffer)
+            
+            survey.image_url = f"/static/uploads/{unique_filename}"
+        
         db.commit()
     return RedirectResponse("/publisher", status_code=303)
 
