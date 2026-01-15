@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey,func
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
+from sqlalchemy import Integer
 #from app.database import Base
 Base = declarative_base()
 
@@ -43,7 +44,10 @@ class Survey(Base):
 
     # ===== 定向投放条件 =====
     target_age_range = Column(String, nullable=True)
-    target_education = Column(String, nullable=True)
+
+    target_education_min = Column(Integer, nullable=True)
+    target_education_max = Column(Integer, nullable=True)
+
     target_field = Column(String, nullable=True)
     target_status = Column(String, nullable=True)
     target_country = Column(String, nullable=True)
