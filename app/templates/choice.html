@@ -12,210 +12,262 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(120deg, #4a6cf7, #6a9ff8, #74b9ff);
-    background-size: 300% 300%;
-    animation: gradientMove 10s ease infinite;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    background: #FFFFFF;
+    color: #37352F;
     min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    padding: 16px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #E9E9E7;
+    z-index: 100;
+    box-sizing: border-box;
+}
+
+.navbar-left {
+    font-size: 20px;
+    font-weight: 700;
+    color: #37352F;
+    letter-spacing: -0.5px;
+    cursor: pointer;
+}
+
+.navbar-left:hover {
+    color: #000000;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.navbar-right a {
+    text-decoration: none;
+    color: #37352F;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-right a:hover {
+    color: #000000;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    border: 1px solid #E9E9E7;
+}
+
+.main-content {
     display: flex;
     justify-content: center;
     align-items: center;
-    color: white;
-    padding: 20px;
-}
-
-@keyframes gradientMove {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    min-height: 100vh;
+    padding: 100px 20px 40px;
 }
 
 .container {
-    max-width: 1100px;
+    max-width: 1000px;
     width: 100%;
     text-align: center;
 }
 
 .header {
-    margin-bottom: 60px;
-    animation: fadeInDown 0.6s ease-out;
+    margin-bottom: 48px;
 }
 
 .header h1 {
-    font-size: 3em;
-    margin-bottom: 10px;
-    font-weight: bold;
+    font-size: 44px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #000000;
+    letter-spacing: -1px;
 }
 
 .header p {
-    font-size: 1.3em;
-    opacity: 0.95;
+    font-size: 18px;
+    color: #787774;
 }
 
 .choice-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    margin-bottom: 30px;
-}
-
-@media (max-width: 768px) {
-    .choice-container {
-        grid-template-columns: 1fr;
-        gap: 30px;
-    }
-    .header h1 {
-        font-size: 2.2em;
-    }
+    gap: 28px;
+    margin-bottom: 32px;
 }
 
 .choice-card {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    border-radius: 24px;
-    padding: 50px 40px;
+    background: #FAFAF9;
+    border: 1px solid #E9E9E7;
+    border-radius: 16px;
+    padding: 40px 32px;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    animation: fadeInUp 0.6s ease-out;
-    position: relative;
-    overflow: hidden;
-}
-
-.choice-card:nth-child(1) { animation-delay: 0.1s; }
-.choice-card:nth-child(2) { animation-delay: 0.2s; }
-
-.choice-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
-    opacity: 0;
-    transition: opacity 0.4s ease;
+    transition: all 0.3s ease;
+    text-align: center;
 }
 
 .choice-card:hover {
-    transform: translateY(-12px) scale(1.02);
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    border-color: #D9D9D9;
 }
-
-.choice-card:hover::before { opacity: 1; }
 
 .icon {
-    font-size: 5em;
-    margin-bottom: 25px;
-    display: inline-block;
-    transition: transform 0.4s ease;
+    font-size: 56px;
+    margin-bottom: 20px;
+    display: block;
 }
 
-.choice-card:hover .icon { transform: scale(1.15) rotate(5deg); }
-
 .choice-card h2 {
-    font-size: 2em;
-    margin-bottom: 15px;
-    font-weight: bold;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #000000;
 }
 
 .choice-card p {
-    font-size: 1.1em;
+    font-size: 15px;
     line-height: 1.6;
-    opacity: 0.9;
-    margin-bottom: 25px;
+    color: #787774;
+    margin-bottom: 16px;
+}
+
+.highlight {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-weight: 600;
+    font-size: 17px;
+    color: #37352F;
+    display: block;
+    margin-bottom: 12px;
 }
 
 .choice-card .btn {
-    display: inline-block;
-    padding: 14px 36px;
-    background: white;
-    color: #4a6cf7;
-    border-radius: 12px;
-    font-weight: bold;
-    font-size: 1.05em;
+    display: block;
+    width: 100%;
+    padding: 12px 32px;
+    background: #000000;
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 16px;
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all 0.15s ease;
     border: none;
     cursor: pointer;
 }
 
-.choice-card .btn:hover { background: #f0f0f0; transform: scale(1.05); }
-
-.publish-card .btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-.publish-card .btn:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-}
-
-.respond-card .btn {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-}
-.respond-card .btn:hover {
-    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+.choice-card .btn:hover {
+    background: #2F2F2F;
 }
 
 .footer-text {
-    margin-top: 30px;
-    opacity: 0.8;
-    animation: fadeIn 0.6s ease-out 0.4s both;
+    margin-top: 32px;
+    color: #787774;
+    font-size: 14px;
 }
 
 .footer-text a {
-    color: white;
+    color: #000000;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.footer-text a:hover {
     text-decoration: underline;
-    font-weight: bold;
 }
 
-@keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-30px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+@media (max-width: 768px) {
+    .navbar {
+        padding: 12px 20px;
+    }
 
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+    .navbar-left {
+        font-size: 18px;
+    }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .main-content {
+        padding: 20px 10px;
+    }
 
-.highlight {
-    background: linear-gradient(120deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
-    padding: 3px 12px;
-    border-radius: 8px;
-    font-weight: bold;
+    .choice-container {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    
+    .header h1 {
+        font-size: 36px;
+    }
+    
+    .header p {
+        font-size: 18px;
+    }
+    
+    .choice-card {
+        padding: 40px 30px;
+    }
 }
 </style>
 </head>
 <body>
+    <nav class="navbar">
+        <div class="navbar-left" onclick="window.location.href='/'">
+            SurveyBridge
+        </div>
+        <div class="navbar-right">
+            <a href="/profile">
+                <div class="avatar">{{ current_user.username[0].upper() if current_user and current_user.username else 'U' }}</div>
+                <span>Profile</span>
+            </a>
+        </div>
+    </nav>
 
-<div class="container">
+<div class="main-content">
+    <div class="container">
     <div class="header">
         <h1>Welcome to SurveyBridge</h1>
         <p>What would you like to do today?</p>
     </div>
 
     <div class="choice-container">
-        <!-- 发布问卷 -->
-        <div class="choice-card publish-card" onclick="window.location.href='/publisher'">
+        <div class="choice-card" onclick="window.location.href='/publisher'">
             <div class="icon">📋</div>
             <h2>Publish Survey</h2>
             <p>
-                Need quality responses for your research?
-                Post your Google Form and manage your surveys in one place.
+                Need quality responses for your research? Post your Google Form and manage your surveys in one place.
             </p>
             <p class="highlight">Manage & publish surveys</p>
             <button class="btn">Go to Dashboard</button>
         </div>
 
-        <!-- 填写问卷 -->
-        <div class="choice-card respond-card" onclick="window.location.href='/dashboard'">
+        <div class="choice-card" onclick="window.location.href='/dashboard'">
             <div class="icon">💰</div>
             <h2>Fill Surveys</h2>
-            <p>Earn money by sharing your opinions! Browse available surveys, complete them at your own pace, and get paid for your time.</p>
+            <p>Earn money by sharing your opinions! Browse surveys, complete them at your own pace, and earn rewards.</p>
             <p class="highlight">Start earning today</p>
             <button class="btn">Browse Surveys</button>
         </div>
@@ -224,6 +276,7 @@ body {
     <div class="footer-text">
         <p>Not sure? You can always switch between modes anytime.</p>
     </div>
+</div>
 </div>
 
 </body>

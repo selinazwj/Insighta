@@ -13,46 +13,40 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #4a6cf7, #6a9ff8, #74b9ff);
-            background-size: 300% 300%;
-            animation: bgMove 10s ease infinite;
-            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            background: #FFFFFF;
+            color: #37352F;
             min-height: 100vh;
-        }
-
-        @keyframes bgMove {
-            0% {background-position: 0 50%;}
-            50% {background-position: 100% 50%;}
-            100% {background-position: 0 50%;}
         }
 
         /* 导航栏 */
         .navbar {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #E9E9E7;
+            padding: 16px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .navbar-left {
             display: flex;
             align-items: center;
-            gap: 25px;
+            gap: 16px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #37352F;
+            letter-spacing: -0.5px;
         }
 
         .back-btn {
-            color: white;
+            color: #37352F;
             text-decoration: none;
             font-weight: 600;
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.15s ease;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -60,50 +54,14 @@
         }
 
         .back-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateX(-3px);
-        }
-
-        .logo {
-            font-size: 1.6em;
-            font-weight: bold;
+            background: #F7F6F3;
+            color: #000000;
         }
 
         .navbar-right {
             display: flex;
             align-items: center;
             gap: 20px;
-        }
-
-        .balance {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-        }
-
-        .avatar {
-            width: 32px;
-            height: 32px;
-            background: white;
-            color: #4a6cf7;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
         }
 
         /* 主容器 */
@@ -120,41 +78,56 @@
         }
 
         .page-header h1 {
-            font-size: 2.5em;
+            font-size: 36px;
             margin-bottom: 8px;
-            font-weight: bold;
+            font-weight: 700;
+            color: #000000;
+            letter-spacing: -1px;
         }
 
         .page-header p {
-            font-size: 1.1em;
-            opacity: 0.9;
+            font-size: 18px;
+            color: #787774;
+        }
+
+        .page-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 8px;
         }
 
         /* 表单卡片 */
         .form-card {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
+            background: #FAFAF9;
+            border: 1px solid #E9E9E7;
+            border-radius: 16px;
             padding: 40px;
-            animation: fadeInUp 0.6s ease-out 0.2s both;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
         }
 
         .form-group {
             margin-bottom: 28px;
         }
 
+        .form-row .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-group.upload-group {
+            margin-bottom: 28px;
+        }
+
         .form-group label {
             display: block;
             font-weight: 600;
-            margin-bottom: 10px;
-            font-size: 1.05em;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #37352F;
         }
 
         .form-group .label-description {
-            font-size: 0.9em;
-            opacity: 0.85;
+            font-size: 13px;
+            color: #787774;
             font-weight: normal;
             margin-top: 4px;
         }
@@ -163,27 +136,27 @@
         .form-group textarea,
         .form-group select {
             width: 100%;
-            padding: 14px 18px;
-            border-radius: 12px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.25);
-            color: white;
-            font-size: 1em;
-            transition: all 0.3s ease;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #E9E9E7;
+            background: #FFFFFF;
+            color: #37352F;
+            font-size: 15px;
+            transition: all 0.2s ease;
             font-family: inherit;
         }
 
         .form-group input::placeholder,
         .form-group textarea::placeholder {
-            color: rgba(255, 255, 255, 0.6);
+            color: #9B9A97;
         }
 
         .form-group input:focus,
         .form-group textarea:focus,
         .form-group select:focus {
             outline: none;
-            border-color: rgba(255, 255, 255, 0.6);
-            background: rgba(255, 255, 255, 0.3);
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
         }
 
         .form-group textarea {
@@ -194,44 +167,105 @@
         .form-group select {
             cursor: pointer;
             appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2337352F' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
-            background-position: right 18px center;
-            padding-right: 45px;
+            background-position: right 12px center;
+            padding-right: 36px;
+            color: #9B9A97;
+        }
+
+        .form-group select:not(:invalid) {
+            color: #37352F;
         }
 
         .form-group select option {
-            background: #4a6cf7;
-            color: white;
+            background: #FFFFFF;
+            color: #37352F;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            border: 1px solid #E9E9E7;
+            border-radius: 8px;
+            background: #FFFFFF;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .file-input-button {
+            padding: 8px 16px;
+            border: none;
+            border-right: 1px solid #E9E9E7;
+            border-radius: 0;
+            background: #FFFFFF;
+            color: #37352F;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .file-input-button:hover {
+            background: #F7F6F3;
+        }
+
+        .file-input-label {
+            flex: 1;
+            padding: 12px 16px;
+            color: #9B9A97;
+            font-size: 15px;
+            pointer-events: none;
+        }
+
+        .file-input-label.has-file {
+            color: #37352F;
         }
 
         /* 分割线 */
         .form-divider {
-            height: 2px;
-            background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
-            margin: 35px 0;
+            height: 1px;
+            background: #E9E9E7;
+            margin: 32px 0;
         }
 
         /* 两列布局 */
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 16px;
+        }
+
+        .form-row.three-columns {
+            grid-template-columns: 1fr 1fr 1fr;
         }
 
         /* 信息提示 */
         .info-box {
-            background: rgba(255, 255, 255, 0.15);
-            border-left: 4px solid white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            font-size: 0.95em;
+            background: #F7F6F3;
+            border-left: 4px solid #000000;
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #37352F;
         }
 
         .info-box strong {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            color: #000000;
         }
 
         /* 提交按钮 */
@@ -254,24 +288,23 @@
         }
 
         .btn-primary {
-            background: white;
-            color: #4a6cf7;
+            background: #000000;
+            color: white;
         }
 
         .btn-primary:hover {
-            background: #f0f0f0;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            background: #2F2F2F;
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.4);
+            background: transparent;
+            color: #37352F;
+            border: 1.5px solid #D9D9D9;
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: #F7F6F3;
+            border-color: #37352F;
         }
 
         /* 响应式 */
@@ -280,12 +313,13 @@
                 padding: 30px 20px;
             }
 
-            .form-row {
+            .form-row,
+            .form-row.three-columns {
                 grid-template-columns: 1fr;
             }
 
             .page-header h1 {
-                font-size: 2em;
+                font-size: 28px;
             }
 
             .submit-section {
@@ -344,19 +378,19 @@
     <!-- 导航栏 -->
     <nav class="navbar">
         <div class="navbar-left">
-            <a href="/choice" class="back-btn">
+            <a href="/publisher" class="back-btn">
                 <span>←</span>
                 <span>Back</span>
             </a>
-            <div class="logo">SurveyBridge</div>
+            <span>SurveyBridge · Publisher</span>
         </div>
         <div class="navbar-right">
-            <div class="balance">💰 $25.50</div>
-            <a href="/profile" class="user-menu">
-                <div class="avatar">U</div>
-                <span>Publisher</span>
+            <a href="/profile" style="text-decoration: none; color: #37352F; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 1px solid #E9E9E7;">
+                    U
+                </div>
+                <span>Profile</span>
             </a>
-
         </div>
     </nav>
 
@@ -377,8 +411,13 @@
             <form id="publishForm" method="POST" action="/publish" enctype="multipart/form-data">
                 
                 <!-- 基本信息 -->
-                <div class="info-box">
-                    <strong>📝 Before you start:</strong>
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2>📝 Basic Information</h2>
+                    <p style="font-size: 15px; margin: 0;">Provide essential details about your survey</p>
+                </div>
+
+                <div class="info-box" style="margin-bottom: 24px;">
+                    <strong>💡 Before you start:</strong>
                     Make sure your Google Form is set to "Anyone with the link" and accepting responses.
                 </div>
 
@@ -409,13 +448,18 @@
                 <div class="form-divider"></div>
 
                 <!-- 问卷详情 -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2>📋 Survey Details</h2>
+                    <p style="font-size: 15px; margin: 0;">Configure category, time, and cover image</p>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>
                             Category
                         </label>
                         <select name="category" required>
-                            <option value="">Select a category</option>
+                            <option value="" disabled selected>Select a category</option>
                             <option value="research">🔬 Research</option>
                             <option value="life">🌟 Lifestyle</option>
                             <option value="clubs">🎯 Clubs & Events</option>
@@ -427,21 +471,10 @@
 
                     <div class="form-group">
                         <label>
-                            Survey Cover Image (Optional)
-                        </label>
-                        <div style="position: relative;">
-                            <input type="file" id="coverImageInput" name="cover_image" accept="image/*" style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 16px; background: white;">
-                            <span id="imagePreview" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #4CAF50; font-size: 24px; pointer-events: none;">✓</span>
-                        </div>
-                        <small style="color: #666; font-size: 14px;">Upload a custom cover image for your survey (JPG, PNG, or leave empty for default)</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
                             Estimated Time
                         </label>
                         <select name="estimated_time" required>
-                            <option value="">How long to complete?</option>
+                            <option value="" disabled selected>How long to complete?</option>
                             <option value="5">⚡ 5 minutes</option>
                             <option value="10">🕐 10 minutes</option>
                             <option value="15">🕑 15 minutes</option>
@@ -451,9 +484,27 @@
                     </div>
                 </div>
 
+                <div class="form-group upload-group">
+                    <label>
+                        Survey Cover Image (Optional)
+                    </label>
+                    <div class="file-input-wrapper">
+                        <button type="button" class="file-input-button">Choose File</button>
+                        <span class="file-input-label" id="fileInputLabel">No file chosen</span>
+                        <input type="file" id="coverImageInput" name="cover_image" accept="image/*">
+                        <span id="imagePreview" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #10B981; font-size: 20px; pointer-events: none; z-index: 1;">✓</span>
+                    </div>
+                    <small style="color: #787774; font-size: 13px; margin-top: 4px; display: block;">Upload a custom cover image (JPG, PNG, or leave empty for default)</small>
+                </div>
+
                 <div class="form-divider"></div>
 
                 <!-- 奖励设置 -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2>💰 Reward Settings</h2>
+                    <p style="font-size: 15px; margin: 0;">Set payment amount and target number of responses</p>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>
@@ -479,27 +530,30 @@
                 <div class="form-divider"></div>
 
                 <!-- Target Audience -->
-                <div class="page-header">
+                <div class="page-header" style="margin-bottom: 24px;">
                     <h2>🎯 Target Audience</h2>
-                    <p>Specify who can see this survey. Leave blank to allow all users.</p>
+                    <p style="font-size: 15px; margin: 0;">Specify who can see this survey. Leave blank to allow all users.</p>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Age Range</label>
                         <select name="target_age_range">
-                            <option value="">All</option>
+                            <option value="" disabled selected>Select age range</option>
+                            <option value="all">All</option>
                             <option value="18-24">18-24</option>
                             <option value="25-34">25-34</option>
-                            <option value="35-50">35-50</option>
-                            <option value="50+">50+</option>
+                            <option value="35-44">35-44</option>
+                            <option value="45+">45+</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>Education Level</label>
                         <select name="target_education">
-                            <option value="">All</option>
+                            <option value="" disabled selected>Select education level</option>
+                            <option value="all">All</option>
+                            <option value="High School">High School</option>
                             <option value="Undergraduate">Undergraduate</option>
                             <option value="Graduate">Graduate</option>
                             <option value="PhD">PhD</option>
@@ -511,19 +565,29 @@
                     <div class="form-group">
                         <label>Field</label>
                         <select name="target_field">
-                            <option value="">All</option>
-                            <option value="CS">CS</option>
-                            <option value="Econ">Econ</option>
-                            <option value="Bio">Bio</option>
+                            <option value="" disabled selected>Select field / major</option>
+                            <option value="all">All</option>
+                            <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+                            <option value="Business & Economics">Business & Economics</option>
+                            <option value="Medicine & Healthcare">Medicine & Healthcare</option>
+                            <option value="Natural Sciences">Natural Sciences</option>
+                            <option value="Social Sciences">Social Sciences</option>
+                            <option value="Arts & Humanities">Arts & Humanities</option>
+                            <option value="Education">Education</option>
+                            <option value="Law">Law</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>Status</label>
                         <select name="target_status">
-                            <option value="">All</option>
+                            <option value="" disabled selected>Select current status</option>
+                            <option value="all">All</option>
                             <option value="student">Student</option>
                             <option value="working">Working</option>
+                            <option value="freelancer">Freelancer</option>
+                            <option value="other">Other</option>
                         </select>
                     </div>
                 </div>
@@ -531,12 +595,44 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Country</label>
-                        <input type="text" name="target_country" placeholder="e.g., USA, China">
+                        <select name="target_country">
+                            <option value="" disabled selected>Select country</option>
+                            <option value="all">All</option>
+                            <option value="Australia">Australia</option>
+                            <option value="Canada">Canada</option>
+                            <option value="China">China</option>
+                            <option value="France">France</option>
+                            <option value="Germany">Germany</option>
+                            <option value="India">India</option>
+                            <option value="Japan">Japan</option>
+                            <option value="Mexico">Mexico</option>
+                            <option value="Saudi Arabia">Saudi Arabia</option>
+                            <option value="Singapore">Singapore</option>
+                            <option value="South Korea">South Korea</option>
+                            <option value="Spain">Spain</option>
+                            <option value="United Arab Emirates">United Arab Emirates</option>
+                            <option value="United Kingdom">United Kingdom</option>
+                            <option value="United States">United States</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
 
                     <div class="form-group">
                         <label>Language</label>
-                        <input type="text" name="target_language" placeholder="e.g., English, Chinese">
+                        <select name="target_language">
+                            <option value="" disabled selected>Select primary language</option>
+                            <option value="all">All</option>
+                            <option value="Arabic">Arabic</option>
+                            <option value="English">English</option>
+                            <option value="French">French</option>
+                            <option value="German">German</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Japanese">Japanese</option>
+                            <option value="Korean">Korean</option>
+                            <option value="Mandarin Chinese">Mandarin Chinese</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
                 </div>
 
@@ -580,12 +676,40 @@
     });
     targetInput.addEventListener('input', updateBudget);
 
-    document.getElementById('coverImageInput').addEventListener('change', function(e) {
+    const coverImageInput = document.getElementById('coverImageInput');
+    const fileInputLabel = document.getElementById('fileInputLabel');
+    const fileInputButton = document.querySelector('.file-input-button');
+    
+    fileInputButton.addEventListener('click', function() {
+        coverImageInput.click();
+    });
+    
+    coverImageInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
             document.getElementById('imagePreview').style.display = 'inline';
+            fileInputLabel.textContent = file.name;
+            fileInputLabel.classList.add('has-file');
         } else {
             document.getElementById('imagePreview').style.display = 'none';
+            fileInputLabel.textContent = 'No file chosen';
+            fileInputLabel.classList.remove('has-file');
+        }
+    });
+
+    document.querySelectorAll('select[name^="target_"]').forEach(select => {
+        select.addEventListener('change', function() {
+            if (this.value === '' || this.value === null) {
+                this.style.color = '#9B9A97';
+            } else {
+                this.style.color = '#37352F';
+            }
+        });
+        
+        if (select.value === '' || select.value === null) {
+            select.style.color = '#9B9A97';
+        } else {
+            select.style.color = '#37352F';
         }
     });
 
