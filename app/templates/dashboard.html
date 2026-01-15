@@ -474,7 +474,7 @@
         </div>
         <div class="stat-card">
           <div class="label">Total Earned</div>
-          <div class="value" id="totalEarned">${{ "%.2f"|format(total_earned) }}</div>
+          <div class="value" id="totalEarned">💎 {{ "%.2f"|format(total_earned) }}</div>
         </div>
         <div class="stat-card">
           <div class="label">Available Surveys</div>
@@ -510,7 +510,7 @@
             completedTodayEl.textContent = data.completed_today;
           }
           if (totalEarnedEl) {
-            totalEarnedEl.textContent = '$' + data.total_earned.toFixed(2);
+            totalEarnedEl.textContent = '💎 ' + data.total_earned.toFixed(2);
           }
         })
         .catch(err => console.error('Failed to fetch stats:', err));
@@ -586,7 +586,7 @@
                 <div>
                   <div class="card-header">
                     <h3>${s.title}</h3>
-                    <div class="reward-badge">${s.reward}</div>
+                    <div class="reward-badge">💎 ${s.reward}</div>
                   </div>
                   <p>${s.desc}</p>
                 </div>
