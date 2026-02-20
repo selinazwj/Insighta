@@ -12,10 +12,10 @@
             <li>
                 <strong>{{ survey.title }}</strong>
 
-                <!-- 查看链接（filler 也能填） -->
+                <!-- View link (filler can also take) -->
                 <a href="/survey/{{ survey.id }}">View</a>
 
-                <!-- 删除 -->
+                <!-- Delete -->
                 <form action="/publisher/delete-survey/{{ survey.id }}" method="post" style="display:inline;">
                     <button type="submit">🗑 Delete</button>
                 </form>

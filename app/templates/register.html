@@ -117,6 +117,91 @@ select option {
     color: #37352F;
 }
 
+.multiselect-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #37352F;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.multiselect-wrap {
+    position: relative;
+}
+
+.multiselect-trigger {
+    width: 100%;
+    padding: 12px 40px 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #E9E9E7;
+    font-size: 15px;
+    background: #FFFFFF;
+    color: #37352F;
+    text-align: left;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2337352F' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+.multiselect-trigger.placeholder {
+    color: #9B9A97;
+}
+
+.multiselect-trigger:hover {
+    border-color: #D9D9D9;
+}
+
+.multiselect-wrap.open .multiselect-trigger {
+    border-color: #000000;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.multiselect-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    padding: 8px 0;
+    background: #FFFFFF;
+    border: 1px solid #E9E9E7;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 50;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.multiselect-wrap.open .multiselect-panel {
+    display: block;
+}
+
+.multiselect-panel label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 15px;
+    color: #37352F;
+    cursor: pointer;
+    margin: 0;
+}
+
+.multiselect-panel label:hover {
+    background: #FAFAF9;
+}
+
+.multiselect-panel input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #000000;
+    flex-shrink: 0;
+}
+
 .btn-submit {
     width: 100%;
     padding: 14px;
@@ -254,39 +339,170 @@ select option {
                 </select>
             </div>
             
-            <div class="form-row two-columns">
-                <select name="country">
-                    <option value="" disabled selected>Country</option>
-                    <option value="Australia">Australia</option>
-                    <option value="Canada">Canada</option>
-                    <option value="China">China</option>
-                    <option value="France">France</option>
-                    <option value="Germany">Germany</option>
-                    <option value="India">India</option>
-                    <option value="Japan">Japan</option>
-                    <option value="Mexico">Mexico</option>
-                    <option value="Saudi Arabia">Saudi Arabia</option>
-                    <option value="Singapore">Singapore</option>
-                    <option value="South Korea">South Korea</option>
-                    <option value="Spain">Spain</option>
-                    <option value="United Arab Emirates">United Arab Emirates</option>
-                    <option value="United Kingdom">United Kingdom</option>
-                    <option value="United States">United States</option>
-                    <option value="Other">Other</option>
+            <div class="form-row">
+                <select name="state">
+                    <option value="" disabled selected>State</option>
+                    <option value="Alabama">Alabama</option>
+                    <option value="Alaska">Alaska</option>
+                    <option value="Arizona">Arizona</option>
+                    <option value="Arkansas">Arkansas</option>
+                    <option value="California">California</option>
+                    <option value="Colorado">Colorado</option>
+                    <option value="Connecticut">Connecticut</option>
+                    <option value="Delaware">Delaware</option>
+                    <option value="Florida">Florida</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Hawaii">Hawaii</option>
+                    <option value="Idaho">Idaho</option>
+                    <option value="Illinois">Illinois</option>
+                    <option value="Indiana">Indiana</option>
+                    <option value="Iowa">Iowa</option>
+                    <option value="Kansas">Kansas</option>
+                    <option value="Kentucky">Kentucky</option>
+                    <option value="Louisiana">Louisiana</option>
+                    <option value="Maine">Maine</option>
+                    <option value="Maryland">Maryland</option>
+                    <option value="Massachusetts">Massachusetts</option>
+                    <option value="Michigan">Michigan</option>
+                    <option value="Minnesota">Minnesota</option>
+                    <option value="Mississippi">Mississippi</option>
+                    <option value="Missouri">Missouri</option>
+                    <option value="Montana">Montana</option>
+                    <option value="Nebraska">Nebraska</option>
+                    <option value="Nevada">Nevada</option>
+                    <option value="New Hampshire">New Hampshire</option>
+                    <option value="New Jersey">New Jersey</option>
+                    <option value="New Mexico">New Mexico</option>
+                    <option value="New York">New York</option>
+                    <option value="North Carolina">North Carolina</option>
+                    <option value="North Dakota">North Dakota</option>
+                    <option value="Ohio">Ohio</option>
+                    <option value="Oklahoma">Oklahoma</option>
+                    <option value="Oregon">Oregon</option>
+                    <option value="Pennsylvania">Pennsylvania</option>
+                    <option value="Rhode Island">Rhode Island</option>
+                    <option value="South Carolina">South Carolina</option>
+                    <option value="South Dakota">South Dakota</option>
+                    <option value="Tennessee">Tennessee</option>
+                    <option value="Texas">Texas</option>
+                    <option value="Utah">Utah</option>
+                    <option value="Vermont">Vermont</option>
+                    <option value="Virginia">Virginia</option>
+                    <option value="Washington">Washington</option>
+                    <option value="West Virginia">West Virginia</option>
+                    <option value="Wisconsin">Wisconsin</option>
+                    <option value="Wyoming">Wyoming</option>
                 </select>
                 
-                <select name="language">
-                    <option value="" disabled selected>Primary language</option>
-                    <option value="Arabic">Arabic</option>
-                    <option value="English">English</option>
-                    <option value="French">French</option>
-                    <option value="German">German</option>
-                    <option value="Hindi">Hindi</option>
-                    <option value="Japanese">Japanese</option>
-                    <option value="Korean">Korean</option>
-                    <option value="Mandarin Chinese">Mandarin Chinese</option>
-                    <option value="Spanish">Spanish</option>
+            </div>
+
+            <div class="form-row">
+                <div class="multiselect-wrap" id="language-multiselect">
+                    <button type="button" class="multiselect-trigger placeholder" aria-haspopup="listbox" aria-expanded="false">In what language(s) are you able to fill out the survey?</button>
+                    <div class="multiselect-panel" role="listbox">
+                        <label><input type="checkbox" name="language" value="Arabic"> Arabic</label>
+                        <label><input type="checkbox" name="language" value="English"> English</label>
+                        <label><input type="checkbox" name="language" value="French"> French</label>
+                        <label><input type="checkbox" name="language" value="German"> German</label>
+                        <label><input type="checkbox" name="language" value="Hindi"> Hindi</label>
+                        <label><input type="checkbox" name="language" value="Japanese"> Japanese</label>
+                        <label><input type="checkbox" name="language" value="Korean"> Korean</label>
+                        <label><input type="checkbox" name="language" value="Mandarin Chinese"> Mandarin Chinese</label>
+                        <label><input type="checkbox" name="language" value="Spanish"> Spanish</label>
+                        <label><input type="checkbox" name="language" value="Other"> Other</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="ethnicity">
+                    <option value="" disabled selected>Ethnicity</option>
+                    <option value="White">White</option>
+                    <option value="Black or African American">Black or African American</option>
+                    <option value="Hispanic or Latino">Hispanic or Latino</option>
+                    <option value="Asian">Asian</option>
+                    <option value="Middle Eastern or North African">Middle Eastern or North African</option>
+                    <option value="Native American or Pacific Islander">Native American or Pacific Islander</option>
+                    <option value="Two or more races">Two or more races</option>
                     <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+                <select name="sexual_orientation">
+                    <option value="" disabled selected>Sexual Orientation</option>
+                    <option value="Straight / Heterosexual">Straight / Heterosexual</option>
+                    <option value="Gay or Lesbian">Gay or Lesbian</option>
+                    <option value="Bisexual">Bisexual</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="mental_health_diagnosis">
+                    <option value="" disabled selected>Mental / psychological diagnosis</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+                <select name="physical_health_diagnosis">
+                    <option value="" disabled selected>Physical / physiological diagnosis</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="sport_type">
+                    <option value="" disabled selected>Sports Type</option>
+                    <option value="Basketball">Basketball</option>
+                    <option value="Soccer / Football">Soccer / Football</option>
+                    <option value="Baseball / Softball">Baseball / Softball</option>
+                    <option value="American Football">American Football</option>
+                    <option value="Tennis">Tennis</option>
+                    <option value="Golf">Golf</option>
+                    <option value="Swimming">Swimming</option>
+                    <option value="Running / Jogging">Running / Jogging</option>
+                    <option value="Cycling">Cycling</option>
+                    <option value="Yoga / Pilates">Yoga / Pilates</option>
+                    <option value="Gym / Weightlifting">Gym / Weightlifting</option>
+                    <option value="Martial Arts">Martial Arts</option>
+                    <option value="Volleyball">Volleyball</option>
+                    <option value="Hockey">Hockey</option>
+                    <option value="Other">Other</option>
+                    <option value="None">None</option>
+                </select>
+                <select name="sport_frequency">
+                    <option value="" disabled selected>Sports Frequency</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Several times a week">Several times a week</option>
+                    <option value="Once a week">Once a week</option>
+                    <option value="A few times a month">A few times a month</option>
+                    <option value="Rarely">Rarely</option>
+                    <option value="Never">Never</option>
+                </select>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="smoking">
+                    <option value="" disabled selected>Do you smoke?</option>
+                    <option value="Never">Never</option>
+                    <option value="Former smoker">Former smoker</option>
+                    <option value="Rarely">Rarely</option>
+                    <option value="Occasionally">Occasionally</option>
+                    <option value="Several times a week">Several times a week</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+                <select name="cannabis_use">
+                    <option value="" disabled selected>Do you use marijuana / cannabis?</option>
+                    <option value="Never">Never</option>
+                    <option value="Former user">Former user</option>
+                    <option value="Rarely">Rarely</option>
+                    <option value="Occasionally">Occasionally</option>
+                    <option value="Several times a week">Several times a week</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
                 </select>
             </div>
         </div>
@@ -309,6 +525,49 @@ document.querySelectorAll('select').forEach(select => {
         }
     });
 });
+
+(function() {
+    var wrap = document.getElementById('language-multiselect');
+    if (!wrap) return;
+    var trigger = wrap.querySelector('.multiselect-trigger');
+    var panel = wrap.querySelector('.multiselect-panel');
+    var checkboxes = panel.querySelectorAll('input[name="language"]');
+
+    function getLabelText() {
+        var labels = [];
+        checkboxes.forEach(function(cb) {
+            if (cb.checked) labels.push(cb.parentElement.textContent.trim());
+        });
+        return labels.length ? labels.join(', ') : '';
+    }
+
+    function updateTrigger() {
+        var text = getLabelText();
+        trigger.textContent = text || 'In what language(s) are you able to fill out the survey?';
+        trigger.classList.toggle('placeholder', !text);
+        trigger.setAttribute('aria-expanded', wrap.classList.contains('open'));
+    }
+
+    trigger.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        wrap.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', wrap.classList.contains('open'));
+    });
+
+    panel.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    checkboxes.forEach(function(cb) {
+        cb.addEventListener('change', updateTrigger);
+    });
+
+    document.addEventListener('click', function() {
+        wrap.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+    });
+})();
 </script>
 
 </body>

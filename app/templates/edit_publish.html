@@ -353,7 +353,7 @@
 
         <div class="form-card">
             <form method="POST" action="/publisher/edit/{{ survey.id }}" enctype="multipart/form-data">
-                <!-- 基本信息 -->
+                <!-- Basic info -->
                 <div class="page-header" style="margin-bottom: 24px;">
                     <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">📝 Basic Information</h2>
                     <p style="font-size: 15px; color: #787774; margin: 0;">Provide essential details about your survey</p>
@@ -376,7 +376,7 @@
 
                 <div class="form-divider"></div>
 
-                <!-- 问卷详情 -->
+                <!-- Survey details -->
                 <div class="page-header" style="margin-bottom: 24px;">
                     <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">📋 Survey Details</h2>
                     <p style="font-size: 15px; color: #787774; margin: 0;">Configure category, time, and cover image</p>
@@ -426,10 +426,15 @@
 
                 <div class="form-divider"></div>
 
-                <!-- 奖励设置 -->
+                <!-- Reward settings -->
                 <div class="page-header" style="margin-bottom: 24px;">
                     <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">💰 Reward Settings</h2>
                     <p style="font-size: 15px; color: #787774; margin: 0;">Set payment amount and target number of responses</p>
+                </div>
+
+                <div class="info-box" style="margin-bottom: 20px;">
+                    <strong>💎 Recommended reward:</strong>
+                    <span>For a survey that takes about 5 minutes, the recommended reward is approximately 2 💎.</span>
                 </div>
 
                 <div class="info-box">
@@ -518,26 +523,60 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Country</label>
-                        <select name="target_country">
-                            <option value="" disabled {% if not survey.target_country or survey.target_country=='' %}selected{% endif %}>Select country</option>
-                            <option value="all" {% if survey.target_country=='' %}selected{% endif %}>All</option>
-                            <option value="Australia" {% if survey.target_country=='Australia' %}selected{% endif %}>Australia</option>
-                            <option value="Canada" {% if survey.target_country=='Canada' %}selected{% endif %}>Canada</option>
-                            <option value="China" {% if survey.target_country=='China' %}selected{% endif %}>China</option>
-                            <option value="France" {% if survey.target_country=='France' %}selected{% endif %}>France</option>
-                            <option value="Germany" {% if survey.target_country=='Germany' %}selected{% endif %}>Germany</option>
-                            <option value="India" {% if survey.target_country=='India' %}selected{% endif %}>India</option>
-                            <option value="Japan" {% if survey.target_country=='Japan' %}selected{% endif %}>Japan</option>
-                            <option value="Mexico" {% if survey.target_country=='Mexico' %}selected{% endif %}>Mexico</option>
-                            <option value="Saudi Arabia" {% if survey.target_country=='Saudi Arabia' %}selected{% endif %}>Saudi Arabia</option>
-                            <option value="Singapore" {% if survey.target_country=='Singapore' %}selected{% endif %}>Singapore</option>
-                            <option value="South Korea" {% if survey.target_country=='South Korea' %}selected{% endif %}>South Korea</option>
-                            <option value="Spain" {% if survey.target_country=='Spain' %}selected{% endif %}>Spain</option>
-                            <option value="United Arab Emirates" {% if survey.target_country=='United Arab Emirates' %}selected{% endif %}>United Arab Emirates</option>
-                            <option value="United Kingdom" {% if survey.target_country=='United Kingdom' %}selected{% endif %}>United Kingdom</option>
-                            <option value="United States" {% if survey.target_country=='United States' %}selected{% endif %}>United States</option>
-                            <option value="Other" {% if survey.target_country=='Other' %}selected{% endif %}>Other</option>
+                        <label>State</label>
+                        <select name="target_state">
+                            <option value="" disabled {% if not survey.target_state or survey.target_state=='' %}selected{% endif %}>Select state</option>
+                            <option value="all" {% if survey.target_state=='' %}selected{% endif %}>All</option>
+                            <option value="Alabama" {% if survey.target_state=='Alabama' %}selected{% endif %}>Alabama</option>
+                            <option value="Alaska" {% if survey.target_state=='Alaska' %}selected{% endif %}>Alaska</option>
+                            <option value="Arizona" {% if survey.target_state=='Arizona' %}selected{% endif %}>Arizona</option>
+                            <option value="Arkansas" {% if survey.target_state=='Arkansas' %}selected{% endif %}>Arkansas</option>
+                            <option value="California" {% if survey.target_state=='California' %}selected{% endif %}>California</option>
+                            <option value="Colorado" {% if survey.target_state=='Colorado' %}selected{% endif %}>Colorado</option>
+                            <option value="Connecticut" {% if survey.target_state=='Connecticut' %}selected{% endif %}>Connecticut</option>
+                            <option value="Delaware" {% if survey.target_state=='Delaware' %}selected{% endif %}>Delaware</option>
+                            <option value="Florida" {% if survey.target_state=='Florida' %}selected{% endif %}>Florida</option>
+                            <option value="Georgia" {% if survey.target_state=='Georgia' %}selected{% endif %}>Georgia</option>
+                            <option value="Hawaii" {% if survey.target_state=='Hawaii' %}selected{% endif %}>Hawaii</option>
+                            <option value="Idaho" {% if survey.target_state=='Idaho' %}selected{% endif %}>Idaho</option>
+                            <option value="Illinois" {% if survey.target_state=='Illinois' %}selected{% endif %}>Illinois</option>
+                            <option value="Indiana" {% if survey.target_state=='Indiana' %}selected{% endif %}>Indiana</option>
+                            <option value="Iowa" {% if survey.target_state=='Iowa' %}selected{% endif %}>Iowa</option>
+                            <option value="Kansas" {% if survey.target_state=='Kansas' %}selected{% endif %}>Kansas</option>
+                            <option value="Kentucky" {% if survey.target_state=='Kentucky' %}selected{% endif %}>Kentucky</option>
+                            <option value="Louisiana" {% if survey.target_state=='Louisiana' %}selected{% endif %}>Louisiana</option>
+                            <option value="Maine" {% if survey.target_state=='Maine' %}selected{% endif %}>Maine</option>
+                            <option value="Maryland" {% if survey.target_state=='Maryland' %}selected{% endif %}>Maryland</option>
+                            <option value="Massachusetts" {% if survey.target_state=='Massachusetts' %}selected{% endif %}>Massachusetts</option>
+                            <option value="Michigan" {% if survey.target_state=='Michigan' %}selected{% endif %}>Michigan</option>
+                            <option value="Minnesota" {% if survey.target_state=='Minnesota' %}selected{% endif %}>Minnesota</option>
+                            <option value="Mississippi" {% if survey.target_state=='Mississippi' %}selected{% endif %}>Mississippi</option>
+                            <option value="Missouri" {% if survey.target_state=='Missouri' %}selected{% endif %}>Missouri</option>
+                            <option value="Montana" {% if survey.target_state=='Montana' %}selected{% endif %}>Montana</option>
+                            <option value="Nebraska" {% if survey.target_state=='Nebraska' %}selected{% endif %}>Nebraska</option>
+                            <option value="Nevada" {% if survey.target_state=='Nevada' %}selected{% endif %}>Nevada</option>
+                            <option value="New Hampshire" {% if survey.target_state=='New Hampshire' %}selected{% endif %}>New Hampshire</option>
+                            <option value="New Jersey" {% if survey.target_state=='New Jersey' %}selected{% endif %}>New Jersey</option>
+                            <option value="New Mexico" {% if survey.target_state=='New Mexico' %}selected{% endif %}>New Mexico</option>
+                            <option value="New York" {% if survey.target_state=='New York' %}selected{% endif %}>New York</option>
+                            <option value="North Carolina" {% if survey.target_state=='North Carolina' %}selected{% endif %}>North Carolina</option>
+                            <option value="North Dakota" {% if survey.target_state=='North Dakota' %}selected{% endif %}>North Dakota</option>
+                            <option value="Ohio" {% if survey.target_state=='Ohio' %}selected{% endif %}>Ohio</option>
+                            <option value="Oklahoma" {% if survey.target_state=='Oklahoma' %}selected{% endif %}>Oklahoma</option>
+                            <option value="Oregon" {% if survey.target_state=='Oregon' %}selected{% endif %}>Oregon</option>
+                            <option value="Pennsylvania" {% if survey.target_state=='Pennsylvania' %}selected{% endif %}>Pennsylvania</option>
+                            <option value="Rhode Island" {% if survey.target_state=='Rhode Island' %}selected{% endif %}>Rhode Island</option>
+                            <option value="South Carolina" {% if survey.target_state=='South Carolina' %}selected{% endif %}>South Carolina</option>
+                            <option value="South Dakota" {% if survey.target_state=='South Dakota' %}selected{% endif %}>South Dakota</option>
+                            <option value="Tennessee" {% if survey.target_state=='Tennessee' %}selected{% endif %}>Tennessee</option>
+                            <option value="Texas" {% if survey.target_state=='Texas' %}selected{% endif %}>Texas</option>
+                            <option value="Utah" {% if survey.target_state=='Utah' %}selected{% endif %}>Utah</option>
+                            <option value="Vermont" {% if survey.target_state=='Vermont' %}selected{% endif %}>Vermont</option>
+                            <option value="Virginia" {% if survey.target_state=='Virginia' %}selected{% endif %}>Virginia</option>
+                            <option value="Washington" {% if survey.target_state=='Washington' %}selected{% endif %}>Washington</option>
+                            <option value="West Virginia" {% if survey.target_state=='West Virginia' %}selected{% endif %}>West Virginia</option>
+                            <option value="Wisconsin" {% if survey.target_state=='Wisconsin' %}selected{% endif %}>Wisconsin</option>
+                            <option value="Wyoming" {% if survey.target_state=='Wyoming' %}selected{% endif %}>Wyoming</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -558,6 +597,118 @@
                         </select>
                     </div>
                 </div>
+
+                <details class="advanced-section" style="margin-top: 20px;">
+                    <summary style="font-weight: 700; font-size: 15px; color: #37352F; cursor: pointer; padding: 8px 0;">Advanced</summary>
+                    <div style="margin-top: 16px; padding-left: 0;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Ethnicity</label>
+                                <select name="target_ethnicity">
+                                    <option value="all" {% if not survey.target_ethnicity or survey.target_ethnicity=='' %}selected{% endif %}>All</option>
+                                    <option value="White" {% if survey.target_ethnicity=='White' %}selected{% endif %}>White</option>
+                                    <option value="Black or African American" {% if survey.target_ethnicity=='Black or African American' %}selected{% endif %}>Black or African American</option>
+                                    <option value="Hispanic or Latino" {% if survey.target_ethnicity=='Hispanic or Latino' %}selected{% endif %}>Hispanic or Latino</option>
+                                    <option value="Asian" {% if survey.target_ethnicity=='Asian' %}selected{% endif %}>Asian</option>
+                                    <option value="Middle Eastern or North African" {% if survey.target_ethnicity=='Middle Eastern or North African' %}selected{% endif %}>Middle Eastern or North African</option>
+                                    <option value="Native American or Pacific Islander" {% if survey.target_ethnicity=='Native American or Pacific Islander' %}selected{% endif %}>Native American or Pacific Islander</option>
+                                    <option value="Two or more races" {% if survey.target_ethnicity=='Two or more races' %}selected{% endif %}>Two or more races</option>
+                                    <option value="Other" {% if survey.target_ethnicity=='Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sexual Orientation</label>
+                                <select name="target_sexual_orientation">
+                                    <option value="all" {% if not survey.target_sexual_orientation or survey.target_sexual_orientation=='' %}selected{% endif %}>All</option>
+                                    <option value="Straight / Heterosexual" {% if survey.target_sexual_orientation=='Straight / Heterosexual' %}selected{% endif %}>Straight / Heterosexual</option>
+                                    <option value="Gay or Lesbian" {% if survey.target_sexual_orientation=='Gay or Lesbian' %}selected{% endif %}>Gay or Lesbian</option>
+                                    <option value="Bisexual" {% if survey.target_sexual_orientation=='Bisexual' %}selected{% endif %}>Bisexual</option>
+                                    <option value="Other" {% if survey.target_sexual_orientation=='Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Mental / psychological diagnosis</label>
+                                <select name="target_mental_health_diagnosis">
+                                    <option value="all" {% if not survey.target_mental_health_diagnosis or survey.target_mental_health_diagnosis=='' %}selected{% endif %}>All</option>
+                                    <option value="Yes" {% if survey.target_mental_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
+                                    <option value="No" {% if survey.target_mental_health_diagnosis=='No' %}selected{% endif %}>No</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Physical / physiological diagnosis</label>
+                                <select name="target_physical_health_diagnosis">
+                                    <option value="all" {% if not survey.target_physical_health_diagnosis or survey.target_physical_health_diagnosis=='' %}selected{% endif %}>All</option>
+                                    <option value="Yes" {% if survey.target_physical_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
+                                    <option value="No" {% if survey.target_physical_health_diagnosis=='No' %}selected{% endif %}>No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Sports Type</label>
+                                <select name="target_sport_type">
+                                    <option value="all" {% if not survey.target_sport_type or survey.target_sport_type=='' %}selected{% endif %}>All</option>
+                                    <option value="Basketball" {% if survey.target_sport_type=='Basketball' %}selected{% endif %}>Basketball</option>
+                                    <option value="Soccer / Football" {% if survey.target_sport_type=='Soccer / Football' %}selected{% endif %}>Soccer / Football</option>
+                                    <option value="Baseball / Softball" {% if survey.target_sport_type=='Baseball / Softball' %}selected{% endif %}>Baseball / Softball</option>
+                                    <option value="American Football" {% if survey.target_sport_type=='American Football' %}selected{% endif %}>American Football</option>
+                                    <option value="Tennis" {% if survey.target_sport_type=='Tennis' %}selected{% endif %}>Tennis</option>
+                                    <option value="Golf" {% if survey.target_sport_type=='Golf' %}selected{% endif %}>Golf</option>
+                                    <option value="Swimming" {% if survey.target_sport_type=='Swimming' %}selected{% endif %}>Swimming</option>
+                                    <option value="Running / Jogging" {% if survey.target_sport_type=='Running / Jogging' %}selected{% endif %}>Running / Jogging</option>
+                                    <option value="Cycling" {% if survey.target_sport_type=='Cycling' %}selected{% endif %}>Cycling</option>
+                                    <option value="Yoga / Pilates" {% if survey.target_sport_type=='Yoga / Pilates' %}selected{% endif %}>Yoga / Pilates</option>
+                                    <option value="Gym / Weightlifting" {% if survey.target_sport_type=='Gym / Weightlifting' %}selected{% endif %}>Gym / Weightlifting</option>
+                                    <option value="Martial Arts" {% if survey.target_sport_type=='Martial Arts' %}selected{% endif %}>Martial Arts</option>
+                                    <option value="Volleyball" {% if survey.target_sport_type=='Volleyball' %}selected{% endif %}>Volleyball</option>
+                                    <option value="Hockey" {% if survey.target_sport_type=='Hockey' %}selected{% endif %}>Hockey</option>
+                                    <option value="Other" {% if survey.target_sport_type=='Other' %}selected{% endif %}>Other</option>
+                                    <option value="None" {% if survey.target_sport_type=='None' %}selected{% endif %}>None</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sports Frequency</label>
+                                <select name="target_sport_frequency">
+                                    <option value="all" {% if not survey.target_sport_frequency or survey.target_sport_frequency=='' %}selected{% endif %}>All</option>
+                                    <option value="Daily" {% if survey.target_sport_frequency=='Daily' %}selected{% endif %}>Daily</option>
+                                    <option value="Several times a week" {% if survey.target_sport_frequency=='Several times a week' %}selected{% endif %}>Several times a week</option>
+                                    <option value="Once a week" {% if survey.target_sport_frequency=='Once a week' %}selected{% endif %}>Once a week</option>
+                                    <option value="A few times a month" {% if survey.target_sport_frequency=='A few times a month' %}selected{% endif %}>A few times a month</option>
+                                    <option value="Rarely" {% if survey.target_sport_frequency=='Rarely' %}selected{% endif %}>Rarely</option>
+                                    <option value="Never" {% if survey.target_sport_frequency=='Never' %}selected{% endif %}>Never</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Do you smoke?</label>
+                                <select name="target_smoking">
+                                    <option value="all" {% if not survey.target_smoking or survey.target_smoking=='' %}selected{% endif %}>All</option>
+                                    <option value="Never" {% if survey.target_smoking=='Never' %}selected{% endif %}>Never</option>
+                                    <option value="Former smoker" {% if survey.target_smoking=='Former smoker' %}selected{% endif %}>Former smoker</option>
+                                    <option value="Rarely" {% if survey.target_smoking=='Rarely' %}selected{% endif %}>Rarely</option>
+                                    <option value="Occasionally" {% if survey.target_smoking=='Occasionally' %}selected{% endif %}>Occasionally</option>
+                                    <option value="Several times a week" {% if survey.target_smoking=='Several times a week' %}selected{% endif %}>Several times a week</option>
+                                    <option value="Daily" {% if survey.target_smoking=='Daily' %}selected{% endif %}>Daily</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Do you use marijuana / cannabis?</label>
+                                <select name="target_cannabis_use">
+                                    <option value="all" {% if not survey.target_cannabis_use or survey.target_cannabis_use=='' %}selected{% endif %}>All</option>
+                                    <option value="Never" {% if survey.target_cannabis_use=='Never' %}selected{% endif %}>Never</option>
+                                    <option value="Former user" {% if survey.target_cannabis_use=='Former user' %}selected{% endif %}>Former user</option>
+                                    <option value="Rarely" {% if survey.target_cannabis_use=='Rarely' %}selected{% endif %}>Rarely</option>
+                                    <option value="Occasionally" {% if survey.target_cannabis_use=='Occasionally' %}selected{% endif %}>Occasionally</option>
+                                    <option value="Several times a week" {% if survey.target_cannabis_use=='Several times a week' %}selected{% endif %}>Several times a week</option>
+                                    <option value="Daily" {% if survey.target_cannabis_use=='Daily' %}selected{% endif %}>Daily</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </details>
 
                 <div class="submit-section">
                     <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>

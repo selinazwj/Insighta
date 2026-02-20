@@ -19,7 +19,7 @@
             min-height: 100vh;
         }
 
-        /* 导航栏 */
+        /* Navbar */
         .navbar {
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(10px);
@@ -64,14 +64,14 @@
             gap: 20px;
         }
 
-        /* 主容器 */
+        /* Main container */
         .container {
             max-width: 800px;
             margin: 0 auto;
             padding: 40px 20px;
         }
 
-        /* 页面标题 */
+        /* Page header */
         .page-header {
             margin-bottom: 40px;
             animation: fadeInDown 0.6s ease-out;
@@ -97,7 +97,7 @@
             margin-bottom: 8px;
         }
 
-        /* 表单卡片 */
+        /* Form card */
         .form-card {
             background: #FAFAF9;
             border: 1px solid #E9E9E7;
@@ -233,14 +233,14 @@
             color: #37352F;
         }
 
-        /* 分割线 */
+        /* Divider */
         .form-divider {
             height: 1px;
             background: #E9E9E7;
             margin: 32px 0;
         }
 
-        /* 两列布局 */
+        /* Two columns */
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -251,7 +251,7 @@
             grid-template-columns: 1fr 1fr 1fr;
         }
 
-        /* 信息提示 */
+        /* Info box */
         .info-box {
             background: #F7F6F3;
             border-left: 4px solid #000000;
@@ -268,7 +268,7 @@
             color: #000000;
         }
 
-        /* 提交按钮 */
+        /* Submit section */
         .submit-section {
             margin-top: 35px;
             display: flex;
@@ -307,7 +307,7 @@
             border-color: #37352F;
         }
 
-        /* 响应式 */
+        /* Responsive */
         @media (max-width: 768px) {
             .form-card {
                 padding: 30px 20px;
@@ -327,7 +327,7 @@
             }
         }
 
-        /* 动画 */
+        /* Animation */
         @keyframes fadeInDown {
             from {
                 opacity: 0;
@@ -350,7 +350,7 @@
             }
         }
 
-        /* 成功提示 */
+        /* Success message */
         .success-message {
             display: none;
             background: rgba(72, 187, 120, 0.9);
@@ -375,7 +375,7 @@
 </head>
 
 <body>
-    <!-- 导航栏 -->
+    <!-- Navbar -->
     <nav class="navbar">
         <div class="navbar-left">
             <a href="/publisher" class="back-btn">
@@ -395,22 +395,22 @@
     </nav>
 
     <div class="container">
-        <!-- 页面标题 -->
+        <!-- Page header -->
         <div class="page-header">
             <h1>📋 Publish a Survey</h1>
             <p>Share your Google Form and get quality responses from our community</p>
         </div>
 
-        <!-- 成功提示 -->
+        <!-- Success message -->
         <div id="successMessage" class="success-message">
             ✅ Survey published successfully! Redirecting to your dashboard...
         </div>
 
-        <!-- 表单卡片 -->
+        <!-- Form card -->
         <div class="form-card">
             <form id="publishForm" method="POST" action="/publish" enctype="multipart/form-data">
                 
-                <!-- 基本信息 -->
+                <!-- Basic info -->
                 <div class="page-header" style="margin-bottom: 24px;">
                     <h2>📝 Basic Information</h2>
                     <p style="font-size: 15px; margin: 0;">Provide essential details about your survey</p>
@@ -447,7 +447,7 @@
 
                 <div class="form-divider"></div>
 
-                <!-- 问卷详情 -->
+                <!-- Survey details -->
                 <div class="page-header" style="margin-bottom: 24px;">
                     <h2>📋 Survey Details</h2>
                     <p style="font-size: 15px; margin: 0;">Configure category, time, and cover image</p>
@@ -499,10 +499,15 @@
 
                 <div class="form-divider"></div>
 
-                <!-- 奖励设置 -->
+                <!-- Reward settings -->
                 <div class="page-header" style="margin-bottom: 24px;">
                     <h2>💎 Reward Settings</h2>
                     <p style="font-size: 15px; margin: 0;">Set diamond amount and target number of responses</p>
+                </div>
+
+                <div class="info-box" style="margin-bottom: 20px;">
+                    <strong>💎 Recommended reward:</strong>
+                    <span>For a survey that takes about 5 minutes, the recommended reward is approximately 2 💎.</span>
                 </div>
 
                 <div class="form-row">
@@ -605,26 +610,60 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Country</label>
-                        <select name="target_country">
-                            <option value="" disabled selected>Select country</option>
+                        <label>State</label>
+                        <select name="target_state">
+                            <option value="" disabled selected>Select state</option>
                             <option value="all">All</option>
-                            <option value="Australia">Australia</option>
-                            <option value="Canada">Canada</option>
-                            <option value="China">China</option>
-                            <option value="France">France</option>
-                            <option value="Germany">Germany</option>
-                            <option value="India">India</option>
-                            <option value="Japan">Japan</option>
-                            <option value="Mexico">Mexico</option>
-                            <option value="Saudi Arabia">Saudi Arabia</option>
-                            <option value="Singapore">Singapore</option>
-                            <option value="South Korea">South Korea</option>
-                            <option value="Spain">Spain</option>
-                            <option value="United Arab Emirates">United Arab Emirates</option>
-                            <option value="United Kingdom">United Kingdom</option>
-                            <option value="United States">United States</option>
-                            <option value="Other">Other</option>
+                            <option value="Alabama">Alabama</option>
+                            <option value="Alaska">Alaska</option>
+                            <option value="Arizona">Arizona</option>
+                            <option value="Arkansas">Arkansas</option>
+                            <option value="California">California</option>
+                            <option value="Colorado">Colorado</option>
+                            <option value="Connecticut">Connecticut</option>
+                            <option value="Delaware">Delaware</option>
+                            <option value="Florida">Florida</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Hawaii">Hawaii</option>
+                            <option value="Idaho">Idaho</option>
+                            <option value="Illinois">Illinois</option>
+                            <option value="Indiana">Indiana</option>
+                            <option value="Iowa">Iowa</option>
+                            <option value="Kansas">Kansas</option>
+                            <option value="Kentucky">Kentucky</option>
+                            <option value="Louisiana">Louisiana</option>
+                            <option value="Maine">Maine</option>
+                            <option value="Maryland">Maryland</option>
+                            <option value="Massachusetts">Massachusetts</option>
+                            <option value="Michigan">Michigan</option>
+                            <option value="Minnesota">Minnesota</option>
+                            <option value="Mississippi">Mississippi</option>
+                            <option value="Missouri">Missouri</option>
+                            <option value="Montana">Montana</option>
+                            <option value="Nebraska">Nebraska</option>
+                            <option value="Nevada">Nevada</option>
+                            <option value="New Hampshire">New Hampshire</option>
+                            <option value="New Jersey">New Jersey</option>
+                            <option value="New Mexico">New Mexico</option>
+                            <option value="New York">New York</option>
+                            <option value="North Carolina">North Carolina</option>
+                            <option value="North Dakota">North Dakota</option>
+                            <option value="Ohio">Ohio</option>
+                            <option value="Oklahoma">Oklahoma</option>
+                            <option value="Oregon">Oregon</option>
+                            <option value="Pennsylvania">Pennsylvania</option>
+                            <option value="Rhode Island">Rhode Island</option>
+                            <option value="South Carolina">South Carolina</option>
+                            <option value="South Dakota">South Dakota</option>
+                            <option value="Tennessee">Tennessee</option>
+                            <option value="Texas">Texas</option>
+                            <option value="Utah">Utah</option>
+                            <option value="Vermont">Vermont</option>
+                            <option value="Virginia">Virginia</option>
+                            <option value="Washington">Washington</option>
+                            <option value="West Virginia">West Virginia</option>
+                            <option value="Wisconsin">Wisconsin</option>
+                            <option value="Wyoming">Wyoming</option>
                         </select>
                     </div>
 
@@ -647,7 +686,119 @@
                     </div>
                 </div>
 
-                                <!-- 提交按钮 -->
+                <details class="advanced-section" style="margin-top: 20px;">
+                    <summary style="font-weight: 700; font-size: 15px; color: #37352F; cursor: pointer; padding: 8px 0;">Advanced</summary>
+                    <div style="margin-top: 16px; padding-left: 0;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Ethnicity</label>
+                                <select name="target_ethnicity">
+                                    <option value="all" selected>All</option>
+                                    <option value="White">White</option>
+                                    <option value="Black or African American">Black or African American</option>
+                                    <option value="Hispanic or Latino">Hispanic or Latino</option>
+                                    <option value="Asian">Asian</option>
+                                    <option value="Middle Eastern or North African">Middle Eastern or North African</option>
+                                    <option value="Native American or Pacific Islander">Native American or Pacific Islander</option>
+                                    <option value="Two or more races">Two or more races</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sexual Orientation</label>
+                                <select name="target_sexual_orientation">
+                                    <option value="all" selected>All</option>
+                                    <option value="Straight / Heterosexual">Straight / Heterosexual</option>
+                                    <option value="Gay or Lesbian">Gay or Lesbian</option>
+                                    <option value="Bisexual">Bisexual</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Mental / psychological diagnosis</label>
+                                <select name="target_mental_health_diagnosis">
+                                    <option value="all" selected>All</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Physical / physiological diagnosis</label>
+                                <select name="target_physical_health_diagnosis">
+                                    <option value="all" selected>All</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Sports Type</label>
+                                <select name="target_sport_type">
+                                    <option value="all" selected>All</option>
+                                    <option value="Basketball">Basketball</option>
+                                    <option value="Soccer / Football">Soccer / Football</option>
+                                    <option value="Baseball / Softball">Baseball / Softball</option>
+                                    <option value="American Football">American Football</option>
+                                    <option value="Tennis">Tennis</option>
+                                    <option value="Golf">Golf</option>
+                                    <option value="Swimming">Swimming</option>
+                                    <option value="Running / Jogging">Running / Jogging</option>
+                                    <option value="Cycling">Cycling</option>
+                                    <option value="Yoga / Pilates">Yoga / Pilates</option>
+                                    <option value="Gym / Weightlifting">Gym / Weightlifting</option>
+                                    <option value="Martial Arts">Martial Arts</option>
+                                    <option value="Volleyball">Volleyball</option>
+                                    <option value="Hockey">Hockey</option>
+                                    <option value="Other">Other</option>
+                                    <option value="None">None</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sports Frequency</label>
+                                <select name="target_sport_frequency">
+                                    <option value="all" selected>All</option>
+                                    <option value="Daily">Daily</option>
+                                    <option value="Several times a week">Several times a week</option>
+                                    <option value="Once a week">Once a week</option>
+                                    <option value="A few times a month">A few times a month</option>
+                                    <option value="Rarely">Rarely</option>
+                                    <option value="Never">Never</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Do you smoke?</label>
+                                <select name="target_smoking">
+                                    <option value="all" selected>All</option>
+                                    <option value="Never">Never</option>
+                                    <option value="Former smoker">Former smoker</option>
+                                    <option value="Rarely">Rarely</option>
+                                    <option value="Occasionally">Occasionally</option>
+                                    <option value="Several times a week">Several times a week</option>
+                                    <option value="Daily">Daily</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Do you use marijuana / cannabis?</label>
+                                <select name="target_cannabis_use">
+                                    <option value="all" selected>All</option>
+                                    <option value="Never">Never</option>
+                                    <option value="Former user">Former user</option>
+                                    <option value="Rarely">Rarely</option>
+                                    <option value="Occasionally">Occasionally</option>
+                                    <option value="Several times a week">Several times a week</option>
+                                    <option value="Daily">Daily</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Submit -->
                 <div class="submit-section">
                     <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
                     <button type="submit" class="btn btn-primary">Publish Survey 🚀</button>
@@ -657,7 +808,7 @@
     </div>
 
 <script>
-    // 实时计算总预算
+    // Live total budget calculation
     const rewardInput = document.querySelector('input[name="reward_amount"]');
     const targetInput = document.querySelector('input[name="target_responses"]');
     const budgetDisplay = document.getElementById('totalBudget');
