@@ -79,8 +79,11 @@ input, select {
     border: 1px solid #E9E9E7;
     font-size: 15px;
     background: #FFFFFF;
-    color: #37352F;
     transition: all 0.2s;
+}
+
+input {
+    color: #37352F;
 }
 
 input:focus, select:focus {
@@ -103,16 +106,93 @@ select {
     color: #9B9A97;
 }
 
-select:invalid {
+select option {
+    color: #37352F;
+}
+
+.multiselect-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #37352F;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.multiselect-wrap {
+    position: relative;
+}
+
+.multiselect-trigger {
+    width: 100%;
+    padding: 12px 40px 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #E9E9E7;
+    font-size: 15px;
+    background: #FFFFFF;
+    color: #37352F;
+    text-align: left;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2337352F' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+.multiselect-trigger.placeholder {
     color: #9B9A97;
 }
 
-select:not(:invalid) {
-    color: #37352F;
+.multiselect-trigger:hover {
+    border-color: #D9D9D9;
 }
 
-select option {
+.multiselect-wrap.open .multiselect-trigger {
+    border-color: #000000;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.multiselect-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    padding: 8px 0;
+    background: #FFFFFF;
+    border: 1px solid #E9E9E7;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 50;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.multiselect-wrap.open .multiselect-panel {
+    display: block;
+}
+
+.multiselect-panel label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 15px;
     color: #37352F;
+    cursor: pointer;
+    margin: 0;
+}
+
+.multiselect-panel label:hover {
+    background: #FAFAF9;
+}
+
+.multiselect-panel input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #000000;
+    flex-shrink: 0;
 }
 
 .btn-submit {
@@ -187,7 +267,7 @@ select option {
         </div>
 
         <div class="form-section">
-            <div class="section-title">Profile Details</div>
+            <div class="section-title">Profile Details (Optional)</div>
             
             <div class="form-row two-columns">
                 <select name="age_range">
@@ -230,39 +310,170 @@ select option {
                 </select>
             </div>
             
-            <div class="form-row two-columns">
-                <select name="country">
-                    <option value="" disabled {% if not user.country %}selected{% endif %}>Country</option>
-                    <option value="Australia" {% if user.country=='Australia' %}selected{% endif %}>Australia</option>
-                    <option value="Canada" {% if user.country=='Canada' %}selected{% endif %}>Canada</option>
-                    <option value="China" {% if user.country=='China' %}selected{% endif %}>China</option>
-                    <option value="France" {% if user.country=='France' %}selected{% endif %}>France</option>
-                    <option value="Germany" {% if user.country=='Germany' %}selected{% endif %}>Germany</option>
-                    <option value="India" {% if user.country=='India' %}selected{% endif %}>India</option>
-                    <option value="Japan" {% if user.country=='Japan' %}selected{% endif %}>Japan</option>
-                    <option value="Mexico" {% if user.country=='Mexico' %}selected{% endif %}>Mexico</option>
-                    <option value="Saudi Arabia" {% if user.country=='Saudi Arabia' %}selected{% endif %}>Saudi Arabia</option>
-                    <option value="Singapore" {% if user.country=='Singapore' %}selected{% endif %}>Singapore</option>
-                    <option value="South Korea" {% if user.country=='South Korea' %}selected{% endif %}>South Korea</option>
-                    <option value="Spain" {% if user.country=='Spain' %}selected{% endif %}>Spain</option>
-                    <option value="United Arab Emirates" {% if user.country=='United Arab Emirates' %}selected{% endif %}>United Arab Emirates</option>
-                    <option value="United Kingdom" {% if user.country=='United Kingdom' %}selected{% endif %}>United Kingdom</option>
-                    <option value="United States" {% if user.country=='United States' %}selected{% endif %}>United States</option>
-                    <option value="Other" {% if user.country=='Other' %}selected{% endif %}>Other</option>
+            <div class="form-row">
+                <select name="state">
+                    <option value="" disabled {% if not user.state %}selected{% endif %}>State</option>
+                    <option value="Alabama" {% if user.state=='Alabama' %}selected{% endif %}>Alabama</option>
+                    <option value="Alaska" {% if user.state=='Alaska' %}selected{% endif %}>Alaska</option>
+                    <option value="Arizona" {% if user.state=='Arizona' %}selected{% endif %}>Arizona</option>
+                    <option value="Arkansas" {% if user.state=='Arkansas' %}selected{% endif %}>Arkansas</option>
+                    <option value="California" {% if user.state=='California' %}selected{% endif %}>California</option>
+                    <option value="Colorado" {% if user.state=='Colorado' %}selected{% endif %}>Colorado</option>
+                    <option value="Connecticut" {% if user.state=='Connecticut' %}selected{% endif %}>Connecticut</option>
+                    <option value="Delaware" {% if user.state=='Delaware' %}selected{% endif %}>Delaware</option>
+                    <option value="Florida" {% if user.state=='Florida' %}selected{% endif %}>Florida</option>
+                    <option value="Georgia" {% if user.state=='Georgia' %}selected{% endif %}>Georgia</option>
+                    <option value="Hawaii" {% if user.state=='Hawaii' %}selected{% endif %}>Hawaii</option>
+                    <option value="Idaho" {% if user.state=='Idaho' %}selected{% endif %}>Idaho</option>
+                    <option value="Illinois" {% if user.state=='Illinois' %}selected{% endif %}>Illinois</option>
+                    <option value="Indiana" {% if user.state=='Indiana' %}selected{% endif %}>Indiana</option>
+                    <option value="Iowa" {% if user.state=='Iowa' %}selected{% endif %}>Iowa</option>
+                    <option value="Kansas" {% if user.state=='Kansas' %}selected{% endif %}>Kansas</option>
+                    <option value="Kentucky" {% if user.state=='Kentucky' %}selected{% endif %}>Kentucky</option>
+                    <option value="Louisiana" {% if user.state=='Louisiana' %}selected{% endif %}>Louisiana</option>
+                    <option value="Maine" {% if user.state=='Maine' %}selected{% endif %}>Maine</option>
+                    <option value="Maryland" {% if user.state=='Maryland' %}selected{% endif %}>Maryland</option>
+                    <option value="Massachusetts" {% if user.state=='Massachusetts' %}selected{% endif %}>Massachusetts</option>
+                    <option value="Michigan" {% if user.state=='Michigan' %}selected{% endif %}>Michigan</option>
+                    <option value="Minnesota" {% if user.state=='Minnesota' %}selected{% endif %}>Minnesota</option>
+                    <option value="Mississippi" {% if user.state=='Mississippi' %}selected{% endif %}>Mississippi</option>
+                    <option value="Missouri" {% if user.state=='Missouri' %}selected{% endif %}>Missouri</option>
+                    <option value="Montana" {% if user.state=='Montana' %}selected{% endif %}>Montana</option>
+                    <option value="Nebraska" {% if user.state=='Nebraska' %}selected{% endif %}>Nebraska</option>
+                    <option value="Nevada" {% if user.state=='Nevada' %}selected{% endif %}>Nevada</option>
+                    <option value="New Hampshire" {% if user.state=='New Hampshire' %}selected{% endif %}>New Hampshire</option>
+                    <option value="New Jersey" {% if user.state=='New Jersey' %}selected{% endif %}>New Jersey</option>
+                    <option value="New Mexico" {% if user.state=='New Mexico' %}selected{% endif %}>New Mexico</option>
+                    <option value="New York" {% if user.state=='New York' %}selected{% endif %}>New York</option>
+                    <option value="North Carolina" {% if user.state=='North Carolina' %}selected{% endif %}>North Carolina</option>
+                    <option value="North Dakota" {% if user.state=='North Dakota' %}selected{% endif %}>North Dakota</option>
+                    <option value="Ohio" {% if user.state=='Ohio' %}selected{% endif %}>Ohio</option>
+                    <option value="Oklahoma" {% if user.state=='Oklahoma' %}selected{% endif %}>Oklahoma</option>
+                    <option value="Oregon" {% if user.state=='Oregon' %}selected{% endif %}>Oregon</option>
+                    <option value="Pennsylvania" {% if user.state=='Pennsylvania' %}selected{% endif %}>Pennsylvania</option>
+                    <option value="Rhode Island" {% if user.state=='Rhode Island' %}selected{% endif %}>Rhode Island</option>
+                    <option value="South Carolina" {% if user.state=='South Carolina' %}selected{% endif %}>South Carolina</option>
+                    <option value="South Dakota" {% if user.state=='South Dakota' %}selected{% endif %}>South Dakota</option>
+                    <option value="Tennessee" {% if user.state=='Tennessee' %}selected{% endif %}>Tennessee</option>
+                    <option value="Texas" {% if user.state=='Texas' %}selected{% endif %}>Texas</option>
+                    <option value="Utah" {% if user.state=='Utah' %}selected{% endif %}>Utah</option>
+                    <option value="Vermont" {% if user.state=='Vermont' %}selected{% endif %}>Vermont</option>
+                    <option value="Virginia" {% if user.state=='Virginia' %}selected{% endif %}>Virginia</option>
+                    <option value="Washington" {% if user.state=='Washington' %}selected{% endif %}>Washington</option>
+                    <option value="West Virginia" {% if user.state=='West Virginia' %}selected{% endif %}>West Virginia</option>
+                    <option value="Wisconsin" {% if user.state=='Wisconsin' %}selected{% endif %}>Wisconsin</option>
+                    <option value="Wyoming" {% if user.state=='Wyoming' %}selected{% endif %}>Wyoming</option>
                 </select>
-                
-                <select name="language">
-                    <option value="" disabled {% if not user.language %}selected{% endif %}>Primary language</option>
-                    <option value="Arabic" {% if user.language=='Arabic' %}selected{% endif %}>Arabic</option>
-                    <option value="English" {% if user.language=='English' %}selected{% endif %}>English</option>
-                    <option value="French" {% if user.language=='French' %}selected{% endif %}>French</option>
-                    <option value="German" {% if user.language=='German' %}selected{% endif %}>German</option>
-                    <option value="Hindi" {% if user.language=='Hindi' %}selected{% endif %}>Hindi</option>
-                    <option value="Japanese" {% if user.language=='Japanese' %}selected{% endif %}>Japanese</option>
-                    <option value="Korean" {% if user.language=='Korean' %}selected{% endif %}>Korean</option>
-                    <option value="Mandarin Chinese" {% if user.language=='Mandarin Chinese' %}selected{% endif %}>Mandarin Chinese</option>
-                    <option value="Spanish" {% if user.language=='Spanish' %}selected{% endif %}>Spanish</option>
-                    <option value="Other" {% if user.language=='Other' %}selected{% endif %}>Other</option>
+            </div>
+
+            {% set ul = ',' ~ (user.language or '') ~ ',' %}
+            <div class="form-row">
+                <div class="multiselect-wrap" id="language-multiselect">
+                    <button type="button" class="multiselect-trigger placeholder" aria-haspopup="listbox" aria-expanded="false">In what language(s) are you able to fill out the survey?</button>
+                    <div class="multiselect-panel" role="listbox">
+                        <label><input type="checkbox" name="language" value="Arabic" {% if (',' ~ 'Arabic' ~ ',') in ul %}checked{% endif %}> Arabic</label>
+                        <label><input type="checkbox" name="language" value="English" {% if (',' ~ 'English' ~ ',') in ul %}checked{% endif %}> English</label>
+                        <label><input type="checkbox" name="language" value="French" {% if (',' ~ 'French' ~ ',') in ul %}checked{% endif %}> French</label>
+                        <label><input type="checkbox" name="language" value="German" {% if (',' ~ 'German' ~ ',') in ul %}checked{% endif %}> German</label>
+                        <label><input type="checkbox" name="language" value="Hindi" {% if (',' ~ 'Hindi' ~ ',') in ul %}checked{% endif %}> Hindi</label>
+                        <label><input type="checkbox" name="language" value="Japanese" {% if (',' ~ 'Japanese' ~ ',') in ul %}checked{% endif %}> Japanese</label>
+                        <label><input type="checkbox" name="language" value="Korean" {% if (',' ~ 'Korean' ~ ',') in ul %}checked{% endif %}> Korean</label>
+                        <label><input type="checkbox" name="language" value="Mandarin Chinese" {% if (',' ~ 'Mandarin Chinese' ~ ',') in ul %}checked{% endif %}> Mandarin Chinese</label>
+                        <label><input type="checkbox" name="language" value="Spanish" {% if (',' ~ 'Spanish' ~ ',') in ul %}checked{% endif %}> Spanish</label>
+                        <label><input type="checkbox" name="language" value="Other" {% if (',' ~ 'Other' ~ ',') in ul %}checked{% endif %}> Other</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="ethnicity">
+                    <option value="" disabled {% if not user.ethnicity %}selected{% endif %}>Ethnicity</option>
+                    <option value="White" {% if user.ethnicity=='White' %}selected{% endif %}>White</option>
+                    <option value="Black or African American" {% if user.ethnicity=='Black or African American' %}selected{% endif %}>Black or African American</option>
+                    <option value="Hispanic or Latino" {% if user.ethnicity=='Hispanic or Latino' %}selected{% endif %}>Hispanic or Latino</option>
+                    <option value="Asian" {% if user.ethnicity=='Asian' %}selected{% endif %}>Asian</option>
+                    <option value="Middle Eastern or North African" {% if user.ethnicity=='Middle Eastern or North African' %}selected{% endif %}>Middle Eastern or North African</option>
+                    <option value="Native American or Pacific Islander" {% if user.ethnicity=='Native American or Pacific Islander' %}selected{% endif %}>Native American or Pacific Islander</option>
+                    <option value="Two or more races" {% if user.ethnicity=='Two or more races' %}selected{% endif %}>Two or more races</option>
+                    <option value="Other" {% if user.ethnicity=='Other' %}selected{% endif %}>Other</option>
+                    <option value="Prefer not to say" {% if user.ethnicity=='Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                </select>
+                <select name="sexual_orientation">
+                    <option value="" disabled {% if not user.sexual_orientation %}selected{% endif %}>Sexual Orientation</option>
+                    <option value="Straight / Heterosexual" {% if user.sexual_orientation=='Straight / Heterosexual' %}selected{% endif %}>Straight / Heterosexual</option>
+                    <option value="Gay or Lesbian" {% if user.sexual_orientation=='Gay or Lesbian' %}selected{% endif %}>Gay or Lesbian</option>
+                    <option value="Bisexual" {% if user.sexual_orientation=='Bisexual' %}selected{% endif %}>Bisexual</option>
+                    <option value="Other" {% if user.sexual_orientation=='Other' %}selected{% endif %}>Other</option>
+                    <option value="Prefer not to say" {% if user.sexual_orientation=='Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                </select>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="mental_health_diagnosis">
+                    <option value="" disabled {% if not user.mental_health_diagnosis %}selected{% endif %}>Mental / psychological diagnosis</option>
+                    <option value="Yes" {% if user.mental_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
+                    <option value="No" {% if user.mental_health_diagnosis=='No' %}selected{% endif %}>No</option>
+                    <option value="Prefer not to say" {% if user.mental_health_diagnosis=='Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                </select>
+                <select name="physical_health_diagnosis">
+                    <option value="" disabled {% if not user.physical_health_diagnosis %}selected{% endif %}>Physical / physiological diagnosis</option>
+                    <option value="Yes" {% if user.physical_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
+                    <option value="No" {% if user.physical_health_diagnosis=='No' %}selected{% endif %}>No</option>
+                    <option value="Prefer not to say" {% if user.physical_health_diagnosis=='Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                </select>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="sport_type">
+                    <option value="" disabled {% if not user.sport_type %}selected{% endif %}>Sports Type</option>
+                    <option value="Basketball" {% if user.sport_type=='Basketball' %}selected{% endif %}>Basketball</option>
+                    <option value="Soccer / Football" {% if user.sport_type=='Soccer / Football' %}selected{% endif %}>Soccer / Football</option>
+                    <option value="Baseball / Softball" {% if user.sport_type=='Baseball / Softball' %}selected{% endif %}>Baseball / Softball</option>
+                    <option value="American Football" {% if user.sport_type=='American Football' %}selected{% endif %}>American Football</option>
+                    <option value="Tennis" {% if user.sport_type=='Tennis' %}selected{% endif %}>Tennis</option>
+                    <option value="Golf" {% if user.sport_type=='Golf' %}selected{% endif %}>Golf</option>
+                    <option value="Swimming" {% if user.sport_type=='Swimming' %}selected{% endif %}>Swimming</option>
+                    <option value="Running / Jogging" {% if user.sport_type=='Running / Jogging' %}selected{% endif %}>Running / Jogging</option>
+                    <option value="Cycling" {% if user.sport_type=='Cycling' %}selected{% endif %}>Cycling</option>
+                    <option value="Yoga / Pilates" {% if user.sport_type=='Yoga / Pilates' %}selected{% endif %}>Yoga / Pilates</option>
+                    <option value="Gym / Weightlifting" {% if user.sport_type=='Gym / Weightlifting' %}selected{% endif %}>Gym / Weightlifting</option>
+                    <option value="Martial Arts" {% if user.sport_type=='Martial Arts' %}selected{% endif %}>Martial Arts</option>
+                    <option value="Volleyball" {% if user.sport_type=='Volleyball' %}selected{% endif %}>Volleyball</option>
+                    <option value="Hockey" {% if user.sport_type=='Hockey' %}selected{% endif %}>Hockey</option>
+                    <option value="Other" {% if user.sport_type=='Other' %}selected{% endif %}>Other</option>
+                    <option value="None" {% if user.sport_type=='None' %}selected{% endif %}>None</option>
+                </select>
+                <select name="sport_frequency">
+                    <option value="" disabled {% if not user.sport_frequency %}selected{% endif %}>Sports Frequency</option>
+                    <option value="Daily" {% if user.sport_frequency=='Daily' %}selected{% endif %}>Daily</option>
+                    <option value="Several times a week" {% if user.sport_frequency=='Several times a week' %}selected{% endif %}>Several times a week</option>
+                    <option value="Once a week" {% if user.sport_frequency=='Once a week' %}selected{% endif %}>Once a week</option>
+                    <option value="A few times a month" {% if user.sport_frequency=='A few times a month' %}selected{% endif %}>A few times a month</option>
+                    <option value="Rarely" {% if user.sport_frequency=='Rarely' %}selected{% endif %}>Rarely</option>
+                    <option value="Never" {% if user.sport_frequency=='Never' %}selected{% endif %}>Never</option>
+                </select>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="smoking">
+                    <option value="" disabled {% if not user.smoking %}selected{% endif %}>Do you smoke?</option>
+                    <option value="Never" {% if user.smoking=='Never' %}selected{% endif %}>Never</option>
+                    <option value="Former smoker" {% if user.smoking=='Former smoker' %}selected{% endif %}>Former smoker</option>
+                    <option value="Rarely" {% if user.smoking=='Rarely' %}selected{% endif %}>Rarely</option>
+                    <option value="Occasionally" {% if user.smoking=='Occasionally' %}selected{% endif %}>Occasionally</option>
+                    <option value="Several times a week" {% if user.smoking=='Several times a week' %}selected{% endif %}>Several times a week</option>
+                    <option value="Daily" {% if user.smoking=='Daily' %}selected{% endif %}>Daily</option>
+                    <option value="Prefer not to say" {% if user.smoking=='Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                </select>
+                <select name="cannabis_use">
+                    <option value="" disabled {% if not user.cannabis_use %}selected{% endif %}>Do you use marijuana / cannabis?</option>
+                    <option value="Never" {% if user.cannabis_use=='Never' %}selected{% endif %}>Never</option>
+                    <option value="Former user" {% if user.cannabis_use=='Former user' %}selected{% endif %}>Former user</option>
+                    <option value="Rarely" {% if user.cannabis_use=='Rarely' %}selected{% endif %}>Rarely</option>
+                    <option value="Occasionally" {% if user.cannabis_use=='Occasionally' %}selected{% endif %}>Occasionally</option>
+                    <option value="Several times a week" {% if user.cannabis_use=='Several times a week' %}selected{% endif %}>Several times a week</option>
+                    <option value="Daily" {% if user.cannabis_use=='Daily' %}selected{% endif %}>Daily</option>
+                    <option value="Prefer not to say" {% if user.cannabis_use=='Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
                 </select>
             </div>
         </div>
@@ -273,18 +484,56 @@ select option {
 
 <script>
 document.querySelectorAll('select').forEach(select => {
+    select.style.color = select.value === '' ? '#9B9A97' : '#37352F';
     select.addEventListener('change', function() {
-        if (this.value === '') {
-            this.style.color = '#9B9A97';
-        } else {
-            this.style.color = '#37352F';
-        }
+        this.style.color = this.value === '' ? '#9B9A97' : '#37352F';
     });
-    
-    if (select.value !== '') {
-        select.style.color = '#37352F';
-    }
 });
+
+(function() {
+    var wrap = document.getElementById('language-multiselect');
+    if (!wrap) return;
+    var trigger = wrap.querySelector('.multiselect-trigger');
+    var panel = wrap.querySelector('.multiselect-panel');
+    var checkboxes = panel.querySelectorAll('input[name="language"]');
+
+    function getLabelText() {
+        var labels = [];
+        checkboxes.forEach(function(cb) {
+            if (cb.checked) labels.push(cb.parentElement.textContent.trim());
+        });
+        return labels.length ? labels.join(', ') : '';
+    }
+
+    function updateTrigger() {
+        var text = getLabelText();
+        trigger.textContent = text || 'In what language(s) are you able to fill out the survey?';
+        trigger.classList.toggle('placeholder', !text);
+        trigger.setAttribute('aria-expanded', wrap.classList.contains('open'));
+    }
+
+    trigger.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        wrap.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', wrap.classList.contains('open'));
+    });
+
+    panel.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    checkboxes.forEach(function(cb) {
+        cb.addEventListener('change', updateTrigger);
+    });
+
+    document.addEventListener('click', function() {
+        wrap.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+    });
+
+    updateTrigger();
+})();
 </script>
 
 </body>

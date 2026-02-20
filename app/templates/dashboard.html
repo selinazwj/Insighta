@@ -19,7 +19,7 @@
         min-height: 100vh;
       }
 
-      /* 专业导航栏 */
+      /* Navbar */
       .navbar {
         background: rgba(255, 255, 255, 0.8);
         backdrop-filter: blur(10px);
@@ -92,14 +92,14 @@
         background: #F7F6F3;
       }
 
-      /* 主容器 */
+      /* Main container */
       .container {
         max-width: 1000px;
         margin: 0 auto;
         padding: 40px 20px;
       }
 
-      /* 页面标题区域 */
+      /* Page title area */
       .page-header {
         margin-bottom: 40px;
         animation: fadeInDown 0.6s ease-out;
@@ -118,7 +118,7 @@
         color: #787774;
       }
 
-      /* 统计卡片 */
+      /* Stats cards */
       .stats-row {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -296,7 +296,7 @@
         gap: 5px;
       }
 
-      /* 响应式 */
+      /* Responsive */
       @media (max-width: 768px) {
         .navbar {
           padding: 12px 15px;
@@ -334,7 +334,7 @@
         }
       }
 
-      /* 动画 */
+      /* Animation */
       @keyframes fadeInDown {
         from {
           opacity: 0;
@@ -439,7 +439,7 @@
   </head>
 
   <body>
-    <!-- 专业导航栏 -->
+    <!-- Navbar -->
     <nav class="navbar">
       <div class="navbar-left">
         <a href="/choice" class="back-btn">
@@ -460,13 +460,13 @@
     </nav>
 
     <div class="container">
-      <!-- 页面标题 -->
+      <!-- Page title -->
       <div class="page-header">
         <h1>Available Surveys</h1>
         <p>Complete surveys and earn rewards for your time</p>
       </div>
 
-      <!-- 统计卡片 -->
+      <!-- Stats cards -->
       <div class="stats-row">
         <div class="stat-card">
           <div class="label">Completed Today</div>
@@ -645,7 +645,7 @@
             return;
           }
 
-          // start 成功后打开问卷链接
+          // Open survey link after start success
           window.open(link, "_blank");
         } catch (err) {
           alert("Network error");

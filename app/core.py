@@ -11,7 +11,7 @@ from app.models import User
 
 router = APIRouter()
 
-# 自动根据 core.py 所在位置找 templates
+# Resolve templates path relative to core.py
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
@@ -25,7 +25,7 @@ def get_db():
         db.close()
 
 
-# 首页
+# Index
 @router.get("/")
 def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})

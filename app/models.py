@@ -6,7 +6,7 @@ from sqlalchemy import Integer
 Base = declarative_base()
 
 # ======================
-# User（填写者 & 发布者）
+# User (filler & publisher)
 # ======================
 class User(Base):
     __tablename__ = "users"
@@ -20,12 +20,20 @@ class User(Base):
     education_level = Column(String, nullable=True)
     field = Column(String, nullable=True)
     status = Column(String, nullable=True)
-    country = Column(String, nullable=True)
+    state = Column(String, nullable=True)
+    ethnicity = Column(String, nullable=True)
+    mental_health_diagnosis = Column(String, nullable=True)   # Yes / No / Prefer not to say
+    physical_health_diagnosis = Column(String, nullable=True) # Yes / No / Prefer not to say
+    sexual_orientation = Column(String, nullable=True)
+    sport_type = Column(String, nullable=True)
+    sport_frequency = Column(String, nullable=True)
+    smoking = Column(String, nullable=True)
+    cannabis_use = Column(String, nullable=True)
     language = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # 关系：我发布的 surveys
+    # Relationships
     surveys = relationship("Survey", back_populates="publisher")
     responses = relationship("Response", back_populates="participant")
 
@@ -39,10 +47,10 @@ class Survey(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # 发布者
+    # Publisher
     publisher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    # ===== 定向投放条件 =====
+    # Target audience
     target_age_range = Column(String, nullable=True)
 
     target_education_min = Column(Integer, nullable=True)
@@ -50,10 +58,19 @@ class Survey(Base):
 
     target_field = Column(String, nullable=True)
     target_status = Column(String, nullable=True)
-    target_country = Column(String, nullable=True)
+    target_state = Column(String, nullable=True)
     target_language = Column(String, nullable=True)
+    # Advanced (from registration profile)
+    target_ethnicity = Column(String, nullable=True)
+    target_sexual_orientation = Column(String, nullable=True)
+    target_mental_health_diagnosis = Column(String, nullable=True)
+    target_physical_health_diagnosis = Column(String, nullable=True)
+    target_sport_type = Column(String, nullable=True)
+    target_sport_frequency = Column(String, nullable=True)
+    target_smoking = Column(String, nullable=True)
+    target_cannabis_use = Column(String, nullable=True)
 
-    # ===== 基本信息 =====
+    # Basic info
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     form_url = Column(String, nullable=False)
@@ -62,24 +79,24 @@ class Survey(Base):
     estimated_time = Column(Integer, nullable=False) # minutes
     image_url = Column(String, nullable=True)        # custom image
 
-    # ===== 奖励与进度 =====
+    # Reward & progress
     reward_amount = Column(Float, nullable=False)
     target_responses = Column(Integer, nullable=False)
     current_responses = Column(Integer, default=0)
 
-    # ===== 状态 =====
-    status = Column(String, default="draft")  # draft / published / closed
+    # Status (draft / published / closed)
+    status = Column(String, default="draft")
     published_at = Column(DateTime, nullable=True)
     closed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # 关系
+    # Relationships
     publisher = relationship("User", back_populates="surveys")
     responses = relationship("Response", back_populates="survey")
 
 
 # ======================
-# Response（参与者填写记录）
+# Response (participant completion record)
 # ======================
 class Response(Base):
     __tablename__ = "responses"

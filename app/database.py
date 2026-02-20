@@ -12,7 +12,7 @@ if not DATABASE_URL:
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 只 import Base，不 import User/Survey/Response
+# Import Base only (not User/Survey/Response) to avoid circular import
 from app.models import Base
 Base.metadata.create_all(bind=engine)
 

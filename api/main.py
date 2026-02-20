@@ -15,11 +15,11 @@ from app.models import Base, User, Survey, Response
 
 app = FastAPI()
 
-# 确保模板路径正确
+# Template path
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory="app/templates")
 
-# 挂载静态文件
+# Static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -28,7 +28,7 @@ Base.metadata.create_all(bind=engine)
 
 router = APIRouter()
 # ---------------------------
-# 首页
+# Index
 # ---------------------------
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
@@ -38,7 +38,7 @@ def index(request: Request):
     )
 
 # ---------------------------
-# 登录
+# Login
 # ---------------------------
 from fastapi import Request
 
@@ -56,7 +56,7 @@ def login(
     try:
         user = db.query(User).filter(User.email == email).first()
     except Exception as e:
-        # 数据库连接/查询报错时返回前端
+        # Database error, return to frontend
         return templates.TemplateResponse(
             "login.html",
             {"request": request, "error": f"Database error: {e}"}
@@ -73,10 +73,7 @@ def login(
     return response
 
 # ---------------------------
-# 注册页面
-# ---------------------------
-# ---------------------------
-# 注册页面显示（GET）
+# Register (GET)
 # ---------------------------
 @app.get("/register", response_class=HTMLResponse)
 def show_register(request: Request):
@@ -86,36 +83,45 @@ def show_register(request: Request):
     )
 
 # ---------------------------
-# 注册处理（POST）
+# Register (POST)
 # ---------------------------
 @app.post("/register", response_class=HTMLResponse)
-def do_register(
+async def do_register(
     request: Request,
-    email: str = Form(...),
-    password: str = Form(...),
-    confirm: str = Form(...),
-
-    age_range: str = Form(None),
-    education_level: str = Form(None),
-    field: str = Form(None),
-    status: str = Form(None),
-    country: str = Form(None),
-    language: str = Form(None),
-
     db: Session = Depends(get_db)
 ):
-    # 密码确认
+    form = await request.form()
+    email = form.get("email") or ""
+    password = form.get("password") or ""
+    confirm = form.get("confirm") or ""
+    age_range = form.get("age_range")
+    education_level = form.get("education_level")
+    field = form.get("field")
+    status = form.get("status")
+    state = form.get("state")
+    ethnicity = form.get("ethnicity")
+    mental_health_diagnosis = form.get("mental_health_diagnosis")
+    physical_health_diagnosis = form.get("physical_health_diagnosis")
+    sexual_orientation = form.get("sexual_orientation")
+    sport_type = form.get("sport_type")
+    sport_frequency = form.get("sport_frequency")
+    smoking = form.get("smoking")
+    cannabis_use = form.get("cannabis_use")
+    language_list = form.getlist("language")
+    language = ",".join(language_list) if language_list else None
+
+    # Password confirmation
     if password != confirm:
         return templates.TemplateResponse("register.html", {"request": request, "error": "Passwords do not match"})
 
-    # 邮箱是否已存在
+    # Email already exists
     if db.query(User).filter(User.email == email).first():
         return templates.TemplateResponse("register.html", {"request": request, "error": "Email already exists"})
 
-    # 加密密码
+    # Hash password
     hashed_password = pwd_context.hash(password)
 
-    # 创建用户
+    # Create user
     user = User(
         email=email,
         password=hashed_password,
@@ -123,7 +129,15 @@ def do_register(
         education_level=education_level,
         field=field,
         status=status,
-        country=country,
+        state=state,
+        ethnicity=ethnicity,
+        mental_health_diagnosis=mental_health_diagnosis,
+        physical_health_diagnosis=physical_health_diagnosis,
+        sexual_orientation=sexual_orientation,
+        sport_type=sport_type,
+        sport_frequency=sport_frequency,
+        smoking=smoking,
+        cannabis_use=cannabis_use,
         language=language
     )
 
@@ -131,13 +145,13 @@ def do_register(
     db.commit()
     db.refresh(user)
 
-    # 登录态
+    # Log in
     response = RedirectResponse("/choice", status_code=303)
     response.set_cookie("user_id", str(user.id))
     return response
 
 # ---------------------------
-# 当前用户
+# Current user
 # ---------------------------
 def get_current_user(
     user_id: str = Cookie(None),
@@ -152,7 +166,7 @@ def get_current_user(
     return user
 
 # ---------------------------
-# 选择页
+# Choice page
 # ---------------------------
 @app.get("/choice", response_class=HTMLResponse)
 def choice(request: Request, user_id: str = Cookie(None), db: Session = Depends(get_db)):
@@ -197,7 +211,7 @@ def publisher_dashboard(
 
 
 # ---------------------------
-# 删除 survey
+# Delete survey
 # ---------------------------
 @app.post("/publisher/delete/{survey_id}")
 def delete_survey(
@@ -218,7 +232,7 @@ def delete_survey(
     return RedirectResponse("/publisher", status_code=303)
 
 # ---------------------------
-# Dashboard（填写者视角）
+# Dashboard (filler view)
 # ---------------------------
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
@@ -253,8 +267,21 @@ def dashboard(
 
         or_(Survey.target_field == None, Survey.target_field == '', Survey.target_field == current_user.field),
         or_(Survey.target_status == None, Survey.target_status == '', Survey.target_status == current_user.status),
-        or_(Survey.target_country == None, Survey.target_country == '', Survey.target_country == current_user.country),
-        or_(Survey.target_language == None, Survey.target_language == '', Survey.target_language == current_user.language)
+        or_(Survey.target_state == None, Survey.target_state == '', Survey.target_state == current_user.state),
+        or_(
+            Survey.target_language == None,
+            Survey.target_language == '',
+            Survey.target_language == current_user.language,
+            Survey.target_language.in_([x.strip() for x in (current_user.language or "").split(",") if x.strip()])
+        ),
+        or_(Survey.target_ethnicity == None, Survey.target_ethnicity == '', Survey.target_ethnicity == current_user.ethnicity),
+        or_(Survey.target_sexual_orientation == None, Survey.target_sexual_orientation == '', Survey.target_sexual_orientation == current_user.sexual_orientation),
+        or_(Survey.target_mental_health_diagnosis == None, Survey.target_mental_health_diagnosis == '', Survey.target_mental_health_diagnosis == current_user.mental_health_diagnosis),
+        or_(Survey.target_physical_health_diagnosis == None, Survey.target_physical_health_diagnosis == '', Survey.target_physical_health_diagnosis == current_user.physical_health_diagnosis),
+        or_(Survey.target_sport_type == None, Survey.target_sport_type == '', Survey.target_sport_type == current_user.sport_type),
+        or_(Survey.target_sport_frequency == None, Survey.target_sport_frequency == '', Survey.target_sport_frequency == current_user.sport_frequency),
+        or_(Survey.target_smoking == None, Survey.target_smoking == '', Survey.target_smoking == current_user.smoking),
+        or_(Survey.target_cannabis_use == None, Survey.target_cannabis_use == '', Survey.target_cannabis_use == current_user.cannabis_use),
     ).all()
 
     surveys_data = []
@@ -394,7 +421,7 @@ def start_survey(
     if survey.status != "published":
         raise HTTPException(400, "Survey not published")
 
-    # 防重复：同一用户同一 survey 只创建一条 started
+    # Avoid duplicate: one started record per user per survey
     existing = db.query(Response).filter(
         Response.survey_id == survey_id,
         Response.participant_id == current_user.id
@@ -456,14 +483,14 @@ def modify_completed_survey(
 
 
 # ---------------------------
-# 发布页面
+# Publish page
 # ---------------------------
 @app.get("/publish", response_class=HTMLResponse)
 def publish_page(request: Request):
     return templates.TemplateResponse("publish.html", {"request": request})
 
 # ---------------------------
-# 发布 survey
+# Publish survey
 # ---------------------------
 @app.post("/publish")
 async def publish_survey(
@@ -479,8 +506,16 @@ async def publish_survey(
     target_education_max: int = Form(None),
     target_field: str = Form(None),
     target_status: str = Form(None),
-    target_country: str = Form(None),
+    target_state: str = Form(None),
     target_language: str = Form(None),
+    target_ethnicity: str = Form(None),
+    target_sexual_orientation: str = Form(None),
+    target_mental_health_diagnosis: str = Form(None),
+    target_physical_health_diagnosis: str = Form(None),
+    target_sport_type: str = Form(None),
+    target_sport_frequency: str = Form(None),
+    target_smoking: str = Form(None),
+    target_cannabis_use: str = Form(None),
     cover_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -514,8 +549,16 @@ async def publish_survey(
 
         target_field='' if not target_field or target_field == 'all' else target_field,
         target_status='' if not target_status or target_status == 'all' else target_status,
-        target_country='' if not target_country or target_country == 'all' else target_country,
+        target_state='' if not target_state or target_state == 'all' else target_state,
         target_language='' if not target_language or target_language == 'all' else target_language,
+        target_ethnicity='' if not target_ethnicity or target_ethnicity == 'all' else target_ethnicity,
+        target_sexual_orientation='' if not target_sexual_orientation or target_sexual_orientation == 'all' else target_sexual_orientation,
+        target_mental_health_diagnosis='' if not target_mental_health_diagnosis or target_mental_health_diagnosis == 'all' else target_mental_health_diagnosis,
+        target_physical_health_diagnosis='' if not target_physical_health_diagnosis or target_physical_health_diagnosis == 'all' else target_physical_health_diagnosis,
+        target_sport_type='' if not target_sport_type or target_sport_type == 'all' else target_sport_type,
+        target_sport_frequency='' if not target_sport_frequency or target_sport_frequency == 'all' else target_sport_frequency,
+        target_smoking='' if not target_smoking or target_smoking == 'all' else target_smoking,
+        target_cannabis_use='' if not target_cannabis_use or target_cannabis_use == 'all' else target_cannabis_use,
         image_url=image_url,
         status="draft",
         published_at=None,
@@ -616,8 +659,16 @@ async def edit_survey_post(
 
     target_field: str = Form(None),
     target_status: str = Form(None),
-    target_country: str = Form(None),
+    target_state: str = Form(None),
     target_language: str = Form(None),
+    target_ethnicity: str = Form(None),
+    target_sexual_orientation: str = Form(None),
+    target_mental_health_diagnosis: str = Form(None),
+    target_physical_health_diagnosis: str = Form(None),
+    target_sport_type: str = Form(None),
+    target_sport_frequency: str = Form(None),
+    target_smoking: str = Form(None),
+    target_cannabis_use: str = Form(None),
     cover_image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
@@ -641,9 +692,17 @@ async def edit_survey_post(
 
         survey.target_field = '' if not target_field or target_field == 'all' else target_field
         survey.target_status = '' if not target_status or target_status == 'all' else target_status
-        survey.target_country = '' if not target_country or target_country == 'all' else target_country
+        survey.target_state = '' if not target_state or target_state == 'all' else target_state
         survey.target_language = '' if not target_language or target_language == 'all' else target_language
-        
+        survey.target_ethnicity = '' if not target_ethnicity or target_ethnicity == 'all' else target_ethnicity
+        survey.target_sexual_orientation = '' if not target_sexual_orientation or target_sexual_orientation == 'all' else target_sexual_orientation
+        survey.target_mental_health_diagnosis = '' if not target_mental_health_diagnosis or target_mental_health_diagnosis == 'all' else target_mental_health_diagnosis
+        survey.target_physical_health_diagnosis = '' if not target_physical_health_diagnosis or target_physical_health_diagnosis == 'all' else target_physical_health_diagnosis
+        survey.target_sport_type = '' if not target_sport_type or target_sport_type == 'all' else target_sport_type
+        survey.target_sport_frequency = '' if not target_sport_frequency or target_sport_frequency == 'all' else target_sport_frequency
+        survey.target_smoking = '' if not target_smoking or target_smoking == 'all' else target_smoking
+        survey.target_cannabis_use = '' if not target_cannabis_use or target_cannabis_use == 'all' else target_cannabis_use
+
         if cover_image and cover_image.filename:
             uploads_dir = Path("app/static/uploads")
             uploads_dir.mkdir(exist_ok=True)
@@ -674,27 +733,29 @@ def profile_get(request: Request, current_user: User = Depends(get_current_user)
     )
 
 @app.post("/profile")
-def profile_post(
+async def profile_post(
     request: Request,
-    username: str = Form(None),
-    email: str = Form(...),
-    age_range: str = Form(None),
-    education_level: str = Form(None),
-    field: str = Form(None),
-    status: str = Form(None),
-    country: str = Form(None),
-    language: str = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    current_user.username = username
-    current_user.email = email
-    current_user.age_range = age_range
-    current_user.education_level = education_level
-    current_user.field = field
-    current_user.status = status
-    current_user.country = country
-    current_user.language = language
+    form = await request.form()
+    current_user.username = form.get("username")
+    current_user.email = form.get("email") or ""
+    current_user.age_range = form.get("age_range")
+    current_user.education_level = form.get("education_level")
+    current_user.field = form.get("field")
+    current_user.status = form.get("status")
+    current_user.state = form.get("state")
+    current_user.ethnicity = form.get("ethnicity")
+    current_user.mental_health_diagnosis = form.get("mental_health_diagnosis")
+    current_user.physical_health_diagnosis = form.get("physical_health_diagnosis")
+    current_user.sexual_orientation = form.get("sexual_orientation")
+    current_user.sport_type = form.get("sport_type")
+    current_user.sport_frequency = form.get("sport_frequency")
+    current_user.smoking = form.get("smoking")
+    current_user.cannabis_use = form.get("cannabis_use")
+    language_list = form.getlist("language")
+    current_user.language = ",".join(language_list) if language_list else None
 
     db.commit()
 
