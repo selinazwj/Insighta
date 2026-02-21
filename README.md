@@ -1,4 +1,4 @@
-# SurveyBridge2.0
+# Insighta
 Double-sided platform makes survey and data collection easier. 
 
 # BackEnd Code Logic
