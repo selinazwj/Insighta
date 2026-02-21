@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from sqlalchemy import or_, func, case
 from pathlib import Path
+from typing import Optional
 import shutil
 import uuid
 
@@ -492,8 +493,18 @@ def publish_page(request: Request):
 # ---------------------------
 # Publish survey
 # ---------------------------
+def _parse_optional_int(v) -> Optional[int]:
+    if v is None or (isinstance(v, str) and not v.strip()):
+        return None
+    try:
+        return int(v)
+    except (ValueError, TypeError):
+        return None
+
+
 @app.post("/publish")
 async def publish_survey(
+    request: Request,
     title: str = Form(...),
     description: str = Form(...),
     form_url: str = Form(...),
@@ -502,8 +513,6 @@ async def publish_survey(
     reward_amount: float = Form(...),
     target_responses: int = Form(...),
     target_age_range: str = Form(None),
-    target_education_min: int = Form(None),
-    target_education_max: int = Form(None),
     target_field: str = Form(None),
     target_status: str = Form(None),
     target_state: str = Form(None),
@@ -520,6 +529,10 @@ async def publish_survey(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    form = await request.form()
+    target_education_min = _parse_optional_int(form.get("target_education_min"))
+    target_education_max = _parse_optional_int(form.get("target_education_max"))
+
     image_url = None
     if cover_image and cover_image.filename:
         uploads_dir = Path("app/static/uploads")
@@ -654,8 +667,6 @@ async def edit_survey_post(
     reward_amount: float = Form(...),
     additional_needed: int = Form(...),
     target_age_range: str = Form(None),
-    target_education_min: int = Form(None),
-    target_education_max: int = Form(None),
 
     target_field: str = Form(None),
     target_status: str = Form(None),
@@ -672,6 +683,10 @@ async def edit_survey_post(
     cover_image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
+    form = await request.form()
+    target_education_min = _parse_optional_int(form.get("target_education_min"))
+    target_education_max = _parse_optional_int(form.get("target_education_max"))
+
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if survey:
         current_responses = db.query(Response).filter(

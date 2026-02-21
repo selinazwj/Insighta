@@ -878,10 +878,13 @@
 
     document.getElementById('publishForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        
+        // 学历为空时不提交这两项，避免后端收到空字符串解析错误
+        ['target_education_min', 'target_education_max'].forEach(function(name) {
+            var el = this.querySelector('select[name="' + name + '"]');
+            if (el && el.value === '') el.removeAttribute('name');
+        }, this);
         const successMsg = document.getElementById('successMessage');
         successMsg.style.display = 'block';
-        
         setTimeout(() => {
             this.submit();
         }, 1500);
