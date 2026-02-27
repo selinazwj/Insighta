@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register - Insighta</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    background: #FFFFFF;
+    color: #37352F;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.register-container {
+    background: #FAFAF9;
+    padding: 40px 50px;
+    border-radius: 16px;
+    border: 1px solid #E9E9E7;
+    width: 100%;
+    max-width: 700px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.header h1 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #000000;
+    letter-spacing: -1px;
+}
+
+.header p {
+    font-size: 16px;
+    color: #787774;
+}
+
+.error-box {
+    background: #FEE;
+    color: #C00;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border: 1px solid #FCC;
+}
+
+.form-section {
+    margin-bottom: 24px;
+}
+
+.section-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #9B9A97;
+    margin-bottom: 12px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.form-row.two-columns {
+    grid-template-columns: 1fr 1fr;
+}
+
+input, select {
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #E9E9E7;
+    font-size: 15px;
+    background: #FFFFFF;
+    color: #37352F;
+    transition: all 0.2s;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #000000;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+input::placeholder {
+    color: #9B9A97;
+}
+
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2337352F' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+    cursor: pointer;
+    color: #9B9A97;
+}
+
+select option {
+    color: #37352F;
+}
+
+.multiselect-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #37352F;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.multiselect-wrap {
+    position: relative;
+}
+
+.multiselect-trigger {
+    width: 100%;
+    padding: 12px 40px 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #E9E9E7;
+    font-size: 15px;
+    background: #FFFFFF;
+    color: #37352F;
+    text-align: left;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2337352F' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+.multiselect-trigger.placeholder {
+    color: #9B9A97;
+}
+
+.multiselect-trigger:hover {
+    border-color: #D9D9D9;
+}
+
+.multiselect-wrap.open .multiselect-trigger {
+    border-color: #000000;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.multiselect-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    padding: 8px 0;
+    background: #FFFFFF;
+    border: 1px solid #E9E9E7;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 50;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.multiselect-wrap.open .multiselect-panel {
+    display: block;
+}
+
+.multiselect-panel label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 15px;
+    color: #37352F;
+    cursor: pointer;
+    margin: 0;
+}
+
+.multiselect-panel label:hover {
+    background: #FAFAF9;
+}
+
+.multiselect-panel input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #000000;
+    flex-shrink: 0;
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 14px;
+    background: #000000;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 16px;
+}
+
+.btn-submit:hover {
+    background: #2F2F2F;
+}
+
+.login-link {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 15px;
+    color: #787774;
+}
+
+.login-link a {
+    color: #000000;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+    body {
+        padding: 10px;
+    }
+    
+    .register-container {
+        padding: 30px 24px;
+    }
+    
+    .header {
+        margin-bottom: 24px;
+    }
+    
+    .header h1 {
+        font-size: 28px;
+        margin-bottom: 6px;
+    }
+    
+    .header p {
+        font-size: 14px;
+    }
+    
+    .form-section {
+        margin-bottom: 20px;
+    }
+    
+    .form-row.two-columns {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="register-container">
+    <div class="header">
+        <h1>Join Us</h1>
+        <p>Create your free account</p>
+    </div>
+
+    {% if error %}
+    <div class="error-box">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/register">
+        <div class="form-section">
+            <div class="section-title">Account Credentials</div>
+            
+            <div class="form-row">
+                <input name="email" type="email" required placeholder="Email address">
+            </div>
+            
+            <div class="form-row two-columns">
+                <input name="password" type="password" required placeholder="Password">
+                <input name="confirm" type="password" required placeholder="Confirm password">
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="section-title">Profile Info (Optional)</div>
+            
+            <div class="form-row two-columns">
+                <select name="age_range">
+                    <option value="" disabled selected>Age range</option>
+                    <option value="18-24">18-24</option>
+                    <option value="25-34">25-34</option>
+                    <option value="35-44">35-44</option>
+                    <option value="45+">45+</option>
+                </select>
+                
+                <select name="education_level">
+                    <option value="" disabled selected>Education level</option>
+                    <option value="High School">High School</option>
+                    <option value="Undergraduate">Undergraduate</option>
+                    <option value="Graduate">Graduate</option>
+                    <option value="PhD">PhD</option>
+                </select>
+            </div>
+            
+            <div class="form-row two-columns">
+                <select name="field">
+                    <option value="" disabled selected>Field / Major</option>
+                    <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+                    <option value="Business & Economics">Business & Economics</option>
+                    <option value="Medicine & Healthcare">Medicine & Healthcare</option>
+                    <option value="Natural Sciences">Natural Sciences</option>
+                    <option value="Social Sciences">Social Sciences</option>
+                    <option value="Arts & Humanities">Arts & Humanities</option>
+                    <option value="Education">Education</option>
+                    <option value="Law">Law</option>
+                    <option value="Other">Other</option>
+                </select>
+                
+                <select name="status">
+                    <option value="" disabled selected>Current status</option>
+                    <option value="student">Student</option>
+                    <option value="working">Working</option>
+                    <option value="freelancer">Freelancer</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <select name="state">
+                    <option value="" disabled selected>State</option>
+                    <option value="Alabama">Alabama</option>
+                    <option value="Alaska">Alaska</option>
+                    <option value="Arizona">Arizona</option>
+                    <option value="Arkansas">Arkansas</option>
+                    <option value="California">California</option>
+                    <option value="Colorado">Colorado</option>
+                    <option value="Connecticut">Connecticut</option>
+                    <option value="Delaware">Delaware</option>
+                    <option value="Florida">Florida</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Hawaii">Hawaii</option>
+                    <option value="Idaho">Idaho</option>
+                    <option value="Illinois">Illinois</option>
+                    <option value="Indiana">Indiana</option>
+                    <option value="Iowa">Iowa</option>
+                    <option value="Kansas">Kansas</option>
+                    <option value="Kentucky">Kentucky</option>
+                    <option value="Louisiana">Louisiana</option>
+                    <option value="Maine">Maine</option>
+                    <option value="Maryland">Maryland</option>
+                    <option value="Massachusetts">Massachusetts</option>
+                    <option value="Michigan">Michigan</option>
+                    <option value="Minnesota">Minnesota</option>
+                    <option value="Mississippi">Mississippi</option>
+                    <option value="Missouri">Missouri</option>
+                    <option value="Montana">Montana</option>
+                    <option value="Nebraska">Nebraska</option>
+                    <option value="Nevada">Nevada</option>
+                    <option value="New Hampshire">New Hampshire</option>
+                    <option value="New Jersey">New Jersey</option>
+                    <option value="New Mexico">New Mexico</option>
+                    <option value="New York">New York</option>
+                    <option value="North Carolina">North Carolina</option>
+                    <option value="North Dakota">North Dakota</option>
+                    <option value="Ohio">Ohio</option>
+                    <option value="Oklahoma">Oklahoma</option>
+                    <option value="Oregon">Oregon</option>
+                    <option value="Pennsylvania">Pennsylvania</option>
+                    <option value="Rhode Island">Rhode Island</option>
+                    <option value="South Carolina">South Carolina</option>
+                    <option value="South Dakota">South Dakota</option>
+                    <option value="Tennessee">Tennessee</option>
+                    <option value="Texas">Texas</option>
+                    <option value="Utah">Utah</option>
+                    <option value="Vermont">Vermont</option>
+                    <option value="Virginia">Virginia</option>
+                    <option value="Washington">Washington</option>
+                    <option value="West Virginia">West Virginia</option>
+                    <option value="Wisconsin">Wisconsin</option>
+                    <option value="Wyoming">Wyoming</option>
+                </select>
+                
+            </div>
+
+            <div class="form-row">
+                <div class="multiselect-wrap" id="language-multiselect">
+                    <button type="button" class="multiselect-trigger placeholder" aria-haspopup="listbox" aria-expanded="false">In what language(s) are you able to fill out the survey?</button>
+                    <div class="multiselect-panel" role="listbox">
+                        <label><input type="checkbox" name="language" value="Arabic"> Arabic</label>
+                        <label><input type="checkbox" name="language" value="English"> English</label>
+                        <label><input type="checkbox" name="language" value="French"> French</label>
+                        <label><input type="checkbox" name="language" value="German"> German</label>
+                        <label><input type="checkbox" name="language" value="Hindi"> Hindi</label>
+                        <label><input type="checkbox" name="language" value="Japanese"> Japanese</label>
+                        <label><input type="checkbox" name="language" value="Korean"> Korean</label>
+                        <label><input type="checkbox" name="language" value="Mandarin Chinese"> Mandarin Chinese</label>
+                        <label><input type="checkbox" name="language" value="Spanish"> Spanish</label>
+                        <label><input type="checkbox" name="language" value="Other"> Other</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="ethnicity">
+                    <option value="" disabled selected>Ethnicity</option>
+                    <option value="White">White</option>
+                    <option value="Black or African American">Black or African American</option>
+                    <option value="Hispanic or Latino">Hispanic or Latino</option>
+                    <option value="Asian">Asian</option>
+                    <option value="Middle Eastern or North African">Middle Eastern or North African</option>
+                    <option value="Native American or Pacific Islander">Native American or Pacific Islander</option>
+                    <option value="Two or more races">Two or more races</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+                <select name="sexual_orientation">
+                    <option value="" disabled selected>Sexual Orientation</option>
+                    <option value="Straight / Heterosexual">Straight / Heterosexual</option>
+                    <option value="Gay or Lesbian">Gay or Lesbian</option>
+                    <option value="Bisexual">Bisexual</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="mental_health_diagnosis">
+                    <option value="" disabled selected>Mental / psychological diagnosis</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+                <select name="physical_health_diagnosis">
+                    <option value="" disabled selected>Physical / physiological diagnosis</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="sport_type">
+                    <option value="" disabled selected>Sports Type</option>
+                    <option value="Basketball">Basketball</option>
+                    <option value="Soccer / Football">Soccer / Football</option>
+                    <option value="Baseball / Softball">Baseball / Softball</option>
+                    <option value="American Football">American Football</option>
+                    <option value="Tennis">Tennis</option>
+                    <option value="Golf">Golf</option>
+                    <option value="Swimming">Swimming</option>
+                    <option value="Running / Jogging">Running / Jogging</option>
+                    <option value="Cycling">Cycling</option>
+                    <option value="Yoga / Pilates">Yoga / Pilates</option>
+                    <option value="Gym / Weightlifting">Gym / Weightlifting</option>
+                    <option value="Martial Arts">Martial Arts</option>
+                    <option value="Volleyball">Volleyball</option>
+                    <option value="Hockey">Hockey</option>
+                    <option value="Other">Other</option>
+                    <option value="None">None</option>
+                </select>
+                <select name="sport_frequency">
+                    <option value="" disabled selected>Sports Frequency</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Several times a week">Several times a week</option>
+                    <option value="Once a week">Once a week</option>
+                    <option value="A few times a month">A few times a month</option>
+                    <option value="Rarely">Rarely</option>
+                    <option value="Never">Never</option>
+                </select>
+            </div>
+
+            <div class="form-row two-columns">
+                <select name="smoking">
+                    <option value="" disabled selected>Do you smoke?</option>
+                    <option value="Never">Never</option>
+                    <option value="Former smoker">Former smoker</option>
+                    <option value="Rarely">Rarely</option>
+                    <option value="Occasionally">Occasionally</option>
+                    <option value="Several times a week">Several times a week</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+                <select name="cannabis_use">
+                    <option value="" disabled selected>Do you use marijuana / cannabis?</option>
+                    <option value="Never">Never</option>
+                    <option value="Former user">Former user</option>
+                    <option value="Rarely">Rarely</option>
+                    <option value="Occasionally">Occasionally</option>
+                    <option value="Several times a week">Several times a week</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit">Create Account</button>
+    </form>
+
+    <p class="login-link">
+        Already have an account? <a href="/login">Sign In</a>
+    </p>
+</div>
+
+<script>
+document.querySelectorAll('select').forEach(select => {
+    select.addEventListener('change', function() {
+        if (this.value === '') {
+            this.style.color = '#9B9A97';
+        } else {
+            this.style.color = '#37352F';
+        }
+    });
+});
+
+(function() {
+    var wrap = document.getElementById('language-multiselect');
+    if (!wrap) return;
+    var trigger = wrap.querySelector('.multiselect-trigger');
+    var panel = wrap.querySelector('.multiselect-panel');
+    var checkboxes = panel.querySelectorAll('input[name="language"]');
+
+    function getLabelText() {
+        var labels = [];
+        checkboxes.forEach(function(cb) {
+            if (cb.checked) labels.push(cb.parentElement.textContent.trim());
+        });
+        return labels.length ? labels.join(', ') : '';
+    }
+
+    function updateTrigger() {
+        var text = getLabelText();
+        trigger.textContent = text || 'In what language(s) are you able to fill out the survey?';
+        trigger.classList.toggle('placeholder', !text);
+        trigger.setAttribute('aria-expanded', wrap.classList.contains('open'));
+    }
+
+    trigger.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        wrap.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', wrap.classList.contains('open'));
+    });
+
+    panel.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    checkboxes.forEach(function(cb) {
+        cb.addEventListener('change', updateTrigger);
+    });
+
+    document.addEventListener('click', function() {
+        wrap.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+    });
+})();
+</script>
+
+</body>
+</html>

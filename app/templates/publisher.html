@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>My Surveys - Insighta</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        background: #FFFFFF;
+        min-height: 100vh;
+        color: #37352F;
+      }
+
+      .navbar {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid #E9E9E7;
+        padding: 16px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .navbar-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 20px;
+        font-weight: 700;
+        color: #37352F;
+        letter-spacing: -0.5px;
+      }
+
+      .back-btn {
+        color: #37352F;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+      }
+
+      .back-btn:hover {
+        background: #F7F6F3;
+        color: #000000;
+      }
+
+      .navbar-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 36px;
+        font-weight: 700;
+        color: #000000;
+        letter-spacing: -1px;
+      }
+
+      .create-btn {
+        padding: 12px 24px;
+        background: #000000;
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 16px;
+        transition: all 0.15s ease;
+      }
+
+      .create-btn:hover {
+        background: #2F2F2F;
+      }
+
+      .card {
+        background: #FAFAF9;
+        border: 1px solid #E9E9E7;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+      }
+
+      .card:hover {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+        border-color: #D9D9D9;
+      }
+
+      .card h3 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 20px;
+        font-weight: 700;
+        color: #000000;
+      }
+
+      .meta {
+        color: #787774;
+        font-size: 15px;
+        margin-bottom: 16px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 15px;
+      }
+
+      .delete-btn {
+        background: #EF4444;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.15s ease;
+      }
+
+      .delete-btn:hover {
+        background: #DC2626;
+      }
+
+      .edit-btn {
+        color: #37352F;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 8px 16px;
+        background: #FFFFFF;
+        border-radius: 8px;
+        border: 1px solid #E9E9E7;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .edit-btn:hover {
+        background: #F7F6F3;
+        border-color: #D9D9D9;
+      }
+
+      .status-badge {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        background: #F7F6F3;
+        border: 1px solid #E9E9E7;
+        color: #37352F;
+      }
+
+      .status-draft {
+        background: #FEF3C7;
+        color: #92400E;
+      }
+      .status-published {
+        background: #D1FAE5;
+        color: #065F46;
+      }
+      .status-closed {
+        background: #F3F4F6;
+        color: #6B7280;
+      }
+      .disabled-btn {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+      .progress-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 10px 0 14px;
+      }
+
+      .progress-bar {
+        flex: 1;
+        height: 8px;
+        border-radius: 999px;
+        background: #E9E9E7;
+        overflow: hidden;
+        border: none;
+      }
+
+      .progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: #000000;
+        transition: width 0.3s ease;
+      }
+
+      .progress-text {
+        min-width: 64px;
+        text-align: right;
+        font-size: 14px;
+        color: #787774;
+        font-weight: 600;
+      }
+
+      .section-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #000000;
+        margin: 34px 0 16px;
+      }
+
+      .section-title:first-of-type {
+        margin-top: 0;
+      }
+
+      .empty-copy {
+        color: #787774;
+        font-size: 16px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-left">
+        <a href="/choice" class="back-btn">
+          <span>←</span>
+          <span>Back</span>
+        </a>
+        <span>Insighta · Publisher</span>
+      </div>
+      <div class="navbar-right">
+        <a href="/profile" style="text-decoration: none; color: #37352F; display: flex; align-items: center; gap: 10px;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 1px solid #E9E9E7;">
+            {{ current_user.username[0].upper() if current_user.username else 'U' }}
+          </div>
+          <span>Profile</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="header">
+        <h1>My Listings</h1>
+        <a href="/publish" class="create-btn">+ New Listing</a>
+      </div>
+
+      <h2 class="section-title">Surveys</h2>
+      {% if surveys|length == 0 %}
+      <p class="empty-copy">You haven't published any surveys yet.</p>
+      {% endif %}
+      {% for s in surveys %}
+      <div class="card">
+        <h3>
+          {{ s.title }}
+          <span class="status-badge status-{{ s.status }}">{{ s.status }}</span>
+        </h3>
+        <p>Category: {{ s.category }} · Reward: ${{ s.reward_amount }}</p>
+        {% set completed = completed_map.get(s.id, 0) %} {% set target = s.target_responses or 0 %} {% set pct = (completed * 100 // target) if target > 0 else 0 %}
+
+        <div class="progress-row">
+          <div class="progress-bar">
+            <div class="progress-fill" data-pct="{{ pct }}"></div>
+          </div>
+          <div class="progress-text">{{ completed }}/{{ target }}</div>
+        </div>
+
+        {% if s.status == "draft" %}
+        <form method="post" action="/surveys/{{ s.id }}/publish" style="display: inline">
+          <button class="edit-btn">Publish</button>
+        </form>
+        {% else %}
+        <button class="edit-btn disabled-btn">Publish</button>
+        {% endif %}
+        {% if s.status == "published" %}
+        <form method="post" action="/surveys/{{ s.id }}/close" style="display: inline">
+          <button class="edit-btn">Close</button>
+        </form>
+        {% elif s.status == "closed" %}
+        <form method="post" action="/surveys/{{ s.id }}/reopen" style="display: inline">
+          <button class="edit-btn" style="background: #000000; color: white; border: none;">Reopen</button>
+        </form>
+        {% else %}
+        <button class="edit-btn disabled-btn">Close</button>
+        {% endif %}
+
+        <form method="get" action="/publisher/edit/{{ s.id }}" style="display: inline">
+          <button class="edit-btn">Edit</button>
+        </form>
+
+        <form method="post" action="/publisher/delete/{{ s.id }}" style="display: inline">
+          <button class="delete-btn">Delete</button>
+        </form>
+      </div>
+      {% endfor %}
+
+      <h2 class="section-title">Interviews</h2>
+      {% if interviews|length == 0 %}
+      <p class="empty-copy">You haven't published any interviews yet.</p>
+      {% endif %}
+      {% for s in interviews %}
+      <div class="card">
+        <h3>
+          {{ s.title }}
+          <span class="status-badge status-{{ s.status }}">{{ s.status }}</span>
+        </h3>
+        <p>Category: {{ s.category }} · Reward: ${{ s.reward_amount }}</p>
+        {% set completed = completed_map.get(s.id, 0) %} {% set target = s.target_responses or 0 %} {% set pct = (completed * 100 // target) if target > 0 else 0 %}
+
+        <div class="progress-row">
+          <div class="progress-bar">
+            <div class="progress-fill" data-pct="{{ pct }}"></div>
+          </div>
+          <div class="progress-text">{{ completed }}/{{ target }}</div>
+        </div>
+
+        {% if s.status == "draft" %}
+        <form method="post" action="/surveys/{{ s.id }}/publish" style="display: inline">
+          <button class="edit-btn">Publish</button>
+        </form>
+        {% else %}
+        <button class="edit-btn disabled-btn">Publish</button>
+        {% endif %}
+        {% if s.status == "published" %}
+        <form method="post" action="/surveys/{{ s.id }}/close" style="display: inline">
+          <button class="edit-btn">Close</button>
+        </form>
+        {% elif s.status == "closed" %}
+        <form method="post" action="/surveys/{{ s.id }}/reopen" style="display: inline">
+          <button class="edit-btn" style="background: #000000; color: white; border: none;">Reopen</button>
+        </form>
+        {% else %}
+        <button class="edit-btn disabled-btn">Close</button>
+        {% endif %}
+
+        <form method="get" action="/publisher/edit/{{ s.id }}" style="display: inline">
+          <button class="edit-btn">Edit</button>
+        </form>
+
+        <form method="post" action="/publisher/delete/{{ s.id }}" style="display: inline">
+          <button class="delete-btn">Delete</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    <script>
+      document.querySelectorAll(".progress-fill").forEach((el) => {
+        const pct = Number(el.dataset.pct || 0);
+        el.style.width = pct + "%";
+      });
+    </script>
+  </body>
+</html>

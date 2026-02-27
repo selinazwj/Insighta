@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insighta - Choose Your Path</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    background: #FFFFFF;
+    color: #37352F;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    padding: 16px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #E9E9E7;
+    z-index: 100;
+    box-sizing: border-box;
+}
+
+.navbar-left {
+    font-size: 20px;
+    font-weight: 700;
+    color: #37352F;
+    letter-spacing: -0.5px;
+    cursor: pointer;
+}
+
+.navbar-left:hover {
+    color: #000000;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.navbar-right a {
+    text-decoration: none;
+    color: #37352F;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-right a:hover {
+    color: #000000;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    border: 1px solid #E9E9E7;
+}
+
+.main-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 100px 20px 40px;
+}
+
+.container {
+    max-width: 1000px;
+    width: 100%;
+    text-align: center;
+}
+
+.header {
+    margin-bottom: 48px;
+}
+
+.header h1 {
+    font-size: 44px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #000000;
+    letter-spacing: -1px;
+}
+
+.header p {
+    font-size: 18px;
+    color: #787774;
+}
+
+.choice-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-bottom: 32px;
+}
+
+.choice-card {
+    background: #FAFAF9;
+    border: 1px solid #E9E9E7;
+    border-radius: 16px;
+    padding: 40px 32px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.choice-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    border-color: #D9D9D9;
+}
+
+.icon {
+    font-size: 56px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.choice-card h2 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #000000;
+}
+
+.choice-card p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #787774;
+    margin-bottom: 16px;
+}
+
+.highlight {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-weight: 600;
+    font-size: 17px;
+    color: #37352F;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.choice-card .btn {
+    display: block;
+    width: 100%;
+    padding: 12px 32px;
+    background: #000000;
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 16px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.choice-card .btn:hover {
+    background: #2F2F2F;
+}
+
+.footer-text {
+    margin-top: 32px;
+    color: #787774;
+    font-size: 14px;
+}
+
+.footer-text a {
+    color: #000000;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.footer-text a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        padding: 12px 20px;
+    }
+
+    .navbar-left {
+        font-size: 18px;
+    }
+
+    .main-content {
+        padding: 20px 10px;
+    }
+
+    .choice-container {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    
+    .header h1 {
+        font-size: 36px;
+    }
+    
+    .header p {
+        font-size: 18px;
+    }
+    
+    .choice-card {
+        padding: 40px 30px;
+    }
+}
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-left" onclick="window.location.href='/'">
+            Insighta
+        </div>
+        <div class="navbar-right">
+            <a href="/profile">
+                <div class="avatar">{{ current_user.username[0].upper() if current_user and current_user.username else 'U' }}</div>
+                <span>Profile</span>
+            </a>
+        </div>
+    </nav>
+
+<div class="main-content">
+    <div class="container">
+    <div class="header">
+        <h1>Welcome to Insighta</h1>
+        <p>What would you like to do today?</p>
+    </div>
+
+    <div class="choice-container">
+        <div class="choice-card" onclick="window.location.href='/publisher'">
+            <div class="icon">📋</div>
+            <h2>Publish Survey</h2>
+            <p>
+                Need quality responses for your research? Post your Google Form and manage your surveys in one place.
+            </p>
+            <p class="highlight">Manage & publish surveys</p>
+            <button class="btn">Go to Dashboard</button>
+        </div>
+
+        <div class="choice-card" onclick="window.location.href='/dashboard'">
+            <div class="icon">💰</div>
+            <h2>Fill Surveys</h2>
+            <p>Earn money by sharing your opinions! Browse surveys, complete them at your own pace, and earn rewards.</p>
+            <p class="highlight">Start earning today</p>
+            <button class="btn">Browse Surveys</button>
+        </div>
+    </div>
+
+    <div class="footer-text">
+        <p>Not sure? You can always switch between modes anytime.</p>
+    </div>
+</div>
+</div>
+
+</body>
+</html>

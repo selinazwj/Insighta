@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publish Listing - Insighta</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            background: #FFFFFF;
+            color: #37352F;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #E9E9E7;
+            padding: 16px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #37352F;
+            letter-spacing: -0.5px;
+        }
+
+        .back-btn {
+            color: #37352F;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background: #F7F6F3;
+            color: #000000;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* Main container */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Page header */
+        .page-header {
+            margin-bottom: 40px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .page-header h1 {
+            font-size: 36px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: #000000;
+            letter-spacing: -1px;
+        }
+
+        .page-header p {
+            font-size: 18px;
+            color: #787774;
+        }
+
+        .page-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 8px;
+        }
+
+        /* Form card */
+        .form-card {
+            background: #FAFAF9;
+            border: 1px solid #E9E9E7;
+            border-radius: 16px;
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-row .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-group.upload-group {
+            margin-bottom: 28px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #37352F;
+        }
+
+        .form-group .label-description {
+            font-size: 13px;
+            color: #787774;
+            font-weight: normal;
+            margin-top: 4px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #E9E9E7;
+            background: #FFFFFF;
+            color: #37352F;
+            font-size: 15px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #9B9A97;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2337352F' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+            color: #9B9A97;
+        }
+
+        .form-group select:not(:invalid) {
+            color: #37352F;
+        }
+
+        .form-group select option {
+            background: #FFFFFF;
+            color: #37352F;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            border: 1px solid #E9E9E7;
+            border-radius: 8px;
+            background: #FFFFFF;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .file-input-button {
+            padding: 8px 16px;
+            border: none;
+            border-right: 1px solid #E9E9E7;
+            border-radius: 0;
+            background: #FFFFFF;
+            color: #37352F;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .file-input-button:hover {
+            background: #F7F6F3;
+        }
+
+        .file-input-label {
+            flex: 1;
+            padding: 12px 16px;
+            color: #9B9A97;
+            font-size: 15px;
+            pointer-events: none;
+        }
+
+        .file-input-label.has-file {
+            color: #37352F;
+        }
+
+        /* Divider */
+        .form-divider {
+            height: 1px;
+            background: #E9E9E7;
+            margin: 32px 0;
+        }
+
+        /* Two columns */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-row.three-columns {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        /* Info box */
+        .info-box {
+            background: #F7F6F3;
+            border-left: 4px solid #000000;
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #37352F;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #000000;
+        }
+
+        /* Submit section */
+        .submit-section {
+            margin-top: 35px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px 32px;
+            border-radius: 12px;
+            border: none;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #000000;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2F2F2F;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #37352F;
+            border: 1.5px solid #D9D9D9;
+        }
+
+        .btn-secondary:hover {
+            background: #F7F6F3;
+            border-color: #37352F;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-card {
+                padding: 30px 20px;
+            }
+
+            .form-row,
+            .form-row.three-columns {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header h1 {
+                font-size: 28px;
+            }
+
+            .submit-section {
+                flex-direction: column-reverse;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Success message */
+        .success-message {
+            display: none;
+            background: rgba(72, 187, 120, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="/publisher" class="back-btn">
+                <span>←</span>
+                <span>Back</span>
+            </a>
+            <span>Insighta · Publisher</span>
+        </div>
+        <div class="navbar-right">
+            <a href="/profile" style="text-decoration: none; color: #37352F; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 1px solid #E9E9E7;">
+                    U
+                </div>
+                <span>Profile</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Page header -->
+        <div class="page-header">
+            <h1>📋 Publish a Listing</h1>
+            <p>Share your survey or interview form and get quality responses from our community</p>
+        </div>
+
+        <!-- Success message -->
+        <div id="successMessage" class="success-message">
+            ✅ Listing saved successfully! Redirecting to your dashboard...
+        </div>
+
+        <!-- Form card -->
+        <div class="form-card">
+            <form id="publishForm" method="POST" action="/publish" enctype="multipart/form-data">
+                
+                <!-- Basic info -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2>📝 Basic Information</h2>
+                    <p style="font-size: 15px; margin: 0;">Provide essential details about your listing</p>
+                </div>
+
+                <div class="info-box" style="margin-bottom: 24px;">
+                    <strong>💡 Before you start:</strong>
+                    Make sure your Google Form is set to "Anyone with the link" and accepting responses.
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Listing Title
+                        <div class="label-description">Give your listing a clear, descriptive title</div>
+                    </label>
+                    <input type="text" name="title" placeholder="e.g., Student Mental Health Study" required>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Description
+                        <div class="label-description">Explain what this listing is about and why responses matter</div>
+                    </label>
+                    <textarea name="description" placeholder="We're researching student mental health patterns to improve campus wellness programs..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Google Form Link
+                        <div class="label-description">Paste your complete Google Form URL</div>
+                    </label>
+                    <input type="url" name="form_url" placeholder="https://forms.gle/..." required>
+                </div>
+
+                <div class="form-divider"></div>
+
+                <!-- Survey details -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2>📋 Listing Details</h2>
+                    <p style="font-size: 15px; margin: 0;">Configure type, category, time, and cover image</p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            Type
+                            <div class="label-description">Choose whether this listing is a survey or an interview</div>
+                        </label>
+                        <select name="task_type" required>
+                            <option value="survey" selected>📝 Survey</option>
+                            <option value="interview">🎙️ Interview</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Category
+                        </label>
+                        <select name="category" required>
+                            <option value="" disabled selected>Select a category</option>
+                            <option value="research">🔬 Research</option>
+                            <option value="life">🌟 Lifestyle</option>
+                            <option value="clubs">🎯 Clubs & Events</option>
+                            <option value="market">📊 Market Research</option>
+                            <option value="academic">📚 Academic</option>
+                            <option value="other">🔷 Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Estimated Time
+                        </label>
+                        <select name="estimated_time" required>
+                            <option value="" disabled selected>How long to complete?</option>
+                            <option value="5">⚡ 5 minutes</option>
+                            <option value="10">🕐 10 minutes</option>
+                            <option value="15">🕑 15 minutes</option>
+                            <option value="20">🕒 20 minutes</option>
+                            <option value="30">🕔 30 minutes</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group upload-group">
+                    <label>
+                        Survey Cover Image (Optional)
+                    </label>
+                    <div class="file-input-wrapper">
+                        <button type="button" class="file-input-button">Choose File</button>
+                        <span class="file-input-label" id="fileInputLabel">No file chosen</span>
+                        <input type="file" id="coverImageInput" name="cover_image" accept="image/*">
+                        <span id="imagePreview" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #10B981; font-size: 20px; pointer-events: none; z-index: 1;">✓</span>
+                    </div>
+                    <small style="color: #787774; font-size: 13px; margin-top: 4px; display: block;">Upload a custom cover image (JPG, PNG, or leave empty for default)</small>
+                </div>
+
+                <div class="form-divider"></div>
+
+                <!-- Reward settings -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2>💎 Reward Settings</h2>
+                    <p style="font-size: 15px; margin: 0;">Set diamond amount and target number of responses</p>
+                </div>
+
+                <div class="info-box" style="margin-bottom: 20px;">
+                    <strong>💎 Recommended reward:</strong>
+                    <span>For a survey that takes about 5 minutes, the recommended reward is approximately 2 💎.</span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            Reward per Response
+                            <div class="label-description">How many 💎 will you pay each respondent?</div>
+                        </label>
+                        <input type="number" id="rewardAmount" name="reward_amount" placeholder="5.00" step="0.50" min="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Target Responses
+                            <div class="label-description">How many responses do you need?</div>
+                        </label>
+                        <input type="number" name="target_responses" placeholder="100" min="10" required>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>💎 Total diamond:</strong>
+                    <span id="totalBudget">Calculate based on your inputs</span>
+                </div>
+                <div class="form-divider"></div>
+
+                <!-- Target Audience -->
+                <div class="page-header" style="margin-bottom: 24px;">
+                    <h2>🎯 Target Audience</h2>
+                    <p style="font-size: 15px; margin: 0;">Specify who can see this survey. Leave blank to allow all users.</p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Age Range</label>
+                        <select name="target_age_range">
+                            <option value="" disabled selected>Select age range</option>
+                            <option value="all">All</option>
+                            <option value="18-24">18-24</option>
+                            <option value="25-34">25-34</option>
+                            <option value="35-44">35-44</option>
+                            <option value="45+">45+</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Minimum Education Level</label>
+                        <select name="target_education_min">
+                            <option value="">No limit</option>
+                            <option value="1">High School</option>
+                            <option value="2">Undergraduate</option>
+                            <option value="3">Graduate</option>
+                            <option value="4">PhD</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Maximum Education Level</label>
+                        <select name="target_education_max">
+                            <option value="">No limit</option>
+                            <option value="1">High School</option>
+                            <option value="2">Undergraduate</option>
+                            <option value="3">Graduate</option>
+                            <option value="4">PhD</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Field</label>
+                        <select name="target_field">
+                            <option value="" disabled selected>Select field / major</option>
+                            <option value="all">All</option>
+                            <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+                            <option value="Business & Economics">Business & Economics</option>
+                            <option value="Medicine & Healthcare">Medicine & Healthcare</option>
+                            <option value="Natural Sciences">Natural Sciences</option>
+                            <option value="Social Sciences">Social Sciences</option>
+                            <option value="Arts & Humanities">Arts & Humanities</option>
+                            <option value="Education">Education</option>
+                            <option value="Law">Law</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="target_status">
+                            <option value="" disabled selected>Select current status</option>
+                            <option value="all">All</option>
+                            <option value="student">Student</option>
+                            <option value="working">Working</option>
+                            <option value="freelancer">Freelancer</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>State</label>
+                        <select name="target_state">
+                            <option value="" disabled selected>Select state</option>
+                            <option value="all">All</option>
+                            <option value="Alabama">Alabama</option>
+                            <option value="Alaska">Alaska</option>
+                            <option value="Arizona">Arizona</option>
+                            <option value="Arkansas">Arkansas</option>
+                            <option value="California">California</option>
+                            <option value="Colorado">Colorado</option>
+                            <option value="Connecticut">Connecticut</option>
+                            <option value="Delaware">Delaware</option>
+                            <option value="Florida">Florida</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Hawaii">Hawaii</option>
+                            <option value="Idaho">Idaho</option>
+                            <option value="Illinois">Illinois</option>
+                            <option value="Indiana">Indiana</option>
+                            <option value="Iowa">Iowa</option>
+                            <option value="Kansas">Kansas</option>
+                            <option value="Kentucky">Kentucky</option>
+                            <option value="Louisiana">Louisiana</option>
+                            <option value="Maine">Maine</option>
+                            <option value="Maryland">Maryland</option>
+                            <option value="Massachusetts">Massachusetts</option>
+                            <option value="Michigan">Michigan</option>
+                            <option value="Minnesota">Minnesota</option>
+                            <option value="Mississippi">Mississippi</option>
+                            <option value="Missouri">Missouri</option>
+                            <option value="Montana">Montana</option>
+                            <option value="Nebraska">Nebraska</option>
+                            <option value="Nevada">Nevada</option>
+                            <option value="New Hampshire">New Hampshire</option>
+                            <option value="New Jersey">New Jersey</option>
+                            <option value="New Mexico">New Mexico</option>
+                            <option value="New York">New York</option>
+                            <option value="North Carolina">North Carolina</option>
+                            <option value="North Dakota">North Dakota</option>
+                            <option value="Ohio">Ohio</option>
+                            <option value="Oklahoma">Oklahoma</option>
+                            <option value="Oregon">Oregon</option>
+                            <option value="Pennsylvania">Pennsylvania</option>
+                            <option value="Rhode Island">Rhode Island</option>
+                            <option value="South Carolina">South Carolina</option>
+                            <option value="South Dakota">South Dakota</option>
+                            <option value="Tennessee">Tennessee</option>
+                            <option value="Texas">Texas</option>
+                            <option value="Utah">Utah</option>
+                            <option value="Vermont">Vermont</option>
+                            <option value="Virginia">Virginia</option>
+                            <option value="Washington">Washington</option>
+                            <option value="West Virginia">West Virginia</option>
+                            <option value="Wisconsin">Wisconsin</option>
+                            <option value="Wyoming">Wyoming</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Language</label>
+                        <select name="target_language">
+                            <option value="" disabled selected>Select primary language</option>
+                            <option value="all">All</option>
+                            <option value="Arabic">Arabic</option>
+                            <option value="English">English</option>
+                            <option value="French">French</option>
+                            <option value="German">German</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Japanese">Japanese</option>
+                            <option value="Korean">Korean</option>
+                            <option value="Mandarin Chinese">Mandarin Chinese</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <details class="advanced-section" style="margin-top: 20px;">
+                    <summary style="font-weight: 700; font-size: 15px; color: #37352F; cursor: pointer; padding: 8px 0;">Advanced</summary>
+                    <div style="margin-top: 16px; padding-left: 0;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Ethnicity</label>
+                                <select name="target_ethnicity">
+                                    <option value="all" selected>All</option>
+                                    <option value="White">White</option>
+                                    <option value="Black or African American">Black or African American</option>
+                                    <option value="Hispanic or Latino">Hispanic or Latino</option>
+                                    <option value="Asian">Asian</option>
+                                    <option value="Middle Eastern or North African">Middle Eastern or North African</option>
+                                    <option value="Native American or Pacific Islander">Native American or Pacific Islander</option>
+                                    <option value="Two or more races">Two or more races</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sexual Orientation</label>
+                                <select name="target_sexual_orientation">
+                                    <option value="all" selected>All</option>
+                                    <option value="Straight / Heterosexual">Straight / Heterosexual</option>
+                                    <option value="Gay or Lesbian">Gay or Lesbian</option>
+                                    <option value="Bisexual">Bisexual</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Mental / psychological diagnosis</label>
+                                <select name="target_mental_health_diagnosis">
+                                    <option value="all" selected>All</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Physical / physiological diagnosis</label>
+                                <select name="target_physical_health_diagnosis">
+                                    <option value="all" selected>All</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Sports Type</label>
+                                <select name="target_sport_type">
+                                    <option value="all" selected>All</option>
+                                    <option value="Basketball">Basketball</option>
+                                    <option value="Soccer / Football">Soccer / Football</option>
+                                    <option value="Baseball / Softball">Baseball / Softball</option>
+                                    <option value="American Football">American Football</option>
+                                    <option value="Tennis">Tennis</option>
+                                    <option value="Golf">Golf</option>
+                                    <option value="Swimming">Swimming</option>
+                                    <option value="Running / Jogging">Running / Jogging</option>
+                                    <option value="Cycling">Cycling</option>
+                                    <option value="Yoga / Pilates">Yoga / Pilates</option>
+                                    <option value="Gym / Weightlifting">Gym / Weightlifting</option>
+                                    <option value="Martial Arts">Martial Arts</option>
+                                    <option value="Volleyball">Volleyball</option>
+                                    <option value="Hockey">Hockey</option>
+                                    <option value="Other">Other</option>
+                                    <option value="None">None</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sports Frequency</label>
+                                <select name="target_sport_frequency">
+                                    <option value="all" selected>All</option>
+                                    <option value="Daily">Daily</option>
+                                    <option value="Several times a week">Several times a week</option>
+                                    <option value="Once a week">Once a week</option>
+                                    <option value="A few times a month">A few times a month</option>
+                                    <option value="Rarely">Rarely</option>
+                                    <option value="Never">Never</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Do you smoke?</label>
+                                <select name="target_smoking">
+                                    <option value="all" selected>All</option>
+                                    <option value="Never">Never</option>
+                                    <option value="Former smoker">Former smoker</option>
+                                    <option value="Rarely">Rarely</option>
+                                    <option value="Occasionally">Occasionally</option>
+                                    <option value="Several times a week">Several times a week</option>
+                                    <option value="Daily">Daily</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Do you use marijuana / cannabis?</label>
+                                <select name="target_cannabis_use">
+                                    <option value="all" selected>All</option>
+                                    <option value="Never">Never</option>
+                                    <option value="Former user">Former user</option>
+                                    <option value="Rarely">Rarely</option>
+                                    <option value="Occasionally">Occasionally</option>
+                                    <option value="Several times a week">Several times a week</option>
+                                    <option value="Daily">Daily</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Submit -->
+                <div class="submit-section">
+                    <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Publish Survey 🚀</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    // Live total budget calculation
+    const rewardInput = document.querySelector('input[name="reward_amount"]');
+    const targetInput = document.querySelector('input[name="target_responses"]');
+    const budgetDisplay = document.getElementById('totalBudget');
+
+    function updateBudget() {
+        const reward = parseFloat(rewardInput.value) || 0;
+        const target = parseInt(targetInput.value) || 0;
+        const total = reward * target;
+        
+        if (total > 0) {
+            budgetDisplay.textContent = `💎 ${total} (${target} responses × 💎 ${reward})`;
+
+        } else {
+            budgetDisplay.textContent = 'Calculate based on your inputs';
+        }
+    }
+
+    rewardInput.addEventListener('input', function() {
+        updateBudget();
+        const cursorPos = this.selectionStart;
+        const oldLength = this.value.length;
+        if (this.value && !isNaN(this.value)) {
+            this.value = parseFloat(this.value).toFixed(2);
+            const newLength = this.value.length;
+            const newCursorPos = cursorPos + (newLength - oldLength);
+            this.setSelectionRange(newCursorPos, newCursorPos);
+        }
+    });
+    targetInput.addEventListener('input', updateBudget);
+
+    const coverImageInput = document.getElementById('coverImageInput');
+    const fileInputLabel = document.getElementById('fileInputLabel');
+    const fileInputButton = document.querySelector('.file-input-button');
+    
+    fileInputButton.addEventListener('click', function() {
+        coverImageInput.click();
+    });
+    
+    coverImageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('imagePreview').style.display = 'inline';
+            fileInputLabel.textContent = file.name;
+            fileInputLabel.classList.add('has-file');
+        } else {
+            document.getElementById('imagePreview').style.display = 'none';
+            fileInputLabel.textContent = 'No file chosen';
+            fileInputLabel.classList.remove('has-file');
+        }
+    });
+
+    document.querySelectorAll('select[name^="target_"]').forEach(select => {
+        select.addEventListener('change', function() {
+            if (this.value === '' || this.value === null) {
+                this.style.color = '#9B9A97';
+            } else {
+                this.style.color = '#37352F';
+            }
+        });
+        
+        if (select.value === '' || select.value === null) {
+            select.style.color = '#9B9A97';
+        } else {
+            select.style.color = '#37352F';
+        }
+    });
+
+    document.getElementById('publishForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        // 学历为空时不提交这两项，避免后端收到空字符串解析错误
+        ['target_education_min', 'target_education_max'].forEach(function(name) {
+            var el = this.querySelector('select[name="' + name + '"]');
+            if (el && el.value === '') el.removeAttribute('name');
+        }, this);
+        const successMsg = document.getElementById('successMessage');
+        successMsg.style.display = 'block';
+        setTimeout(() => {
+            this.submit();
+        }, 1500);
+    });
+</script>
+
+</body>
+</html>
