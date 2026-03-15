@@ -1,288 +1,397 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/static/favicon.png">
-    <link rel="apple-touch-icon" href="/static/favicon.png">
-    <meta name="theme-color" content="#050E1F">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Insighta - Choose Your Path</title>
-<style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Choose Your Path — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <meta name="theme-color" content="#faf9f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18;
+      --ink-soft: #4a4a44;
+      --ink-muted: #8a8a82;
+      --paper: #faf9f5;
+      --paper-warm: #f3f1ea;
+      --accent: #2d6a4f;
+      --accent-light: #52b788;
+      --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
-    background: #FFFFFF;
-    color: #37352F;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-}
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-.navbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    padding: 16px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid #E9E9E7;
-    z-index: 100;
-    box-sizing: border-box;
-}
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-.navbar-left {
-    font-size: 20px;
-    font-weight: 700;
-    color: #37352F;
-    letter-spacing: -0.5px;
-    cursor: pointer;
-}
-
-.navbar-left:hover {
-    color: #000000;
-}
-
-.navbar-right {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.navbar-right a {
-    text-decoration: none;
-    color: #37352F;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.navbar-right a:hover {
-    color: #000000;
-}
-
-.avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 18px;
-    border: 1px solid #E9E9E7;
-}
-
-.main-content {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    padding: 100px 20px 40px;
-}
-
-.container {
-    max-width: 1000px;
-    width: 100%;
-    text-align: center;
-}
-
-.header {
-    margin-bottom: 48px;
-}
-
-.header h1 {
-    font-size: 44px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    color: #000000;
-    letter-spacing: -1px;
-}
-
-.header p {
-    font-size: 18px;
-    color: #787774;
-}
-
-.choice-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 28px;
-    margin-bottom: 32px;
-}
-
-.choice-card {
-    background: #FAFAF9;
-    border: 1px solid #E9E9E7;
-    border-radius: 16px;
-    padding: 40px 32px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: center;
-}
-
-.choice-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
-    border-color: #D9D9D9;
-}
-
-.icon {
-    font-size: 56px;
-    margin-bottom: 20px;
-    display: block;
-}
-
-.choice-card h2 {
-    font-size: 26px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    color: #000000;
-}
-
-.choice-card p {
-    font-size: 15px;
-    line-height: 1.6;
-    color: #787774;
-    margin-bottom: 16px;
-}
-
-.highlight {
-    background: transparent;
-    padding: 0;
-    border-radius: 0;
-    font-weight: 600;
-    font-size: 17px;
-    color: #37352F;
-    display: block;
-    margin-bottom: 12px;
-}
-
-.choice-card .btn {
-    display: block;
-    width: 100%;
-    padding: 12px 32px;
-    background: #000000;
-    color: white;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 16px;
-    text-decoration: none;
-    transition: all 0.15s ease;
-    border: none;
-    cursor: pointer;
-}
-
-.choice-card .btn:hover {
-    background: #2F2F2F;
-}
-
-.footer-text {
-    margin-top: 32px;
-    color: #787774;
-    font-size: 14px;
-}
-
-.footer-text a {
-    color: #000000;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.footer-text a:hover {
-    text-decoration: underline;
-}
-
-@media (max-width: 768px) {
+    /* ── NAVBAR ── */
     .navbar {
-        padding: 12px 20px;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      padding: 16px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(250,249,245,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      z-index: 100;
     }
 
-    .navbar-left {
-        font-size: 18px;
+    .navbar-logo {
+      font-family: var(--serif);
+      font-size: 20px;
+      color: var(--ink);
+      text-decoration: none;
+      letter-spacing: -0.3px;
     }
 
-    .main-content {
-        padding: 20px 10px;
+    .navbar-logo span { color: var(--accent); }
+
+    .navbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
 
-    .choice-container {
-        grid-template-columns: 1fr;
-        gap: 24px;
+    .avatar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--ink-soft);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
     }
-    
-    .header h1 {
-        font-size: 36px;
+
+    .avatar-link:hover { color: var(--ink); }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: var(--sans);
     }
-    
-    .header p {
-        font-size: 18px;
+
+    /* ── MAIN ── */
+    .main {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 24px 60px;
+      position: relative;
+      overflow: hidden;
     }
-    
-    .choice-card {
-        padding: 40px 30px;
+
+    .main::before {
+      content: '';
+      position: absolute;
+      width: 800px; height: 800px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(45,106,79,0.06) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
     }
-}
-</style>
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .greeting {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(45,106,79,0.08);
+      border: 1px solid rgba(45,106,79,0.15);
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+
+    .page-header h1 {
+      font-family: var(--serif);
+      font-size: clamp(36px, 5vw, 52px);
+      color: var(--ink);
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: 14px;
+    }
+
+    .page-header h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .page-header p {
+      font-size: 17px;
+      color: var(--ink-muted);
+      font-weight: 300;
+    }
+
+    /* ── CARDS ── */
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: white;
+      border: 1.5px solid var(--line);
+      border-radius: 20px;
+      padding: 44px 40px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+      display: block;
+      color: inherit;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+
+    .card-researcher::before { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+    .card-participant::before { background: linear-gradient(90deg, var(--accent-warm), #f4a261); }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.08);
+      border-color: transparent;
+    }
+
+    .card:hover::before { transform: scaleX(1); }
+
+    .card-researcher:hover { box-shadow: 0 16px 48px rgba(45,106,79,0.12); }
+    .card-participant:hover { box-shadow: 0 16px 48px rgba(224,122,60,0.12); }
+
+    .card-icon {
+      width: 100%;
+      height: 180px;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .card-researcher .card-icon { background: rgba(45,106,79,0.05); }
+    .card-participant .card-icon { background: rgba(224,122,60,0.05); }
+
+    .card h2 {
+      font-family: var(--serif);
+      font-size: 26px;
+      color: var(--ink);
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    .card p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--ink-muted);
+      font-weight: 300;
+      margin-bottom: 28px;
+    }
+
+    .card-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+
+    .card-features li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--ink-soft);
+    }
+
+    .card-features li::before {
+      content: '✓';
+      font-size: 11px;
+      font-weight: 700;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .card-researcher .card-features li::before {
+      background: rgba(45,106,79,0.12);
+      color: var(--accent);
+    }
+
+    .card-participant .card-features li::before {
+      background: rgba(224,122,60,0.12);
+      color: var(--accent-warm);
+    }
+
+    .card-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .card-researcher .card-btn {
+      background: var(--accent);
+      color: white;
+    }
+
+    .card-researcher .card-btn:hover {
+      background: #245c43;
+      box-shadow: 0 4px 16px rgba(45,106,79,0.3);
+    }
+
+    .card-participant .card-btn {
+      background: var(--accent-warm);
+      color: white;
+    }
+
+    .card-participant .card-btn:hover {
+      background: #c96a2e;
+      box-shadow: 0 4px 16px rgba(224,122,60,0.3);
+    }
+
+    /* ── FOOTER NOTE ── */
+    .footer-note {
+      text-align: center;
+      font-size: 14px;
+      color: var(--ink-muted);
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 680px) {
+      .navbar { padding: 14px 20px; }
+      .cards { grid-template-columns: 1fr; }
+      .card { padding: 32px 28px; }
+      .main { padding: 90px 16px 40px; }
+    }
+  </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="navbar-left" onclick="window.location.href='/'">
-            Insighta
-        </div>
-        <div class="navbar-right">
-            <a href="/profile">
-                <div class="avatar">{{ current_user.username[0].upper() if current_user and current_user.username else 'U' }}</div>
-                <span>Profile</span>
-            </a>
-        </div>
-    </nav>
 
-<div class="main-content">
-    <div class="container">
-    <div class="header">
-        <h1>Welcome to Insighta</h1>
-        <p>What would you like to do today?</p>
+<nav class="navbar">
+  <a href="/" class="navbar-logo">Insight<span>a</span></a>
+  <div class="navbar-right">
+    <a href="/profile" class="avatar-link">
+      <div class="avatar">{{ current_user.username[0].upper() if current_user and current_user.username else current_user.email[0].upper() if current_user else 'U' }}</div>
+      <span>Profile</span>
+    </a>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="container">
+
+    <div class="page-header">
+      <div class="greeting">
+        👋 Welcome{% if current_user and current_user.username %}, {{ current_user.username }}{% endif %}
+      </div>
+      <h1>What are you here<br>to do <em>today</em>?</h1>
+      <p>You can switch between modes anytime.</p>
     </div>
 
-    <div class="choice-container">
-        <div class="choice-card" onclick="window.location.href='/publisher'">
-            <div class="icon">📋</div>
-            <h2>Publish Survey</h2>
-            <p>
-                Need quality responses for your research? Post your Google Form and manage your surveys in one place.
-            </p>
-            <p class="highlight">Manage & publish surveys</p>
-            <button class="btn">Go to Dashboard</button>
-        </div>
+    <div class="cards">
 
-        <div class="choice-card" onclick="window.location.href='/dashboard'">
-            <div class="icon">💰</div>
-            <h2>Fill Surveys</h2>
-            <p>Earn money by sharing your opinions! Browse surveys, complete them at your own pace, and earn rewards.</p>
-            <p class="highlight">Start earning today</p>
-            <button class="btn">Browse Surveys</button>
-        </div>
+      <!-- RESEARCHER -->
+      <a href="/publisher" class="card card-researcher">
+        <div class="card-icon"><img src="/static/Idea.svg" alt="Researcher"></div>
+        <h2>I'm a Researcher</h2>
+        <p>Publish your survey, define your target audience, and collect high-quality responses faster than ever.</p>
+        <ul class="card-features">
+          <li>Publish & manage surveys</li>
+          <li>Smart audience targeting</li>
+          <li>Real-time response tracking</li>
+        </ul>
+        <div class="card-btn">Go to Dashboard →</div>
+      </a>
+
+      <!-- PARTICIPANT -->
+      <a href="/dashboard" class="card card-participant">
+        <div class="card-icon"><img src="/static/Planning.svg" alt="Participant"></div>
+        <h2>I'm a Participant</h2>
+        <p>Browse surveys matched to your profile, share your opinions, and earn real rewards for your time.</p>
+        <ul class="card-features">
+          <li>Surveys matched to you</li>
+          <li>Earn cash & rewards</li>
+          <li>Flexible, on your schedule</li>
+        </ul>
+        <div class="card-btn">Browse Surveys →</div>
+      </a>
+
     </div>
 
-    <div class="footer-text">
-        <p>Not sure? You can always switch between modes anytime.</p>
-    </div>
-</div>
-</div>
+    <p class="footer-note">Not sure which to pick? You can always come back and choose the other.</p>
+
+  </div>
+</main>
 
 </body>
 </html>

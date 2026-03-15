@@ -1,339 +1,471 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/static/favicon.png">
-    <link rel="apple-touch-icon" href="/static/favicon.png">
-    <meta name="theme-color" content="#050E1F">
-    <meta charset="UTF-8" />
-    <title>My Surveys - Insighta</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Surveys — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <meta name="theme-color" content="#faf9f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18;
+      --ink-soft: #4a4a44;
+      --ink-muted: #8a8a82;
+      --paper: #faf9f5;
+      --paper-warm: #f3f1ea;
+      --accent: #2d6a4f;
+      --accent-light: #52b788;
+      --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
 
-      body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
-        background: #FFFFFF;
-        min-height: 100vh;
-        color: #37352F;
-      }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-      .navbar {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid #E9E9E7;
-        padding: 16px 40px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-      }
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+    }
 
-      .navbar-left {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        font-size: 20px;
-        font-weight: 700;
-        color: #37352F;
-        letter-spacing: -0.5px;
-      }
+    /* ── NAVBAR ── */
+    .navbar {
+      background: rgba(250,249,245,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
 
-      .back-btn {
-        color: #37352F;
-        text-decoration: none;
-        font-weight: 600;
-        padding: 8px 16px;
-        border-radius: 8px;
-        transition: all 0.15s ease;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14px;
-      }
+    .navbar-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
 
-      .back-btn:hover {
-        background: #F7F6F3;
-        color: #000000;
-      }
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      text-decoration: none;
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      transition: all 0.2s;
+    }
 
-      .navbar-right {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-      }
+    .back-btn:hover {
+      color: var(--ink);
+      background: var(--paper-warm);
+      border-color: var(--ink-muted);
+    }
 
-      .container {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 20px;
-      }
+    .navbar-brand {
+      font-family: var(--serif);
+      font-size: 18px;
+      color: var(--ink);
+      letter-spacing: -0.3px;
+    }
 
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-      }
+    .navbar-brand span { color: var(--accent); }
 
-      .header h1 {
-        margin: 0;
-        font-size: 36px;
-        font-weight: 700;
-        color: #000000;
-        letter-spacing: -1px;
-      }
+    .navbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-      .create-btn {
-        padding: 12px 24px;
-        background: #000000;
-        color: white;
-        border-radius: 8px;
-        font-weight: 600;
-        text-decoration: none;
-        font-size: 16px;
-        transition: all 0.15s ease;
-      }
+    .avatar-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--ink-soft);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
 
-      .create-btn:hover {
-        background: #2F2F2F;
-      }
+    .avatar-link:hover { background: var(--paper-warm); color: var(--ink); }
 
-      .card {
-        background: #FAFAF9;
-        border: 1px solid #E9E9E7;
-        border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 20px;
-        transition: all 0.3s ease;
-      }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
 
-      .card:hover {
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
-        border-color: #D9D9D9;
-      }
+    /* ── CONTAINER ── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
 
-      .card h3 {
-        margin-top: 0;
-        margin-bottom: 12px;
-        font-size: 20px;
-        font-weight: 700;
-        color: #000000;
-      }
+    /* ── HEADER ── */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 40px;
+    }
 
-      .meta {
-        color: #787774;
-        font-size: 15px;
-        margin-bottom: 16px;
-      }
+    .page-header h1 {
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 40px);
+      color: var(--ink);
+      letter-spacing: -1px;
+    }
 
-      .actions {
-        display: flex;
-        gap: 15px;
-      }
+    .page-header h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
 
-      .delete-btn {
-        background: #EF4444;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 8px;
-        color: white;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 14px;
-        transition: all 0.15s ease;
-      }
+    .create-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 11px 22px;
+      background: var(--accent);
+      color: white;
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
 
-      .delete-btn:hover {
-        background: #DC2626;
-      }
+    .create-btn:hover {
+      background: #245c43;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(45,106,79,0.25);
+    }
 
-      .edit-btn {
-        color: #37352F;
-        text-decoration: none;
-        font-weight: 600;
-        padding: 8px 16px;
-        background: #FFFFFF;
-        border-radius: 8px;
-        border: 1px solid #E9E9E7;
-        transition: all 0.15s ease;
-        cursor: pointer;
-        font-size: 14px;
-      }
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+    }
 
-      .edit-btn:hover {
-        background: #F7F6F3;
-        border-color: #D9D9D9;
-      }
+    .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
 
-      .status-badge {
-        display: inline-block;
-        margin-left: 10px;
-        padding: 4px 12px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        background: #F7F6F3;
-        border: 1px solid #E9E9E7;
-        color: #37352F;
-      }
+    .empty-state h3 {
+      font-family: var(--serif);
+      font-size: 24px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
 
-      .status-draft {
-        background: #FEF3C7;
-        color: #92400E;
-      }
-      .status-published {
-        background: #D1FAE5;
-        color: #065F46;
-      }
-      .status-closed {
-        background: #F3F4F6;
-        color: #6B7280;
-      }
-      .disabled-btn {
-        opacity: 0.4;
-        cursor: not-allowed;
-        pointer-events: none;
-      }
-      .progress-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin: 10px 0 14px;
-      }
+    .empty-state p {
+      font-size: 15px;
+      color: var(--ink-muted);
+      font-weight: 300;
+      margin-bottom: 24px;
+    }
 
-      .progress-bar {
-        flex: 1;
-        height: 8px;
-        border-radius: 999px;
-        background: #E9E9E7;
-        overflow: hidden;
-        border: none;
-      }
+    /* ── SURVEY CARDS ── */
+    .survey-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
 
-      .progress-fill {
-        height: 100%;
-        border-radius: 999px;
-        background: #000000;
-        transition: width 0.3s ease;
-      }
+    .card {
+      background: white;
+      border: 1.5px solid var(--line);
+      border-radius: 16px;
+      padding: 28px 32px;
+      transition: all 0.2s;
+    }
 
-      .progress-text {
-        min-width: 64px;
-        text-align: right;
-        font-size: 14px;
-        color: #787774;
-        font-weight: 600;
-      }
-    </style>
-  </head>
+    .card:hover {
+      box-shadow: 0 8px 28px rgba(0,0,0,0.07);
+      border-color: rgba(45,106,79,0.25);
+    }
 
-  <body>
-    <div class="navbar">
-      <div class="navbar-left">
-        <a href="/choice" class="back-btn">
-          <span>←</span>
-          <span>Back</span>
-        </a>
-        <span>Insighta · Publisher</span>
+    /* card top row */
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 6px;
+    }
+
+    .card h3 {
+      font-family: var(--serif);
+      font-size: 20px;
+      color: var(--ink);
+      letter-spacing: -0.3px;
+      line-height: 1.3;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .status-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .status-draft {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+    .status-draft::before { background: #F59E0B; }
+
+    .status-published {
+      background: rgba(45,106,79,0.1);
+      color: var(--accent);
+    }
+    .status-published::before { background: var(--accent-light); }
+
+    .status-closed {
+      background: #F3F4F6;
+      color: #6B7280;
+    }
+    .status-closed::before { background: #9CA3AF; }
+
+    /* meta */
+    .card-meta {
+      font-size: 14px;
+      color: var(--ink-muted);
+      font-weight: 300;
+      margin-bottom: 16px;
+    }
+
+    /* progress */
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 6px;
+      border-radius: 100px;
+      background: var(--paper-warm);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      transition: width 0.5s ease;
+    }
+
+    .progress-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      min-width: 56px;
+      text-align: right;
+    }
+
+    /* actions */
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1.5px solid var(--line);
+      background: white;
+      color: var(--ink-soft);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .btn:hover {
+      background: var(--paper-warm);
+      border-color: var(--ink-muted);
+      color: var(--ink);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover {
+      background: #245c43;
+      border-color: #245c43;
+      box-shadow: 0 4px 12px rgba(45,106,79,0.25);
+    }
+
+    .btn-danger {
+      background: white;
+      color: #EF4444;
+      border-color: #FECACA;
+    }
+
+    .btn-danger:hover {
+      background: #FFF5F5;
+      border-color: #EF4444;
+    }
+
+    .btn-disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 640px) {
+      .navbar { padding: 12px 16px; }
+      .navbar-brand { display: none; }
+      .container { padding: 32px 16px; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .card { padding: 20px; }
+      .card-top { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-left">
+    <a href="/choice" class="back-btn">← Back</a>
+    <div class="navbar-brand">Insight<span>a</span></div>
+  </div>
+  <div class="navbar-right">
+    <a href="/profile" class="avatar-link">
+      <div class="avatar">{{ current_user.username[0].upper() if current_user.username else 'U' }}</div>
+      <span>Profile</span>
+    </a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="page-header">
+    <h1>My <em>Surveys</em></h1>
+    <a href="/publish" class="create-btn">+ New Survey</a>
+  </div>
+
+  {% if surveys|length == 0 %}
+  <div class="empty-state">
+    <div class="empty-icon">📋</div>
+    <h3>No surveys yet</h3>
+    <p>Create your first survey and start collecting responses.</p>
+    <a href="/publish" class="create-btn">+ Create Your First Survey</a>
+  </div>
+
+  {% else %}
+  <div class="survey-list">
+    {% for s in surveys %}
+    {% set completed = completed_map.get(s.id, 0) %}
+    {% set target = s.target_responses or 0 %}
+    {% set pct = (completed * 100 // target) if target > 0 else 0 %}
+
+    <div class="card">
+      <div class="card-top">
+        <h3>{{ s.title }}</h3>
+        <span class="status-badge status-{{ s.status }}">{{ s.status }}</span>
       </div>
-      <div class="navbar-right">
-        <a href="/profile" style="text-decoration: none; color: #37352F; display: flex; align-items: center; gap: 10px;">
-          <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 1px solid #E9E9E7;">
-            {{ current_user.username[0].upper() if current_user.username else 'U' }}
-          </div>
-          <span>Profile</span>
-        </a>
-      </div>
-    </div>
 
-    <div class="container">
-      <div class="header">
-        <h1>My Surveys</h1>
-        <a href="/publish" class="create-btn">+ New Survey</a>
-      </div>
+      <p class="card-meta">{{ s.category | capitalize }} · ${{ s.reward_amount }} reward</p>
 
-      {% if surveys|length == 0 %}
-      <p style="color: #787774; font-size: 16px;">You haven't published any surveys yet.</p>
-      {% endif %} {% for s in surveys %}
-      <div class="card">
-        <h3>
-          {{ s.title }}
-          <span class="status-badge status-{{ s.status }}">{{ s.status }}</span>
-        </h3>
-        <p>Category: {{ s.category }} · Reward: ${{ s.reward_amount }}</p>
-        {% set completed = completed_map.get(s.id, 0) %} {% set target =
-        s.target_responses or 0 %} {% set pct = (completed * 100 // target) if
-        target > 0 else 0 %}
-
-        <div class="progress-row">
-          <div class="progress-bar">
-            <div class="progress-fill" data-pct="{{ pct }}"></div>
-          </div>
-          <div class="progress-text">{{ completed }}/{{ target }}</div>
+      <div class="progress-row">
+        <div class="progress-bar">
+          <div class="progress-fill" data-pct="{{ pct }}"></div>
         </div>
+        <div class="progress-text">{{ completed }} / {{ target }}</div>
+      </div>
 
+      <div class="card-actions">
         {% if s.status == "draft" %}
-        <form
-          method="post"
-          action="/surveys/{{ s.id }}/publish"
-          style="display: inline"
-        >
-          <button class="edit-btn">Publish</button>
+        <form method="post" action="/surveys/{{ s.id }}/publish" style="display:inline">
+          <button class="btn btn-primary">Publish</button>
         </form>
         {% else %}
-        <button class="edit-btn disabled-btn">Publish</button>
-        {% endif %}         {% if s.status == "published" %}
-        <form
-          method="post"
-          action="/surveys/{{ s.id }}/close"
-          style="display: inline"
-        >
-          <button class="edit-btn">Close</button>
-        </form>
-        {% elif s.status == "closed" %}
-        <form
-          method="post"
-          action="/surveys/{{ s.id }}/reopen"
-          style="display: inline"
-        >
-          <button class="edit-btn" style="background: #000000; color: white; border: none;">Reopen</button>
-        </form>
-        {% else %}
-        <button class="edit-btn disabled-btn">Close</button>
+        <button class="btn btn-disabled">Publish</button>
         {% endif %}
 
-        <form
-          method="get"
-          action="/publisher/edit/{{ s.id }}"
-          style="display: inline"
-        >
-          <button class="edit-btn">Edit</button>
+        {% if s.status == "published" %}
+        <form method="post" action="/surveys/{{ s.id }}/close" style="display:inline">
+          <button class="btn">Close</button>
+        </form>
+        {% elif s.status == "closed" %}
+        <form method="post" action="/surveys/{{ s.id }}/reopen" style="display:inline">
+          <button class="btn btn-primary">Reopen</button>
+        </form>
+        {% else %}
+        <button class="btn btn-disabled">Close</button>
+        {% endif %}
+
+        <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
+          <button class="btn">Edit</button>
         </form>
 
-        <form
-          method="post"
-          action="/publisher/delete/{{ s.id }}"
-          style="display: inline"
-        >
-          <button class="delete-btn">Delete</button>
+        <form method="post" action="/publisher/delete/{{ s.id }}" style="display:inline"
+          onsubmit="return confirm('Delete this survey? This cannot be undone.')">
+          <button class="btn btn-danger">Delete</button>
         </form>
       </div>
-      {% endfor %}
     </div>
-    <script>
-      document.querySelectorAll(".progress-fill").forEach((el) => {
-        const pct = Number(el.dataset.pct || 0);
-        el.style.width = pct + "%";
-      });
-    </script>
-  </body>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  document.querySelectorAll('.progress-fill').forEach(el => {
+    el.style.width = (el.dataset.pct || 0) + '%';
+  });
+</script>
+
+</body>
 </html>

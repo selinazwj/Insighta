@@ -1,186 +1,315 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/static/favicon.png">
-    <link rel="apple-touch-icon" href="/static/favicon.png">
-    <meta name="theme-color" content="#050E1F">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login - Insighta</title>
-<style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <meta name="theme-color" content="#faf9f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18;
+      --ink-soft: #4a4a44;
+      --ink-muted: #8a8a82;
+      --paper: #faf9f5;
+      --paper-warm: #f3f1ea;
+      --accent: #2d6a4f;
+      --accent-light: #52b788;
+      --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
-    background: #FFFFFF;
-    color: #37352F;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-.login-container {
-    background: #FAFAF9;
-    padding: 40px 50px;
-    border-radius: 16px;
-    border: 1px solid #E9E9E7;
-    width: 100%;
-    max-width: 500px;
-}
-
-.header {
-    text-align: center;
-    margin-bottom: 32px;
-}
-
-.header h1 {
-    font-size: 36px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #000000;
-    letter-spacing: -1px;
-}
-
-.header p {
-    font-size: 16px;
-    color: #787774;
-}
-
-.error-box {
-    background: #FEE;
-    color: #C00;
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 14px;
-    border: 1px solid #FCC;
-}
-
-.form-box {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.form-box label {
-    font-size: 14px;
-    font-weight: 600;
-    color: #37352F;
-    margin-bottom: -8px;
-}
-
-.form-box input {
-    padding: 12px 16px;
-    border-radius: 8px;
-    border: 1px solid #E9E9E7;
-    font-size: 15px;
-    background: #FFFFFF;
-    color: #37352F;
-    transition: all 0.2s;
-}
-
-.form-box input:focus {
-    outline: none;
-    border-color: #000000;
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
-}
-
-.form-box input::placeholder {
-    color: #9B9A97;
-}
-
-.btn-submit {
-    width: 100%;
-    padding: 14px;
-    background: #000000;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    margin-top: 8px;
-}
-
-.btn-submit:hover {
-    background: #2F2F2F;
-}
-
-.register-link {
-    text-align: center;
-    margin-top: 16px;
-    font-size: 15px;
-    color: #787774;
-}
-
-.register-link a {
-    color: #000000;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.register-link a:hover {
-    text-decoration: underline;
-}
-
-@media (max-width: 640px) {
     body {
-        padding: 10px;
+      font-family: var(--sans);
+      background: var(--paper);
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
     }
-    
-    .login-container {
-        padding: 30px 24px;
+
+    /* ── LEFT PANEL ── */
+    .left-panel {
+      background: var(--accent);
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
     }
-    
-    .header {
-        margin-bottom: 24px;
+
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      bottom: -150px; right: -150px;
     }
-    
-    .header h1 {
-        font-size: 28px;
-        margin-bottom: 6px;
+
+    .left-panel::after {
+      content: '';
+      position: absolute;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      top: -80px; left: -80px;
     }
-    
-    .header p {
-        font-size: 14px;
+
+    .panel-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      position: relative;
+      z-index: 1;
     }
-}
-</style>
+
+    .panel-logo img {
+      height: 36px;
+      width: auto;
+      filter: brightness(0) invert(1);
+    }
+
+    .panel-logo span {
+      font-family: var(--serif);
+      font-size: 22px;
+      color: white;
+      letter-spacing: -0.3px;
+    }
+
+    .panel-body {
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-body h2 {
+      font-family: var(--serif);
+      font-size: clamp(32px, 3vw, 44px);
+      color: white;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+    }
+
+    .panel-body h2 em {
+      font-style: italic;
+      opacity: 0.75;
+    }
+
+    .panel-body p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.65);
+      line-height: 1.75;
+      font-weight: 300;
+      max-width: 340px;
+    }
+
+    .panel-footer {
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-quote {
+      border-left: 3px solid rgba(255,255,255,0.3);
+      padding-left: 20px;
+    }
+
+    .panel-quote p {
+      font-family: var(--serif);
+      font-size: 17px;
+      font-style: italic;
+      color: rgba(255,255,255,0.8);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .panel-quote span {
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 40px;
+    }
+
+    .form-wrapper {
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .form-header {
+      margin-bottom: 40px;
+    }
+
+    .form-header h1 {
+      font-family: var(--serif);
+      font-size: 34px;
+      color: var(--ink);
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .form-header p {
+      font-size: 15px;
+      color: var(--ink-muted);
+      font-weight: 300;
+    }
+
+    .error-box {
+      background: #fff5f5;
+      color: #c53030;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      border: 1px solid #fed7d7;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      margin-bottom: 8px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--ink);
+      background: white;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,106,79,0.08);
+    }
+
+    .form-group input::placeholder {
+      color: #c4c2bc;
+      font-weight: 300;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 13px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 4px;
+      letter-spacing: 0.01em;
+    }
+
+    .btn-submit:hover {
+      background: #245c43;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(45,106,79,0.25);
+    }
+
+    .form-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: var(--ink-muted);
+    }
+
+    .form-footer a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .form-footer a:hover { text-decoration: underline; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+      .right-panel { padding: 48px 24px; }
+    }
+  </style>
 </head>
 <body>
 
-<div class="login-container">
-    <div class="header">
-        <h1>Welcome Back</h1>
-        <p>Sign in to your account</p>
+<!-- LEFT -->
+<div class="left-panel">
+  <a href="/" class="panel-logo">
+    <img src="/static/favicon.png" alt="Insighta">
+    <span>Insighta</span>
+  </a>
+
+  <div class="panel-body">
+    <h2>Research that works for <em>everyone</em> in the room.</h2>
+    <p>Connect with real participants, gather real insights, and do the research you've always wanted to do — without the hassle.</p>
+  </div>
+
+  <div class="panel-footer">
+    <div class="panel-quote">
+      <p>"We spent two weeks begging people to fill our survey. That's when we knew something was deeply broken."</p>
+      <span>— The Insighta founding team, BU 2025</span>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div class="right-panel">
+  <div class="form-wrapper">
+
+    <div class="form-header">
+      <h1>Welcome back.</h1>
+      <p>Sign in to your Insighta account.</p>
     </div>
 
     {% if error %}
     <div class="error-box">{{ error }}</div>
     {% endif %}
 
-    <form method="POST" action="/login" class="form-box">
-        <label>Email</label>
-        <input type="email" name="email" required placeholder="Email address">
-        
+    <form method="POST" action="/login">
+      <div class="form-group">
+        <label>Email address</label>
+        <input type="email" name="email" required placeholder="you@example.com">
+      </div>
+      <div class="form-group">
         <label>Password</label>
-        <input type="password" name="password" required placeholder="Password">
-        
-        <button type="submit" class="btn-submit">Sign In</button>
+        <input type="password" name="password" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn-submit">Sign In →</button>
     </form>
 
-    <p class="register-link">
-        Don't have an account? <a href="/register">Create Account</a>
+    <p class="form-footer">
+      Don't have an account? <a href="/register">Create one free</a>
     </p>
+
+  </div>
 </div>
 
 </body>
