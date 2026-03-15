@@ -390,74 +390,127 @@
 <div class="container">
 
   <div class="page-header">
-    <h1>My <em>Surveys</em></h1>
-    <a href="/publish" class="create-btn">+ New Survey</a>
+    <h1>My <em>Listings</em></h1>
+    <a href="/publish" class="create-btn">+ New Listing</a>
   </div>
 
-  {% if surveys|length == 0 %}
-  <div class="empty-state">
-    <div class="empty-icon">📋</div>
-    <h3>No surveys yet</h3>
-    <p>Create your first survey and start collecting responses.</p>
-    <a href="/publish" class="create-btn">+ Create Your First Survey</a>
+  <!-- TABS -->
+  <div style="display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:32px;">
+    <div class="pub-tab active" onclick="switchPubTab('surveys', this)" style="padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; color:var(--accent); border-bottom:2px solid var(--accent); margin-bottom:-1px;">Surveys</div>
+    <div class="pub-tab" onclick="switchPubTab('interviews', this)" style="padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; color:var(--ink-muted); border-bottom:2px solid transparent; margin-bottom:-1px;">Interviews</div>
   </div>
 
-  {% else %}
-  <div class="survey-list">
-    {% for s in surveys %}
-    {% set completed = completed_map.get(s.id, 0) %}
-    {% set target = s.target_responses or 0 %}
-    {% set pct = (completed * 100 // target) if target > 0 else 0 %}
-
-    <div class="card">
-      <div class="card-top">
-        <h3>{{ s.title }}</h3>
-        <span class="status-badge status-{{ s.status }}">{{ s.status }}</span>
-      </div>
-
-      <p class="card-meta">{{ s.category | capitalize }} · ${{ s.reward_amount }} reward</p>
-
-      <div class="progress-row">
-        <div class="progress-bar">
-          <div class="progress-fill" data-pct="{{ pct }}"></div>
-        </div>
-        <div class="progress-text">{{ completed }} / {{ target }}</div>
-      </div>
-
-      <div class="card-actions">
-        {% if s.status == "draft" %}
-        <form method="post" action="/surveys/{{ s.id }}/publish" style="display:inline">
-          <button class="btn btn-primary">Publish</button>
-        </form>
-        {% else %}
-        <button class="btn btn-disabled">Publish</button>
-        {% endif %}
-
-        {% if s.status == "published" %}
-        <form method="post" action="/surveys/{{ s.id }}/close" style="display:inline">
-          <button class="btn">Close</button>
-        </form>
-        {% elif s.status == "closed" %}
-        <form method="post" action="/surveys/{{ s.id }}/reopen" style="display:inline">
-          <button class="btn btn-primary">Reopen</button>
-        </form>
-        {% else %}
-        <button class="btn btn-disabled">Close</button>
-        {% endif %}
-
-        <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
-          <button class="btn">Edit</button>
-        </form>
-
-        <form method="post" action="/publisher/delete/{{ s.id }}" style="display:inline"
-          onsubmit="return confirm('Delete this survey? This cannot be undone.')">
-          <button class="btn btn-danger">Delete</button>
-        </form>
-      </div>
+  <!-- SURVEYS TAB -->
+  <div id="tab-surveys">
+    {% if surveys|length == 0 %}
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>No surveys yet</h3>
+      <p>Create your first survey and start collecting responses.</p>
+      <a href="/publish" class="create-btn">+ Create Your First Survey</a>
     </div>
-    {% endfor %}
+    {% else %}
+    <div class="survey-list">
+      {% for s in surveys %}
+      {% set completed = completed_map.get(s.id, 0) %}
+      {% set target = s.target_responses or 0 %}
+      {% set pct = (completed * 100 // target) if target > 0 else 0 %}
+      <div class="card">
+        <div class="card-top">
+          <h3>{{ s.title }}</h3>
+          <span class="status-badge status-{{ s.status }}">{{ s.status }}</span>
+        </div>
+        <p class="card-meta">{{ s.category | capitalize }} · ${{ s.reward_amount }} reward</p>
+        <div class="progress-row">
+          <div class="progress-bar"><div class="progress-fill" data-pct="{{ pct }}"></div></div>
+          <div class="progress-text">{{ completed }} / {{ target }}</div>
+        </div>
+        <div class="card-actions">
+          {% if s.status == "draft" %}
+          <form method="post" action="/surveys/{{ s.id }}/publish" style="display:inline">
+            <button class="btn btn-primary">Publish</button>
+          </form>
+          {% else %}<button class="btn btn-disabled">Publish</button>{% endif %}
+
+          {% if s.status == "published" %}
+          <form method="post" action="/surveys/{{ s.id }}/close" style="display:inline">
+            <button class="btn">Close</button>
+          </form>
+          {% elif s.status == "closed" %}
+          <form method="post" action="/surveys/{{ s.id }}/reopen" style="display:inline">
+            <button class="btn btn-primary">Reopen</button>
+          </form>
+          {% else %}<button class="btn btn-disabled">Close</button>{% endif %}
+
+          <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
+            <button class="btn">Edit</button>
+          </form>
+          <form method="post" action="/publisher/delete/{{ s.id }}" style="display:inline"
+            onsubmit="return confirm('Delete this survey? This cannot be undone.')">
+            <button class="btn btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
-  {% endif %}
+
+  <!-- INTERVIEWS TAB -->
+  <div id="tab-interviews" style="display:none;">
+    {% if interviews|length == 0 %}
+    <div class="empty-state">
+      <div class="empty-icon">🎙️</div>
+      <h3>No interviews yet</h3>
+      <p>Create your first interview listing.</p>
+      <a href="/publish" class="create-btn">+ Create Interview</a>
+    </div>
+    {% else %}
+    <div class="survey-list">
+      {% for s in interviews %}
+      {% set completed = completed_map.get(s.id, 0) %}
+      {% set target = s.target_responses or 0 %}
+      {% set pct = (completed * 100 // target) if target > 0 else 0 %}
+      <div class="card">
+        <div class="card-top">
+          <h3>{{ s.title }}</h3>
+          <span class="status-badge status-{{ s.status }}">{{ s.status }}</span>
+        </div>
+        <p class="card-meta">{{ s.category | capitalize }} · ${{ s.reward_amount }} reward · 🎙️ Interview</p>
+        <div class="progress-row">
+          <div class="progress-bar"><div class="progress-fill" data-pct="{{ pct }}"></div></div>
+          <div class="progress-text">{{ completed }} / {{ target }}</div>
+        </div>
+        <div class="card-actions">
+          {% if s.status == "draft" %}
+          <form method="post" action="/surveys/{{ s.id }}/publish" style="display:inline">
+            <button class="btn btn-primary">Publish</button>
+          </form>
+          {% else %}<button class="btn btn-disabled">Publish</button>{% endif %}
+
+          {% if s.status == "published" %}
+          <form method="post" action="/surveys/{{ s.id }}/close" style="display:inline">
+            <button class="btn">Close</button>
+          </form>
+          {% elif s.status == "closed" %}
+          <form method="post" action="/surveys/{{ s.id }}/reopen" style="display:inline">
+            <button class="btn btn-primary">Reopen</button>
+          </form>
+          {% else %}<button class="btn btn-disabled">Close</button>{% endif %}
+
+          <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
+            <button class="btn">Edit</button>
+          </form>
+          <form method="post" action="/publisher/delete/{{ s.id }}" style="display:inline"
+            onsubmit="return confirm('Delete this interview? This cannot be undone.')">
+            <button class="btn btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
 
 </div>
 
@@ -465,6 +518,17 @@
   document.querySelectorAll('.progress-fill').forEach(el => {
     el.style.width = (el.dataset.pct || 0) + '%';
   });
+
+  function switchPubTab(tab, btn) {
+    document.getElementById('tab-surveys').style.display = tab === 'surveys' ? 'block' : 'none';
+    document.getElementById('tab-interviews').style.display = tab === 'interviews' ? 'block' : 'none';
+    document.querySelectorAll('.pub-tab').forEach(t => {
+      t.style.color = 'var(--ink-muted)';
+      t.style.borderBottomColor = 'transparent';
+    });
+    btn.style.color = 'var(--accent)';
+    btn.style.borderBottomColor = 'var(--accent)';
+  }
 </script>
 
 </body>
