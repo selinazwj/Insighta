@@ -808,6 +808,8 @@ Return ONLY a valid JSON object with these exact fields, no extra text:
         return JSONResponse(result)
 
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(500, str(e))
 
 
