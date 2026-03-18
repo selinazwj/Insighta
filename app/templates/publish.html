@@ -117,6 +117,119 @@
       padding: 48px 24px 80px;
     }
 
+    /* ── AI SECTION ── */
+    .ai-section {
+      background: linear-gradient(135deg, rgba(45,106,79,0.06) 0%, rgba(82,183,136,0.04) 100%);
+      border: 1.5px solid rgba(45,106,79,0.2);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+
+    .ai-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .ai-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .ai-header h3 {
+      font-family: var(--serif);
+      font-size: 18px;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
+    .ai-header p {
+      font-size: 13px;
+      color: var(--ink-muted);
+      font-weight: 300;
+    }
+
+    .ai-input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .ai-input-row input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--ink);
+      background: white;
+      transition: all 0.2s;
+    }
+
+    .ai-input-row input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,106,79,0.08);
+    }
+
+    .ai-input-row input::placeholder { color: #c4c2bc; font-weight: 300; }
+
+    .ai-input-row button {
+      padding: 12px 22px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .ai-input-row button:hover {
+      background: #245c43;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(45,106,79,0.25);
+    }
+
+    .ai-input-row button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .ai-error {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #c53030;
+      background: #fff5f5;
+      border: 1px solid #fed7d7;
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    .ai-success {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--accent);
+      background: rgba(45,106,79,0.06);
+      border: 1px solid rgba(45,106,79,0.2);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
     /* ── PAGE HEADER ── */
     .page-header {
       margin-bottom: 40px;
@@ -485,6 +598,31 @@
     <p>Share your Google Form and collect quality responses from our community.</p>
   </div>
 
+  <!-- AI FILL SECTION -->
+  <div class="ai-section" id="aiSection">
+    <div class="ai-header">
+      <div class="ai-icon">✨</div>
+      <div>
+        <h3>Fill with AI</h3>
+        <p>Describe your survey in one sentence and we'll fill the form for you.</p>
+      </div>
+    </div>
+    <div class="ai-input-row">
+      <input
+        type="text"
+        id="aiPrompt"
+        placeholder="e.g. I want to study sleep patterns in college students, need 50 responses"
+        autocomplete="off"
+      >
+      <button type="button" id="aiBtn" onclick="fillWithAI()">
+        <span id="aiBtnText">Generate →</span>
+        <span id="aiBtnLoading" style="display:none;">...</span>
+      </button>
+    </div>
+    <div id="aiError" class="ai-error" style="display:none;"></div>
+    <div id="aiSuccess" class="ai-success" style="display:none;">✓ Form filled! Review and adjust before publishing.</div>
+  </div>
+
   <div id="successMessage" class="success-message">
     ✓ Survey submitted! Redirecting to your dashboard...
   </div>
@@ -827,6 +965,76 @@
 </div>
 
 <script>
+  // AI Fill
+  async function fillWithAI() {
+    const prompt = document.getElementById('aiPrompt').value.trim();
+    if (!prompt) { alert('Please enter a description first.'); return; }
+
+    const btn = document.getElementById('aiBtn');
+    const btnText = document.getElementById('aiBtnText');
+    const btnLoading = document.getElementById('aiBtnLoading');
+    const errorEl = document.getElementById('aiError');
+    const successEl = document.getElementById('aiSuccess');
+
+    btn.disabled = true;
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline';
+    errorEl.style.display = 'none';
+    successEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/ai-fill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ prompt })
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      console.log('AI response:', data);
+
+      // Fill form fields
+      if (data.title) document.querySelector('input[name="title"]').value = data.title;
+      if (data.description) document.querySelector('textarea[name="description"]').value = data.description;
+      if (data.category) {
+        const sel = document.querySelector('select[name="category"]');
+        sel.value = data.category;
+        sel.classList.add('has-value');
+      }
+      if (data.estimated_time) {
+        const sel = document.querySelector('select[name="estimated_time"]');
+        sel.value = String(data.estimated_time);
+        sel.classList.add('has-value');
+      }
+      if (data.reward_amount) {
+        document.getElementById('rewardAmount').value = parseFloat(data.reward_amount).toFixed(2);
+      }
+      if (data.target_responses) {
+        document.querySelector('input[name="target_responses"]').value = data.target_responses;
+      }
+
+      updateBudget();
+      successEl.style.display = 'block';
+
+      // Scroll to form
+      document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
+
+    } catch (err) {
+      errorEl.textContent = 'Something went wrong. Please try again.';
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btnText.style.display = 'inline';
+      btnLoading.style.display = 'none';
+    }
+  }
+
+  // Allow Enter key in AI prompt
+  document.getElementById('aiPrompt').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); fillWithAI(); }
+  });
+
   // Budget calculator
   const rewardInput = document.getElementById('rewardAmount');
   const targetInput = document.querySelector('input[name="target_responses"]');
