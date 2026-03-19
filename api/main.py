@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 import shutil
 import uuid
 import os
+import stripe
 
 from app.database import engine, get_db
 from app.models import Base, User, Survey, Response
@@ -25,7 +26,32 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 Base.metadata.create_all(bind=engine)
 
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
+
 router = APIRouter()
+
+
+# ---------------------------
+# Commission helper
+# ---------------------------
+
+def calculate_commission(per_person_gross: float):
+    """
+    Returns (commission_rate, reward_amount)
+    per_person_gross >= 25 → 25% commission
+    per_person_gross 15-24 → 20% commission
+    per_person_gross < 15  → 15% commission
+    """
+    if per_person_gross >= 25:
+        rate = 0.25
+    elif per_person_gross >= 15:
+        rate = 0.20
+    else:
+        rate = 0.15
+    reward = round(per_person_gross * (1 - rate), 2)
+    return rate, reward
 
 
 # ---------------------------
@@ -48,7 +74,6 @@ def _is_empty(val: Optional[str]) -> bool:
     return val is None or val.strip() == "" or val.strip().lower() == "all"
 
 def _field_matches(target: Optional[str], user_val: Optional[str]) -> bool:
-    """单值字段：target 为空则不限，否则大小写不敏感匹配。"""
     if _is_empty(target):
         return True
     if not user_val:
@@ -56,7 +81,6 @@ def _field_matches(target: Optional[str], user_val: Optional[str]) -> bool:
     return target.strip().lower() == user_val.strip().lower()
 
 def _language_matches(target: Optional[str], user_languages: Optional[str]) -> bool:
-    """Language：用户可多选，检查 target 是否在用户语言列表里。"""
     if _is_empty(target):
         return True
     if not user_languages:
@@ -65,11 +89,6 @@ def _language_matches(target: Optional[str], user_languages: Optional[str]) -> b
     return target.strip().lower() in user_list
 
 def _tags_match(target_tags: Optional[str], user_tags: Optional[str]) -> bool:
-    """
-    Experience tags：逗号分隔多选。
-    target 为空 → 不限。
-    target 有值 → 用户包含其中任意一个 tag 即匹配。
-    """
     if _is_empty(target_tags):
         return True
     if not user_tags:
@@ -79,12 +98,6 @@ def _tags_match(target_tags: Optional[str], user_tags: Optional[str]) -> bool:
     return bool(target_set & user_set)
 
 def _participation_format_matches(target: Optional[str], user_val: Optional[str]) -> bool:
-    """
-    参与形式：
-    - target 为空 / both → 不限
-    - user 填了 both → 可参加任何形式
-    - 否则严格匹配
-    """
     if _is_empty(target) or (target and target.strip().lower() == "both"):
         return True
     if not user_val:
@@ -94,12 +107,6 @@ def _participation_format_matches(target: Optional[str], user_val: Optional[str]
     return target.strip().lower() == user_val.strip().lower()
 
 def _device_matches(target: Optional[str], user_val: Optional[str]) -> bool:
-    """
-    设备要求：
-    - target 为空 / any → 不限
-    - user 填了 any → 什么设备都有
-    - 否则严格匹配
-    """
     if _is_empty(target) or (target and target.strip().lower() == "any"):
         return True
     if not user_val:
@@ -125,7 +132,6 @@ def _normalize_task_type(value: Optional[str]) -> str:
     return "interview" if value == "interview" else "survey"
 
 def _clean_target(val: Optional[str]) -> str:
-    """把 None / 'all' 统一存为空字符串。"""
     return '' if not val or val.strip().lower() == 'all' else val
 
 
@@ -236,7 +242,6 @@ async def do_register(
     response = RedirectResponse("/dashboard?welcome=1", status_code=303)
     response.set_cookie("user_id", str(user.id))
     return response
- 
 
 
 # ---------------------------
@@ -355,57 +360,32 @@ def dashboard(
     user_edu_max = _education_rank(current_user.education_level, fallback=999)
 
     def survey_matches(s: Survey) -> bool:
-        # 原有字段
-        if not _field_matches(s.target_age_range, current_user.age_range):
-            return False
+        if not _field_matches(s.target_age_range, current_user.age_range): return False
         if s.target_education_min is not None:
-            if user_edu_min < s.target_education_min:
-                return False
+            if user_edu_min < s.target_education_min: return False
         if s.target_education_max is not None:
-            if user_edu_max > s.target_education_max:
-                return False
-        if not _field_matches(s.target_field, current_user.field):
-            return False
-        if not _field_matches(s.target_status, current_user.status):
-            return False
-        if not _field_matches(s.target_state, current_user.state):
-            return False
-        if not _language_matches(s.target_language, current_user.language):
-            return False
-        if not _field_matches(s.target_ethnicity, current_user.ethnicity):
-            return False
-        if not _field_matches(s.target_sexual_orientation, current_user.sexual_orientation):
-            return False
-        if not _field_matches(s.target_mental_health_diagnosis, current_user.mental_health_diagnosis):
-            return False
-        if not _field_matches(s.target_physical_health_diagnosis, current_user.physical_health_diagnosis):
-            return False
-        if not _field_matches(s.target_sport_type, current_user.sport_type):
-            return False
-        if not _field_matches(s.target_sport_frequency, current_user.sport_frequency):
-            return False
-        if not _field_matches(s.target_smoking, current_user.smoking):
-            return False
-        if not _field_matches(s.target_cannabis_use, current_user.cannabis_use):
-            return False
-        # 新增字段
-        if not _field_matches(getattr(s, 'target_student_status', None), getattr(current_user, 'student_status', None)):
-            return False
-        if not _field_matches(getattr(s, 'target_year_in_school', None), getattr(current_user, 'year_in_school', None)):
-            return False
-        if not _field_matches(getattr(s, 'target_international_domestic', None), getattr(current_user, 'international_domestic', None)):
-            return False
-        if not _tags_match(getattr(s, 'target_experience_tags', None), getattr(current_user, 'experience_tags', None)):
-            return False
-        if not _participation_format_matches(getattr(s, 'target_participation_format', None), getattr(current_user, 'participation_format', None)):
-            return False
-        if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)):
-            return False
+            if user_edu_max > s.target_education_max: return False
+        if not _field_matches(s.target_field, current_user.field): return False
+        if not _field_matches(s.target_status, current_user.status): return False
+        if not _field_matches(s.target_state, current_user.state): return False
+        if not _language_matches(s.target_language, current_user.language): return False
+        if not _field_matches(s.target_ethnicity, current_user.ethnicity): return False
+        if not _field_matches(s.target_sexual_orientation, current_user.sexual_orientation): return False
+        if not _field_matches(s.target_mental_health_diagnosis, current_user.mental_health_diagnosis): return False
+        if not _field_matches(s.target_physical_health_diagnosis, current_user.physical_health_diagnosis): return False
+        if not _field_matches(s.target_sport_type, current_user.sport_type): return False
+        if not _field_matches(s.target_sport_frequency, current_user.sport_frequency): return False
+        if not _field_matches(s.target_smoking, current_user.smoking): return False
+        if not _field_matches(s.target_cannabis_use, current_user.cannabis_use): return False
+        if not _field_matches(getattr(s, 'target_student_status', None), getattr(current_user, 'student_status', None)): return False
+        if not _field_matches(getattr(s, 'target_year_in_school', None), getattr(current_user, 'year_in_school', None)): return False
+        if not _field_matches(getattr(s, 'target_international_domestic', None), getattr(current_user, 'international_domestic', None)): return False
+        if not _tags_match(getattr(s, 'target_experience_tags', None), getattr(current_user, 'experience_tags', None)): return False
+        if not _participation_format_matches(getattr(s, 'target_participation_format', None), getattr(current_user, 'participation_format', None)): return False
+        if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
         return True
 
     matched = [s for s in all_published if survey_matches(s)]
-
-    # urgency 高的排前面，其次按 published_at 降序
     matched.sort(key=lambda s: (
         -URGENCY_RANK.get(getattr(s, 'urgency_level', None) or 'flexible', 1),
         -(s.published_at.timestamp() if s.published_at else 0)
@@ -413,7 +393,6 @@ def dashboard(
 
     surveys_data = []
     for s in matched:
-        started_cnt = db.query(Response).filter(Response.survey_id == s.id).count()
         completed_cnt = db.query(Response).filter(
             Response.survey_id == s.id,
             Response.status == "completed"
@@ -441,9 +420,8 @@ def dashboard(
             "type": _normalize_task_type(getattr(s, "task_type", None)),
             "category": s.category,
             "time": f"{s.estimated_time} min",
-            "reward": f"${s.reward_amount}",
+            "reward": f"${s.reward_amount:.2f}",
             "responses": f"{completed_cnt}/{s.target_responses}",
-            "started": started_cnt,
             "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
             "is_completed": is_completed,
             "urgency": getattr(s, 'urgency_level', None) or 'flexible',
@@ -466,17 +444,8 @@ def dashboard(
         Response.completed_at >= today_start_utc
     ).count()
 
-    completed_responses = db.query(Response).filter(
-        Response.participant_id == current_user.id,
-        Response.status == "completed",
-        Response.completed_at.isnot(None)
-    ).all()
-
-    total_earned = 0.0
-    for resp in completed_responses:
-        survey = db.query(Survey).filter(Survey.id == resp.survey_id).first()
-        if survey:
-            total_earned += survey.reward_amount
+    pending_earnings = getattr(current_user, 'pending_earnings', 0.0) or 0.0
+    total_withdrawn = getattr(current_user, 'total_withdrawn', 0.0) or 0.0
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -484,9 +453,12 @@ def dashboard(
             "request": request,
             "surveys": surveys_data,
             "completed_today": completed_today,
-            "total_earned": total_earned,
+            "total_earned": pending_earnings,
+            "total_withdrawn": total_withdrawn,
+            "pending_earnings": pending_earnings,
             "available_surveys": len(surveys_data),
-            "current_user": current_user
+            "current_user": current_user,
+            "stripe_onboarding_complete": getattr(current_user, 'stripe_onboarding_complete', 'false'),
         }
     )
 
@@ -517,21 +489,11 @@ def get_dashboard_stats(
         Response.completed_at >= today_start_utc
     ).count()
 
-    completed_responses = db.query(Response).filter(
-        Response.participant_id == current_user.id,
-        Response.status == "completed",
-        Response.completed_at.isnot(None)
-    ).all()
-
-    total_earned = 0.0
-    for resp in completed_responses:
-        survey = db.query(Survey).filter(Survey.id == resp.survey_id).first()
-        if survey:
-            total_earned += survey.reward_amount
+    pending_earnings = getattr(current_user, 'pending_earnings', 0.0) or 0.0
 
     return JSONResponse({
         "completed_today": completed_today,
-        "total_earned": total_earned
+        "total_earned": pending_earnings
     })
 
 
@@ -587,6 +549,9 @@ def complete_survey(
     if r.status != "completed":
         r.status = "completed"
         r.completed_at = datetime.now(timezone.utc)
+        r.payout_amount = survey.reward_amount
+        r.payout_status = "pending"
+        current_user.pending_earnings = (getattr(current_user, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
 
     db.commit()
     return RedirectResponse(url="/dashboard", status_code=302)
@@ -604,8 +569,12 @@ def modify_completed_survey(
     ).first()
 
     if r and r.status == "completed":
+        survey = db.query(Survey).filter(Survey.id == survey_id).first()
         r.status = "started"
         r.completed_at = None
+        r.payout_status = "pending"
+        if survey:
+            current_user.pending_earnings = max(0.0, (getattr(current_user, 'pending_earnings', 0.0) or 0.0) - survey.reward_amount)
         db.commit()
         return {"message": "Response modified"}
 
@@ -617,9 +586,46 @@ def modify_completed_survey(
 # ---------------------------
 
 @app.get("/publish", response_class=HTMLResponse)
-def publish_page(request: Request):
-    return templates.TemplateResponse("publish.html", {"request": request})
+def publish_page(request: Request, current_user: User = Depends(get_current_user)):
+    return templates.TemplateResponse("publish.html", {
+        "request": request,
+        "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY
+    })
 
+
+# ---------------------------
+# Calculate price API
+# ---------------------------
+
+@app.post("/api/calculate-price")
+async def calculate_price(request: Request, current_user: User = Depends(get_current_user)):
+    body = await request.json()
+    per_person = body.get("per_person")
+    total_budget = body.get("total_budget")
+    target_responses = body.get("target_responses", 1)
+
+    if per_person:
+        ppg = float(per_person)
+    elif total_budget and target_responses:
+        ppg = float(total_budget) / int(target_responses)
+    else:
+        raise HTTPException(400, "Provide per_person or total_budget + target_responses")
+
+    rate, reward = calculate_commission(ppg)
+    total = round(ppg * int(target_responses), 2)
+
+    return JSONResponse({
+        "per_person_gross": round(ppg, 2),
+        "commission_rate": rate,
+        "commission_pct": int(rate * 100),
+        "reward_amount": reward,
+        "total_budget": total,
+    })
+
+
+# ---------------------------
+# Publish survey → Stripe Checkout
+# ---------------------------
 
 @app.post("/publish")
 async def publish_survey(
@@ -630,7 +636,8 @@ async def publish_survey(
     task_type: str = Form("survey"),
     category: str = Form(...),
     estimated_time: int = Form(...),
-    reward_amount: float = Form(...),
+    per_person_gross: float = Form(None),
+    total_budget: float = Form(None),
     target_responses: int = Form(...),
     urgency_level: str = Form(None),
     incentive_type: str = Form(None),
@@ -662,6 +669,17 @@ async def publish_survey(
     experience_list = form.getlist("target_experience_tags")
     target_experience_tags = ",".join(experience_list) if experience_list else None
 
+    # Calculate commission
+    if per_person_gross:
+        ppg = float(per_person_gross)
+    elif total_budget:
+        ppg = float(total_budget) / int(target_responses)
+    else:
+        ppg = 5.0
+
+    rate, reward = calculate_commission(ppg)
+    total = round(ppg * int(target_responses), 2)
+
     image_url = None
     if cover_image and cover_image.filename:
         uploads_dir = Path("app/static/uploads")
@@ -681,7 +699,11 @@ async def publish_survey(
         task_type=task_type,
         category=category,
         estimated_time=estimated_time,
-        reward_amount=reward_amount,
+        reward_amount=reward,
+        per_person_gross=ppg,
+        total_budget=total,
+        commission_rate=rate,
+        payment_status="unpaid",
         target_responses=target_responses,
         urgency_level=_clean_target(urgency_level),
         incentive_type=_clean_target(incentive_type),
@@ -713,7 +735,182 @@ async def publish_survey(
     )
     db.add(survey)
     db.commit()
-    return RedirectResponse("/publisher", status_code=303)
+    db.refresh(survey)
+
+    # Create Stripe Checkout session
+    session = stripe.checkout.Session.create(
+        payment_method_types=["card"],
+        line_items=[{
+            "price_data": {
+                "currency": "usd",
+                "product_data": {
+                    "name": f"Survey: {survey.title}",
+                    "description": f"{survey.target_responses} responses × ${reward:.2f} per person (platform fee included)",
+                },
+                "unit_amount": int(round(total * 100)),
+            },
+            "quantity": 1,
+        }],
+        mode="payment",
+        success_url=f"https://insightaco.org/payment/success?survey_id={survey.id}",
+        cancel_url=f"https://insightaco.org/publisher",
+        metadata={
+            "survey_id": str(survey.id),
+            "publisher_id": str(current_user.id),
+        }
+    )
+
+    survey.stripe_payment_intent_id = session.id
+    db.commit()
+
+    return RedirectResponse(session.url, status_code=303)
+
+
+# ---------------------------
+# Payment success page
+# ---------------------------
+
+@app.get("/payment/success", response_class=HTMLResponse)
+def payment_success(
+    request: Request,
+    survey_id: int = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = None
+    if survey_id:
+        survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    return templates.TemplateResponse("payment_success.html", {
+        "request": request,
+        "survey": survey,
+        "current_user": current_user,
+    })
+
+
+# ---------------------------
+# Stripe Webhook
+# ---------------------------
+
+@app.post("/webhook/stripe")
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        metadata = session.get("metadata", {})
+        survey_id = metadata.get("survey_id")
+        if survey_id:
+            survey = db.query(Survey).filter(Survey.id == int(survey_id)).first()
+            if survey:
+                survey.payment_status = "paid"
+                survey.status = "published"
+                survey.published_at = datetime.utcnow()
+                db.commit()
+
+    elif event["type"] == "account.updated":
+        account = event["data"]["object"]
+        account_id = account.get("id")
+        if account.get("charges_enabled"):
+            user = db.query(User).filter(User.stripe_account_id == account_id).first()
+            if user:
+                user.stripe_onboarding_complete = "true"
+                db.commit()
+
+    return JSONResponse({"status": "ok"})
+
+
+# ---------------------------
+# Stripe Connect — Participant onboarding
+# ---------------------------
+
+@app.get("/connect/onboard")
+def connect_onboard(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not getattr(current_user, 'stripe_account_id', None):
+        account = stripe.Account.create(
+            type="express",
+            email=current_user.email,
+            capabilities={"transfers": {"requested": True}},
+        )
+        current_user.stripe_account_id = account.id
+        db.commit()
+
+    account_link = stripe.AccountLink.create(
+        account=current_user.stripe_account_id,
+        refresh_url="https://insightaco.org/connect/onboard",
+        return_url="https://insightaco.org/connect/complete",
+        type="account_onboarding",
+    )
+
+    return RedirectResponse(account_link.url)
+
+
+@app.get("/connect/complete", response_class=HTMLResponse)
+def connect_complete(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if getattr(current_user, 'stripe_account_id', None):
+        account = stripe.Account.retrieve(current_user.stripe_account_id)
+        if account.charges_enabled:
+            current_user.stripe_onboarding_complete = "true"
+            db.commit()
+    return RedirectResponse("/dashboard")
+
+
+# ---------------------------
+# Participant withdrawal
+# ---------------------------
+
+@app.post("/api/withdraw")
+async def withdraw(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if getattr(current_user, 'stripe_onboarding_complete', 'false') != 'true':
+        raise HTTPException(400, "Please complete Stripe onboarding first")
+
+    pending = getattr(current_user, 'pending_earnings', 0.0) or 0.0
+    if pending < 1.0:
+        raise HTTPException(400, "Minimum withdrawal is $1.00")
+
+    try:
+        transfer = stripe.Transfer.create(
+            amount=int(pending * 100),
+            currency="usd",
+            destination=current_user.stripe_account_id,
+            description=f"Insighta payout for user {current_user.id}",
+        )
+
+        pending_responses = db.query(Response).filter(
+            Response.participant_id == current_user.id,
+            Response.payout_status == "pending"
+        ).all()
+
+        for r in pending_responses:
+            r.payout_status = "paid"
+            r.stripe_transfer_id = transfer.id
+
+        current_user.total_withdrawn = (getattr(current_user, 'total_withdrawn', 0.0) or 0.0) + pending
+        current_user.pending_earnings = 0.0
+        db.commit()
+
+        return JSONResponse({"success": True, "amount": pending, "transfer_id": transfer.id})
+
+    except stripe.error.StripeError as e:
+        raise HTTPException(400, str(e))
 
 
 # ---------------------------
@@ -732,6 +929,8 @@ def publish_existing_survey(
     ).first()
     if not s:
         raise HTTPException(404, "Survey not found")
+    if getattr(s, 'payment_status', 'unpaid') != 'paid':
+        raise HTTPException(400, "Survey must be paid before publishing")
     if s.status != "published":
         s.status = "published"
         s.published_at = datetime.utcnow()
@@ -964,7 +1163,7 @@ Return ONLY a valid JSON object with these exact fields, no extra text:
   "description": "2-3 sentence description of the survey purpose",
   "category": "one of: research, life, clubs, market, academic, other",
   "estimated_time": 5,
-  "reward_amount": 5,
+  "per_person_gross": 5.00,
   "target_responses": 100
 }}"""
             }]

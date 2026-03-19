@@ -27,291 +27,540 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+    }
 
     /* ── NAVBAR ── */
     .navbar {
-      background: rgba(250,249,245,0.88); backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--line); padding: 14px 48px;
-      display: flex; justify-content: space-between; align-items: center;
-      position: sticky; top: 0; z-index: 100;
+      background: rgba(250,249,245,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    .navbar-left { display: flex; align-items: center; gap: 20px; }
+
+    .navbar-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
     .back-btn {
-      display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500;
-      color: var(--ink-muted); text-decoration: none; padding: 7px 12px;
-      border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      text-decoration: none;
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      transition: all 0.2s;
     }
-    .back-btn:hover { color: var(--ink); background: var(--paper-warm); border-color: var(--ink-muted); }
-    .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); letter-spacing: -0.3px; }
+
+    .back-btn:hover {
+      color: var(--ink);
+      background: var(--paper-warm);
+      border-color: var(--ink-muted);
+    }
+
+    .navbar-brand {
+      font-family: var(--serif);
+      font-size: 18px;
+      color: var(--ink);
+      letter-spacing: -0.3px;
+    }
+
     .navbar-brand span { color: var(--accent); }
-    .navbar-right { display: flex; align-items: center; gap: 12px; }
+
+    .navbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     .balance-pill {
-      display: flex; align-items: center; gap: 6px;
-      background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2);
-      color: var(--accent); font-size: 14px; font-weight: 600;
-      padding: 7px 14px; border-radius: 100px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(45,106,79,0.08);
+      border: 1px solid rgba(45,106,79,0.2);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 100px;
     }
+
     .avatar-link {
-      display: flex; align-items: center; gap: 8px; text-decoration: none;
-      color: var(--ink-soft); font-size: 14px; font-weight: 500;
-      padding: 6px 12px; border-radius: 8px; transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--ink-soft);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.2s;
     }
+
     .avatar-link:hover { background: var(--paper-warm); color: var(--ink); }
+
     .avatar {
-      width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
-      color: white; display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     /* ── CONTAINER ── */
-    .container { max-width: 1000px; margin: 0 auto; padding: 48px 24px; }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
 
     /* ── PAGE HEADER ── */
-    .page-header { margin-bottom: 40px; animation: fadeInDown 0.5s ease; }
-    .page-header h1 { font-family: var(--serif); font-size: clamp(28px, 4vw, 40px); color: var(--ink); letter-spacing: -1px; margin-bottom: 6px; }
-    .page-header h1 em { font-style: italic; color: var(--accent); }
-    .page-header p { font-size: 16px; color: var(--ink-muted); font-weight: 300; }
+    .page-header {
+      margin-bottom: 40px;
+      animation: fadeInDown 0.5s ease;
+    }
+
+    .page-header h1 {
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 40px);
+      color: var(--ink);
+      letter-spacing: -1px;
+      margin-bottom: 6px;
+    }
+
+    .page-header h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .page-header p {
+      font-size: 16px;
+      color: var(--ink-muted);
+      font-weight: 300;
+    }
 
     /* ── STATS ── */
     .stats-row {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 16px; margin-bottom: 40px; animation: fadeInUp 0.5s ease 0.1s both;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+      animation: fadeInUp 0.5s ease 0.1s both;
     }
+
     .stat-card {
-      background: white; border: 1px solid var(--line);
-      border-radius: 14px; padding: 24px 28px; transition: all 0.2s;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px 28px;
+      transition: all 0.2s;
     }
-    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.06); }
-    .stat-label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 10px; }
-    .stat-value { font-family: var(--serif); font-size: 32px; color: var(--ink); letter-spacing: -0.5px; }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-family: var(--serif);
+      font-size: 32px;
+      color: var(--ink);
+      letter-spacing: -0.5px;
+    }
+
     .stat-value.green { color: var(--accent); }
 
-    /* ── MODE SWITCHER ── */
-    .mode-switcher { display: flex; gap: 12px; margin-bottom: 28px; }
-    .mode-btn {
-      flex: 1; display: flex; align-items: center; justify-content: center;
-      gap: 10px; padding: 16px 24px; background: white;
-      border: 1.5px solid var(--line); border-radius: 14px;
-      font-family: var(--sans); font-size: 16px; font-weight: 600;
-      color: var(--ink-muted); cursor: pointer; transition: all 0.2s;
+    /* ── EARNINGS CARD ── */
+    .earnings-card {
+      background: var(--accent);
+      border-radius: 16px;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
     }
-    .mode-btn:hover { border-color: var(--accent); color: var(--ink); }
-    .mode-btn.active { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 4px 16px rgba(45,106,79,0.25); }
+
+    .earnings-card::before {
+      content: '';
+      position: absolute;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      right: -80px; top: -100px;
+      pointer-events: none;
+    }
+
+    .earnings-left { position: relative; z-index: 1; }
+
+    .earnings-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.65);
+      margin-bottom: 6px;
+    }
+
+    .earnings-amount {
+      font-family: var(--serif);
+      font-size: 36px;
+      color: white;
+      letter-spacing: -1px;
+      margin-bottom: 4px;
+    }
+
+    .earnings-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+      font-weight: 300;
+    }
+
+    .btn-withdraw {
+      position: relative;
+      z-index: 1;
+      padding: 13px 24px;
+      background: white;
+      color: var(--accent);
+      border: none;
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .btn-withdraw:hover {
+      background: var(--paper-warm);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+
+    .btn-withdraw:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ── MODE SWITCHER ── */
+    .mode-switcher {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 24px;
+      background: white;
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      font-family: var(--sans);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+
+    .mode-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      box-shadow: 0 4px 16px rgba(45,106,79,0.25);
+    }
+
     .mode-icon { font-size: 20px; }
 
     /* ── TABS ── */
-    .tabs-wrapper { margin-bottom: 28px; animation: fadeInUp 0.5s ease 0.2s both; }
-    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab {
-      font-size: 14px; font-weight: 600; padding: 10px 18px; cursor: pointer;
-      color: var(--ink-muted); transition: all 0.15s;
-      border-bottom: 2px solid transparent; margin-bottom: -1px;
-      white-space: nowrap; border-radius: 6px 6px 0 0;
+    .tabs-wrapper {
+      margin-bottom: 28px;
+      animation: fadeInUp 0.5s ease 0.2s both;
     }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+      padding-bottom: 0;
+    }
+
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px;
+      cursor: pointer;
+      color: var(--ink-muted);
+      transition: all 0.15s;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      white-space: nowrap;
+      border-radius: 6px 6px 0 0;
+    }
+
     .tab:hover { color: var(--ink); }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
 
     /* ── CARDS ── */
-    .cards { display: flex; flex-direction: column; gap: 16px; animation: fadeInUp 0.5s ease 0.3s both; }
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: fadeInUp 0.5s ease 0.3s both;
+    }
+
     .card {
-      background: white; border: 1.5px solid var(--line); border-radius: 16px;
-      padding: 24px; display: flex; gap: 20px;
-      transition: all 0.2s ease; position: relative; overflow: hidden;
-    }
-    .card:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(0,0,0,0.07); border-color: rgba(45,106,79,0.3); }
-    .card.completed { border-color: rgba(45,106,79,0.25); background: rgba(45,106,79,0.02); }
-    .card.urgent { border-left: 3px solid var(--accent-warm); }
-    .completed-badge {
-      position: absolute; top: 16px; right: 16px;
-      background: var(--accent); color: white; padding: 4px 12px;
-      border-radius: 100px; font-size: 12px; font-weight: 600;
-      display: flex; align-items: center; gap: 4px;
-    }
-    .card-image { width: 150px; min-width: 150px; height: 110px; border-radius: 10px; object-fit: cover; border: 1px solid var(--line); }
-    .card-content { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
-    .card-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
-    .card h3 { font-family: var(--serif); font-size: 19px; color: var(--ink); letter-spacing: -0.3px; line-height: 1.3; }
-    .reward-badge { background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2); color: var(--accent); padding: 5px 12px; border-radius: 100px; font-size: 13px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
-    .card p { font-size: 14px; color: var(--ink-muted); line-height: 1.6; font-weight: 300; }
-
-    .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
-    .tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 100px; letter-spacing: 0.02em; }
-    .tag-type { background: var(--paper-warm); color: var(--ink-soft); border: 1px solid var(--line); }
-    .tag-urgent { background: rgba(224,122,60,0.1); color: var(--accent-warm); border: 1px solid rgba(224,122,60,0.25); }
-    .tag-week { background: rgba(224,122,60,0.06); color: var(--accent-warm); border: 1px solid rgba(224,122,60,0.15); }
-    .tag-incentive { background: rgba(45,106,79,0.06); color: var(--accent); border: 1px solid rgba(45,106,79,0.15); }
-
-    .card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid var(--line); margin-top: 12px; }
-    .card-meta { display: flex; gap: 14px; font-size: 13px; color: var(--ink-muted); }
-    .meta-item { display: flex; align-items: center; gap: 5px; }
-    .card-actions { display: flex; gap: 8px; }
-    .action-btn { padding: 8px 16px; border-radius: 8px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; border: 1.5px solid var(--line); background: white; color: var(--ink-soft); }
-    .action-btn:hover { background: var(--paper-warm); border-color: var(--ink-muted); }
-    .action-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
-    .action-btn.primary:hover { background: #245c43; border-color: #245c43; box-shadow: 0 4px 12px rgba(45,106,79,0.25); }
-
-    /* ── EMPTY / LOADING ── */
-    .empty-state, .loading-state { text-align: center; padding: 80px 20px; color: var(--ink-muted); }
-    .empty-state h3 { font-family: var(--serif); font-size: 24px; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.3px; }
-    .empty-state p { font-size: 15px; font-weight: 300; }
-    .empty-icon { font-size: 48px; margin-bottom: 20px; opacity: 0.4; }
-    .spinner { width: 36px; height: 36px; margin: 0 auto 20px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
-
-    /* ── WELCOME MODAL ── */
-    .modal-backdrop {
-      position: fixed; inset: 0;
-      background: rgba(26,26,24,0.5);
-      backdrop-filter: blur(4px);
-      z-index: 200;
-      display: flex; align-items: center; justify-content: center;
-      padding: 24px;
-      animation: fadeIn 0.3s ease;
-    }
-
-    .modal {
-      background: var(--paper);
+      background: white;
       border: 1.5px solid var(--line);
-      border-radius: 20px;
-      width: 100%;
-      max-width: 600px;
-      max-height: 90vh;
-      overflow-y: auto;
-      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .modal-header {
-      padding: 32px 32px 24px;
-      border-bottom: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      gap: 20px;
+      transition: all 0.2s ease;
       position: relative;
+      overflow: hidden;
     }
 
-    .modal-confetti {
-      font-size: 36px;
-      margin-bottom: 12px;
-      display: block;
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 32px rgba(0,0,0,0.07);
+      border-color: rgba(45,106,79,0.3);
     }
 
-    .modal-header h2 {
-      font-family: var(--serif);
-      font-size: 26px;
-      color: var(--ink);
-      letter-spacing: -0.5px;
+    .card.completed {
+      border-color: rgba(45,106,79,0.25);
+      background: rgba(45,106,79,0.02);
+    }
+
+    .completed-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--accent);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .card-image {
+      width: 150px;
+      min-width: 150px;
+      height: 110px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 1px solid var(--line);
+    }
+
+    .card-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 0;
+    }
+
+    .card-top {}
+
+    .card-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
       margin-bottom: 8px;
     }
 
-    .modal-header h2 em { font-style: italic; color: var(--accent); }
+    .card h3 {
+      font-family: var(--serif);
+      font-size: 19px;
+      color: var(--ink);
+      letter-spacing: -0.3px;
+      line-height: 1.3;
+    }
 
-    .modal-header p {
+    .reward-badge {
+      background: rgba(45,106,79,0.08);
+      border: 1px solid rgba(45,106,79,0.2);
+      color: var(--accent);
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .card p {
       font-size: 14px;
       color: var(--ink-muted);
       line-height: 1.6;
       font-weight: 300;
     }
 
-    .modal-close {
-      position: absolute; top: 20px; right: 20px;
-      width: 32px; height: 32px; border-radius: 50%;
-      background: var(--paper-warm); border: 1px solid var(--line);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; cursor: pointer; color: var(--ink-muted);
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      margin-top: 12px;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 14px;
+      font-size: 13px;
+      color: var(--ink-muted);
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
       transition: all 0.15s;
-    }
-    .modal-close:hover { background: var(--line); color: var(--ink); }
-
-    .modal-body { padding: 24px 32px; }
-
-    .modal-section-label {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--ink-muted);
-      margin-bottom: 14px;
+      border: 1.5px solid var(--line);
+      background: white;
+      color: var(--ink-soft);
     }
 
-    /* 弹窗里的迷你卡片 */
-    .mini-cards { display: flex; flex-direction: column; gap: 10px; }
-
-    .mini-card {
-      background: white; border: 1.5px solid var(--line);
-      border-radius: 12px; padding: 14px 16px;
-      display: flex; align-items: center; gap: 14px;
-      transition: all 0.15s; cursor: pointer; text-decoration: none;
-    }
-    .mini-card:hover { border-color: rgba(45,106,79,0.35); transform: translateX(3px); box-shadow: 0 4px 16px rgba(0,0,0,0.05); }
-
-    .mini-card-img {
-      width: 52px; height: 52px; border-radius: 8px;
-      object-fit: cover; border: 1px solid var(--line); flex-shrink: 0;
+    .action-btn:hover {
+      background: var(--paper-warm);
+      border-color: var(--ink-muted);
     }
 
-    .mini-card-img-placeholder {
-      width: 52px; height: 52px; border-radius: 8px;
-      background: var(--paper-warm); border: 1px solid var(--line);
-      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
+    .action-btn.primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
     }
 
-    .mini-card-content { flex: 1; min-width: 0; }
-
-    .mini-card-title {
-      font-family: var(--serif); font-size: 15px; color: var(--ink);
-      letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      margin-bottom: 4px;
+    .action-btn.primary:hover {
+      background: #245c43;
+      border-color: #245c43;
+      box-shadow: 0 4px 12px rgba(45,106,79,0.25);
     }
 
-    .mini-card-meta {
-      display: flex; gap: 10px; font-size: 12px; color: var(--ink-muted);
+    /* ── EMPTY / LOADING ── */
+    .empty-state, .loading-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--ink-muted);
     }
 
-    .mini-card-reward {
-      font-size: 13px; font-weight: 700; color: var(--accent); flex-shrink: 0;
+    .empty-state h3 {
+      font-family: var(--serif);
+      font-size: 24px;
+      color: var(--ink);
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
     }
 
-    /* 空态（profile 不完整，没有推荐） */
-    .modal-empty {
-      text-align: center; padding: 24px 0 8px;
-      font-size: 14px; color: var(--ink-muted); line-height: 1.6;
-    }
-    .modal-empty .empty-emoji { font-size: 32px; display: block; margin-bottom: 10px; }
+    .empty-state p { font-size: 15px; font-weight: 300; }
 
-    .modal-tip {
-      background: rgba(45,106,79,0.06);
-      border-left: 3px solid var(--accent);
-      padding: 12px 16px; border-radius: 0 8px 8px 0;
-      font-size: 13px; color: var(--ink-soft);
-      line-height: 1.6; margin-top: 20px;
-    }
-    .modal-tip strong { color: var(--accent); }
-
-    .modal-footer {
-      padding: 20px 32px 28px;
-      display: flex; gap: 10px;
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+      opacity: 0.4;
     }
 
-    .modal-btn-profile {
-      flex: 1; padding: 11px; background: transparent;
-      border: 1.5px solid var(--line); border-radius: 10px;
-      font-family: var(--sans); font-size: 14px; font-weight: 600;
-      color: var(--ink-muted); cursor: pointer; transition: all 0.2s;
-      text-align: center; text-decoration: none; display: flex;
-      align-items: center; justify-content: center;
+    .spinner {
+      width: 36px;
+      height: 36px;
+      margin: 0 auto 20px;
+      border: 3px solid var(--line);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
-    .modal-btn-profile:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
-
-    .modal-btn-start {
-      flex: 2; padding: 11px; background: var(--accent);
-      border: none; border-radius: 10px;
-      font-family: var(--sans); font-size: 14px; font-weight: 600;
-      color: white; cursor: pointer; transition: all 0.2s;
-    }
-    .modal-btn-start:hover { background: #245c43; box-shadow: 0 4px 14px rgba(45,106,79,0.3); }
 
     /* ── ANIMATIONS ── */
-    @keyframes fadeInDown  { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes fadeInUp    { from { opacity: 0; transform: translateY(16px);  } to { opacity: 1; transform: translateY(0); } }
-    @keyframes spin        { to { transform: rotate(360deg); } }
-    @keyframes fadeIn      { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp     { from { opacity: 0; transform: translateY(32px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
 
     /* ── MOBILE ── */
     @media (max-width: 768px) {
@@ -322,49 +571,20 @@
       .card { flex-direction: column; }
       .card-image { width: 100%; height: 160px; }
       .container { padding: 32px 16px; }
-      .modal-header { padding: 24px 20px 20px; }
-      .modal-body { padding: 20px; }
-      .modal-footer { padding: 16px 20px 24px; }
     }
   </style>
 </head>
 <body>
 
-<!-- ── WELCOME MODAL ── -->
-<div class="modal-backdrop" id="welcomeModal" style="display:none;" onclick="handleBackdropClick(event)">
-  <div class="modal" id="modalBox">
-    <div class="modal-header">
-      <span class="modal-confetti">🎉</span>
-      <h2>Welcome to <em>Insighta</em>!</h2>
-      <p>Your account is ready. Here are studies matched to your profile — the more you fill in, the better your recommendations get.</p>
-      <div class="modal-close" onclick="closeModal()">✕</div>
-    </div>
-
-    <div class="modal-body">
-      <div class="modal-section-label" id="modalSectionLabel">Recommended for you</div>
-      <div class="mini-cards" id="miniCards">
-        <!-- 由 JS 填充 -->
-      </div>
-      <div class="modal-tip">
-        <strong>💡 Tip</strong> — Complete your profile to unlock more targeted studies. Researchers are looking for participants exactly like you.
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <a href="/profile" class="modal-btn-profile">Complete Profile →</a>
-      <button class="modal-btn-start" onclick="closeModal()">Start Exploring →</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── NAVBAR ── -->
 <nav class="navbar">
   <div class="navbar-left">
     <a href="/choice" class="back-btn">← Back</a>
     <div class="navbar-brand">Insight<span>a</span></div>
   </div>
   <div class="navbar-right">
-    <div class="balance-pill" id="balancePill">💎 {{ "%.2f"|format(total_earned) }}</div>
+    <div class="balance-pill" id="balancePill">
+      💰 ${{ "%.2f"|format(pending_earnings) }}
+    </div>
     <a href="/profile" class="avatar-link">
       <div class="avatar">{{ current_user.username[0].upper() if current_user.username else 'U' }}</div>
       <span>Profile</span>
@@ -385,8 +605,8 @@
       <div class="stat-value" id="completedToday">{{ completed_today }}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Total Earned</div>
-      <div class="stat-value green" id="totalEarned">💎 {{ "%.2f"|format(total_earned) }}</div>
+      <div class="stat-label">Pending Earnings</div>
+      <div class="stat-value green" id="totalEarned">${{ "%.2f"|format(pending_earnings) }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Available Surveys</div>
@@ -394,17 +614,40 @@
     </div>
   </div>
 
-  <!-- MODE SWITCHER -->
+  <!-- EARNINGS CARD -->
+  <div class="earnings-card" id="earningsCard">
+    {% if stripe_onboarding_complete == 'true' %}
+      <div class="earnings-left">
+        <div class="earnings-label">Available to withdraw</div>
+        <div class="earnings-amount" id="earningsAmount">${{ "%.2f"|format(pending_earnings) }}</div>
+        <div class="earnings-sub">Total withdrawn: ${{ "%.2f"|format(total_withdrawn) }}</div>
+      </div>
+      <button class="btn-withdraw" id="withdrawBtn" onclick="withdraw()" {% if pending_earnings < 1 %}disabled{% endif %}>
+        Withdraw to Bank →
+      </button>
+    {% else %}
+      <div class="earnings-left">
+        <div class="earnings-label">Set up payouts</div>
+        <div class="earnings-amount" style="font-size: 18px; font-weight: 600;">Connect your bank account</div>
+        <div class="earnings-sub">Required to receive payments from completed surveys</div>
+      </div>
+      <a href="/connect/onboard" class="btn-withdraw">Set Up Payouts →</a>
+    {% endif %}
+  </div>
+
+  <!-- BIG MODE SWITCHER -->
   <div class="mode-switcher">
     <button class="mode-btn active" id="modeSurvey" onclick="switchMode('survey')">
-      <span class="mode-icon">📋</span><span>Surveys</span>
+      <span class="mode-icon">📋</span>
+      <span class="mode-label">Surveys</span>
     </button>
     <button class="mode-btn" id="modeInterview" onclick="switchMode('interview')">
-      <span class="mode-icon">🎙️</span><span>Interviews</span>
+      <span class="mode-icon">🎙️</span>
+      <span class="mode-label">Interviews</span>
     </button>
   </div>
 
-  <!-- SURVEY TABS -->
+  <!-- SURVEY SUB-TABS -->
   <div class="tabs-wrapper" id="surveyTabs">
     <div class="tabs">
       <div class="tab" onclick="switchTab('research', event)">Research</div>
@@ -416,7 +659,7 @@
     </div>
   </div>
 
-  <!-- INTERVIEW TABS -->
+  <!-- INTERVIEW SUB-TABS -->
   <div class="tabs-wrapper" id="interviewTabs" style="display:none;">
     <div class="tabs">
       <div class="tab itab" onclick="switchTab('interview_research', event)">Research</div>
@@ -435,38 +678,6 @@
 <script>
   const surveysFromDB = {{ surveys | tojson | safe }};
 
-  // ── Tag helpers ──────────────────────────────────────────────
-  const TYPE_LABELS = {
-    survey:               { icon: '📋', label: 'Online Survey' },
-    interview:            { icon: '🎙️', label: 'Interview' },
-    product_testing:      { icon: '🧪', label: 'UX / Product Test' },
-    story_collection:     { icon: '📖', label: 'Story Collection' },
-    in_person_experiment: { icon: '🏛️', label: 'In-Person' },
-  };
-  const INCENTIVE_LABELS = {
-    cash:      { icon: '💵', label: 'Cash' },
-    gift_card: { icon: '🎁', label: 'Gift Card' },
-    raffle:    { icon: '🎰', label: 'Raffle' },
-    volunteer: { icon: '🤝', label: 'Volunteer' },
-  };
-  const CATEGORY_EMOJI = { research:'🔬', life:'🌟', clubs:'🎯', market:'📊', academic:'📚', other:'🔷' };
-
-  function typeTag(s) {
-    const t = TYPE_LABELS[s.type] || TYPE_LABELS['survey'];
-    return `<span class="tag tag-type">${t.icon} ${t.label}</span>`;
-  }
-  function urgencyTag(s) {
-    if (s.urgency === 'within_3_days') return `<span class="tag tag-urgent">🔥 Urgent · 3 days</span>`;
-    if (s.urgency === 'within_1_week') return `<span class="tag tag-week">⏳ 1 week left</span>`;
-    return '';
-  }
-  function incentiveTag(s) {
-    if (!s.incentive_type) return '';
-    const i = INCENTIVE_LABELS[s.incentive_type];
-    return i ? `<span class="tag tag-incentive">${i.icon} ${i.label}</span>` : '';
-  }
-
-  // ── Data ────────────────────────────────────────────────────
   const surveys = {
     research:           surveysFromDB.filter(s => s.category === 'research' && s.type !== 'interview'),
     life:               surveysFromDB.filter(s => s.category === 'life'     && s.type !== 'interview'),
@@ -482,80 +693,46 @@
     interview_other:    surveysFromDB.filter(s => s.category === 'other'    && s.type === 'interview'),
   };
 
-  // ── Welcome modal ────────────────────────────────────────────
-  function buildMiniCards() {
-    const top3 = surveysFromDB.slice(0, 3);
-    const container = document.getElementById('miniCards');
-    const label = document.getElementById('modalSectionLabel');
+  let currentMode = 'survey';
 
-    if (top3.length === 0) {
-      label.textContent = 'No studies yet';
-      container.innerHTML = `
-        <div class="modal-empty">
-          <span class="empty-emoji">📭</span>
-          No studies matched your profile yet — but new ones are added daily.<br>
-          Complete your profile to improve your chances.
-        </div>`;
-      return;
-    }
-
-    label.textContent = `${surveysFromDB.length} stud${surveysFromDB.length === 1 ? 'y' : 'ies'} matched for you`;
-
-    container.innerHTML = top3.map(s => {
-      const emoji = CATEGORY_EMOJI[s.category] || '📋';
-      const imgEl = s.img
-        ? `<img class="mini-card-img" src="${s.img}" alt="${s.title}" onerror="this.outerHTML='<div class=\\'mini-card-img-placeholder\\'>${emoji}</div>'">`
-        : `<div class="mini-card-img-placeholder">${emoji}</div>`;
-
-      return `
-        <div class="mini-card" onclick="closeModal()">
-          ${imgEl}
-          <div class="mini-card-content">
-            <div class="mini-card-title">${s.title}</div>
-            <div class="mini-card-meta">
-              <span>⏱ ${s.time}</span>
-              <span>👥 ${s.responses}</span>
-            </div>
-          </div>
-          <div class="mini-card-reward">💎 ${s.reward}</div>
-        </div>`;
-    }).join('');
-  }
-
-  function closeModal() {
-    const modal = document.getElementById('welcomeModal');
-    modal.style.opacity = '0';
-    modal.style.transition = 'opacity 0.2s ease';
-    setTimeout(() => { modal.style.display = 'none'; }, 200);
-    // 清除 URL 参数，防止刷新再次弹出
-    const url = new URL(window.location.href);
-    url.searchParams.delete('welcome');
-    history.replaceState({}, '', url.toString());
-  }
-
-  function handleBackdropClick(e) {
-    if (e.target === document.getElementById('welcomeModal')) closeModal();
-  }
-
-  // 检测 ?welcome=1
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('welcome') === '1') {
-    buildMiniCards();
-    document.getElementById('welcomeModal').style.display = 'flex';
-  }
-
-  // ── Live stats ───────────────────────────────────────────────
+  // Fetch live stats
   const tzOffset = new Date().getTimezoneOffset();
   fetch(`/api/dashboard/stats?timezone_offset=${tzOffset}`)
     .then(r => r.json())
     .then(data => {
       document.getElementById('completedToday').textContent = data.completed_today;
-      document.getElementById('totalEarned').textContent = '💎 ' + data.total_earned.toFixed(2);
-      document.getElementById('balancePill').textContent = '💎 ' + data.total_earned.toFixed(2);
+      const earned = data.total_earned.toFixed(2);
+      document.getElementById('totalEarned').textContent = '$' + earned;
+      document.getElementById('balancePill').textContent = '💰 $' + earned;
+      const amtEl = document.getElementById('earningsAmount');
+      if (amtEl) amtEl.textContent = '$' + earned;
+      const withdrawBtn = document.getElementById('withdrawBtn');
+      if (withdrawBtn) withdrawBtn.disabled = data.total_earned < 1;
     })
     .catch(() => {});
 
-  // ── Init tabs ─────────────────────────────────────────────────
+  async function withdraw() {
+    const btn = document.getElementById('withdrawBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    try {
+      const res = await fetch('/api/withdraw', { method: 'POST', credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.detail || 'Withdrawal failed');
+        btn.disabled = false;
+        btn.textContent = 'Withdraw to Bank →';
+        return;
+      }
+      alert(`✓ $${data.amount.toFixed(2)} successfully sent to your bank account!`);
+      window.location.reload();
+    } catch {
+      alert('Network error. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Withdraw to Bank →';
+    }
+  }
+
   const savedCategory = localStorage.getItem('dashboardActiveCategory') || 'research';
   showLoading();
   setTimeout(() => {
@@ -572,30 +749,35 @@
 
   function showLoading() {
     document.getElementById('cardsContainer').innerHTML = `
-      <div class="loading-state"><div class="spinner"></div><p>Loading surveys...</p></div>`;
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading surveys...</p>
+      </div>`;
   }
 
   function showEmpty(category) {
-    const base = category.replace('interview_', '');
-    const names = { research:'Research', life:'Lifestyle', clubs:'Clubs', market:'Market', academic:'Academic', other:'Other' };
-    const label = (category.startsWith('interview_') ? 'Interview · ' : '') + (names[base] || base);
+    const names = { research:'Research', life:'Lifestyle', clubs:'Clubs', market:'Market', academic:'Academic', other:'Other', interview:'Interview' };
     document.getElementById('cardsContainer').innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">📭</div>
-        <h3>No ${label} studies right now</h3>
+        <h3>No ${names[category]} surveys right now</h3>
         <p>Check back later for new opportunities!</p>
       </div>`;
   }
 
   function switchMode(mode) {
+    currentMode = mode;
     document.getElementById('modeSurvey').classList.toggle('active', mode === 'survey');
     document.getElementById('modeInterview').classList.toggle('active', mode === 'interview');
     document.getElementById('surveyTabs').style.display = mode === 'survey' ? 'block' : 'none';
     document.getElementById('interviewTabs').style.display = mode === 'interview' ? 'block' : 'none';
+
     if (mode === 'survey') {
+      // activate first survey tab
       document.querySelectorAll('.tab:not(.itab)').forEach((t, i) => t.classList.toggle('active', i === 0));
       renderCards('research');
     } else {
+      // activate first interview tab
       document.querySelectorAll('.tab.itab').forEach((t, i) => t.classList.toggle('active', i === 0));
       renderCards('interview_research');
     }
@@ -603,9 +785,13 @@
 
   function switchTab(category, e) {
     const isInterview = category.startsWith('interview_');
-    const allTabs = isInterview ? document.querySelectorAll('.tab.itab') : document.querySelectorAll('.tab:not(.itab)');
+    const allTabs = isInterview
+      ? document.querySelectorAll('.tab.itab')
+      : document.querySelectorAll('.tab:not(.itab)');
+
     allTabs.forEach(t => t.classList.remove('active'));
     if (e && e.target) e.target.classList.add('active');
+
     localStorage.setItem('dashboardActiveCategory', category);
     renderCards(category);
   }
@@ -616,16 +802,15 @@
     if (!list || list.length === 0) { showEmpty(category); return; }
 
     container.innerHTML = list.map(s => {
-      const isUrgent = s.urgency === 'within_3_days';
       const completedBadge = s.is_completed ? '<div class="completed-badge">✓ Completed</div>' : '';
-      const tags = [typeTag(s), urgencyTag(s), incentiveTag(s)].filter(Boolean).join('');
+      const completedClass = s.is_completed ? 'completed' : '';
       const actions = s.is_completed
         ? `<button class="action-btn primary" onclick="modifySurvey(event,${s.id})">Modify Response</button>`
         : `<button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}')">Take Survey →</button>
            <button class="action-btn" onclick="completeSurvey(event,${s.id})">Mark Complete</button>`;
 
       return `
-        <div class="card ${s.is_completed ? 'completed' : ''} ${isUrgent && !s.is_completed ? 'urgent' : ''}">
+        <div class="card ${completedClass}">
           ${completedBadge}
           <img src="${s.img}" class="card-image" alt="${s.title}" onerror="this.style.display='none'">
           <div class="card-content">
@@ -635,7 +820,6 @@
                 <div class="reward-badge">💎 ${s.reward}</div>
               </div>
               <p>${s.desc}</p>
-              ${tags ? `<div class="tag-row">${tags}</div>` : ''}
             </div>
             <div class="card-footer">
               <div class="card-meta">

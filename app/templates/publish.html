@@ -28,171 +28,106 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
 
-    /* ── NAVBAR ── */
     .navbar {
-      background: rgba(250,249,245,0.88);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--line);
-      padding: 14px 48px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      background: rgba(250,249,245,0.88); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line); padding: 14px 48px;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100;
     }
     .navbar-left { display: flex; align-items: center; gap: 20px; }
     .back-btn {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 14px; font-weight: 500; color: var(--ink-muted);
-      text-decoration: none; padding: 7px 12px;
+      display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500;
+      color: var(--ink-muted); text-decoration: none; padding: 7px 12px;
       border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s;
     }
     .back-btn:hover { color: var(--ink); background: var(--paper-warm); border-color: var(--ink-muted); }
     .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); }
     .navbar-brand span { color: var(--accent); }
     .avatar-link {
-      display: flex; align-items: center; gap: 8px;
-      text-decoration: none; color: var(--ink-soft);
-      font-size: 14px; font-weight: 500;
+      display: flex; align-items: center; gap: 8px; text-decoration: none;
+      color: var(--ink-soft); font-size: 14px; font-weight: 500;
       padding: 6px 12px; border-radius: 8px; transition: all 0.2s;
     }
     .avatar-link:hover { background: var(--paper-warm); }
     .avatar {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: var(--accent); color: white;
-      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
+      color: white; display: flex; align-items: center; justify-content: center;
       font-size: 13px; font-weight: 700;
     }
 
-    /* ── CONTAINER ── */
     .container { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
 
-    /* ── AI SECTION ── */
+    /* AI SECTION */
     .ai-section {
       background: linear-gradient(135deg, rgba(45,106,79,0.06) 0%, rgba(82,183,136,0.04) 100%);
-      border: 1.5px solid rgba(45,106,79,0.2);
-      border-radius: 16px; padding: 28px 32px; margin-bottom: 24px;
+      border: 1.5px solid rgba(45,106,79,0.2); border-radius: 16px;
+      padding: 28px 32px; margin-bottom: 24px;
     }
     .ai-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
-    .ai-icon {
-      width: 40px; height: 40px; background: var(--accent);
-      border-radius: 10px; display: flex; align-items: center;
-      justify-content: center; font-size: 20px; flex-shrink: 0;
-    }
+    .ai-icon { width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
     .ai-header h3 { font-family: var(--serif); font-size: 18px; color: var(--ink); margin-bottom: 4px; }
     .ai-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; }
     .ai-input-row { display: flex; gap: 10px; }
-    .ai-input-row input {
-      flex: 1; padding: 12px 16px; border: 1.5px solid var(--line);
-      border-radius: 10px; font-family: var(--sans); font-size: 14px;
-      color: var(--ink); background: white; transition: all 0.2s;
-    }
+    .ai-input-row input { flex: 1; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 14px; color: var(--ink); background: white; transition: all 0.2s; }
     .ai-input-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
     .ai-input-row input::placeholder { color: #c4c2bc; font-weight: 300; }
-    .ai-input-row button {
-      padding: 12px 22px; background: var(--accent); color: white;
-      border: none; border-radius: 10px; font-family: var(--sans);
-      font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;
-    }
-    .ai-input-row button:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(45,106,79,0.25); }
+    .ai-input-row button { padding: 12px 22px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .ai-input-row button:hover { background: #245c43; transform: translateY(-1px); }
     .ai-input-row button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .ai-error { margin-top: 10px; font-size: 13px; color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; padding: 8px 12px; border-radius: 8px; }
     .ai-success { margin-top: 10px; font-size: 13px; color: var(--accent); background: rgba(45,106,79,0.06); border: 1px solid rgba(45,106,79,0.2); padding: 8px 12px; border-radius: 8px; font-weight: 500; }
 
-    /* ── PAGE HEADER ── */
     .page-header { margin-bottom: 40px; }
     .page-header h1 { font-family: var(--serif); font-size: clamp(28px, 4vw, 40px); color: var(--ink); letter-spacing: -1px; margin-bottom: 8px; }
     .page-header h1 em { font-style: italic; color: var(--accent); }
     .page-header p { font-size: 16px; color: var(--ink-muted); font-weight: 300; }
 
-    /* ── SECTION ── */
-    .form-section {
-      background: white; border: 1.5px solid var(--line);
-      border-radius: 16px; padding: 32px; margin-bottom: 20px;
-    }
-    .section-header {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line);
-    }
-    .section-icon {
-      width: 36px; height: 36px; border-radius: 10px;
-      background: rgba(45,106,79,0.1);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
-    }
+    .form-section { background: white; border: 1.5px solid var(--line); border-radius: 16px; padding: 32px; margin-bottom: 20px; }
+    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .section-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(45,106,79,0.1); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
     .section-header h2 { font-family: var(--serif); font-size: 20px; color: var(--ink); letter-spacing: -0.3px; }
     .section-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
 
-    /* ── INFO BOX ── */
-    .info-box {
-      background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent);
-      padding: 14px 18px; border-radius: 0 8px 8px 0;
-      font-size: 14px; color: var(--ink-soft); margin-bottom: 24px; line-height: 1.6;
-    }
+    .info-box { background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; font-size: 14px; color: var(--ink-soft); margin-bottom: 24px; line-height: 1.6; }
     .info-box strong { display: block; color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
 
-    /* ── FORM ELEMENTS ── */
     .form-group { margin-bottom: 20px; }
     .form-group:last-child { margin-bottom: 0; }
     .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 7px; }
     .label-desc { font-size: 12px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
-    .form-group input,
-    .form-group textarea,
-    .form-group select {
-      width: 100%; padding: 12px 16px;
-      border: 1.5px solid var(--line); border-radius: 10px;
-      font-family: var(--sans); font-size: 15px; color: var(--ink);
-      background: white; transition: all 0.2s;
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: 12px 16px; border: 1.5px solid var(--line);
+      border-radius: 10px; font-family: var(--sans); font-size: 15px;
+      color: var(--ink); background: white; transition: all 0.2s;
     }
-    .form-group input:focus,
-    .form-group textarea:focus,
-    .form-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
-    .form-group input::placeholder,
-    .form-group textarea::placeholder { color: #c4c2bc; font-weight: 300; }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
+    .form-group input::placeholder, .form-group textarea::placeholder { color: #c4c2bc; font-weight: 300; }
     .form-group textarea { resize: vertical; min-height: 96px; line-height: 1.6; }
-    .form-group select {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 14px center;
-      padding-right: 36px; cursor: pointer; color: #c4c2bc;
-    }
+    .form-group select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; color: #c4c2bc; }
     .form-group select.has-value { color: var(--ink); }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-    .form-row .form-group,
-    .form-row-3 .form-group { margin-bottom: 0; }
+    .form-row .form-group, .form-row-3 .form-group { margin-bottom: 0; }
 
-    /* ── CHECKBOX GROUP (experience tags) ── */
-    .checkbox-group {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-      margin-top: 8px;
+    /* COMMISSION BOX */
+    .commission-box {
+      display: none; margin-top: 16px;
+      background: white; border: 1.5px solid var(--line);
+      border-radius: 12px; overflow: hidden;
     }
-    .checkbox-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 14px; border: 1.5px solid var(--line);
-      border-radius: 10px; cursor: pointer; transition: all 0.15s;
-      font-size: 13px; color: var(--ink-soft);
+    .commission-row {
+      padding: 14px 20px; border-bottom: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center;
     }
-    .checkbox-item:hover { border-color: var(--accent-light); background: rgba(45,106,79,0.03); }
-    .checkbox-item input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
-    .checkbox-item.checked { border-color: var(--accent); background: rgba(45,106,79,0.06); color: var(--ink); }
+    .commission-row:last-child { border-bottom: none; background: rgba(45,106,79,0.04); }
+    .commission-row .clabel { font-size: 13px; color: var(--ink-muted); }
+    .commission-row .cvalue { font-weight: 600; color: var(--ink); }
+    .commission-row .cvalue.green { color: var(--accent); }
+    .commission-row .cvalue.orange { color: var(--accent-warm); }
+    .commission-row .cvalue.total { font-family: var(--serif); font-size: 22px; color: var(--accent); }
 
-    /* ── FILTER GROUP LABEL ── */
-    .filter-group-label {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--ink-muted);
-      padding: 12px 0 8px; border-top: 1px solid var(--line);
-      margin-top: 8px;
-    }
-    .filter-group-label:first-child { border-top: none; padding-top: 0; margin-top: 0; }
-
-    /* ── FILE UPLOAD ── */
-    .file-upload-area {
-      border: 1.5px dashed var(--line); border-radius: 10px;
-      padding: 24px; text-align: center; cursor: pointer;
-      transition: all 0.2s; position: relative;
-    }
+    /* FILE UPLOAD */
+    .file-upload-area { border: 1.5px dashed var(--line); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
     .file-upload-area:hover { border-color: var(--accent); background: rgba(45,106,79,0.02); }
     .file-upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
     .file-upload-icon { font-size: 28px; margin-bottom: 8px; }
@@ -200,79 +135,36 @@
     .file-upload-text strong { color: var(--accent); font-weight: 600; }
     .file-name { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 6px; display: none; }
 
-    /* ── BUDGET BOX ── */
-    .budget-display {
-      background: rgba(45,106,79,0.06); border: 1.5px solid rgba(45,106,79,0.2);
-      border-radius: 10px; padding: 16px 20px;
-      display: flex; align-items: center; justify-content: space-between; margin-top: 16px;
-    }
-    .budget-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
-    .budget-value { font-family: var(--serif); font-size: 22px; color: var(--accent); letter-spacing: -0.3px; }
-
-    /* ── URGENCY PILLS ── */
-    .urgency-pills { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
-    .urgency-pill {
-      padding: 9px 18px; border: 1.5px solid var(--line);
-      border-radius: 100px; font-size: 13px; font-weight: 500;
-      color: var(--ink-muted); cursor: pointer; transition: all 0.15s;
-      user-select: none;
-    }
-    .urgency-pill:hover { border-color: var(--accent-light); color: var(--ink); }
-    .urgency-pill.selected { border-color: var(--accent); background: var(--accent); color: white; }
+    /* PILLS */
+    .urgency-pills, .incentive-pills { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .urgency-pill, .incentive-pill { padding: 9px 18px; border: 1.5px solid var(--line); border-radius: 100px; font-size: 13px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: all 0.15s; user-select: none; }
+    .urgency-pill:hover, .incentive-pill:hover { border-color: var(--accent-light); color: var(--ink); }
+    .urgency-pill.selected, .incentive-pill.selected { border-color: var(--accent); background: var(--accent); color: white; }
     .urgency-pill.urgent.selected { border-color: #c05621; background: #c05621; }
+    .incentive-pill.selected { background: rgba(45,106,79,0.08); color: var(--accent); }
 
-    /* ── INCENTIVE PILLS ── */
-    .incentive-pills { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
-    .incentive-pill {
-      padding: 9px 18px; border: 1.5px solid var(--line);
-      border-radius: 100px; font-size: 13px; font-weight: 500;
-      color: var(--ink-muted); cursor: pointer; transition: all 0.15s;
-      user-select: none;
-    }
-    .incentive-pill:hover { border-color: var(--accent-light); color: var(--ink); }
-    .incentive-pill.selected { border-color: var(--accent); background: rgba(45,106,79,0.08); color: var(--accent); }
+    /* CHECKBOX GROUP */
+    .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; font-size: 13px; color: var(--ink-soft); }
+    .checkbox-item:hover { border-color: var(--accent-light); background: rgba(45,106,79,0.03); }
+    .checkbox-item input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
+    .checkbox-item.checked { border-color: var(--accent); background: rgba(45,106,79,0.06); color: var(--ink); }
 
-    /* ── ADVANCED ── */
+    .filter-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); padding: 12px 0 8px; border-top: 1px solid var(--line); margin-top: 8px; }
+    .filter-group-label:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+
     details > summary { list-style: none; }
     details > summary::-webkit-details-marker { display: none; }
-    .advanced-toggle {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 14px; font-weight: 600; color: var(--ink-soft);
-      cursor: pointer; padding: 12px 0; user-select: none;
-    }
+    .advanced-toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink-soft); cursor: pointer; padding: 12px 0; user-select: none; }
     .advanced-toggle:hover { color: var(--ink); }
     .advanced-body { padding-top: 20px; display: flex; flex-direction: column; gap: 16px; }
 
-    /* ── SUBMIT ── */
-    .submit-section {
-      background: white; border: 1.5px solid var(--line);
-      border-radius: 16px; padding: 28px 32px;
-      display: flex; gap: 12px; align-items: center; justify-content: flex-end;
-    }
-    .btn-cancel {
-      padding: 12px 24px; background: transparent; color: var(--ink-muted);
-      border: 1.5px solid var(--line); border-radius: 10px;
-      font-family: var(--sans); font-size: 15px; font-weight: 600;
-      cursor: pointer; transition: all 0.2s;
-    }
+    .submit-section { background: white; border: 1.5px solid var(--line); border-radius: 16px; padding: 28px 32px; display: flex; gap: 12px; align-items: center; justify-content: flex-end; }
+    .btn-cancel { padding: 12px 24px; background: transparent; color: var(--ink-muted); border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .btn-cancel:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
-    .btn-publish {
-      padding: 12px 28px; background: var(--accent); color: white;
-      border: none; border-radius: 10px; font-family: var(--sans);
-      font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
-      display: flex; align-items: center; gap: 8px;
-    }
+    .btn-publish { padding: 12px 28px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
     .btn-publish:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.3); }
 
-    /* ── SUCCESS ── */
-    .success-message {
-      display: none; background: rgba(45,106,79,0.9); color: white;
-      padding: 14px 20px; border-radius: 10px; margin-bottom: 20px;
-      font-size: 14px; font-weight: 500; animation: slideDown 0.3s ease;
-    }
-    @keyframes slideDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* ── MOBILE ── */
     @media (max-width: 640px) {
       .navbar { padding: 12px 16px; }
       .navbar-brand { display: none; }
@@ -325,18 +217,13 @@
     <div id="aiSuccess" class="ai-success" style="display:none;">✓ Form filled! Review and adjust before publishing.</div>
   </div>
 
-  <div id="successMessage" class="success-message">✓ Survey submitted! Redirecting to your dashboard...</div>
-
   <form id="publishForm" method="POST" action="/publish" enctype="multipart/form-data">
 
     <!-- BASIC INFO -->
     <div class="form-section">
       <div class="section-header">
         <div class="section-icon">✏️</div>
-        <div>
-          <h2>Basic Information</h2>
-          <p>Essential details about your survey</p>
-        </div>
+        <div><h2>Basic Information</h2><p>Essential details about your survey</p></div>
       </div>
       <div class="info-box">
         <strong>Before you start</strong>
@@ -348,7 +235,7 @@
       </div>
       <div class="form-group">
         <label>Description</label>
-        <textarea name="description" placeholder="We're researching student mental health patterns to improve campus wellness programs..." required style="margin-top: 8px;"></textarea>
+        <textarea name="description" placeholder="We're researching student mental health patterns..." required style="margin-top: 8px;"></textarea>
       </div>
       <div class="form-group">
         <label>Google Form Link</label>
@@ -360,10 +247,7 @@
     <div class="form-section">
       <div class="section-header">
         <div class="section-icon">📋</div>
-        <div>
-          <h2>Survey Details</h2>
-          <p>Type, category, and format</p>
-        </div>
+        <div><h2>Survey Details</h2><p>Type, category, and format</p></div>
       </div>
       <div class="form-row" style="margin-bottom: 20px;">
         <div class="form-group">
@@ -420,7 +304,7 @@
       </div>
       <div class="form-group" style="margin-top: 20px;">
         <label>Cover Image <span style="font-weight:300; color: var(--ink-muted);">(Optional)</span></label>
-        <div class="file-upload-area" id="uploadArea">
+        <div class="file-upload-area">
           <input type="file" id="coverImageInput" name="cover_image" accept="image/*">
           <div class="file-upload-icon">🖼</div>
           <div class="file-upload-text"><strong>Click to upload</strong> or drag and drop</div>
@@ -430,42 +314,60 @@
       </div>
     </div>
 
-    <!-- REWARD & URGENCY -->
+    <!-- BUDGET & TIMELINE -->
     <div class="form-section">
       <div class="section-header">
-        <div class="section-icon">💎</div>
-        <div>
-          <h2>Reward & Timeline</h2>
-          <p>Set reward, target count, and urgency</p>
-        </div>
+        <div class="section-icon">💰</div>
+        <div><h2>Budget & Timeline</h2><p>Set your budget and recruitment urgency</p></div>
       </div>
+
       <div class="info-box">
-        <strong>Recommended reward</strong>
-        For a 5-minute survey, we recommend around 💎 2 per response. Higher rewards attract more participants faster.
+        <strong>How pricing works</strong>
+        Enter either your per-person amount or total budget — we'll calculate the other automatically. Platform fee: 15% (under $15/person), 20% ($15–24), 25% ($25+).
+      </div>
+
+      <div class="form-group">
+        <label>Target Responses</label>
+        <input type="number" id="targetInput" name="target_responses" placeholder="e.g. 100" min="10" required>
       </div>
 
       <div class="form-row" style="margin-bottom: 16px;">
         <div class="form-group">
-          <label>Reward per Response</label>
-          <div class="label-desc">💎 diamonds per respondent</div>
-          <input type="number" id="rewardAmount" name="reward_amount" placeholder="5.00" step="0.50" min="1" required style="margin-top: 8px;">
+          <label>Per Person Budget ($)</label>
+          <div class="label-desc">What you pay per response</div>
+          <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 10.00" step="0.50" min="1" style="margin-top: 8px;">
         </div>
         <div class="form-group">
-          <label>Target Responses</label>
-          <div class="label-desc">How many responses do you need?</div>
-          <input type="number" name="target_responses" placeholder="100" min="10" required style="margin-top: 8px;">
+          <label>Total Budget ($)</label>
+          <div class="label-desc">Total amount you want to spend</div>
+          <input type="number" id="totalBudgetInput" name="total_budget" placeholder="e.g. 1000.00" step="1" min="1" style="margin-top: 8px;">
         </div>
       </div>
 
-      <div class="budget-display">
-        <span class="budget-label">Estimated Total</span>
-        <span class="budget-value" id="totalBudget">—</span>
+      <!-- Commission breakdown -->
+      <div class="commission-box" id="commissionBox">
+        <div class="commission-row">
+          <span class="clabel">Per person (you pay)</span>
+          <span class="cvalue" id="dispPerPerson">—</span>
+        </div>
+        <div class="commission-row">
+          <span class="clabel">Platform fee (<span id="dispFeeRate">—</span>)</span>
+          <span class="cvalue orange" id="dispFee">—</span>
+        </div>
+        <div class="commission-row">
+          <span class="clabel">Participant receives</span>
+          <span class="cvalue green" id="dispReward">—</span>
+        </div>
+        <div class="commission-row">
+          <span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span>
+          <span class="cvalue total" id="dispTotal">—</span>
+        </div>
       </div>
 
       <div class="form-group" style="margin-top: 24px;">
         <label>Recruitment Timeline</label>
-        <div class="label-desc">Urgent studies get boosted visibility in participant feeds</div>
-        <div class="urgency-pills" style="margin-top: 10px;">
+        <div class="label-desc">Urgent studies get boosted visibility</div>
+        <div class="urgency-pills">
           <div class="urgency-pill selected" data-value="flexible" onclick="selectUrgency(this)">Flexible</div>
           <div class="urgency-pill" data-value="within_1_week" onclick="selectUrgency(this)">Need within 1 week</div>
           <div class="urgency-pill urgent" data-value="within_3_days" onclick="selectUrgency(this)">🔥 Need within 3 days</div>
@@ -485,17 +387,13 @@
       </div>
     </div>
 
-    <!-- TARGET AUDIENCE — redesigned, grouped -->
+    <!-- TARGET AUDIENCE -->
     <div class="form-section">
       <div class="section-header">
         <div class="section-icon">🎯</div>
-        <div>
-          <h2>Target Audience</h2>
-          <p>Leave any field blank to allow all participants</p>
-        </div>
+        <div><h2>Target Audience</h2><p>Leave any field blank to allow all participants</p></div>
       </div>
 
-      <!-- Group 1: Demographics -->
       <div class="filter-group-label">Demographics</div>
       <div class="form-row" style="margin-bottom: 16px;">
         <div class="form-group">
@@ -553,7 +451,6 @@
         </div>
       </div>
 
-      <!-- Group 2: Academic background -->
       <div class="filter-group-label">Academic Background</div>
       <div class="form-row" style="margin-bottom: 16px;">
         <div class="form-group">
@@ -583,7 +480,7 @@
           <label>Field / Major</label>
           <select name="target_field">
             <option value="all" selected>All fields</option>
-            <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+            <option value="Computer Science & Engineering">CS & Engineering</option>
             <option value="Business & Economics">Business & Economics</option>
             <option value="Medicine & Healthcare">Medicine & Healthcare</option>
             <option value="Natural Sciences">Natural Sciences</option>
@@ -605,7 +502,7 @@
           </select>
         </div>
       </div>
-      <div class="form-row-3" style="margin-bottom: 0;">
+      <div class="form-row-3">
         <div class="form-group">
           <label>Min Education</label>
           <select name="target_education_min">
@@ -626,44 +523,22 @@
             <option value="4">PhD</option>
           </select>
         </div>
-        <div class="form-group"><!-- spacer --></div>
+        <div class="form-group"></div>
       </div>
 
-      <!-- Group 3: Experience tags -->
       <div class="filter-group-label">Participant Experience <span style="font-weight:300; text-transform:none; letter-spacing:0;">(select all that apply)</span></div>
       <div class="label-desc" style="margin-bottom: 10px;">Participants only need to match one selected tag</div>
       <div class="checkbox-group">
-        <label class="checkbox-item" id="tag-startup">
-          <input type="checkbox" name="target_experience_tags" value="startup_experience" onchange="updateCheckbox(this)">
-          🚀 Startup / product experience
-        </label>
-        <label class="checkbox-item" id="tag-club">
-          <input type="checkbox" name="target_experience_tags" value="club_leadership" onchange="updateCheckbox(this)">
-          🎓 Club / org leadership
-        </label>
-        <label class="checkbox-item" id="tag-mental">
-          <input type="checkbox" name="target_experience_tags" value="mental_health_experience" onchange="updateCheckbox(this)">
-          🧠 Mental health experience
-        </label>
-        <label class="checkbox-item" id="tag-chronic">
-          <input type="checkbox" name="target_experience_tags" value="chronic_illness" onchange="updateCheckbox(this)">
-          🏥 Chronic illness experience
-        </label>
-        <label class="checkbox-item" id="tag-social">
-          <input type="checkbox" name="target_experience_tags" value="heavy_social_media" onchange="updateCheckbox(this)">
-          📱 Heavy social media user
-        </label>
-        <label class="checkbox-item" id="tag-research">
-          <input type="checkbox" name="target_experience_tags" value="prior_research" onchange="updateCheckbox(this)">
-          🔬 Prior research participation
-        </label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="startup_experience" onchange="updateCheckbox(this)"> 🚀 Startup / product experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="club_leadership" onchange="updateCheckbox(this)"> 🎓 Club / org leadership</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="mental_health_experience" onchange="updateCheckbox(this)"> 🧠 Mental health experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="chronic_illness" onchange="updateCheckbox(this)"> 🏥 Chronic illness experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="heavy_social_media" onchange="updateCheckbox(this)"> 📱 Heavy social media user</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="prior_research" onchange="updateCheckbox(this)"> 🔬 Prior research participation</label>
       </div>
 
-      <!-- Advanced: sensitive / behavioral filters -->
       <details style="margin-top: 24px;">
-        <summary class="advanced-toggle">
-          <span id="advArrow">▸</span> Advanced targeting
-        </summary>
+        <summary class="advanced-toggle"><span id="advArrow">▸</span> Advanced targeting</summary>
         <div class="advanced-body">
           <div class="form-row">
             <div class="form-group">
@@ -689,17 +564,11 @@
           <div class="form-row">
             <div class="form-group">
               <label>Mental health diagnosis</label>
-              <select name="target_mental_health_diagnosis">
-                <option value="all" selected>All</option>
-                <option>Yes</option><option>No</option>
-              </select>
+              <select name="target_mental_health_diagnosis"><option value="all" selected>All</option><option>Yes</option><option>No</option></select>
             </div>
             <div class="form-group">
               <label>Physical health diagnosis</label>
-              <select name="target_physical_health_diagnosis">
-                <option value="all" selected>All</option>
-                <option>Yes</option><option>No</option>
-              </select>
+              <select name="target_physical_health_diagnosis"><option value="all" selected>All</option><option>Yes</option><option>No</option></select>
             </div>
           </div>
           <div class="form-row">
@@ -707,22 +576,19 @@
               <label>Sport type</label>
               <select name="target_sport_type">
                 <option value="all" selected>All</option>
-                <option>Basketball</option><option>Soccer / Football</option>
-                <option>Baseball / Softball</option><option>American Football</option>
-                <option>Tennis</option><option>Golf</option><option>Swimming</option>
-                <option>Running / Jogging</option><option>Cycling</option>
-                <option>Yoga / Pilates</option><option>Gym / Weightlifting</option>
-                <option>Martial Arts</option><option>Volleyball</option>
-                <option>Hockey</option><option>Other</option><option>None</option>
+                <option>Basketball</option><option>Soccer / Football</option><option>Baseball / Softball</option>
+                <option>American Football</option><option>Tennis</option><option>Golf</option>
+                <option>Swimming</option><option>Running / Jogging</option><option>Cycling</option>
+                <option>Yoga / Pilates</option><option>Gym / Weightlifting</option><option>Martial Arts</option>
+                <option>Volleyball</option><option>Hockey</option><option>Other</option><option>None</option>
               </select>
             </div>
             <div class="form-group">
               <label>Sport frequency</label>
               <select name="target_sport_frequency">
                 <option value="all" selected>All</option>
-                <option>Daily</option><option>Several times a week</option>
-                <option>Once a week</option><option>A few times a month</option>
-                <option>Rarely</option><option>Never</option>
+                <option>Daily</option><option>Several times a week</option><option>Once a week</option>
+                <option>A few times a month</option><option>Rarely</option><option>Never</option>
               </select>
             </div>
           </div>
@@ -731,18 +597,16 @@
               <label>Smoking</label>
               <select name="target_smoking">
                 <option value="all" selected>All</option>
-                <option>Never</option><option>Former smoker</option>
-                <option>Rarely</option><option>Occasionally</option>
-                <option>Several times a week</option><option>Daily</option>
+                <option>Never</option><option>Former smoker</option><option>Rarely</option>
+                <option>Occasionally</option><option>Several times a week</option><option>Daily</option>
               </select>
             </div>
             <div class="form-group">
               <label>Cannabis use</label>
               <select name="target_cannabis_use">
                 <option value="all" selected>All</option>
-                <option>Never</option><option>Former user</option>
-                <option>Rarely</option><option>Occasionally</option>
-                <option>Several times a week</option><option>Daily</option>
+                <option>Never</option><option>Former user</option><option>Rarely</option>
+                <option>Occasionally</option><option>Several times a week</option><option>Daily</option>
               </select>
             </div>
           </div>
@@ -753,13 +617,64 @@
     <!-- SUBMIT -->
     <div class="submit-section">
       <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
-      <button type="submit" class="btn-publish">Publish Survey →</button>
+      <button type="submit" class="btn-publish">Pay & Publish →</button>
     </div>
 
   </form>
 </div>
 
 <script>
+  // ── Commission calculator ────────────────────────────────
+  const perPersonInput = document.getElementById('perPersonInput');
+  const totalBudgetInput = document.getElementById('totalBudgetInput');
+  const targetInput = document.getElementById('targetInput');
+
+  function getCommissionRate(ppg) {
+    if (ppg >= 25) return 0.25;
+    if (ppg >= 15) return 0.20;
+    return 0.15;
+  }
+
+  function updateCommission() {
+    const target = parseInt(targetInput.value) || 0;
+    let ppg = parseFloat(perPersonInput.value) || 0;
+    let total = parseFloat(totalBudgetInput.value) || 0;
+
+    if (!ppg && !total) {
+      document.getElementById('commissionBox').style.display = 'none';
+      return;
+    }
+
+    if (ppg && target && !totalBudgetInput.matches(':focus')) {
+      total = ppg * target;
+      totalBudgetInput.value = total.toFixed(2);
+    } else if (total && target && !perPersonInput.matches(':focus')) {
+      ppg = total / target;
+      perPersonInput.value = ppg.toFixed(2);
+    }
+
+    if (!ppg || !target) {
+      document.getElementById('commissionBox').style.display = 'none';
+      return;
+    }
+
+    const rate = getCommissionRate(ppg);
+    const fee = ppg * rate;
+    const reward = ppg - fee;
+    const totalPay = ppg * target;
+
+    document.getElementById('dispPerPerson').textContent = `$${ppg.toFixed(2)}`;
+    document.getElementById('dispFeeRate').textContent = `${Math.round(rate * 100)}%`;
+    document.getElementById('dispFee').textContent = `-$${fee.toFixed(2)}`;
+    document.getElementById('dispReward').textContent = `$${reward.toFixed(2)}`;
+    document.getElementById('dispTotal').textContent = `$${totalPay.toFixed(2)}`;
+    document.getElementById('commissionBox').style.display = 'block';
+  }
+
+  perPersonInput.addEventListener('input', updateCommission);
+  totalBudgetInput.addEventListener('input', updateCommission);
+  targetInput.addEventListener('input', updateCommission);
+
   // ── AI Fill ──────────────────────────────────────────────
   async function fillWithAI() {
     const prompt = document.getElementById('aiPrompt').value.trim();
@@ -791,10 +706,10 @@
       if (data.description) document.querySelector('textarea[name="description"]').value = data.description;
       if (data.category) { const s = document.querySelector('select[name="category"]'); s.value = data.category; s.classList.add('has-value'); }
       if (data.estimated_time) { const s = document.querySelector('select[name="estimated_time"]'); s.value = String(data.estimated_time); s.classList.add('has-value'); }
-      if (data.reward_amount) document.getElementById('rewardAmount').value = parseFloat(data.reward_amount).toFixed(2);
-      if (data.target_responses) document.querySelector('input[name="target_responses"]').value = data.target_responses;
+      if (data.per_person_gross) { perPersonInput.value = parseFloat(data.per_person_gross).toFixed(2); }
+      if (data.target_responses) { targetInput.value = data.target_responses; }
 
-      updateBudget();
+      updateCommission();
       successEl.style.display = 'block';
       document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
     } catch (err) {
@@ -811,27 +726,13 @@
     if (e.key === 'Enter') { e.preventDefault(); fillWithAI(); }
   });
 
-  // ── Budget calculator ────────────────────────────────────
-  const rewardInput = document.getElementById('rewardAmount');
-  const targetInput = document.querySelector('input[name="target_responses"]');
-  const budgetEl = document.getElementById('totalBudget');
-
-  function updateBudget() {
-    const r = parseFloat(rewardInput.value) || 0;
-    const t = parseInt(targetInput.value) || 0;
-    budgetEl.textContent = r && t ? `💎 ${(r * t).toFixed(0)} (${t} × 💎${r})` : '—';
-  }
-  rewardInput.addEventListener('input', updateBudget);
-  targetInput.addEventListener('input', updateBudget);
-
-  // ── Urgency pills ────────────────────────────────────────
+  // ── Urgency / Incentive pills ────────────────────────────
   function selectUrgency(el) {
     document.querySelectorAll('.urgency-pill').forEach(p => p.classList.remove('selected'));
     el.classList.add('selected');
     document.getElementById('urgencyInput').value = el.dataset.value;
   }
 
-  // ── Incentive pills ──────────────────────────────────────
   function selectIncentive(el) {
     document.querySelectorAll('.incentive-pill').forEach(p => p.classList.remove('selected'));
     el.classList.add('selected');
@@ -843,7 +744,7 @@
     input.closest('.checkbox-item').classList.toggle('checked', input.checked);
   }
 
-  // ── File upload label ────────────────────────────────────
+  // ── File upload ──────────────────────────────────────────
   document.getElementById('coverImageInput').addEventListener('change', function() {
     const fn = document.getElementById('fileName');
     if (this.files[0]) { fn.textContent = '✓ ' + this.files[0].name; fn.style.display = 'block'; }
@@ -862,15 +763,20 @@
     document.getElementById('advArrow').textContent = this.open ? '▾' : '▸';
   });
 
-  // ── Submit ───────────────────────────────────────────────
+  // ── Submit → validate budget ─────────────────────────────
   document.getElementById('publishForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    const ppg = parseFloat(perPersonInput.value) || 0;
+    const total = parseFloat(totalBudgetInput.value) || 0;
+    if (!ppg && !total) {
+      alert('Please enter a per-person budget or total budget.');
+      return;
+    }
     ['target_education_min', 'target_education_max'].forEach(name => {
       const el = this.querySelector(`select[name="${name}"]`);
       if (el && !el.value) el.removeAttribute('name');
     });
-    document.getElementById('successMessage').style.display = 'block';
-    setTimeout(() => this.submit(), 1200);
+    this.submit();
   });
 </script>
 

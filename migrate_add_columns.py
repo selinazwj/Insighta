@@ -18,7 +18,6 @@ engine = create_engine(DATABASE_URL)
 is_sqlite = "sqlite" in DATABASE_URL
 
 def run(conn, sql, ignore_error=None):
-    """Run SQL; optionally ignore a specific error (e.g. duplicate column)."""
     try:
         conn.execute(text(sql))
         conn.commit()
@@ -30,7 +29,6 @@ def run(conn, sql, ignore_error=None):
         conn.rollback()
         raise
 
-# Columns we added to users (code expects these names)
 USER_NEW_COLUMNS = [
     "state",
     "ethnicity",
@@ -56,8 +54,30 @@ SURVEY_NEW_COLUMNS = [
     "target_cannabis_use",
 ]
 
-def add_column_if_not_exists(conn, table, col, is_sqlite):
-    col_type = "TEXT" if is_sqlite else "VARCHAR"
+# ── Stripe 新增字段 ───────────────────────────────────────────
+USER_STRIPE_COLUMNS = [
+    ("stripe_account_id", "VARCHAR"),
+    ("stripe_onboarding_complete", "VARCHAR DEFAULT 'false'"),
+    ("pending_earnings", "FLOAT DEFAULT 0.0"),
+    ("total_withdrawn", "FLOAT DEFAULT 0.0"),
+]
+
+SURVEY_STRIPE_COLUMNS = [
+    ("total_budget", "FLOAT"),
+    ("per_person_gross", "FLOAT"),
+    ("commission_rate", "FLOAT"),
+    ("payment_status", "VARCHAR DEFAULT 'unpaid'"),
+    ("stripe_payment_intent_id", "VARCHAR"),
+]
+
+RESPONSE_STRIPE_COLUMNS = [
+    ("payout_status", "VARCHAR DEFAULT 'pending'"),
+    ("payout_amount", "FLOAT"),
+    ("stripe_transfer_id", "VARCHAR"),
+]
+# ─────────────────────────────────────────────────────────────
+
+def add_column_if_not_exists(conn, table, col, col_type="VARCHAR", is_sqlite=False):
     if is_sqlite:
         try:
             conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
@@ -90,19 +110,31 @@ def try_rename(conn, table, old_name, new_name, is_sqlite):
 
 def main():
     with engine.connect() as conn:
-        # 1) Rename old columns first (so we don't add state then duplicate with rename)
+        # 1) Rename old columns
         try_rename(conn, "users", "country", "state", is_sqlite)
         try_rename(conn, "surveys", "target_country", "target_state", is_sqlite)
 
         print("Migrating users...")
         for col in USER_NEW_COLUMNS:
-            add_column_if_not_exists(conn, "users", col, is_sqlite)
+            add_column_if_not_exists(conn, "users", col, "VARCHAR", is_sqlite)
 
         print("Migrating surveys...")
         for col in SURVEY_NEW_COLUMNS:
-            add_column_if_not_exists(conn, "surveys", col, is_sqlite)
+            add_column_if_not_exists(conn, "surveys", col, "VARCHAR", is_sqlite)
 
-    print("Done.")
+        print("Adding Stripe fields to users...")
+        for col, col_type in USER_STRIPE_COLUMNS:
+            add_column_if_not_exists(conn, "users", col, col_type, is_sqlite)
+
+        print("Adding Stripe fields to surveys...")
+        for col, col_type in SURVEY_STRIPE_COLUMNS:
+            add_column_if_not_exists(conn, "surveys", col, col_type, is_sqlite)
+
+        print("Adding Stripe fields to responses...")
+        for col, col_type in RESPONSE_STRIPE_COLUMNS:
+            add_column_if_not_exists(conn, "responses", col, col_type, is_sqlite)
+
+    print("Done!")
 
 if __name__ == "__main__":
     main()
