@@ -19,7 +19,6 @@
       --paper-warm: #f3f1ea;
       --accent: #2d6a4f;
       --accent-light: #52b788;
-      --accent-warm: #e07a3c;
       --line: #e0ddd3;
       --serif: 'DM Serif Display', Georgia, serif;
       --sans: 'DM Sans', system-ui, sans-serif;
@@ -42,33 +41,25 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      position: relative;
-      overflow: hidden;
       position: sticky;
       top: 0;
       height: 100vh;
+      overflow: hidden;
     }
     .left-panel::before {
-      content: '';
-      position: absolute;
-      width: 500px; height: 500px;
-      border-radius: 50%;
+      content: ''; position: absolute;
+      width: 500px; height: 500px; border-radius: 50%;
       background: rgba(255,255,255,0.06);
       bottom: -150px; right: -150px;
     }
     .left-panel::after {
-      content: '';
-      position: absolute;
-      width: 300px; height: 300px;
-      border-radius: 50%;
+      content: ''; position: absolute;
+      width: 300px; height: 300px; border-radius: 50%;
       background: rgba(255,255,255,0.04);
       top: -80px; left: -80px;
     }
-    .panel-logo {
-      display: flex; align-items: center; gap: 12px;
-      text-decoration: none; position: relative; z-index: 1;
-    }
-    .panel-logo img { height: 36px; width: auto; filter: brightness(0) invert(1); }
+    .panel-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; position: relative; z-index: 1; }
+    .panel-logo img { height: 36px; filter: brightness(0) invert(1); }
     .panel-logo span { font-family: var(--serif); font-size: 22px; color: white; letter-spacing: -0.3px; }
     .panel-steps { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 24px; }
     .panel-step { display: flex; align-items: flex-start; gap: 16px; opacity: 0.4; transition: opacity 0.3s; }
@@ -97,10 +88,7 @@
     .step { display: none; }
     .step.active { display: block; }
     .step-header { margin-bottom: 36px; }
-    .step-eyebrow {
-      font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--accent); margin-bottom: 10px; display: block;
-    }
+    .step-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; display: block; }
     .step-header h1 { font-family: var(--serif); font-size: 32px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
     .step-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; line-height: 1.6; }
 
@@ -113,7 +101,10 @@
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .form-row .form-group { margin-bottom: 0; }
 
-    input, select {
+    input[type="email"],
+    input[type="password"],
+    input[type="text"],
+    select {
       width: 100%; padding: 12px 16px;
       border: 1.5px solid var(--line); border-radius: 10px;
       font-family: var(--sans); font-size: 15px; color: var(--ink);
@@ -130,9 +121,8 @@
 
     /* ── SECTION LABEL ── */
     .section-label {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--ink-muted);
-      margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--ink-muted); margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
     }
 
     /* ── MULTISELECT ── */
@@ -149,17 +139,15 @@
     .multiselect-trigger.has-value { color: var(--ink); font-weight: 400; }
     .multiselect-wrap.open .multiselect-trigger { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
     .multiselect-panel {
-      display: none; position: absolute;
-      top: calc(100% + 4px); left: 0; right: 0;
-      background: white; border: 1.5px solid var(--line);
-      border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-      z-index: 50; max-height: 220px; overflow-y: auto; padding: 6px 0;
+      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: white; border: 1.5px solid var(--line); border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1); z-index: 50;
+      max-height: 220px; overflow-y: auto; padding: 6px 0;
     }
     .multiselect-wrap.open .multiselect-panel { display: block; }
     .multiselect-panel label {
       display: flex; align-items: center; gap: 10px;
-      padding: 10px 16px; font-size: 14px; color: var(--ink);
-      cursor: pointer; font-weight: 400;
+      padding: 10px 16px; font-size: 14px; color: var(--ink); cursor: pointer; font-weight: 400;
     }
     .multiselect-panel label:hover { background: var(--paper); }
     .multiselect-panel input[type="checkbox"] {
@@ -190,19 +178,214 @@
     .form-footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
     .form-footer a:hover { text-decoration: underline; }
 
+    /* ── CONSENT MODAL ── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(26,26,24,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .modal {
+      background: var(--paper);
+      border: 1.5px solid var(--line);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-header {
+      padding: 28px 28px 20px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+
+    .modal-icon { font-size: 28px; margin-bottom: 10px; display: block; }
+
+    .modal-header h2 {
+      font-family: var(--serif);
+      font-size: 22px; color: var(--ink);
+      letter-spacing: -0.3px; margin-bottom: 6px;
+    }
+
+    .modal-header p {
+      font-size: 13px; color: var(--ink-muted);
+      font-weight: 300; line-height: 1.5;
+    }
+
+    /* ── PRIVACY CONTENT ── */
+    .modal-body {
+      padding: 20px 28px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .privacy-section { margin-bottom: 18px; }
+
+    .privacy-section:last-child { margin-bottom: 0; }
+
+    .privacy-section h4 {
+      font-size: 13px; font-weight: 700;
+      color: var(--ink-soft); margin-bottom: 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .privacy-section p {
+      font-size: 13px; color: var(--ink-muted);
+      line-height: 1.65; font-weight: 300;
+    }
+
+    .privacy-divider { height: 1px; background: var(--line); margin: 18px 0; }
+
+    /* ── CHECKBOX AGREEMENT ── */
+    .consent-check-area {
+      padding: 16px 28px;
+      border-top: 1px solid var(--line);
+      background: var(--paper-warm);
+      border-radius: 0 0 4px 4px;
+      flex-shrink: 0;
+    }
+
+    .consent-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      margin-bottom: 14px;
+    }
+
+    .consent-checkbox {
+      width: 18px; height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer; flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .consent-text {
+      font-size: 13px; color: var(--ink-soft);
+      line-height: 1.5; font-weight: 400;
+    }
+
+    .consent-text strong { color: var(--ink); font-weight: 600; }
+
+    .btn-agree {
+      width: 100%; padding: 12px;
+      background: var(--accent); color: white;
+      border: none; border-radius: 10px;
+      font-family: var(--sans); font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      opacity: 0.4; pointer-events: none;
+    }
+
+    .btn-agree.enabled {
+      opacity: 1; pointer-events: auto;
+    }
+
+    .btn-agree.enabled:hover {
+      background: #245c43;
+      box-shadow: 0 4px 14px rgba(45,106,79,0.3);
+    }
+
+    .btn-decline {
+      width: 100%; padding: 9px;
+      background: transparent; color: var(--ink-muted);
+      border: none; font-family: var(--sans); font-size: 13px;
+      cursor: pointer; margin-top: 6px; transition: color 0.2s;
+      text-align: center;
+    }
+
+    .btn-decline:hover { color: var(--ink); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(24px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
     /* ── MOBILE ── */
     @media (max-width: 768px) {
       body { grid-template-columns: 1fr; }
       .left-panel { display: none; }
       .right-panel { padding: 40px 24px; }
       .form-row { grid-template-columns: 1fr; }
+      .modal { max-height: 92vh; }
     }
   </style>
 </head>
 <body>
 
-<!-- LEFT PANEL -->
-<div class="left-panel" id="leftPanel">
+<!-- ── CONSENT MODAL ── -->
+<div class="modal-backdrop" id="consentModal" style="display:none;">
+  <div class="modal">
+
+    <div class="modal-header">
+      <span class="modal-icon">🔒</span>
+      <h2>Privacy & Data Agreement</h2>
+      <p>Please read and agree to our data practices before creating your account.</p>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="privacy-section">
+        <h4>📋 What we collect</h4>
+        <p>We collect your email address, password (encrypted), and the profile information you choose to share — such as age range, field of study, and behavioral preferences. All profile fields are optional.</p>
+      </div>
+
+      <div class="privacy-divider"></div>
+
+      <div class="privacy-section">
+        <h4>🎯 How we use your data</h4>
+        <p>Your profile information is used exclusively to match you with relevant research studies on Insighta. We do not use your data for advertising, and we do not sell or share your personal information with third parties.</p>
+      </div>
+
+      <div class="privacy-divider"></div>
+
+      <div class="privacy-section">
+        <h4>🔬 Research participation</h4>
+        <p>When you participate in a study, researchers can see that a participant matching their criteria completed their survey — but they cannot identify you personally. Your responses are kept anonymous unless you choose to share identifying information directly in the study itself.</p>
+      </div>
+
+      <div class="privacy-divider"></div>
+
+      <div class="privacy-section">
+        <h4>🛡️ Data security</h4>
+        <p>Your password is hashed and never stored in plain text. We use industry-standard encryption to protect data in transit and at rest.</p>
+      </div>
+
+      <div class="privacy-divider"></div>
+
+      <div class="privacy-section">
+        <h4>✏️ Your rights</h4>
+        <p>You can update or delete your profile information at any time from your profile settings. You may request full account deletion by contacting us, and we will remove your data within 30 days.</p>
+      </div>
+
+    </div>
+
+    <div class="consent-check-area">
+      <label class="consent-label">
+        <input type="checkbox" class="consent-checkbox" id="consentCheckbox" onchange="toggleAgree(this)">
+        <span class="consent-text">
+          I have read and agree to Insighta's data practices described above. I understand that my profile data will be used to match me with research studies, and will not be shared with or sold to third parties.
+        </span>
+      </label>
+      <button class="btn-agree" id="btnAgree" onclick="agreeAndContinue()">
+        Agree & Continue →
+      </button>
+      <button class="btn-decline" onclick="closeConsent()">
+        Not now — go back
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── LEFT PANEL ── -->
+<div class="left-panel">
   <a href="/" class="panel-logo">
     <img src="/static/favicon.png" alt="Insighta">
     <span>Insighta</span>
@@ -228,7 +411,7 @@
   </div>
 </div>
 
-<!-- RIGHT PANEL -->
+<!-- ── RIGHT PANEL ── -->
 <div class="right-panel">
   <div class="form-wrapper">
 
@@ -262,7 +445,8 @@
           </div>
         </div>
 
-        <button type="button" class="btn-next" onclick="goToStep2()">Continue →</button>
+        <!-- Continue 触发 consent 弹窗，不是直接跳 step 2 -->
+        <button type="button" class="btn-next" onclick="requestConsent()">Continue →</button>
         <p class="form-footer">Already have an account? <a href="/login">Sign in</a></p>
       </div>
 
@@ -274,7 +458,6 @@
           <p>This helps us match you with the right surveys. All fields are optional.</p>
         </div>
 
-        <!-- Basics -->
         <div class="section-label">Basics</div>
 
         <div class="form-row">
@@ -355,7 +538,7 @@
         <div class="form-group">
           <label>Languages you can take surveys in</label>
           <div class="multiselect-wrap" id="language-multiselect">
-            <button type="button" class="multiselect-trigger" aria-haspopup="listbox">Select languages</button>
+            <button type="button" class="multiselect-trigger">Select languages</button>
             <div class="multiselect-panel">
               <label><input type="checkbox" name="language" value="Arabic"> Arabic</label>
               <label><input type="checkbox" name="language" value="English"> English</label>
@@ -371,7 +554,6 @@
           </div>
         </div>
 
-        <!-- ── 新增：Academic & Participation ── -->
         <div class="section-label">Academic & Participation</div>
 
         <div class="form-row">
@@ -434,7 +616,7 @@
         <div class="form-group" style="margin-top: 4px;">
           <label>Your experiences <span style="font-weight:300; color: var(--ink-muted);">(select all that apply)</span></label>
           <div class="multiselect-wrap" id="experience-multiselect">
-            <button type="button" class="multiselect-trigger" aria-haspopup="listbox">Select experiences</button>
+            <button type="button" class="multiselect-trigger">Select experiences</button>
             <div class="multiselect-panel">
               <label><input type="checkbox" name="experience_tags" value="startup_experience"> 🚀 Startup / product experience</label>
               <label><input type="checkbox" name="experience_tags" value="club_leadership"> 🎓 Club / org leadership</label>
@@ -446,7 +628,6 @@
           </div>
         </div>
 
-        <!-- Demographics -->
         <div class="section-label">Demographics</div>
 
         <div class="form-row">
@@ -454,14 +635,11 @@
             <label>Ethnicity</label>
             <select name="ethnicity">
               <option value="" disabled selected>Select</option>
-              <option>White</option>
-              <option>Black or African American</option>
-              <option>Hispanic or Latino</option>
-              <option>Asian</option>
+              <option>White</option><option>Black or African American</option>
+              <option>Hispanic or Latino</option><option>Asian</option>
               <option>Middle Eastern or North African</option>
               <option>Native American or Pacific Islander</option>
-              <option>Two or more races</option>
-              <option>Other</option>
+              <option>Two or more races</option><option>Other</option>
               <option>Prefer not to say</option>
             </select>
           </div>
@@ -469,11 +647,8 @@
             <label>Sexual orientation</label>
             <select name="sexual_orientation">
               <option value="" disabled selected>Select</option>
-              <option>Straight / Heterosexual</option>
-              <option>Gay or Lesbian</option>
-              <option>Bisexual</option>
-              <option>Other</option>
-              <option>Prefer not to say</option>
+              <option>Straight / Heterosexual</option><option>Gay or Lesbian</option>
+              <option>Bisexual</option><option>Other</option><option>Prefer not to say</option>
             </select>
           </div>
         </div>
@@ -495,7 +670,6 @@
           </div>
         </div>
 
-        <!-- Lifestyle -->
         <div class="section-label">Lifestyle</div>
 
         <div class="form-row">
@@ -556,12 +730,43 @@
 </div>
 
 <script>
-  function goToStep2() {
+  // ── Consent modal ─────────────────────────────────────────────
+  function requestConsent() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const confirm = document.getElementById('confirm').value;
-    if (!email || !password || !confirm) { alert('Please fill in all required fields.'); return; }
-    if (password !== confirm) { alert('Passwords do not match.'); return; }
+
+    if (!email || !password || !confirm) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+    if (password !== confirm) {
+      alert('Passwords do not match.');
+      return;
+    }
+
+    // 验证通过，弹出 consent
+    document.getElementById('consentModal').style.display = 'flex';
+    // 重置勾选状态
+    document.getElementById('consentCheckbox').checked = false;
+    document.getElementById('btnAgree').classList.remove('enabled');
+  }
+
+  function toggleAgree(checkbox) {
+    document.getElementById('btnAgree').classList.toggle('enabled', checkbox.checked);
+  }
+
+  function agreeAndContinue() {
+    document.getElementById('consentModal').style.display = 'none';
+    goToStep2();
+  }
+
+  function closeConsent() {
+    document.getElementById('consentModal').style.display = 'none';
+  }
+
+  // ── Step navigation ───────────────────────────────────────────
+  function goToStep2() {
     document.getElementById('step1').classList.remove('active');
     document.getElementById('step2').classList.add('active');
     document.getElementById('panelStep1').classList.remove('active');
@@ -579,23 +784,23 @@
     window.scrollTo(0, 0);
   }
 
-  // Select color fix
+  // ── Select color fix ──────────────────────────────────────────
   document.querySelectorAll('select').forEach(s => {
     s.addEventListener('change', function() {
       this.classList.toggle('selected', this.value !== '');
     });
   });
 
-  // Generic multiselect initializer
+  // ── Generic multiselect ───────────────────────────────────────
   function initMultiselect(id, placeholder) {
-    var wrap = document.getElementById(id);
+    const wrap = document.getElementById(id);
     if (!wrap) return;
-    var trigger = wrap.querySelector('.multiselect-trigger');
-    var panel = wrap.querySelector('.multiselect-panel');
-    var checkboxes = panel.querySelectorAll('input[type="checkbox"]');
+    const trigger = wrap.querySelector('.multiselect-trigger');
+    const panel = wrap.querySelector('.multiselect-panel');
+    const checkboxes = panel.querySelectorAll('input[type="checkbox"]');
 
     function update() {
-      var labels = [];
+      const labels = [];
       checkboxes.forEach(cb => { if (cb.checked) labels.push(cb.parentElement.textContent.trim()); });
       trigger.textContent = labels.length ? labels.join(', ') : placeholder;
       trigger.classList.toggle('has-value', labels.length > 0);
@@ -603,7 +808,6 @@
 
     trigger.addEventListener('click', e => {
       e.preventDefault(); e.stopPropagation();
-      // Close any other open multiselects
       document.querySelectorAll('.multiselect-wrap.open').forEach(w => { if (w !== wrap) w.classList.remove('open'); });
       wrap.classList.toggle('open');
     });
