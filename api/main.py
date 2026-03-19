@@ -12,6 +12,12 @@ import shutil
 import uuid
 import os
 import stripe
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from app.database import engine, get_db
 from app.models import Base, User, Survey, Response, Feedback
@@ -29,6 +35,22 @@ Base.metadata.create_all(bind=engine)
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
+
+EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+
+def send_email(to: str, subject: str, body: str):
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = EMAIL_ADDRESS
+        msg["To"] = to
+        msg.attach(MIMEText(body, "html"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_ADDRESS, to, msg.as_string())
+    except Exception as e:
+        print(f"Email error: {e}")
 
 router = APIRouter()
 
@@ -522,6 +544,42 @@ def start_survey(
         db.add(Response(survey_id=survey_id, participant_id=current_user.id, status="started"))
         db.commit()
 
+        # Send email notification to publisher
+        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+        if publisher and publisher.email:
+            participant_name = current_user.username or current_user.email
+            approve_url = f"https://insightaco.org/publisher"
+            send_email(
+                to=publisher.email,
+                subject=f"[Insighta] Someone started your survey: {survey.title}",
+                body=f"""
+                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 New Survey Response</h2>
+                  <p style="color: #8a8a82; margin-bottom: 24px;">Someone has started filling out your survey.</p>
+
+                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
+                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
+                    <div style="font-size: 15px;">{participant_name}</div>
+                  </div>
+
+                  <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
+                    Please check your <strong>Google Form backend</strong> to verify the response was submitted.
+                    Once confirmed, go to your dashboard to approve and release the reward.
+                  </p>
+
+                  <a href="{approve_url}" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                    Go to Dashboard →
+                  </a>
+
+                  <p style="font-size: 12px; color: #8a8a82; margin-top: 32px;">
+                    Insighta · <a href="https://insightaco.org" style="color: #2d6a4f;">insightaco.org</a>
+                  </p>
+                </div>
+                """
+            )
+
     return {"message": "Survey started successfully"}
 
 
@@ -582,8 +640,113 @@ def modify_completed_survey(
 
 
 # ---------------------------
-# Publish page
+# Publisher approve response
 # ---------------------------
+
+@app.post("/surveys/{survey_id}/approve/{response_id}")
+def approve_response(
+    survey_id: int,
+    response_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    r = db.query(Response).filter(
+        Response.id == response_id,
+        Response.survey_id == survey_id
+    ).first()
+    if not r:
+        raise HTTPException(404, "Response not found")
+    if r.status == "completed":
+        raise HTTPException(400, "Already approved")
+
+    r.status = "completed"
+    r.completed_at = datetime.now(timezone.utc)
+    r.payout_amount = survey.reward_amount
+    r.payout_status = "pending"
+
+    # Add to participant's pending earnings
+    participant = db.query(User).filter(User.id == r.participant_id).first()
+    if participant:
+        participant.pending_earnings = (getattr(participant, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
+
+        # Notify participant
+        send_email(
+            to=participant.email,
+            subject=f"[Insighta] Your response was approved! 💰",
+            body=f"""
+            <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+              <h2 style="font-size: 22px; margin-bottom: 8px;">🎉 Response Approved!</h2>
+              <p style="color: #8a8a82; margin-bottom: 24px;">Your survey response has been verified and approved.</p>
+
+              <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
+                <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
+                <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Reward Added</div>
+                <div style="font-size: 22px; font-weight: 700; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
+              </div>
+
+              <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
+                Your earnings have been added to your account. You can withdraw anytime from your dashboard.
+              </p>
+
+              <a href="https://insightaco.org/dashboard" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                View Earnings →
+              </a>
+
+              <p style="font-size: 12px; color: #8a8a82; margin-top: 32px;">
+                Insighta · <a href="https://insightaco.org" style="color: #2d6a4f;">insightaco.org</a>
+              </p>
+            </div>
+            """
+        )
+
+    db.commit()
+    return RedirectResponse("/publisher", status_code=303)
+
+
+# ---------------------------
+# Publisher get pending responses
+# ---------------------------
+
+@app.get("/api/publisher/pending-responses")
+def get_pending_responses(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    surveys = db.query(Survey).filter(Survey.publisher_id == current_user.id).all()
+    survey_ids = [s.id for s in surveys]
+    survey_map = {s.id: s for s in surveys}
+
+    if not survey_ids:
+        return JSONResponse([])
+
+    pending = db.query(Response).filter(
+        Response.survey_id.in_(survey_ids),
+        Response.status == "started"
+    ).all()
+
+    result = []
+    for r in pending:
+        participant = db.query(User).filter(User.id == r.participant_id).first()
+        survey = survey_map.get(r.survey_id)
+        result.append({
+            "response_id": r.id,
+            "survey_id": r.survey_id,
+            "survey_title": survey.title if survey else "Unknown",
+            "participant_email": participant.email if participant else "Unknown",
+            "participant_name": participant.username or participant.email if participant else "Unknown",
+            "reward": survey.reward_amount if survey else 0,
+            "started_at": str(r.started_at),
+        })
+
+    return JSONResponse(result)
 
 @app.get("/publish", response_class=HTMLResponse)
 def publish_page(request: Request, current_user: User = Depends(get_current_user)):

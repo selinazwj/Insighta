@@ -806,8 +806,7 @@
       const completedClass = s.is_completed ? 'completed' : '';
       const actions = s.is_completed
         ? `<button class="action-btn primary" onclick="modifySurvey(event,${s.id})">Modify Response</button>`
-        : `<button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}')">Take Survey →</button>
-           <button class="action-btn" onclick="completeSurvey(event,${s.id})">Mark Complete</button>`;
+        : `<button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}')">Take Survey →</button>`;
 
       return `
         <div class="card ${completedClass}">

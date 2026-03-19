@@ -394,6 +394,18 @@
     <a href="/publish" class="create-btn">+ New Listing</a>
   </div>
 
+  <!-- PENDING RESPONSES -->
+  <div id="pendingSection" style="margin-bottom: 40px; display:none;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom: 16px;">
+      <h2 style="font-family: var(--serif); font-size: 22px; color: var(--ink); letter-spacing: -0.3px;">Pending Approvals</h2>
+      <span id="pendingCount" style="background: var(--accent-warm); color: white; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 100px;"></span>
+    </div>
+    <div style="background: rgba(224,122,60,0.06); border-left: 3px solid var(--accent-warm); padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 13px; color: var(--ink-soft); margin-bottom: 16px; line-height: 1.6;">
+      <strong style="color: var(--accent-warm);">Action required</strong> — Check your Google Form backend to verify each response, then click Approve to release the reward to the participant.
+    </div>
+    <div id="pendingList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+  </div>
+
   <!-- TABS -->
   <div style="display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:32px;">
     <div class="pub-tab active" onclick="switchPubTab('surveys', this)" style="padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; color:var(--accent); border-bottom:2px solid var(--accent); margin-bottom:-1px;">Surveys</div>
@@ -529,6 +541,71 @@
     btn.style.color = 'var(--accent)';
     btn.style.borderBottomColor = 'var(--accent)';
   }
+
+  // Load pending responses
+  async function loadPending() {
+    try {
+      const res = await fetch('/api/publisher/pending-responses', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.length === 0) return;
+
+      document.getElementById('pendingSection').style.display = 'block';
+      document.getElementById('pendingCount').textContent = data.length;
+
+      const list = document.getElementById('pendingList');
+      list.innerHTML = data.map(r => `
+        <div style="background: white; border: 1.5px solid var(--line); border-radius: 14px; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px;" id="pending-${r.response_id}">
+          <div>
+            <div style="font-family: var(--serif); font-size: 17px; color: var(--ink); margin-bottom: 4px;">${r.survey_title}</div>
+            <div style="font-size: 13px; color: var(--ink-muted);">
+              👤 ${r.participant_name} &nbsp;·&nbsp; 💰 $${r.reward.toFixed(2)} reward
+            </div>
+          </div>
+          <div style="display:flex; gap: 8px; flex-shrink:0;">
+            <button onclick="approveResponse(${r.survey_id}, ${r.response_id})"
+              style="padding: 9px 18px; background: var(--accent); color: white; border: none; border-radius: 8px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer;">
+              ✓ Approve
+            </button>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      console.error('Failed to load pending responses:', e);
+    }
+  }
+
+  async function approveResponse(surveyId, responseId) {
+    const card = document.getElementById(`pending-${responseId}`);
+    const btn = card.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = 'Approving...';
+
+    try {
+      const res = await fetch(`/surveys/${surveyId}/approve/${responseId}`, {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+      if (res.ok || res.redirected) {
+        card.style.opacity = '0.5';
+        card.innerHTML = `<div style="font-size: 14px; color: var(--accent); font-weight: 600; padding: 4px 0;">✓ Approved — reward released to participant</div>`;
+        // Update count
+        const countEl = document.getElementById('pendingCount');
+        const current = parseInt(countEl.textContent) - 1;
+        if (current <= 0) {
+          document.getElementById('pendingSection').style.display = 'none';
+        } else {
+          countEl.textContent = current;
+        }
+      }
+    } catch {
+      btn.disabled = false;
+      btn.textContent = '✓ Approve';
+      alert('Network error. Please try again.');
+    }
+  }
+
+  loadPending();
 </script>
 
 </body>
