@@ -1,778 +1,683 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Survey - Insighta</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/static/favicon.png">
-    <link rel="apple-touch-icon" href="/static/favicon.png">
-    <meta name="theme-color" content="#050E1F">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Survey — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <meta name="theme-color" content="#faf9f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18;
+      --ink-soft: #4a4a44;
+      --ink-muted: #8a8a82;
+      --paper: #faf9f5;
+      --paper-warm: #f3f1ea;
+      --accent: #2d6a4f;
+      --accent-light: #52b788;
+      --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
-            background: #FFFFFF;
-            color: #37352F;
-            min-height: 100vh;
-        }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        .navbar {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid #E9E9E7;
-            padding: 16px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
 
-        .navbar-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            font-size: 20px;
-            font-weight: 700;
-            color: #37352F;
-            letter-spacing: -0.5px;
-        }
+    /* ── NAVBAR ── */
+    .navbar {
+      background: rgba(250,249,245,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 48px;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .navbar-left { display: flex; align-items: center; gap: 20px; }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 14px; font-weight: 500; color: var(--ink-muted);
+      text-decoration: none; padding: 7px 12px;
+      border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s;
+    }
+    .back-btn:hover { color: var(--ink); background: var(--paper-warm); border-color: var(--ink-muted); }
+    .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+    .navbar-brand span { color: var(--accent); }
+    .avatar-link {
+      display: flex; align-items: center; gap: 8px; text-decoration: none;
+      color: var(--ink-soft); font-size: 14px; font-weight: 500;
+      padding: 6px 12px; border-radius: 8px; transition: all 0.2s;
+    }
+    .avatar-link:hover { background: var(--paper-warm); }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--accent); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+    }
 
-        .back-btn {
-            color: #37352F;
-            text-decoration: none;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: all 0.15s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
+    /* ── CONTAINER ── */
+    .container { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
 
-        .back-btn:hover {
-            background: #F7F6F3;
-            color: #000000;
-        }
+    /* ── PAGE HEADER ── */
+    .page-header { margin-bottom: 40px; }
+    .page-header h1 {
+      font-family: var(--serif); font-size: clamp(28px, 4vw, 40px);
+      color: var(--ink); letter-spacing: -1px; margin-bottom: 8px;
+    }
+    .page-header h1 em { font-style: italic; color: var(--accent); }
+    .page-header p { font-size: 16px; color: var(--ink-muted); font-weight: 300; }
 
-        .navbar-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+    /* ── SECTION ── */
+    .form-section {
+      background: white; border: 1.5px solid var(--line);
+      border-radius: 16px; padding: 32px; margin-bottom: 20px;
+    }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line);
+    }
+    .section-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(45,106,79,0.1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .section-header h2 { font-family: var(--serif); font-size: 20px; color: var(--ink); letter-spacing: -0.3px; }
+    .section-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
+    /* ── INFO BOX ── */
+    .info-box {
+      background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent);
+      padding: 14px 18px; border-radius: 0 8px 8px 0;
+      font-size: 14px; color: var(--ink-soft); margin-bottom: 24px; line-height: 1.6;
+    }
+    .info-box strong {
+      display: block; color: var(--accent); font-size: 13px;
+      font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px;
+    }
 
-        .page-header {
-            margin-bottom: 40px;
-        }
+    /* ── FORM ELEMENTS ── */
+    .form-group { margin-bottom: 20px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 7px; }
+    .label-desc { font-size: 12px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
 
-        .page-header h1 {
-            font-size: 36px;
-            margin-bottom: 8px;
-            font-weight: 700;
-            color: #000000;
-            letter-spacing: -1px;
-        }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%; padding: 12px 16px;
+      border: 1.5px solid var(--line); border-radius: 10px;
+      font-family: var(--sans); font-size: 15px; color: var(--ink);
+      background: white; transition: all 0.2s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,106,79,0.08);
+    }
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: #c4c2bc; font-weight: 300; }
+    .form-group textarea { resize: vertical; min-height: 96px; line-height: 1.6; }
+    .form-group select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      padding-right: 36px; cursor: pointer; color: #c4c2bc;
+    }
+    .form-group select.has-value { color: var(--ink); }
 
-        .page-header p {
-            font-size: 18px;
-            color: #787774;
-        }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .form-row .form-group,
+    .form-row-3 .form-group { margin-bottom: 0; }
 
-        .form-card {
-            background: #FAFAF9;
-            border: 1px solid #E9E9E7;
-            border-radius: 16px;
-            padding: 40px;
-        }
+    /* ── FILE UPLOAD ── */
+    .file-upload-area {
+      border: 1.5px dashed var(--line); border-radius: 10px;
+      padding: 24px; text-align: center; cursor: pointer;
+      transition: all 0.2s; position: relative;
+    }
+    .file-upload-area:hover { border-color: var(--accent); background: rgba(45,106,79,0.02); }
+    .file-upload-area input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .file-upload-icon { font-size: 28px; margin-bottom: 8px; }
+    .file-upload-text { font-size: 14px; color: var(--ink-muted); font-weight: 300; }
+    .file-upload-text strong { color: var(--accent); font-weight: 600; }
+    .file-name { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 6px; display: none; }
+    .current-image {
+      margin-top: 10px; padding: 10px 14px;
+      background: var(--paper-warm); border-radius: 8px;
+      font-size: 13px; color: var(--ink-muted);
+    }
+    .current-image span { color: var(--ink-soft); font-weight: 500; }
 
-        .form-group {
-            margin-bottom: 24px;
-        }
+    /* ── PROGRESS BOX ── */
+    .progress-box {
+      background: var(--paper-warm); border: 1.5px solid var(--line);
+      border-radius: 10px; padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .progress-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
+    .progress-value { font-family: var(--serif); font-size: 20px; color: var(--ink); }
 
-        .form-row .form-group {
-            margin-bottom: 24px;
-        }
+    /* ── FILTER GROUP LABEL ── */
+    .filter-group-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-muted);
+      padding: 12px 0 8px; border-top: 1px solid var(--line); margin-top: 8px;
+    }
+    .filter-group-label:first-child { border-top: none; padding-top: 0; margin-top: 0; }
 
-        .form-group.upload-group {
-            margin-bottom: 24px;
-        }
+    /* ── CHECKBOX GROUP ── */
+    .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .checkbox-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border: 1.5px solid var(--line);
+      border-radius: 10px; cursor: pointer; transition: all 0.15s;
+      font-size: 13px; color: var(--ink-soft);
+    }
+    .checkbox-item:hover { border-color: var(--accent-light); background: rgba(45,106,79,0.03); }
+    .checkbox-item input[type="checkbox"] {
+      accent-color: var(--accent); width: 15px; height: 15px;
+      cursor: pointer; flex-shrink: 0; padding: 0; border: none; background: none; box-shadow: none;
+    }
+    .checkbox-item.checked { border-color: var(--accent); background: rgba(45,106,79,0.06); color: var(--ink); }
 
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: #37352F;
-        }
+    /* ── ADVANCED ── */
+    details > summary { list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+    .advanced-toggle {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 600; color: var(--ink-soft);
+      cursor: pointer; padding: 12px 0; user-select: none;
+    }
+    .advanced-toggle:hover { color: var(--ink); }
+    .advanced-body { padding-top: 20px; display: flex; flex-direction: column; gap: 16px; }
 
-        .form-group .label-description {
-            font-size: 13px;
-            color: #787774;
-            font-weight: normal;
-            margin-top: 4px;
-        }
+    /* ── SUBMIT ── */
+    .submit-section {
+      background: white; border: 1.5px solid var(--line);
+      border-radius: 16px; padding: 28px 32px;
+      display: flex; gap: 12px; align-items: center; justify-content: flex-end;
+    }
+    .btn-cancel {
+      padding: 12px 24px; background: transparent; color: var(--ink-muted);
+      border: 1.5px solid var(--line); border-radius: 10px;
+      font-family: var(--sans); font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-cancel:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
+    .btn-save {
+      padding: 12px 28px; background: var(--accent); color: white;
+      border: none; border-radius: 10px; font-family: var(--sans);
+      font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .btn-save:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.3); }
 
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 12px 16px;
-            border-radius: 8px;
-            border: 1px solid #E9E9E7;
-            background: #FFFFFF;
-            color: #37352F;
-            font-size: 15px;
-            transition: all 0.2s ease;
-            font-family: inherit;
-        }
-
-        .form-group input::placeholder,
-        .form-group textarea::placeholder {
-            color: #9B9A97;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #000000;
-            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .form-group select {
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2337352F' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            padding-right: 36px;
-            color: #9B9A97;
-        }
-
-        .form-group select:not(:invalid) {
-            color: #37352F;
-        }
-
-        .form-group select:not(:invalid) {
-            color: #37352F;
-        }
-
-        .form-group select option {
-            background: #FFFFFF;
-            color: #37352F;
-        }
-
-        .form-group select option[value=""] {
-            color: #9B9A97;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-            border: 1px solid #E9E9E7;
-            border-radius: 8px;
-            background: #FFFFFF;
-            padding: 0;
-            overflow: hidden;
-        }
-
-        input[type="file"] {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-            z-index: 2;
-        }
-
-        .file-input-button {
-            padding: 8px 16px;
-            border: none;
-            border-right: 1px solid #E9E9E7;
-            border-radius: 0;
-            background: #FFFFFF;
-            color: #37352F;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            font-family: inherit;
-            white-space: nowrap;
-        }
-
-        .file-input-button:hover {
-            background: #F7F6F3;
-        }
-
-        .file-input-label {
-            flex: 1;
-            padding: 12px 16px;
-            color: #9B9A97;
-            font-size: 15px;
-            pointer-events: none;
-        }
-
-        .file-input-label.has-file {
-            color: #37352F;
-        }
-
-        .form-divider {
-            height: 1px;
-            background: #E9E9E7;
-            margin: 32px 0;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        .form-row.three-columns {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-
-        .page-header h2 {
-            font-size: 24px;
-            font-weight: 700;
-            color: #000000;
-            margin-bottom: 8px;
-        }
-
-        .info-box {
-            background: #F7F6F3;
-            border-left: 4px solid #000000;
-            padding: 16px 20px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            font-size: 14px;
-            color: #37352F;
-        }
-
-        .info-box strong {
-            display: block;
-            margin-bottom: 8px;
-            color: #000000;
-        }
-
-        .submit-section {
-            margin-top: 32px;
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 14px 24px;
-            border-radius: 8px;
-            border: none;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            font-family: inherit;
-        }
-
-        .btn-primary {
-            background: #000000;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2F2F2F;
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: #37352F;
-            border: 1.5px solid #D9D9D9;
-        }
-
-        .btn-secondary:hover {
-            background: #F7F6F3;
-            border-color: #37352F;
-        }
-
-        @media (max-width: 768px) {
-            .form-card {
-                padding: 30px 20px;
-            }
-
-            .form-row,
-            .form-row.three-columns {
-                grid-template-columns: 1fr;
-            }
-
-            .page-header h1 {
-                font-size: 28px;
-            }
-
-            .submit-section {
-                flex-direction: column-reverse;
-            }
-        }
-    </style>
+    /* ── MOBILE ── */
+    @media (max-width: 640px) {
+      .navbar { padding: 12px 16px; }
+      .navbar-brand { display: none; }
+      .container { padding: 32px 16px 60px; }
+      .form-section { padding: 24px 20px; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .checkbox-group { grid-template-columns: 1fr; }
+      .submit-section { flex-direction: column-reverse; }
+      .btn-cancel, .btn-save { width: 100%; justify-content: center; }
+    }
+  </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="navbar-left">
-            <a href="/publisher" class="back-btn">
-                <span>←</span>
-                <span>Back</span>
-            </a>
-            <span>Insighta · Publisher</span>
+
+<nav class="navbar">
+  <div class="navbar-left">
+    <a href="/publisher" class="back-btn">← Back</a>
+    <div class="navbar-brand">Insight<span>a</span></div>
+  </div>
+  <a href="/profile" class="avatar-link">
+    <div class="avatar">U</div>
+    <span>Profile</span>
+  </a>
+</nav>
+
+<div class="container">
+
+  <div class="page-header">
+    <h1>Edit <em>Survey</em></h1>
+    <p>Update your survey details and targeting.</p>
+  </div>
+
+  <form method="POST" action="/publisher/edit/{{ survey.id }}" enctype="multipart/form-data">
+
+    <!-- BASIC INFO -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-icon">✏️</div>
+        <div>
+          <h2>Basic Information</h2>
+          <p>Title, description, and form link</p>
         </div>
-        <div class="navbar-right">
-            <a href="/profile" style="text-decoration: none; color: #37352F; display: flex; align-items: center; gap: 10px;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 1px solid #E9E9E7;">
-                    U
-                </div>
-                <span>Profile</span>
-            </a>
-        </div>
-    </nav>
-
-    <div class="container">
-        <div class="page-header">
-            <h1>✏️ Edit Survey</h1>
-            <p>Update your survey information and resubmit</p>
-        </div>
-
-        <div class="form-card">
-            <form method="POST" action="/publisher/edit/{{ survey.id }}" enctype="multipart/form-data">
-                <!-- Basic info -->
-                <div class="page-header" style="margin-bottom: 24px;">
-                    <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">📝 Basic Information</h2>
-                    <p style="font-size: 15px; color: #787774; margin: 0;">Provide essential details about your survey</p>
-                </div>
-
-                <div class="form-group">
-                    <label>Survey Title</label>
-                    <input type="text" name="title" value="{{ survey.title }}" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea name="description" required>{{ survey.description }}</textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>Google Form Link</label>
-                    <input type="url" name="form_url" value="{{ survey.form_url }}" required>
-                </div>
-
-                <div class="form-divider"></div>
-
-                <!-- Survey details -->
-                <div class="page-header" style="margin-bottom: 24px;">
-                    <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">📋 Survey Details</h2>
-                    <p style="font-size: 15px; color: #787774; margin: 0;">Configure category, time, and cover image</p>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Category</label>
-                        <select name="category" required>
-                            <option value="research" {% if survey.category=='research' %}selected{% endif %}>🔬 Research</option>
-                            <option value="life" {% if survey.category=='life' %}selected{% endif %}>🌟 Lifestyle</option>
-                            <option value="clubs" {% if survey.category=='clubs' %}selected{% endif %}>🎯 Clubs & Events</option>
-                            <option value="market" {% if survey.category=='market' %}selected{% endif %}>📊 Market Research</option>
-                            <option value="academic" {% if survey.category=='academic' %}selected{% endif %}>📚 Academic</option>
-                            <option value="other" {% if survey.category=='other' %}selected{% endif %}>🔷 Other</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Estimated Time</label>
-                        <select name="estimated_time" required>
-                            <option value="5" {% if survey.estimated_time==5 %}selected{% endif %}>⚡ 5 minutes</option>
-                            <option value="10" {% if survey.estimated_time==10 %}selected{% endif %}>🕐 10 minutes</option>
-                            <option value="15" {% if survey.estimated_time==15 %}selected{% endif %}>🕑 15 minutes</option>
-                            <option value="20" {% if survey.estimated_time==20 %}selected{% endif %}>🕒 20 minutes</option>
-                            <option value="30" {% if survey.estimated_time==30 %}selected{% endif %}>🕔 30 minutes</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group upload-group">
-                    <label>Survey Cover Image (Optional)</label>
-                    <div class="file-input-wrapper">
-                        <button type="button" class="file-input-button">Choose File</button>
-                        <span class="file-input-label" id="fileInputLabel">No file chosen</span>
-                        <input type="file" id="coverImageInput" name="cover_image" accept="image/*">
-                        <span id="imagePreview" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #10B981; font-size: 20px; pointer-events: none; z-index: 1;">✓</span>
-                    </div>
-                    <small style="color: #787774; font-size: 13px; margin-top: 4px; display: block;">Upload a new cover image (or leave empty to keep current)</small>
-                    {% if survey.image_url %}
-                    <div style="margin-top: 8px; padding: 12px; background: #F7F6F3; border-radius: 8px; border: 1px solid #E9E9E7;">
-                        <span style="color: #787774; font-weight: 600; font-size: 13px;">Current: </span>
-                        <span style="color: #37352F; font-size: 13px;">{{ survey.image_url.split('/')[-1] }}</span>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-divider"></div>
-
-                <!-- Reward settings -->
-                <div class="page-header" style="margin-bottom: 24px;">
-                    <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">💰 Reward Settings</h2>
-                    <p style="font-size: 15px; color: #787774; margin: 0;">Set payment amount and target number of responses</p>
-                </div>
-
-                <div class="info-box" style="margin-bottom: 20px;">
-                    <strong>💎 Recommended reward:</strong>
-                    <span>For a survey that takes about 5 minutes, the recommended reward is approximately 2 💎.</span>
-                </div>
-
-                <div class="info-box">
-                    <strong>Current Progress</strong>
-                    Completed: {{ survey.current_responses }} / {{ survey.target_responses }} responses
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>
-                            Reward per Response
-                            <div class="label-description">How much will you pay each respondent?</div>
-                        </label>
-                        <input type="number" id="rewardAmount" name="reward_amount" value="{{ "%.2f"|format(survey.reward_amount) }}" step="0.01" min="1" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            Additional Responses Needed
-                            <div class="label-description">How many more responses do you still need?</div>
-                        </label>
-                        <input type="number" id="additionalNeeded" name="additional_needed" value="{{ survey.target_responses - survey.current_responses }}" min="0" required>
-                    </div>
-                </div>
-
-                <div class="form-divider"></div>
-
-                <!-- Target Audience -->
-                <div class="page-header" style="margin-bottom: 24px;">
-                    <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">🎯 Target Audience</h2>
-                    <p style="font-size: 15px; color: #787774; margin: 0;">Specify who can see this survey. Leave blank to allow all users.</p>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Age Range</label>
-                        <select name="target_age_range">
-                            <option value="" disabled {% if not survey.target_age_range or survey.target_age_range=='' %}selected{% endif %}>Select age range</option>
-                            <option value="all" {% if survey.target_age_range=='' %}selected{% endif %}>All</option>
-                            <option value="18-24" {% if survey.target_age_range=='18-24' %}selected{% endif %}>18-24</option>
-                            <option value="25-34" {% if survey.target_age_range=='25-34' %}selected{% endif %}>25-34</option>
-                            <option value="35-44" {% if survey.target_age_range=='35-44' %}selected{% endif %}>35-44</option>
-                            <option value="45+" {% if survey.target_age_range=='45+' %}selected{% endif %}>45+</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Education Level</label>
-                        <select name="target_education">
-                            <option value="" disabled {% if not survey.target_education or survey.target_education=='' %}selected{% endif %}>Select education level</option>
-                            <option value="all" {% if survey.target_education=='' %}selected{% endif %}>All</option>
-                            <option value="High School" {% if survey.target_education=='High School' %}selected{% endif %}>High School</option>
-                            <option value="Undergraduate" {% if survey.target_education=='Undergraduate' %}selected{% endif %}>Undergraduate</option>
-                            <option value="Graduate" {% if survey.target_education=='Graduate' %}selected{% endif %}>Graduate</option>
-                            <option value="PhD" {% if survey.target_education=='PhD' %}selected{% endif %}>PhD</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Field</label>
-                        <select name="target_field">
-                            <option value="" disabled {% if not survey.target_field or survey.target_field=='' %}selected{% endif %}>Select field / major</option>
-                            <option value="all" {% if survey.target_field=='' %}selected{% endif %}>All</option>
-                            <option value="Computer Science & Engineering" {% if survey.target_field=='Computer Science & Engineering' or survey.target_field=='Computer Science' or survey.target_field=='Engineering' %}selected{% endif %}>Computer Science & Engineering</option>
-                            <option value="Business & Economics" {% if survey.target_field=='Business & Economics' or survey.target_field=='Business' %}selected{% endif %}>Business & Economics</option>
-                            <option value="Medicine & Healthcare" {% if survey.target_field=='Medicine & Healthcare' or survey.target_field=='Medicine / Healthcare' %}selected{% endif %}>Medicine & Healthcare</option>
-                            <option value="Natural Sciences" {% if survey.target_field=='Natural Sciences' %}selected{% endif %}>Natural Sciences</option>
-                            <option value="Social Sciences" {% if survey.target_field=='Social Sciences' %}selected{% endif %}>Social Sciences</option>
-                            <option value="Arts & Humanities" {% if survey.target_field=='Arts & Humanities' %}selected{% endif %}>Arts & Humanities</option>
-                            <option value="Education" {% if survey.target_field=='Education' %}selected{% endif %}>Education</option>
-                            <option value="Law" {% if survey.target_field=='Law' %}selected{% endif %}>Law</option>
-                            <option value="Other" {% if survey.target_field=='Other' %}selected{% endif %}>Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select name="target_status">
-                            <option value="" disabled {% if not survey.target_status or survey.target_status=='' %}selected{% endif %}>Select current status</option>
-                            <option value="all" {% if survey.target_status=='' %}selected{% endif %}>All</option>
-                            <option value="student" {% if survey.target_status=='student' %}selected{% endif %}>Student</option>
-                            <option value="working" {% if survey.target_status=='working' %}selected{% endif %}>Working</option>
-                            <option value="freelancer" {% if survey.target_status=='freelancer' %}selected{% endif %}>Freelancer</option>
-                            <option value="other" {% if survey.target_status=='other' %}selected{% endif %}>Other</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>State</label>
-                        <select name="target_state">
-                            <option value="" disabled {% if not survey.target_state or survey.target_state=='' %}selected{% endif %}>Select state</option>
-                            <option value="all" {% if survey.target_state=='' %}selected{% endif %}>All</option>
-                            <option value="Alabama" {% if survey.target_state=='Alabama' %}selected{% endif %}>Alabama</option>
-                            <option value="Alaska" {% if survey.target_state=='Alaska' %}selected{% endif %}>Alaska</option>
-                            <option value="Arizona" {% if survey.target_state=='Arizona' %}selected{% endif %}>Arizona</option>
-                            <option value="Arkansas" {% if survey.target_state=='Arkansas' %}selected{% endif %}>Arkansas</option>
-                            <option value="California" {% if survey.target_state=='California' %}selected{% endif %}>California</option>
-                            <option value="Colorado" {% if survey.target_state=='Colorado' %}selected{% endif %}>Colorado</option>
-                            <option value="Connecticut" {% if survey.target_state=='Connecticut' %}selected{% endif %}>Connecticut</option>
-                            <option value="Delaware" {% if survey.target_state=='Delaware' %}selected{% endif %}>Delaware</option>
-                            <option value="Florida" {% if survey.target_state=='Florida' %}selected{% endif %}>Florida</option>
-                            <option value="Georgia" {% if survey.target_state=='Georgia' %}selected{% endif %}>Georgia</option>
-                            <option value="Hawaii" {% if survey.target_state=='Hawaii' %}selected{% endif %}>Hawaii</option>
-                            <option value="Idaho" {% if survey.target_state=='Idaho' %}selected{% endif %}>Idaho</option>
-                            <option value="Illinois" {% if survey.target_state=='Illinois' %}selected{% endif %}>Illinois</option>
-                            <option value="Indiana" {% if survey.target_state=='Indiana' %}selected{% endif %}>Indiana</option>
-                            <option value="Iowa" {% if survey.target_state=='Iowa' %}selected{% endif %}>Iowa</option>
-                            <option value="Kansas" {% if survey.target_state=='Kansas' %}selected{% endif %}>Kansas</option>
-                            <option value="Kentucky" {% if survey.target_state=='Kentucky' %}selected{% endif %}>Kentucky</option>
-                            <option value="Louisiana" {% if survey.target_state=='Louisiana' %}selected{% endif %}>Louisiana</option>
-                            <option value="Maine" {% if survey.target_state=='Maine' %}selected{% endif %}>Maine</option>
-                            <option value="Maryland" {% if survey.target_state=='Maryland' %}selected{% endif %}>Maryland</option>
-                            <option value="Massachusetts" {% if survey.target_state=='Massachusetts' %}selected{% endif %}>Massachusetts</option>
-                            <option value="Michigan" {% if survey.target_state=='Michigan' %}selected{% endif %}>Michigan</option>
-                            <option value="Minnesota" {% if survey.target_state=='Minnesota' %}selected{% endif %}>Minnesota</option>
-                            <option value="Mississippi" {% if survey.target_state=='Mississippi' %}selected{% endif %}>Mississippi</option>
-                            <option value="Missouri" {% if survey.target_state=='Missouri' %}selected{% endif %}>Missouri</option>
-                            <option value="Montana" {% if survey.target_state=='Montana' %}selected{% endif %}>Montana</option>
-                            <option value="Nebraska" {% if survey.target_state=='Nebraska' %}selected{% endif %}>Nebraska</option>
-                            <option value="Nevada" {% if survey.target_state=='Nevada' %}selected{% endif %}>Nevada</option>
-                            <option value="New Hampshire" {% if survey.target_state=='New Hampshire' %}selected{% endif %}>New Hampshire</option>
-                            <option value="New Jersey" {% if survey.target_state=='New Jersey' %}selected{% endif %}>New Jersey</option>
-                            <option value="New Mexico" {% if survey.target_state=='New Mexico' %}selected{% endif %}>New Mexico</option>
-                            <option value="New York" {% if survey.target_state=='New York' %}selected{% endif %}>New York</option>
-                            <option value="North Carolina" {% if survey.target_state=='North Carolina' %}selected{% endif %}>North Carolina</option>
-                            <option value="North Dakota" {% if survey.target_state=='North Dakota' %}selected{% endif %}>North Dakota</option>
-                            <option value="Ohio" {% if survey.target_state=='Ohio' %}selected{% endif %}>Ohio</option>
-                            <option value="Oklahoma" {% if survey.target_state=='Oklahoma' %}selected{% endif %}>Oklahoma</option>
-                            <option value="Oregon" {% if survey.target_state=='Oregon' %}selected{% endif %}>Oregon</option>
-                            <option value="Pennsylvania" {% if survey.target_state=='Pennsylvania' %}selected{% endif %}>Pennsylvania</option>
-                            <option value="Rhode Island" {% if survey.target_state=='Rhode Island' %}selected{% endif %}>Rhode Island</option>
-                            <option value="South Carolina" {% if survey.target_state=='South Carolina' %}selected{% endif %}>South Carolina</option>
-                            <option value="South Dakota" {% if survey.target_state=='South Dakota' %}selected{% endif %}>South Dakota</option>
-                            <option value="Tennessee" {% if survey.target_state=='Tennessee' %}selected{% endif %}>Tennessee</option>
-                            <option value="Texas" {% if survey.target_state=='Texas' %}selected{% endif %}>Texas</option>
-                            <option value="Utah" {% if survey.target_state=='Utah' %}selected{% endif %}>Utah</option>
-                            <option value="Vermont" {% if survey.target_state=='Vermont' %}selected{% endif %}>Vermont</option>
-                            <option value="Virginia" {% if survey.target_state=='Virginia' %}selected{% endif %}>Virginia</option>
-                            <option value="Washington" {% if survey.target_state=='Washington' %}selected{% endif %}>Washington</option>
-                            <option value="West Virginia" {% if survey.target_state=='West Virginia' %}selected{% endif %}>West Virginia</option>
-                            <option value="Wisconsin" {% if survey.target_state=='Wisconsin' %}selected{% endif %}>Wisconsin</option>
-                            <option value="Wyoming" {% if survey.target_state=='Wyoming' %}selected{% endif %}>Wyoming</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Language</label>
-                        <select name="target_language">
-                            <option value="" disabled {% if not survey.target_language or survey.target_language=='' %}selected{% endif %}>Select primary language</option>
-                            <option value="all" {% if survey.target_language=='' %}selected{% endif %}>All</option>
-                            <option value="Arabic" {% if survey.target_language=='Arabic' %}selected{% endif %}>Arabic</option>
-                            <option value="English" {% if survey.target_language=='English' %}selected{% endif %}>English</option>
-                            <option value="French" {% if survey.target_language=='French' %}selected{% endif %}>French</option>
-                            <option value="German" {% if survey.target_language=='German' %}selected{% endif %}>German</option>
-                            <option value="Hindi" {% if survey.target_language=='Hindi' %}selected{% endif %}>Hindi</option>
-                            <option value="Japanese" {% if survey.target_language=='Japanese' %}selected{% endif %}>Japanese</option>
-                            <option value="Korean" {% if survey.target_language=='Korean' %}selected{% endif %}>Korean</option>
-                            <option value="Mandarin Chinese" {% if survey.target_language=='Mandarin Chinese' %}selected{% endif %}>Mandarin Chinese</option>
-                            <option value="Spanish" {% if survey.target_language=='Spanish' %}selected{% endif %}>Spanish</option>
-                            <option value="Other" {% if survey.target_language=='Other' %}selected{% endif %}>Other</option>
-                        </select>
-                    </div>
-                </div>
-
-                <details class="advanced-section" style="margin-top: 20px;">
-                    <summary style="font-weight: 700; font-size: 15px; color: #37352F; cursor: pointer; padding: 8px 0;">Advanced</summary>
-                    <div style="margin-top: 16px; padding-left: 0;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Ethnicity</label>
-                                <select name="target_ethnicity">
-                                    <option value="all" {% if not survey.target_ethnicity or survey.target_ethnicity=='' %}selected{% endif %}>All</option>
-                                    <option value="White" {% if survey.target_ethnicity=='White' %}selected{% endif %}>White</option>
-                                    <option value="Black or African American" {% if survey.target_ethnicity=='Black or African American' %}selected{% endif %}>Black or African American</option>
-                                    <option value="Hispanic or Latino" {% if survey.target_ethnicity=='Hispanic or Latino' %}selected{% endif %}>Hispanic or Latino</option>
-                                    <option value="Asian" {% if survey.target_ethnicity=='Asian' %}selected{% endif %}>Asian</option>
-                                    <option value="Middle Eastern or North African" {% if survey.target_ethnicity=='Middle Eastern or North African' %}selected{% endif %}>Middle Eastern or North African</option>
-                                    <option value="Native American or Pacific Islander" {% if survey.target_ethnicity=='Native American or Pacific Islander' %}selected{% endif %}>Native American or Pacific Islander</option>
-                                    <option value="Two or more races" {% if survey.target_ethnicity=='Two or more races' %}selected{% endif %}>Two or more races</option>
-                                    <option value="Other" {% if survey.target_ethnicity=='Other' %}selected{% endif %}>Other</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Sexual Orientation</label>
-                                <select name="target_sexual_orientation">
-                                    <option value="all" {% if not survey.target_sexual_orientation or survey.target_sexual_orientation=='' %}selected{% endif %}>All</option>
-                                    <option value="Straight / Heterosexual" {% if survey.target_sexual_orientation=='Straight / Heterosexual' %}selected{% endif %}>Straight / Heterosexual</option>
-                                    <option value="Gay or Lesbian" {% if survey.target_sexual_orientation=='Gay or Lesbian' %}selected{% endif %}>Gay or Lesbian</option>
-                                    <option value="Bisexual" {% if survey.target_sexual_orientation=='Bisexual' %}selected{% endif %}>Bisexual</option>
-                                    <option value="Other" {% if survey.target_sexual_orientation=='Other' %}selected{% endif %}>Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Mental / psychological diagnosis</label>
-                                <select name="target_mental_health_diagnosis">
-                                    <option value="all" {% if not survey.target_mental_health_diagnosis or survey.target_mental_health_diagnosis=='' %}selected{% endif %}>All</option>
-                                    <option value="Yes" {% if survey.target_mental_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
-                                    <option value="No" {% if survey.target_mental_health_diagnosis=='No' %}selected{% endif %}>No</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Physical / physiological diagnosis</label>
-                                <select name="target_physical_health_diagnosis">
-                                    <option value="all" {% if not survey.target_physical_health_diagnosis or survey.target_physical_health_diagnosis=='' %}selected{% endif %}>All</option>
-                                    <option value="Yes" {% if survey.target_physical_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
-                                    <option value="No" {% if survey.target_physical_health_diagnosis=='No' %}selected{% endif %}>No</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Sports Type</label>
-                                <select name="target_sport_type">
-                                    <option value="all" {% if not survey.target_sport_type or survey.target_sport_type=='' %}selected{% endif %}>All</option>
-                                    <option value="Basketball" {% if survey.target_sport_type=='Basketball' %}selected{% endif %}>Basketball</option>
-                                    <option value="Soccer / Football" {% if survey.target_sport_type=='Soccer / Football' %}selected{% endif %}>Soccer / Football</option>
-                                    <option value="Baseball / Softball" {% if survey.target_sport_type=='Baseball / Softball' %}selected{% endif %}>Baseball / Softball</option>
-                                    <option value="American Football" {% if survey.target_sport_type=='American Football' %}selected{% endif %}>American Football</option>
-                                    <option value="Tennis" {% if survey.target_sport_type=='Tennis' %}selected{% endif %}>Tennis</option>
-                                    <option value="Golf" {% if survey.target_sport_type=='Golf' %}selected{% endif %}>Golf</option>
-                                    <option value="Swimming" {% if survey.target_sport_type=='Swimming' %}selected{% endif %}>Swimming</option>
-                                    <option value="Running / Jogging" {% if survey.target_sport_type=='Running / Jogging' %}selected{% endif %}>Running / Jogging</option>
-                                    <option value="Cycling" {% if survey.target_sport_type=='Cycling' %}selected{% endif %}>Cycling</option>
-                                    <option value="Yoga / Pilates" {% if survey.target_sport_type=='Yoga / Pilates' %}selected{% endif %}>Yoga / Pilates</option>
-                                    <option value="Gym / Weightlifting" {% if survey.target_sport_type=='Gym / Weightlifting' %}selected{% endif %}>Gym / Weightlifting</option>
-                                    <option value="Martial Arts" {% if survey.target_sport_type=='Martial Arts' %}selected{% endif %}>Martial Arts</option>
-                                    <option value="Volleyball" {% if survey.target_sport_type=='Volleyball' %}selected{% endif %}>Volleyball</option>
-                                    <option value="Hockey" {% if survey.target_sport_type=='Hockey' %}selected{% endif %}>Hockey</option>
-                                    <option value="Other" {% if survey.target_sport_type=='Other' %}selected{% endif %}>Other</option>
-                                    <option value="None" {% if survey.target_sport_type=='None' %}selected{% endif %}>None</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Sports Frequency</label>
-                                <select name="target_sport_frequency">
-                                    <option value="all" {% if not survey.target_sport_frequency or survey.target_sport_frequency=='' %}selected{% endif %}>All</option>
-                                    <option value="Daily" {% if survey.target_sport_frequency=='Daily' %}selected{% endif %}>Daily</option>
-                                    <option value="Several times a week" {% if survey.target_sport_frequency=='Several times a week' %}selected{% endif %}>Several times a week</option>
-                                    <option value="Once a week" {% if survey.target_sport_frequency=='Once a week' %}selected{% endif %}>Once a week</option>
-                                    <option value="A few times a month" {% if survey.target_sport_frequency=='A few times a month' %}selected{% endif %}>A few times a month</option>
-                                    <option value="Rarely" {% if survey.target_sport_frequency=='Rarely' %}selected{% endif %}>Rarely</option>
-                                    <option value="Never" {% if survey.target_sport_frequency=='Never' %}selected{% endif %}>Never</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Do you smoke?</label>
-                                <select name="target_smoking">
-                                    <option value="all" {% if not survey.target_smoking or survey.target_smoking=='' %}selected{% endif %}>All</option>
-                                    <option value="Never" {% if survey.target_smoking=='Never' %}selected{% endif %}>Never</option>
-                                    <option value="Former smoker" {% if survey.target_smoking=='Former smoker' %}selected{% endif %}>Former smoker</option>
-                                    <option value="Rarely" {% if survey.target_smoking=='Rarely' %}selected{% endif %}>Rarely</option>
-                                    <option value="Occasionally" {% if survey.target_smoking=='Occasionally' %}selected{% endif %}>Occasionally</option>
-                                    <option value="Several times a week" {% if survey.target_smoking=='Several times a week' %}selected{% endif %}>Several times a week</option>
-                                    <option value="Daily" {% if survey.target_smoking=='Daily' %}selected{% endif %}>Daily</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Do you use marijuana / cannabis?</label>
-                                <select name="target_cannabis_use">
-                                    <option value="all" {% if not survey.target_cannabis_use or survey.target_cannabis_use=='' %}selected{% endif %}>All</option>
-                                    <option value="Never" {% if survey.target_cannabis_use=='Never' %}selected{% endif %}>Never</option>
-                                    <option value="Former user" {% if survey.target_cannabis_use=='Former user' %}selected{% endif %}>Former user</option>
-                                    <option value="Rarely" {% if survey.target_cannabis_use=='Rarely' %}selected{% endif %}>Rarely</option>
-                                    <option value="Occasionally" {% if survey.target_cannabis_use=='Occasionally' %}selected{% endif %}>Occasionally</option>
-                                    <option value="Several times a week" {% if survey.target_cannabis_use=='Several times a week' %}selected{% endif %}>Several times a week</option>
-                                    <option value="Daily" {% if survey.target_cannabis_use=='Daily' %}selected{% endif %}>Daily</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </details>
-
-                <div class="submit-section">
-                    <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Survey</button>
-                </div>
-            </form>
-        </div>
+      </div>
+      <div class="form-group">
+        <label>Survey Title</label>
+        <input type="text" name="title" value="{{ survey.title }}" required>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" required>{{ survey.description }}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Google Form Link</label>
+        <input type="url" name="form_url" value="{{ survey.form_url }}" required>
+      </div>
     </div>
 
+    <!-- SURVEY DETAILS -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-icon">📋</div>
+        <div>
+          <h2>Survey Details</h2>
+          <p>Type, category, and format</p>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom: 20px;">
+        <div class="form-group">
+          <label>Study Type</label>
+          <select name="task_type" required>
+            <option value="survey" {% if survey.task_type=='survey' or not survey.task_type %}selected{% endif %}>Online Survey</option>
+            <option value="interview" {% if survey.task_type=='interview' %}selected{% endif %}>Remote Interview</option>
+            <option value="product_testing" {% if survey.task_type=='product_testing' %}selected{% endif %}>Product Testing / UX</option>
+            <option value="story_collection" {% if survey.task_type=='story_collection' %}selected{% endif %}>Story Collection</option>
+            <option value="in_person_experiment" {% if survey.task_type=='in_person_experiment' %}selected{% endif %}>In-Person Experiment</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select name="category" required>
+            <option value="research" {% if survey.category=='research' %}selected{% endif %}>Research</option>
+            <option value="life" {% if survey.category=='life' %}selected{% endif %}>Lifestyle</option>
+            <option value="clubs" {% if survey.category=='clubs' %}selected{% endif %}>Clubs & Events</option>
+            <option value="market" {% if survey.category=='market' %}selected{% endif %}>Market Research</option>
+            <option value="academic" {% if survey.category=='academic' %}selected{% endif %}>Academic</option>
+            <option value="other" {% if survey.category=='other' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom: 20px;">
+        <div class="form-group">
+          <label>Estimated Time</label>
+          <select name="estimated_time" required>
+            <option value="5" {% if survey.estimated_time==5 %}selected{% endif %}>Under 10 min</option>
+            <option value="10" {% if survey.estimated_time==10 %}selected{% endif %}>10 min</option>
+            <option value="15" {% if survey.estimated_time==15 %}selected{% endif %}>15 min</option>
+            <option value="20" {% if survey.estimated_time==20 %}selected{% endif %}>20 min</option>
+            <option value="30" {% if survey.estimated_time==30 %}selected{% endif %}>30+ min</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Participation Format</label>
+          <select name="target_participation_format">
+            <option value="all" {% if not survey.target_participation_format or survey.target_participation_format=='' %}selected{% endif %}>Any format</option>
+            <option value="online" {% if survey.target_participation_format=='online' %}selected{% endif %}>Online only</option>
+            <option value="in_person" {% if survey.target_participation_format=='in_person' %}selected{% endif %}>In-person required</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="max-width: 300px;">
+        <label>Device Requirement</label>
+        <select name="target_device">
+          <option value="any" {% if not survey.target_device or survey.target_device=='' %}selected{% endif %}>Any device</option>
+          <option value="laptop" {% if survey.target_device=='laptop' %}selected{% endif %}>Laptop / Desktop</option>
+          <option value="mobile" {% if survey.target_device=='mobile' %}selected{% endif %}>Mobile only</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-top: 20px;">
+        <label>Cover Image <span style="font-weight:300; color: var(--ink-muted);">(Optional)</span></label>
+        <div class="file-upload-area">
+          <input type="file" id="coverImageInput" name="cover_image" accept="image/*">
+          <div class="file-upload-icon">🖼</div>
+          <div class="file-upload-text"><strong>Click to upload</strong> or drag and drop</div>
+          <div class="file-upload-text">JPG, PNG — leave empty to keep current</div>
+          <div class="file-name" id="fileName"></div>
+        </div>
+        {% if survey.image_url %}
+        <div class="current-image">Current image: <span>{{ survey.image_url.split('/')[-1] }}</span></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- REWARD -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-icon">💎</div>
+        <div>
+          <h2>Reward Settings</h2>
+          <p>Adjust reward and add more responses</p>
+        </div>
+      </div>
+
+      <div class="progress-box">
+        <span class="progress-label">Current Progress</span>
+        <span class="progress-value">{{ survey.current_responses }} / {{ survey.target_responses }} responses</span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Reward per Response</label>
+          <div class="label-desc">💎 diamonds per respondent</div>
+          <input type="number" name="reward_amount" value="{{ "%.2f"|format(survey.reward_amount) }}" step="0.01" min="1" required style="margin-top: 8px;">
+        </div>
+        <div class="form-group">
+          <label>Additional Responses Needed</label>
+          <div class="label-desc">Added on top of current {{ survey.current_responses }}</div>
+          <input type="number" name="additional_needed" value="{{ survey.target_responses - survey.current_responses }}" min="0" required style="margin-top: 8px;">
+        </div>
+      </div>
+    </div>
+
+    <!-- TARGET AUDIENCE -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-icon">🎯</div>
+        <div>
+          <h2>Target Audience</h2>
+          <p>Leave any field blank to allow all participants</p>
+        </div>
+      </div>
+
+      <!-- Demographics -->
+      <div class="filter-group-label">Demographics</div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group">
+          <label>Age Range</label>
+          <select name="target_age_range">
+            <option value="all" {% if not survey.target_age_range or survey.target_age_range=='' %}selected{% endif %}>All ages</option>
+            <option value="18-24" {% if survey.target_age_range=='18-24' %}selected{% endif %}>18–24</option>
+            <option value="25-34" {% if survey.target_age_range=='25-34' %}selected{% endif %}>25–34</option>
+            <option value="35-44" {% if survey.target_age_range=='35-44' %}selected{% endif %}>35–44</option>
+            <option value="45+" {% if survey.target_age_range=='45+' %}selected{% endif %}>45+</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <select name="target_state">
+            <option value="all" {% if not survey.target_state or survey.target_state=='' %}selected{% endif %}>All states</option>
+            {% for st in ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'] %}
+            <option value="{{ st }}" {% if survey.target_state==st %}selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group">
+          <label>Language</label>
+          <select name="target_language">
+            <option value="all" {% if not survey.target_language or survey.target_language=='' %}selected{% endif %}>All languages</option>
+            {% for lang in ['Arabic','English','French','German','Hindi','Japanese','Korean','Mandarin Chinese','Spanish','Other'] %}
+            <option value="{{ lang }}" {% if survey.target_language==lang %}selected{% endif %}>{{ lang }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>International / Domestic</label>
+          <select name="target_international_domestic">
+            <option value="all" {% if not survey.target_international_domestic or survey.target_international_domestic=='' %}selected{% endif %}>All</option>
+            <option value="Domestic" {% if survey.target_international_domestic=='Domestic' %}selected{% endif %}>Domestic students</option>
+            <option value="International" {% if survey.target_international_domestic=='International' %}selected{% endif %}>International students</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Academic Background -->
+      <div class="filter-group-label">Academic Background</div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group">
+          <label>Student Status</label>
+          <select name="target_student_status">
+            <option value="all" {% if not survey.target_student_status or survey.target_student_status=='' %}selected{% endif %}>All</option>
+            <option value="undergrad" {% if survey.target_student_status=='undergrad' %}selected{% endif %}>Undergraduate</option>
+            <option value="grad" {% if survey.target_student_status=='grad' %}selected{% endif %}>Graduate / PhD</option>
+            <option value="non-student" {% if survey.target_student_status=='non-student' %}selected{% endif %}>Non-student</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Year in School</label>
+          <select name="target_year_in_school">
+            <option value="all" {% if not survey.target_year_in_school or survey.target_year_in_school=='' %}selected{% endif %}>All years</option>
+            {% for yr in ['Freshman','Sophomore','Junior','Senior','Graduate Year 1','Graduate Year 2+'] %}
+            <option value="{{ yr }}" {% if survey.target_year_in_school==yr %}selected{% endif %}>{{ yr }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group">
+          <label>Field / Major</label>
+          <select name="target_field">
+            <option value="all" {% if not survey.target_field or survey.target_field=='' %}selected{% endif %}>All fields</option>
+            {% for f in ['Computer Science & Engineering','Business & Economics','Medicine & Healthcare','Natural Sciences','Social Sciences','Arts & Humanities','Education','Law','Other'] %}
+            <option value="{{ f }}" {% if survey.target_field==f %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Employment Status</label>
+          <select name="target_status">
+            <option value="all" {% if not survey.target_status or survey.target_status=='' %}selected{% endif %}>All</option>
+            <option value="student" {% if survey.target_status=='student' %}selected{% endif %}>Student</option>
+            <option value="working" {% if survey.target_status=='working' %}selected{% endif %}>Working</option>
+            <option value="freelancer" {% if survey.target_status=='freelancer' %}selected{% endif %}>Freelancer</option>
+            <option value="other" {% if survey.target_status=='other' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-3" style="margin-bottom: 0;">
+        <div class="form-group">
+          <label>Min Education</label>
+          <select name="target_education_min">
+            <option value="">No limit</option>
+            <option value="1" {% if survey.target_education_min==1 %}selected{% endif %}>High School</option>
+            <option value="2" {% if survey.target_education_min==2 %}selected{% endif %}>Undergraduate</option>
+            <option value="3" {% if survey.target_education_min==3 %}selected{% endif %}>Graduate</option>
+            <option value="4" {% if survey.target_education_min==4 %}selected{% endif %}>PhD</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Max Education</label>
+          <select name="target_education_max">
+            <option value="">No limit</option>
+            <option value="1" {% if survey.target_education_max==1 %}selected{% endif %}>High School</option>
+            <option value="2" {% if survey.target_education_max==2 %}selected{% endif %}>Undergraduate</option>
+            <option value="3" {% if survey.target_education_max==3 %}selected{% endif %}>Graduate</option>
+            <option value="4" {% if survey.target_education_max==4 %}selected{% endif %}>PhD</option>
+          </select>
+        </div>
+        <div class="form-group"><!-- spacer --></div>
+      </div>
+
+      <!-- Experience Tags -->
+      <div class="filter-group-label">Participant Experience <span style="font-weight:300; text-transform:none; letter-spacing:0;">(select all that apply)</span></div>
+      <div class="label-desc" style="margin-bottom: 10px;">Participants only need to match one selected tag</div>
+      {% set etags = ',' ~ (survey.target_experience_tags or '') ~ ',' %}
+      <div class="checkbox-group">
+        <label class="checkbox-item {% if ',startup_experience,' in etags %}checked{% endif %}">
+          <input type="checkbox" name="target_experience_tags" value="startup_experience"
+            {% if ',startup_experience,' in etags %}checked{% endif %}
+            onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
+          🚀 Startup / product experience
+        </label>
+        <label class="checkbox-item {% if ',club_leadership,' in etags %}checked{% endif %}">
+          <input type="checkbox" name="target_experience_tags" value="club_leadership"
+            {% if ',club_leadership,' in etags %}checked{% endif %}
+            onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
+          🎓 Club / org leadership
+        </label>
+        <label class="checkbox-item {% if ',mental_health_experience,' in etags %}checked{% endif %}">
+          <input type="checkbox" name="target_experience_tags" value="mental_health_experience"
+            {% if ',mental_health_experience,' in etags %}checked{% endif %}
+            onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
+          🧠 Mental health experience
+        </label>
+        <label class="checkbox-item {% if ',chronic_illness,' in etags %}checked{% endif %}">
+          <input type="checkbox" name="target_experience_tags" value="chronic_illness"
+            {% if ',chronic_illness,' in etags %}checked{% endif %}
+            onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
+          🏥 Chronic illness
+        </label>
+        <label class="checkbox-item {% if ',heavy_social_media,' in etags %}checked{% endif %}">
+          <input type="checkbox" name="target_experience_tags" value="heavy_social_media"
+            {% if ',heavy_social_media,' in etags %}checked{% endif %}
+            onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
+          📱 Heavy social media user
+        </label>
+        <label class="checkbox-item {% if ',prior_research,' in etags %}checked{% endif %}">
+          <input type="checkbox" name="target_experience_tags" value="prior_research"
+            {% if ',prior_research,' in etags %}checked{% endif %}
+            onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
+          🔬 Prior research participation
+        </label>
+      </div>
+
+      <!-- Advanced -->
+      <details style="margin-top: 24px;">
+        <summary class="advanced-toggle">
+          <span id="advArrow">▸</span> Advanced targeting
+        </summary>
+        <div class="advanced-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ethnicity</label>
+              <select name="target_ethnicity">
+                <option value="all" {% if not survey.target_ethnicity or survey.target_ethnicity=='' %}selected{% endif %}>All</option>
+                {% for e in ['White','Black or African American','Hispanic or Latino','Asian','Middle Eastern or North African','Native American or Pacific Islander','Two or more races','Other'] %}
+                <option value="{{ e }}" {% if survey.target_ethnicity==e %}selected{% endif %}>{{ e }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Sexual Orientation</label>
+              <select name="target_sexual_orientation">
+                <option value="all" {% if not survey.target_sexual_orientation or survey.target_sexual_orientation=='' %}selected{% endif %}>All</option>
+                {% for o in ['Straight / Heterosexual','Gay or Lesbian','Bisexual','Other'] %}
+                <option value="{{ o }}" {% if survey.target_sexual_orientation==o %}selected{% endif %}>{{ o }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mental health diagnosis</label>
+              <select name="target_mental_health_diagnosis">
+                <option value="all" {% if not survey.target_mental_health_diagnosis or survey.target_mental_health_diagnosis=='' %}selected{% endif %}>All</option>
+                <option value="Yes" {% if survey.target_mental_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
+                <option value="No" {% if survey.target_mental_health_diagnosis=='No' %}selected{% endif %}>No</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Physical health diagnosis</label>
+              <select name="target_physical_health_diagnosis">
+                <option value="all" {% if not survey.target_physical_health_diagnosis or survey.target_physical_health_diagnosis=='' %}selected{% endif %}>All</option>
+                <option value="Yes" {% if survey.target_physical_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
+                <option value="No" {% if survey.target_physical_health_diagnosis=='No' %}selected{% endif %}>No</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Sport type</label>
+              <select name="target_sport_type">
+                <option value="all" {% if not survey.target_sport_type or survey.target_sport_type=='' %}selected{% endif %}>All</option>
+                {% for st in ['Basketball','Soccer / Football','Baseball / Softball','American Football','Tennis','Golf','Swimming','Running / Jogging','Cycling','Yoga / Pilates','Gym / Weightlifting','Martial Arts','Volleyball','Hockey','Other','None'] %}
+                <option value="{{ st }}" {% if survey.target_sport_type==st %}selected{% endif %}>{{ st }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Sport frequency</label>
+              <select name="target_sport_frequency">
+                <option value="all" {% if not survey.target_sport_frequency or survey.target_sport_frequency=='' %}selected{% endif %}>All</option>
+                {% for sf in ['Daily','Several times a week','Once a week','A few times a month','Rarely','Never'] %}
+                <option value="{{ sf }}" {% if survey.target_sport_frequency==sf %}selected{% endif %}>{{ sf }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Smoking</label>
+              <select name="target_smoking">
+                <option value="all" {% if not survey.target_smoking or survey.target_smoking=='' %}selected{% endif %}>All</option>
+                {% for sm in ['Never','Former smoker','Rarely','Occasionally','Several times a week','Daily'] %}
+                <option value="{{ sm }}" {% if survey.target_smoking==sm %}selected{% endif %}>{{ sm }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Cannabis use</label>
+              <select name="target_cannabis_use">
+                <option value="all" {% if not survey.target_cannabis_use or survey.target_cannabis_use=='' %}selected{% endif %}>All</option>
+                {% for cu in ['Never','Former user','Rarely','Occasionally','Several times a week','Daily'] %}
+                <option value="{{ cu }}" {% if survey.target_cannabis_use==cu %}selected{% endif %}>{{ cu }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="submit-section">
+      <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
+      <button type="submit" class="btn-save">Save Changes →</button>
+    </div>
+
+  </form>
+</div>
+
 <script>
-    const coverImageInput = document.getElementById('coverImageInput');
-    const fileInputLabel = document.getElementById('fileInputLabel');
-    const fileInputButton = document.querySelector('.file-input-button');
-    
-    fileInputButton.addEventListener('click', function() {
-        coverImageInput.click();
-    });
-    
-    coverImageInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            document.getElementById('imagePreview').style.display = 'inline';
-            fileInputLabel.textContent = file.name;
-            fileInputLabel.classList.add('has-file');
-        } else {
-            document.getElementById('imagePreview').style.display = 'none';
-            fileInputLabel.textContent = 'No file chosen';
-            fileInputLabel.classList.remove('has-file');
-        }
-    });
+  // Select color fix
+  document.querySelectorAll('select').forEach(s => {
+    const update = () => s.classList.toggle('has-value', !!s.value && s.value !== '');
+    s.addEventListener('change', update);
+    update();
+  });
 
-    document.querySelectorAll('select[name^="target_"]').forEach(select => {
-        select.addEventListener('change', function() {
-            if (this.value === '' || this.value === null) {
-                this.style.color = '#9B9A97';
-            } else {
-                this.style.color = '#37352F';
-            }
-        });
-        
-        if (select.value === '' || select.value === null) {
-            select.style.color = '#9B9A97';
-        } else {
-            select.style.color = '#37352F';
-        }
-    });
+  // File upload label
+  document.getElementById('coverImageInput').addEventListener('change', function() {
+    const fn = document.getElementById('fileName');
+    if (this.files[0]) { fn.textContent = '✓ ' + this.files[0].name; fn.style.display = 'block'; }
+    else { fn.style.display = 'none'; }
+  });
 
-    const rewardInput = document.getElementById('rewardAmount');
-    if (rewardInput) {
-        rewardInput.addEventListener('input', function() {
-            const cursorPos = this.selectionStart;
-            const oldLength = this.value.length;
-            if (this.value && !isNaN(this.value)) {
-                this.value = parseFloat(this.value).toFixed(2);
-                const newLength = this.value.length;
-                const newCursorPos = cursorPos + (newLength - oldLength);
-                this.setSelectionRange(newCursorPos, newCursorPos);
-            }
-        });
-    }
+  // Advanced toggle arrow
+  document.querySelector('details').addEventListener('toggle', function() {
+    document.getElementById('advArrow').textContent = this.open ? '▾' : '▸';
+  });
+
+  // Education fields — remove name if empty so backend gets null
+  document.querySelector('form').addEventListener('submit', function() {
+    ['target_education_min', 'target_education_max'].forEach(name => {
+      const el = this.querySelector(`select[name="${name}"]`);
+      if (el && !el.value) el.removeAttribute('name');
+    });
+  });
 </script>
+
 </body>
 </html>
