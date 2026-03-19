@@ -342,9 +342,9 @@ def delete_survey(
 # ---------------------------
 
 URGENCY_RANK = {
-    "within_3_days": 3,
-    "within_1_week": 2,
-    "flexible": 1,
+    "within_1_week":  3,
+    "within_1_month": 2,
+    "flexible":       1,
 }
 
 @app.get("/dashboard", response_class=HTMLResponse)
