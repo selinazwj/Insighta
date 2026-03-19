@@ -134,6 +134,23 @@ def main():
         for col, col_type in RESPONSE_STRIPE_COLUMNS:
             add_column_if_not_exists(conn, "responses", col, col_type, is_sqlite)
 
+        print("Creating feedbacks table...")
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS feedbacks (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                category VARCHAR NOT NULL,
+                title VARCHAR NOT NULL,
+                content VARCHAR NOT NULL,
+                status VARCHAR DEFAULT 'pending',
+                credit_amount FLOAT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                reviewed_at TIMESTAMP
+            )
+        """))
+        conn.commit()
+        print("  + feedbacks table (if not exists)")
+
     print("Done!")
 
 if __name__ == "__main__":

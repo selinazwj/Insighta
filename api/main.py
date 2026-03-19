@@ -14,7 +14,7 @@ import os
 import stripe
 
 from app.database import engine, get_db
-from app.models import Base, User, Survey, Response
+from app.models import Base, User, Survey, Response, Feedback
 
 
 app = FastAPI()
@@ -1181,6 +1181,124 @@ Return ONLY a valid JSON object with these exact fields, no extra text:
         import traceback
         print(traceback.format_exc())
         raise HTTPException(500, str(e))
+
+
+# ---------------------------
+# Feedback
+# ---------------------------
+
+@app.get("/feedback", response_class=HTMLResponse)
+def feedback_page(request: Request, current_user: User = Depends(get_current_user)):
+    return templates.TemplateResponse("feedback.html", {
+        "request": request,
+        "current_user": current_user
+    })
+
+@app.post("/feedback")
+async def submit_feedback(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    form = await request.form()
+    feedback = Feedback(
+        user_id=current_user.id,
+        category=form.get("category", "general"),
+        title=form.get("title", ""),
+        content=form.get("content", ""),
+        status="pending",
+    )
+    db.add(feedback)
+    db.commit()
+    return RedirectResponse("/feedback?success=1", status_code=303)
+
+# Admin: grant credit for feedback
+@app.post("/admin/feedback/{feedback_id}/credit")
+async def grant_credit(
+    feedback_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    # Simple admin key check
+    body = await request.json()
+    admin_key = body.get("admin_key", "")
+    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"):
+        raise HTTPException(403, "Unauthorized")
+
+    amount = float(body.get("amount", 0))
+    if amount <= 0:
+        raise HTTPException(400, "Amount must be > 0")
+
+    feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not feedback:
+        raise HTTPException(404, "Feedback not found")
+
+    user = db.query(User).filter(User.id == feedback.user_id).first()
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    # Grant credit
+    user.pending_earnings = (getattr(user, 'pending_earnings', 0.0) or 0.0) + amount
+    feedback.status = "credited"
+    feedback.credit_amount = amount
+    feedback.reviewed_at = datetime.utcnow()
+    db.commit()
+
+    return JSONResponse({
+        "success": True,
+        "user_email": user.email,
+        "amount": amount,
+        "new_balance": user.pending_earnings
+    })
+
+# Admin page
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page(request: Request):
+    return templates.TemplateResponse("admin.html", {"request": request})
+
+# Admin: reject feedback
+@app.post("/admin/feedback/{feedback_id}/reject")
+async def reject_feedback(
+    feedback_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    body = await request.json()
+    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"):
+        raise HTTPException(403, "Unauthorized")
+
+    feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not feedback:
+        raise HTTPException(404, "Feedback not found")
+
+    feedback.status = "rejected"
+    feedback.reviewed_at = datetime.utcnow()
+    db.commit()
+    return JSONResponse({"success": True})
+@app.get("/admin/feedbacks")
+async def list_feedbacks(
+    request: Request,
+    admin_key: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"):
+        raise HTTPException(403, "Unauthorized")
+
+    feedbacks = db.query(Feedback).order_by(Feedback.created_at.desc()).all()
+    result = []
+    for f in feedbacks:
+        user = db.query(User).filter(User.id == f.user_id).first()
+        result.append({
+            "id": f.id,
+            "user_email": user.email if user else "unknown",
+            "category": f.category,
+            "title": f.title,
+            "content": f.content,
+            "status": f.status,
+            "credit_amount": f.credit_amount,
+            "created_at": str(f.created_at),
+        })
+    return JSONResponse(result)
 
 
 app.include_router(router)

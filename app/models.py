@@ -168,3 +168,30 @@ class Response(Base):
 
     survey = relationship("Survey", back_populates="responses")
     participant = relationship("User", back_populates="responses")
+
+
+# ======================
+# Feedback
+# ======================
+class Feedback(Base):
+    __tablename__ = "feedbacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    category = Column(String, nullable=False)
+    # bug / feature_request / ux / general / other
+
+    title = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+
+    status = Column(String, default="pending")
+    # pending / reviewed / credited / rejected
+
+    credit_amount = Column(Float, nullable=True)
+    # 审核后发放的金额
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    reviewed_at = Column(DateTime, nullable=True)
+
+    user = relationship("User", backref="feedbacks")
