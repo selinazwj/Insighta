@@ -562,14 +562,28 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   .how-step:first-child { border-radius: 15px 15px 0 0; }
   .how-step:last-child { border-radius: 0 0 15px 15px; }
   .how-detail { grid-template-columns: 1fr; }
-  .timeline::before { left: 24px; }
-  .timeline-item { grid-template-columns: 48px 1fr; gap: 16px; }
+  .timeline::before { left: 20px; top: 0; }
+  .timeline-item {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 16px;
+    margin-bottom: 40px;
+    align-items: flex-start;
+    grid-template-columns: unset !important;
+  }
   .timeline-item:nth-child(even) .timeline-content:first-child { order: unset; text-align: left; }
   .timeline-item:nth-child(even) .timeline-content:last-child { order: unset; }
   .timeline-empty { display: none; }
-  .timeline-content { padding: 0; }
-  .timeline-center { flex-direction: row; align-items: center; padding-top: 6px; }
+  .timeline-content { padding: 0; flex: 1; }
+  .timeline-center {
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 40px;
+    padding-top: 0;
+  }
   .timeline-year { display: none; }
+  .timeline-dot { width: 36px; height: 36px; font-size: 14px; }
   .values-grid { grid-template-columns: 1fr; }
   .cta-cards { grid-template-columns: 1fr; }
   .footer-top { grid-template-columns: 1fr; gap: 32px; }
@@ -898,7 +912,7 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
         <a href="/register" class="btn btn-outline">Find Surveys →</a>
       </div>
     </div>
-    <p style="font-size: 14px; color: var(--ink-muted);">Have questions? Reach out at <a href="mailto:vfsa@bu.edu" style="color: var(--accent); text-decoration: none; font-weight: 500;">vfsa@bu.edu</a> — we actually read every email.</p>
+    <p style="font-size: 14px; color: var(--ink-muted);">Have questions? Reach out at <a href="/cdn-cgi/l/email-protection#61170712002103144f040514" style="color: var(--accent); text-decoration: none; font-weight: 500;"><span class="__cf_email__" data-cfemail="a6d0c0d5c7e6c4d388c3c2d3">[email&#160;protected]</span></a> — we actually read every email.</p>
   </div>
 </section>
 
@@ -926,7 +940,7 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
     </div>
     <div class="footer-col">
       <h4>Connect</h4>
-      <a href="mailto:vfsa@bu.edu">Email Us</a>
+      <a href="/cdn-cgi/l/email-protection#d9afbfaab899bbacf7bcbdac">Email Us</a>
       <a href="https://www.instagram.com/surveybridge?igsh=MWloN3JhbG1sbndzOA%3D%3D&utm_source=qr" target="_blank">Instagram</a>
     </div>
   </div>
@@ -937,7 +951,7 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
 </footer>
 
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 function switchTab(tab, btn) {
   document.querySelectorAll('.how-content').forEach(c => c.classList.remove('active'));
   document.querySelectorAll('.how-tab').forEach(b => b.classList.remove('active'));
@@ -954,13 +968,4 @@ const observer = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.1 });
 
-document.querySelectorAll('.story-block, .timeline-card, .value-card, .cta-card, .feature-card').forEach(el => {
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(20px)';
-  el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-  observer.observe(el);
-});
-</script>
-
-</body>
-</html>
+document.querySelectorAll('.story-block, .
