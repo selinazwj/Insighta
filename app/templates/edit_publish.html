@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Survey - Insighta</title>
+    <title>{% if survey.task_type == 'interview' %}Edit Interview{% else %}Edit Survey{% endif %} - Insighta</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/static/favicon.png">
@@ -351,8 +351,8 @@
 
     <div class="container">
         <div class="page-header">
-            <h1>✏️ Edit Survey</h1>
-            <p>Update your survey information and resubmit</p>
+            <h1>{% if survey.task_type == 'interview' %}✏️ Edit Interview{% else %}✏️ Edit Survey{% endif %}</h1>
+            <p>{% if survey.task_type == 'interview' %}Update your interview information and resubmit{% else %}Update your survey information and resubmit{% endif %}</p>
         </div>
 
         <div class="form-card">
@@ -360,11 +360,11 @@
                 <!-- Basic info -->
                 <div class="page-header" style="margin-bottom: 24px;">
                     <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">📝 Basic Information</h2>
-                    <p style="font-size: 15px; color: #787774; margin: 0;">Provide essential details about your survey</p>
+                    <p style="font-size: 15px; color: #787774; margin: 0;">Provide essential details about your {% if survey.task_type == 'interview' %}interview{% else %}survey{% endif %}</p>
                 </div>
 
                 <div class="form-group">
-                    <label>Survey Title</label>
+                    <label>{% if survey.task_type == 'interview' %}Interview Title{% else %}Survey Title{% endif %}</label>
                     <input type="text" name="title" value="{{ survey.title }}" required>
                 </div>
 
@@ -374,16 +374,16 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Google Form Link</label>
-                    <input type="url" name="form_url" value="{{ survey.form_url }}" required>
+                    <label>{% if survey.task_type == 'interview' %}Scheduling Link{% else %}Google Form Link{% endif %}</label>
+                    <input type="url" name="form_url" value="{{ survey.form_url }}" placeholder="{% if survey.task_type == 'interview' %}https://calendly.com/your-name/30min{% else %}https://forms.gle/...{% endif %}" required>
                 </div>
 
                 <div class="form-divider"></div>
 
                 <!-- Survey details -->
                 <div class="page-header" style="margin-bottom: 24px;">
-                    <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">📋 Survey Details</h2>
-                    <p style="font-size: 15px; color: #787774; margin: 0;">Configure category, time, and cover image</p>
+                    <h2 style="font-size: 24px; font-weight: 700; color: #000000; margin-bottom: 8px;">{% if survey.task_type == 'interview' %}🎙️ Interview Details{% else %}📋 Survey Details{% endif %}</h2>
+                    <p style="font-size: 15px; color: #787774; margin: 0;">Configure category, {% if survey.task_type == 'interview' %}duration{% else %}time{% endif %}, and cover image</p>
                 </div>
 
                 <div class="form-row">
@@ -400,19 +400,27 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Estimated Time</label>
+                        <label>{% if survey.task_type == 'interview' %}Session Duration{% else %}Estimated Time{% endif %}</label>
                         <select name="estimated_time" required>
+                            {% if survey.task_type == 'interview' %}
+                            <option value="30" {% if survey.estimated_time==30 %}selected{% endif %}>30 minutes</option>
+                            <option value="45" {% if survey.estimated_time==45 %}selected{% endif %}>45 minutes</option>
+                            <option value="60" {% if survey.estimated_time==60 %}selected{% endif %}>1 hour</option>
+                            <option value="90" {% if survey.estimated_time==90 %}selected{% endif %}>1.5 hours</option>
+                            <option value="120" {% if survey.estimated_time==120 %}selected{% endif %}>2 hours</option>
+                            {% else %}
                             <option value="5" {% if survey.estimated_time==5 %}selected{% endif %}>⚡ 5 minutes</option>
                             <option value="10" {% if survey.estimated_time==10 %}selected{% endif %}>🕐 10 minutes</option>
                             <option value="15" {% if survey.estimated_time==15 %}selected{% endif %}>🕑 15 minutes</option>
                             <option value="20" {% if survey.estimated_time==20 %}selected{% endif %}>🕒 20 minutes</option>
                             <option value="30" {% if survey.estimated_time==30 %}selected{% endif %}>🕔 30 minutes</option>
+                            {% endif %}
                         </select>
                     </div>
                 </div>
 
                 <div class="form-group upload-group">
-                    <label>Survey Cover Image (Optional)</label>
+                    <label>{% if survey.task_type == 'interview' %}Interview Cover Image (Optional){% else %}Survey Cover Image (Optional){% endif %}</label>
                     <div class="file-input-wrapper">
                         <button type="button" class="file-input-button">Choose File</button>
                         <span class="file-input-label" id="fileInputLabel">No file chosen</span>
@@ -437,8 +445,13 @@
                 </div>
 
                 <div class="info-box" style="margin-bottom: 20px;">
+                    {% if survey.task_type == 'interview' %}
+                    <strong>💰 Recommended reward:</strong>
+                    <span>For a 30-min interview, recommended reward is ~$12. For 60 min, ~$25.</span>
+                    {% else %}
                     <strong>💎 Recommended reward:</strong>
-                    <span>For a survey that takes about 5 minutes, the recommended reward is approximately 2 💎.</span>
+                    <span>For a survey that takes about 5 minutes, the recommended reward is approximately $2.</span>
+                    {% endif %}
                 </div>
 
                 <div class="info-box">
@@ -716,7 +729,7 @@
 
                 <div class="submit-section">
                     <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Survey</button>
+                    <button type="submit" class="btn btn-primary">{% if survey.task_type == 'interview' %}Update Interview{% else %}Update Survey{% endif %}</button>
                 </div>
             </form>
         </div>

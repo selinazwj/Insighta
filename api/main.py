@@ -12,7 +12,7 @@ import uuid
 import os
 
 from app.database import engine, get_db
-from app.models import Base, User, Survey, Response
+from app.models import Base, User, Survey, Response, Notification
 
 
 app = FastAPI()
@@ -461,8 +461,20 @@ def complete_survey(
         r.status = "completed"
         r.completed_at = datetime.now(timezone.utc)
 
+        # Create notification for the publisher
+        notif = Notification(
+            publisher_id=survey.publisher_id,
+            participant_id=current_user.id,
+            survey_id=survey_id,
+            participant_email=current_user.email,
+            survey_title=survey.title,
+            task_type=getattr(survey, "task_type", "survey") or "survey",
+            status="pending"
+        )
+        db.add(notif)
+
     db.commit()
-    return RedirectResponse(url="/dashboard", status_code=302)
+    return JSONResponse({"ok": True})
 
 @app.post("/surveys/{survey_id}/modify")
 def modify_completed_survey(
@@ -482,6 +494,62 @@ def modify_completed_survey(
         return {"message": "Response modified"}
 
     return JSONResponse({"detail": "Response not found or not completed"}, status_code=404)
+
+
+# ---------------------------
+# Notifications API
+# ---------------------------
+@app.get("/api/notifications")
+def get_notifications(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    notifs = db.query(Notification).filter(
+        Notification.publisher_id == current_user.id
+    ).order_by(Notification.created_at.desc()).all()
+
+    return JSONResponse([{
+        "id": n.id,
+        "participant_email": n.participant_email,
+        "survey_title": n.survey_title,
+        "task_type": n.task_type or "survey",
+        "status": n.status,
+        "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else ""
+    } for n in notifs])
+
+
+@app.post("/api/notifications/{notif_id}/accept")
+def accept_notification(
+    notif_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    n = db.query(Notification).filter(
+        Notification.id == notif_id,
+        Notification.publisher_id == current_user.id
+    ).first()
+    if not n:
+        raise HTTPException(404, "Notification not found")
+    n.status = "accepted"
+    db.commit()
+    return {"message": "accepted"}
+
+
+@app.post("/api/notifications/{notif_id}/reject")
+def reject_notification(
+    notif_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    n = db.query(Notification).filter(
+        Notification.id == notif_id,
+        Notification.publisher_id == current_user.id
+    ).first()
+    if not n:
+        raise HTTPException(404, "Notification not found")
+    n.status = "rejected"
+    db.commit()
+    return {"message": "rejected"}
 
 
 # ---------------------------

@@ -70,6 +70,9 @@ class Survey(Base):
     target_smoking = Column(String, nullable=True)
     target_cannabis_use = Column(String, nullable=True)
 
+    # Task type (survey / interview)
+    task_type = Column(String, default="survey", nullable=True)
+
     # Basic info
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
@@ -93,6 +96,23 @@ class Survey(Base):
     # Relationships
     publisher = relationship("User", back_populates="surveys")
     responses = relationship("Response", back_populates="survey")
+
+
+# ======================
+# Notification (publisher receives when participant completes)
+# ======================
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    publisher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    participant_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
+    participant_email = Column(String, nullable=True)
+    survey_title = Column(String, nullable=True)
+    task_type = Column(String, default="survey")
+    status = Column(String, default="pending")  # pending / accepted / rejected
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 # ======================

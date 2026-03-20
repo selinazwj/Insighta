@@ -309,9 +309,6 @@
     }
 
     .completed-badge {
-      position: absolute;
-      top: 16px;
-      right: 16px;
       background: var(--accent);
       color: white;
       padding: 4px 12px;
@@ -321,6 +318,15 @@
       display: flex;
       align-items: center;
       gap: 4px;
+      white-space: nowrap;
+    }
+
+    .card-badges {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      flex-shrink: 0;
     }
 
     .card-image {
@@ -628,11 +634,15 @@
   }
 
   function showEmpty(category) {
-    const names = { research:'Research', life:'Lifestyle', clubs:'Clubs', market:'Market', academic:'Academic', other:'Other', interview:'Interview' };
+    const isInterview = category.startsWith('interview_');
+    const rawKey = isInterview ? category.replace('interview_', '') : category;
+    const names = { research:'Research', life:'Lifestyle', clubs:'Clubs', market:'Market', academic:'Academic', other:'Other' };
+    const label = names[rawKey] || rawKey;
+    const typeText = isInterview ? 'interviews' : 'surveys';
     document.getElementById('cardsContainer').innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">📭</div>
-        <h3>No ${names[category]} surveys right now</h3>
+        <h3>No ${label} ${typeText} right now</h3>
         <p>Check back later for new opportunities!</p>
       </div>`;
   }
@@ -676,20 +686,23 @@
     container.innerHTML = list.map(s => {
       const completedBadge = s.is_completed ? '<div class="completed-badge">✓ Completed</div>' : '';
       const completedClass = s.is_completed ? 'completed' : '';
+      const isInterview = s.type === 'interview';
       const actions = s.is_completed
-        ? `<button class="action-btn primary" onclick="modifySurvey(event,${s.id})">Modify Response</button>`
-        : `<button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}')">Take Survey →</button>
-           <button class="action-btn" onclick="completeSurvey(event,${s.id})">Mark Complete</button>`;
+        ? `<button class="action-btn primary" onclick="modifySurvey(event,${s.id})">${isInterview ? 'Modify Booking' : 'Modify Response'}</button>`
+        : `<button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}')">${isInterview ? 'Book Interview →' : 'Take Survey →'}</button>
+           <button class="action-btn" onclick="completeSurvey(event,${s.id})">${isInterview ? 'Mark Booked' : 'Mark Complete'}</button>`;
 
       return `
-        <div class="card ${completedClass}">
-          ${completedBadge}
+        <div class="card ${completedClass}" id="card-${s.id}">
           <img src="${s.img}" class="card-image" alt="${s.title}" onerror="this.style.display='none'">
           <div class="card-content">
             <div class="card-top">
               <div class="card-title-row">
                 <h3>${s.title}</h3>
-                <div class="reward-badge">💎 ${s.reward}</div>
+                <div class="card-badges">
+                  ${completedBadge}
+                  <div class="reward-badge">💎 ${s.reward}</div>
+                </div>
               </div>
               <p>${s.desc}</p>
             </div>
@@ -719,18 +732,50 @@
     try {
       const res = await fetch(`/surveys/${id}/complete`, { method: 'POST', credentials: 'same-origin' });
       if (!res.ok) { alert(await res.text()); return; }
-      window.location.reload();
+      let survey = null;
+      for (const cat of Object.values(surveys)) {
+        const s = cat.find(x => x.id === id);
+        if (s) { s.is_completed = true; survey = s; break; }
+      }
+      if (survey) {
+        const isInterview = survey.type === 'interview';
+        const card = document.getElementById(`card-${id}`);
+        if (card) {
+          card.classList.add('completed');
+          const badges = card.querySelector('.card-badges');
+          if (badges && !badges.querySelector('.completed-badge')) {
+            badges.insertAdjacentHTML('afterbegin', '<div class="completed-badge">✓ Completed</div>');
+          }
+          const actionsEl = card.querySelector('.card-actions');
+          if (actionsEl) actionsEl.innerHTML = `<button class="action-btn primary" onclick="modifySurvey(event,${id})">${isInterview ? 'Modify Booking' : 'Modify Response'}</button>`;
+        }
+      }
     } catch { alert('Network error'); }
   }
 
   async function modifySurvey(e, id) {
     e.preventDefault(); e.stopPropagation();
-    const cat = localStorage.getItem('dashboardActiveCategory') || 'research';
     try {
       const res = await fetch(`/surveys/${id}/modify`, { method: 'POST', credentials: 'same-origin' });
       if (!res.ok) { alert(await res.text()); return; }
-      localStorage.setItem('dashboardActiveCategory', cat);
-      window.location.reload();
+      let survey = null;
+      for (const cat of Object.values(surveys)) {
+        const s = cat.find(x => x.id === id);
+        if (s) { s.is_completed = false; survey = s; break; }
+      }
+      if (survey) {
+        const isInterview = survey.type === 'interview';
+        const card = document.getElementById(`card-${id}`);
+        if (card) {
+          card.classList.remove('completed');
+          const badge = card.querySelector('.completed-badge');
+          if (badge) badge.remove();
+          const actionsEl = card.querySelector('.card-actions');
+          if (actionsEl) actionsEl.innerHTML = `
+            <button class="action-btn primary" onclick="startSurvey(event,${id},'${survey.link}')">${isInterview ? 'Book Interview →' : 'Take Survey →'}</button>
+            <button class="action-btn" onclick="completeSurvey(event,${id})">${isInterview ? 'Mark Booked' : 'Mark Complete'}</button>`;
+        }
+      }
     } catch { alert('Network error'); }
   }
 </script>

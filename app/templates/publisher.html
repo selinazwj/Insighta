@@ -104,6 +104,163 @@
 
     .avatar-link:hover { background: var(--paper-warm); color: var(--ink); }
 
+    /* ── NOTIFICATION BELL ── */
+    .notif-wrapper {
+      position: relative;
+    }
+
+    .notif-btn {
+      position: relative;
+      background: none;
+      border: none;
+      padding: 4px 6px;
+      cursor: pointer;
+      font-size: 22px;
+      line-height: 1;
+      transition: opacity 0.2s;
+    }
+
+    .notif-btn:hover {
+      opacity: 0.7;
+    }
+
+    .notif-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #ef4444;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+
+
+    .notif-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .notif-header h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .notif-list {
+      overflow-y: auto;
+    }
+
+    .notif-item {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      transition: background 0.15s;
+    }
+
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item:hover { background: var(--paper); }
+
+    .notif-item.accepted { border-left: 3px solid var(--accent); }
+    .notif-item.rejected { border-left: 3px solid #ef4444; }
+
+    .notif-type-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 100px;
+      margin-bottom: 6px;
+    }
+
+    .notif-type-survey { background: rgba(45,106,79,0.1); color: var(--accent); }
+    .notif-type-interview { background: rgba(124,58,237,0.1); color: #7c3aed; }
+
+    .notif-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 3px;
+    }
+
+    .notif-email {
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin-bottom: 8px;
+    }
+
+    .notif-time {
+      font-size: 11px;
+      color: var(--ink-muted);
+    }
+
+    .notif-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .notif-accept {
+      flex: 1;
+      padding: 6px 0;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .notif-accept:hover { background: #245c43; }
+    .notif-accept.active { background: var(--accent); box-shadow: 0 0 0 2px rgba(45,106,79,0.35); }
+    .notif-accept.inactive { background: #e0e0e0; color: #aaa; border: none; cursor: pointer; }
+
+    .notif-reject {
+      flex: 1;
+      padding: 6px 0;
+      background: white;
+      color: #ef4444;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .notif-reject:hover { background: #fff5f5; border-color: #ef4444; }
+    .notif-reject.active { background: #fff0f0; border-color: #ef4444; color: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.25); }
+    .notif-reject.inactive { background: #e0e0e0; color: #aaa; border-color: #e0e0e0; cursor: pointer; }
+
+    .notif-decided {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-top: 8px;
+    }
+
+    .notif-decided.accepted { background: rgba(45,106,79,0.1); color: var(--accent); opacity: 1; }
+    .notif-decided.rejected { background: #fff5f5; color: #ef4444; opacity: 1; }
+
+    .notif-empty {
+      padding: 32px 18px;
+      text-align: center;
+      color: var(--ink-muted);
+      font-size: 14px;
+    }
+
     .avatar {
       width: 32px;
       height: 32px;
@@ -380,6 +537,14 @@
     <div class="navbar-brand">Insight<span>a</span></div>
   </div>
   <div class="navbar-right">
+    <!-- Notification Bell -->
+    <div class="notif-wrapper">
+      <button class="notif-btn" id="notifBtn" onclick="toggleNotifPanel()">
+        🔔
+        <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+      </button>
+    </div>
+
     <a href="/profile" class="avatar-link">
       <div class="avatar">{{ current_user.username[0].upper() if current_user.username else 'U' }}</div>
       <span>Profile</span>
@@ -463,7 +628,7 @@
       <div class="empty-icon">🎙️</div>
       <h3>No interviews yet</h3>
       <p>Create your first interview listing.</p>
-      <a href="/publish" class="create-btn">+ Create Interview</a>
+      <a href="/publish?type=interview" class="create-btn">+ Create Interview</a>
     </div>
     {% else %}
     <div class="survey-list">
@@ -471,15 +636,31 @@
       {% set completed = completed_map.get(s.id, 0) %}
       {% set target = s.target_responses or 0 %}
       {% set pct = (completed * 100 // target) if target > 0 else 0 %}
-      <div class="card">
+      {% set hours = (s.estimated_time // 60) %}
+      {% set mins = (s.estimated_time % 60) %}
+      <div class="card" style="border-left: 3px solid #7c3aed;">
         <div class="card-top">
           <h3>{{ s.title }}</h3>
           <span class="status-badge status-{{ s.status }}">{{ s.status }}</span>
         </div>
-        <p class="card-meta">{{ s.category | capitalize }} · ${{ s.reward_amount }} reward · 🎙️ Interview</p>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+          <span style="font-size:13px; color:var(--ink-muted);">{{ s.category | capitalize }}</span>
+          <span style="font-size:13px; font-weight:700; color:#7c3aed; background:rgba(124,58,237,0.08); border:1px solid rgba(124,58,237,0.2); padding:3px 10px; border-radius:100px;">
+            💎 {{ s.reward_amount | int }} diamonds
+          </span>
+          <span style="font-size:13px; color:var(--ink-muted);">
+            🕐
+            {% if hours > 0 and mins > 0 %}{{ hours }}h {{ mins }}min
+            {% elif hours > 0 %}{{ hours }} hr{% if hours > 1 %}s{% endif %}
+            {% else %}{{ mins }} min
+            {% endif %}
+            / session
+          </span>
+          <span style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#7c3aed; background:rgba(124,58,237,0.08); padding:3px 10px; border-radius:100px;">🎙️ Interview</span>
+        </div>
         <div class="progress-row">
-          <div class="progress-bar"><div class="progress-fill" data-pct="{{ pct }}"></div></div>
-          <div class="progress-text">{{ completed }} / {{ target }}</div>
+          <div class="progress-bar"><div class="progress-fill" data-pct="{{ pct }}" style="background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div>
+          <div class="progress-text">{{ completed }} / {{ target }} slots</div>
         </div>
         <div class="card-actions">
           {% if s.status == "draft" %}
@@ -528,8 +709,121 @@
     });
     btn.style.color = 'var(--accent)';
     btn.style.borderBottomColor = 'var(--accent)';
+    localStorage.setItem('publisherActiveTab', tab);
   }
+
+  // Restore active tab on page load
+  (function() {
+    const saved = localStorage.getItem('publisherActiveTab');
+    if (saved === 'interviews') {
+      const tabs = document.querySelectorAll('.pub-tab');
+      switchPubTab('interviews', tabs[1]);
+    }
+  })();
+
+  // ── NOTIFICATIONS ──
+  let allNotifs = [];
+
+  async function loadNotifications() {
+    try {
+      const res = await fetch('/api/notifications', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      allNotifs = await res.json();
+      renderNotifications();
+    } catch {}
+  }
+
+  function renderNotifications() {
+    const pending = allNotifs.filter(n => n.status === 'pending');
+    const badge = document.getElementById('notifBadge');
+    const count = document.getElementById('notifCount');
+
+    if (pending.length > 0) {
+      badge.textContent = pending.length;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+    count.textContent = `${allNotifs.length} total`;
+
+    const list = document.getElementById('notifList');
+    if (allNotifs.length === 0) {
+      list.innerHTML = '<div class="notif-empty">🎉 No notifications yet</div>';
+      return;
+    }
+
+    list.innerHTML = allNotifs.map(n => {
+      const typeClass = n.task_type === 'interview' ? 'notif-type-interview' : 'notif-type-survey';
+      const typeLabel = n.task_type === 'interview' ? '🎙️ Interview' : '📋 Survey';
+      const acceptActive = n.status === 'accepted';
+      const rejectActive  = n.status === 'rejected';
+      const decided = acceptActive || rejectActive;
+      const actionHtml = `<div class="notif-actions">
+          <button class="notif-accept ${acceptActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'accept')">
+            ${acceptActive ? '✓ Accepted' : '✓ Accept'}
+          </button>
+          <button class="notif-reject ${rejectActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'reject')">
+            ${rejectActive ? '✕ Rejected' : '✕ Reject'}
+          </button>
+        </div>`;
+
+      return `
+        <div class="notif-item ${n.status !== 'pending' ? n.status : ''}" id="notif-${n.id}">
+          <span class="notif-type-tag ${typeClass}">${typeLabel}</span>
+          <div class="notif-title">${n.survey_title}</div>
+          <div class="notif-email">📧 ${n.participant_email}</div>
+          <div class="notif-time">${n.created_at}</div>
+          ${actionHtml}
+        </div>`;
+    }).join('');
+  }
+
+  async function decideNotif(id, action) {
+    try {
+      const res = await fetch(`/api/notifications/${id}/${action}`, {
+        method: 'POST', credentials: 'same-origin'
+      });
+      if (!res.ok) return;
+      const notif = allNotifs.find(n => n.id === id);
+      if (notif) notif.status = action === 'accept' ? 'accepted' : 'rejected';
+      renderNotifications();
+    } catch {}
+  }
+
+  function toggleNotifPanel() {
+    const overlay = document.getElementById('notifOverlay');
+    overlay.style.display = 'flex';
+    loadNotifications();
+  }
+
+  function closeNotifModal(e) {
+    if (!e || e.target === document.getElementById('notifOverlay')) {
+      document.getElementById('notifOverlay').style.display = 'none';
+    }
+  }
+
+  // Load on page open to show badge count
+  loadNotifications();
+  // Auto-refresh every 30 seconds
+  setInterval(loadNotifications, 30000);
 </script>
+
+<!-- Notification Modal (at body level so position:fixed works correctly) -->
+<div id="notifOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;" onclick="closeNotifModal(event)">
+  <div id="notifModal" style="background:#fff; border-radius:18px; width:720px; max-width:94vw; height:90vh; display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,0.22); overflow:hidden;" onclick="event.stopPropagation()">
+    <div style="padding:20px 24px 16px; border-bottom:1px solid #e8e8e8; display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">🔔</span>
+        <h3 style="font-size:17px; font-weight:700; margin:0;">Notifications</h3>
+        <span id="notifCount" style="font-size:12px; color:#888;"></span>
+      </div>
+      <button onclick="closeNotifModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#aaa; line-height:1; padding:2px 6px;">✕</button>
+    </div>
+    <div class="notif-list" id="notifList" style="overflow-y:auto; flex:1; padding:12px 0;">
+      <div class="notif-empty">Loading...</div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

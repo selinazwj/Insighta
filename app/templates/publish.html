@@ -594,8 +594,8 @@
 <div class="container">
 
   <div class="page-header">
-    <h1>Publish a <em>Survey</em></h1>
-    <p>Share your Google Form and collect quality responses from our community.</p>
+    <h1>Publish a <em id="pageTypeLabel">Survey</em></h1>
+    <p id="pageTypeDesc">Share your Google Form and collect quality responses from our community.</p>
   </div>
 
   <!-- AI FILL SECTION -->
@@ -604,7 +604,7 @@
       <div class="ai-icon">✨</div>
       <div>
         <h3>Fill with AI</h3>
-        <p>Describe your survey in one sentence and we'll fill the form for you.</p>
+        <p id="aiSectionDesc">Describe your <span id="aiSectionType">survey</span> in one sentence and we'll fill the form for you.</p>
       </div>
     </div>
     <div class="ai-input-row">
@@ -624,7 +624,7 @@
   </div>
 
   <div id="successMessage" class="success-message">
-    ✓ Survey submitted! Redirecting to your dashboard...
+    ✓ <span id="submitSuccessType">Survey</span> submitted! Redirecting to your dashboard...
   </div>
 
   <form id="publishForm" method="POST" action="/publish" enctype="multipart/form-data">
@@ -635,52 +635,64 @@
         <div class="section-icon">✏️</div>
         <div>
           <h2>Basic Information</h2>
-          <p>Essential details about your survey</p>
+          <p id="basicInfoDesc">Essential details about your survey</p>
         </div>
       </div>
 
-      <div class="info-box">
+      <!-- TYPE SWITCHER at top of form -->
+      <div class="form-group" style="margin-bottom:24px;">
+        <label>Listing Type</label>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <label id="typeLabelSurvey" style="flex:1; display:flex; align-items:center; gap:10px; padding:14px 18px; border:2px solid var(--accent); border-radius:12px; cursor:pointer; background:rgba(45,106,79,0.06); font-weight:600; color:var(--accent);">
+            <input type="radio" name="task_type" value="survey" checked style="display:none;" onchange="onTypeChange('survey')">
+            <span style="font-size:20px;">📋</span> Survey
+          </label>
+          <label id="typeLabelInterview" style="flex:1; display:flex; align-items:center; gap:10px; padding:14px 18px; border:2px solid var(--line); border-radius:12px; cursor:pointer; font-weight:600; color:var(--ink-muted);">
+            <input type="radio" name="task_type" value="interview" style="display:none;" onchange="onTypeChange('interview')">
+            <span style="font-size:20px;">🎙️</span> Interview
+          </label>
+        </div>
+      </div>
+
+      <div id="infoBoxSurvey" class="info-box">
         <strong>Before you start</strong>
         Make sure your Google Form is set to "Anyone with the link" and is accepting responses.
       </div>
+      <div id="infoBoxInterview" class="info-box" style="display:none;">
+        <strong>Before you start</strong>
+        Set up your scheduling link (e.g., Calendly, Zoom) and make sure your availability is up to date.
+      </div>
 
       <div class="form-group">
-        <label>Survey Title</label>
+        <label id="labelTitle">Survey Title</label>
         <div class="label-desc">Give your survey a clear, descriptive title</div>
-        <input type="text" name="title" placeholder="e.g., Student Mental Health Study" required style="margin-top: 8px;">
+        <input type="text" id="inputTitle" name="title" placeholder="e.g., Student Mental Health Study" required style="margin-top: 8px;">
       </div>
 
       <div class="form-group">
-        <label>Description</label>
-        <div class="label-desc">Explain what your survey is about and why responses matter</div>
-        <textarea name="description" placeholder="We're researching student mental health patterns to improve campus wellness programs..." required style="margin-top: 8px;"></textarea>
+        <label id="labelDesc">Description</label>
+        <div id="labelDescSub" class="label-desc">Explain what your survey is about and why responses matter</div>
+        <textarea id="inputDesc" name="description" placeholder="We're researching student mental health patterns to improve campus wellness programs..." required style="margin-top: 8px;"></textarea>
       </div>
 
       <div class="form-group">
-        <label>Google Form Link</label>
-        <div class="label-desc">Paste your complete Google Form URL</div>
-        <input type="url" name="form_url" placeholder="https://forms.gle/..." required style="margin-top: 8px;">
+        <label id="labelFormUrl">Google Form Link</label>
+        <div id="labelFormUrlSub" class="label-desc">Paste your complete Google Form URL</div>
+        <input type="url" id="inputFormUrl" name="form_url" placeholder="https://forms.gle/..." required style="margin-top: 8px;">
       </div>
     </div>
 
     <!-- SURVEY DETAILS -->
     <div class="form-section">
       <div class="section-header">
-        <div class="section-icon">📋</div>
+        <div class="section-icon" id="detailsIcon">📋</div>
         <div>
-          <h2>Survey Details</h2>
-          <p>Category, timing, and cover image</p>
+          <h2 id="detailsTitle">Survey Details</h2>
+          <p id="detailsSub">Category, timing, and cover image</p>
         </div>
       </div>
 
       <div class="form-row" style="margin-bottom: 20px;">
-        <div class="form-group">
-          <label>Type</label>
-          <select name="task_type" required>
-            <option value="survey" selected>Survey</option>
-            <option value="interview">Interview</option>
-          </select>
-        </div>
         <div class="form-group">
           <label>Category</label>
           <select name="category" required>
@@ -728,21 +740,25 @@
         </div>
       </div>
 
-      <div class="info-box">
+      <div class="info-box" id="rewardInfoSurvey">
         <strong>Recommended reward</strong>
         For a 5-minute survey, we recommend around 💎 2 per response. Higher rewards attract more participants faster.
+      </div>
+      <div class="info-box" id="rewardInfoInterview" style="display:none;">
+        <strong>Recommended reward</strong>
+        For a 1-hour interview, we recommend around 💎 25 per session. The reward is automatically calculated based on the session duration you selected.
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Reward per Response</label>
           <div class="label-desc">💎 diamonds per respondent</div>
-          <input type="number" id="rewardAmount" name="reward_amount" placeholder="5.00" step="0.50" min="1" required style="margin-top: 8px;">
+          <input type="number" id="rewardAmount" name="reward_amount" placeholder="5.0" step="0.50" min="1" required style="margin-top: 8px;">
         </div>
         <div class="form-group">
           <label>Target Responses</label>
           <div class="label-desc">How many responses do you need?</div>
-          <input type="number" name="target_responses" placeholder="100" min="10" required style="margin-top: 8px;">
+          <input type="number" name="target_responses" placeholder="100" min="1" required style="margin-top: 8px;">
         </div>
       </div>
 
@@ -958,7 +974,7 @@
     <!-- SUBMIT -->
     <div class="submit-section">
       <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
-      <button type="submit" class="btn-publish">Publish Survey →</button>
+      <button type="submit" class="btn-publish" id="btnPublish">Publish Survey →</button>
     </div>
 
   </form>
@@ -1060,6 +1076,120 @@
     }
   });
 
+  // ── Type switcher ──
+  function onTypeChange(type) {
+    const isSurvey = type === 'survey';
+
+    // Radio label styles
+    document.getElementById('typeLabelSurvey').style.borderColor = isSurvey ? 'var(--accent)' : 'var(--line)';
+    document.getElementById('typeLabelSurvey').style.background = isSurvey ? 'rgba(45,106,79,0.06)' : 'white';
+    document.getElementById('typeLabelSurvey').style.color = isSurvey ? 'var(--accent)' : 'var(--ink-muted)';
+    document.getElementById('typeLabelInterview').style.borderColor = !isSurvey ? 'var(--accent)' : 'var(--line)';
+    document.getElementById('typeLabelInterview').style.background = !isSurvey ? 'rgba(45,106,79,0.06)' : 'white';
+    document.getElementById('typeLabelInterview').style.color = !isSurvey ? 'var(--accent)' : 'var(--ink-muted)';
+
+    // Info box
+    document.getElementById('infoBoxSurvey').style.display = isSurvey ? '' : 'none';
+    document.getElementById('infoBoxInterview').style.display = isSurvey ? 'none' : '';
+
+    // Title
+    document.getElementById('labelTitle').textContent = isSurvey ? 'Survey Title' : 'Interview Title';
+    document.getElementById('inputTitle').placeholder = isSurvey
+      ? 'e.g., Student Mental Health Study'
+      : 'e.g., Campus Life Experience Interview';
+
+    // Description
+    document.getElementById('labelDesc').textContent = isSurvey ? 'Description' : 'Description';
+    document.getElementById('labelDescSub').textContent = isSurvey
+      ? 'Explain what your survey is about and why responses matter'
+      : 'Describe the interview topic, format, and what participants can expect';
+    document.getElementById('inputDesc').placeholder = isSurvey
+      ? "We're researching student mental health patterns to improve campus wellness programs..."
+      : "We're conducting 30-minute video interviews about campus life experiences. Participants will discuss their daily routines and academic challenges...";
+
+    // Form URL
+    document.getElementById('labelFormUrl').textContent = isSurvey ? 'Google Form Link' : 'Scheduling Link';
+    document.getElementById('labelFormUrlSub').textContent = isSurvey
+      ? 'Paste your complete Google Form URL'
+      : 'Paste your Calendly, Doodle, or Zoom scheduling link';
+    document.getElementById('inputFormUrl').placeholder = isSurvey
+      ? 'https://forms.gle/...'
+      : 'https://calendly.com/your-name/30min';
+
+    // Section header
+    document.getElementById('detailsTitle').textContent = isSurvey ? 'Survey Details' : 'Interview Details';
+    document.getElementById('detailsSub').textContent = isSurvey
+      ? 'Category, timing, and cover image'
+      : 'Category, duration, and cover image';
+    document.getElementById('detailsIcon').textContent = isSurvey ? '📋' : '🎙️';
+    document.getElementById('btnPublish').textContent = isSurvey ? 'Publish Survey →' : 'Publish Interview →';
+
+    // Page header
+    document.getElementById('pageTypeLabel').textContent = isSurvey ? 'Survey' : 'Interview';
+    document.getElementById('basicInfoDesc').textContent = isSurvey ? 'Essential details about your survey' : 'Essential details about your interview';
+    document.getElementById('pageTypeDesc').textContent = isSurvey
+      ? 'Share your Google Form and collect quality responses from our community.'
+      : 'Post your interview listing and connect with the right participants.';
+
+    // Reward info box
+    document.getElementById('rewardInfoSurvey').style.display = isSurvey ? '' : 'none';
+    document.getElementById('rewardInfoInterview').style.display = isSurvey ? 'none' : '';
+
+    // AI section & success message
+    document.getElementById('aiSectionType').textContent = isSurvey ? 'survey' : 'interview';
+    document.getElementById('aiPrompt').placeholder = isSurvey
+      ? 'e.g. I want to study sleep patterns in college students, need 50 responses'
+      : 'e.g. I need to interview 5 students about their campus life experience';
+    document.getElementById('submitSuccessType').textContent = isSurvey ? 'Survey' : 'Interview';
+
+    // Swap estimated_time options
+    const timeSel = document.querySelector('select[name="estimated_time"]');
+    const surveyOptions = `
+      <option value="" disabled>How long to complete?</option>
+      <option value="5">5 minutes</option>
+      <option value="10">10 minutes</option>
+      <option value="15">15 minutes</option>
+      <option value="20">20 minutes</option>
+      <option value="30">30 minutes</option>
+    `;
+    const interviewOptions = `
+      <option value="" disabled>Session duration?</option>
+      <option value="30">30 minutes</option>
+      <option value="45">45 minutes</option>
+      <option value="60">1 hour</option>
+      <option value="90">1.5 hours</option>
+      <option value="120">2 hours</option>
+    `;
+    timeSel.innerHTML = isSurvey ? surveyOptions : interviewOptions;
+    timeSel.value = '';
+    timeSel.classList.remove('has-value');
+
+    // Update placeholders based on mode
+    document.getElementById('rewardAmount').placeholder = isSurvey ? '5.0' : '25.0';
+    document.querySelector('input[name="target_responses"]').placeholder = isSurvey ? '100' : '5';
+
+    // If interview, auto-set reward on time change
+    if (!isSurvey) {
+      autoSetInterviewReward();
+    }
+  }
+
+  function autoSetInterviewReward() {
+    const timeSel = document.querySelector('select[name="estimated_time"]');
+    const mins = parseInt(timeSel.value) || 0;
+    if (mins > 0) {
+      const diamonds = Math.round((mins / 60) * 25);
+      document.getElementById('rewardAmount').value = diamonds;
+      updateBudget();
+    }
+  }
+
+  // Interview time → auto reward
+  document.querySelector('select[name="estimated_time"]').addEventListener('change', function() {
+    const isInterview = document.querySelector('input[name="task_type"]:checked').value === 'interview';
+    if (isInterview) autoSetInterviewReward();
+  });
+
   // Select color fix
   document.querySelectorAll('select').forEach(s => {
     const update = () => s.classList.toggle('has-value', !!s.value && s.value !== '');
@@ -1071,6 +1201,15 @@
   document.querySelector('details').addEventListener('toggle', function() {
     this.querySelector('.advanced-toggle span').textContent = this.open ? '▾' : '▸';
   });
+
+  // Auto-switch to interview mode if URL has ?type=interview
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('type') === 'interview') {
+      document.querySelector('input[name="task_type"][value="interview"]').checked = true;
+      onTypeChange('interview');
+    }
+  })();
 
   // Submit
   document.getElementById('publishForm').addEventListener('submit', function(e) {
