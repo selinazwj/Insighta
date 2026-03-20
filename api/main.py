@@ -261,7 +261,7 @@ async def do_register(
     db.commit()
     db.refresh(user)
 
-    response = RedirectResponse("/dashboard?welcome=1", status_code=303)
+    response = RedirectResponse("/choice?welcome=1", status_code=303)
     response.set_cookie("user_id", str(user.id))
     return response
 
@@ -354,6 +354,9 @@ def delete_survey(
     ).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
+
+    # Delete associated responses first to avoid foreign key constraint
+    db.query(Response).filter(Response.survey_id == survey_id).delete()
     db.delete(survey)
     db.commit()
     return RedirectResponse("/publisher", status_code=303)

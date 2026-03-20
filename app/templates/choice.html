@@ -165,6 +165,27 @@
 
     .footer-note { text-align: center; font-size: 14px; color: var(--ink-muted); }
 
+    /* ── WELCOME MODAL ── */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(26,26,24,0.5); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; animation: fadeInModal 0.3s ease; }
+    .modal { background: var(--paper); border: 1.5px solid var(--line); border-radius: 20px; width: 100%; max-width: 480px; animation: slideUpModal 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+    .modal-header { padding: 32px 32px 24px; border-bottom: 1px solid var(--line); position: relative; }
+    .modal-confetti { font-size: 40px; margin-bottom: 12px; display: block; }
+    .modal-header h2 { font-family: var(--serif); font-size: 28px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
+    .modal-header h2 em { font-style: italic; color: var(--accent); }
+    .modal-header p { font-size: 15px; color: var(--ink-muted); line-height: 1.6; font-weight: 300; }
+    .modal-close { position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; border-radius: 50%; background: var(--paper-warm); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; color: var(--ink-muted); transition: all 0.15s; }
+    .modal-close:hover { background: var(--line); color: var(--ink); }
+    .modal-body { padding: 24px 32px; }
+    .modal-tip { background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+    .modal-tip strong { color: var(--accent); }
+    .modal-footer { padding: 20px 32px 28px; display: flex; gap: 10px; }
+    .modal-btn-secondary { flex: 1; padding: 11px; background: transparent; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--ink-muted); cursor: pointer; transition: all 0.2s; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+    .modal-btn-secondary:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
+    .modal-btn-primary { flex: 2; padding: 11px; background: var(--accent); border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 600; color: white; cursor: pointer; transition: all 0.2s; }
+    .modal-btn-primary:hover { background: #245c43; box-shadow: 0 4px 14px rgba(45,106,79,0.3); }
+    @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUpModal { from { opacity: 0; transform: translateY(32px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
     @media (max-width: 680px) {
       .navbar { padding: 14px 20px; }
       .cards { grid-template-columns: 1fr; }
@@ -175,6 +196,27 @@
   </style>
 </head>
 <body>
+
+<!-- WELCOME MODAL -->
+<div class="modal-backdrop" id="welcomeModal" style="display:none;" onclick="if(event.target===this)closeWelcome()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-confetti">🎉</span>
+      <h2>Welcome to <em>Insighta</em>!</h2>
+      <p>Your account is ready. Choose your role below — you can always switch between researcher and participant anytime.</p>
+      <div class="modal-close" onclick="closeWelcome()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tip">
+        <strong>💡 Tip</strong> — The more profile info you fill in, the better we can match you with relevant surveys. Head to your profile anytime to update it.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <a href="/profile" class="modal-btn-secondary">Complete Profile →</a>
+      <button class="modal-btn-primary" onclick="closeWelcome()">Let's Go →</button>
+    </div>
+  </div>
+</div>
 
 <nav class="navbar">
   <a href="/" class="navbar-logo">Insight<span>a</span></a>
@@ -211,7 +253,7 @@
         <div class="card-btn">Go to Dashboard →</div>
       </a>
 
-      <a href="/dashboard" class="card card-participant">
+      <a href="/dashboard?welcome=1" class="card card-participant">
         <div class="card-icon"><img src="/static/Planning.svg" alt="Participant"></div>
         <h2>I'm a Participant</h2>
         <p>Browse surveys matched to your profile, share your opinions, and earn real rewards for your time.</p>
@@ -240,6 +282,23 @@
 
   </div>
 </main>
+
+<script>
+  function closeWelcome() {
+    const modal = document.getElementById('welcomeModal');
+    modal.style.opacity = '0';
+    modal.style.transition = 'opacity 0.2s ease';
+    setTimeout(() => { modal.style.display = 'none'; }, 200);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('welcome');
+    history.replaceState({}, '', url.toString());
+  }
+
+  // Show only on ?welcome=1
+  if (new URLSearchParams(window.location.search).get('welcome') === '1') {
+    document.getElementById('welcomeModal').style.display = 'flex';
+  }
+</script>
 
 </body>
 </html>

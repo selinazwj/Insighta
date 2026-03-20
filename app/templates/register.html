@@ -26,38 +26,15 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-      font-family: var(--sans);
-      background: var(--paper);
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
+    body { font-family: var(--sans); background: var(--paper); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
 
-    /* ── LEFT PANEL ── */
     .left-panel {
-      background: var(--accent);
-      padding: 60px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow: hidden;
+      background: var(--accent); padding: 60px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      position: sticky; top: 0; height: 100vh; overflow: hidden;
     }
-    .left-panel::before {
-      content: ''; position: absolute;
-      width: 500px; height: 500px; border-radius: 50%;
-      background: rgba(255,255,255,0.06);
-      bottom: -150px; right: -150px;
-    }
-    .left-panel::after {
-      content: ''; position: absolute;
-      width: 300px; height: 300px; border-radius: 50%;
-      background: rgba(255,255,255,0.04);
-      top: -80px; left: -80px;
-    }
+    .left-panel::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.06); bottom: -150px; right: -150px; }
+    .left-panel::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -80px; left: -80px; }
     .panel-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; position: relative; z-index: 1; }
     .panel-logo img { height: 36px; filter: brightness(0) invert(1); }
     .panel-logo span { font-family: var(--serif); font-size: 22px; color: white; letter-spacing: -0.3px; }
@@ -65,12 +42,7 @@
     .panel-step { display: flex; align-items: flex-start; gap: 16px; opacity: 0.4; transition: opacity 0.3s; }
     .panel-step.active { opacity: 1; }
     .panel-step.done { opacity: 0.65; }
-    .step-dot {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; transition: all 0.3s;
-    }
+    .step-dot { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; transition: all 0.3s; }
     .panel-step.active .step-dot { background: white; color: var(--accent); border-color: white; }
     .panel-step.done .step-dot { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.5); }
     .step-info h4 { font-size: 15px; font-weight: 600; color: white; margin-bottom: 2px; }
@@ -80,11 +52,9 @@
     .panel-footer a { color: rgba(255,255,255,0.8); font-weight: 600; text-decoration: none; }
     .panel-footer a:hover { text-decoration: underline; }
 
-    /* ── RIGHT PANEL ── */
     .right-panel { padding: 60px 48px; overflow-y: auto; }
     .form-wrapper { max-width: 480px; margin: 0 auto; }
 
-    /* ── STEPS ── */
     .step { display: none; }
     .step.active { display: block; }
     .step-header { margin-bottom: 36px; }
@@ -92,19 +62,29 @@
     .step-header h1 { font-family: var(--serif); font-size: 32px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
     .step-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; line-height: 1.6; }
 
-    /* ── ERROR ── */
     .error-box { background: #fff5f5; color: #c53030; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; border: 1px solid #fed7d7; }
 
-    /* ── FORM ELEMENTS ── */
     .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 7px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-group label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 7px; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .form-row .form-group { margin-bottom: 0; }
 
-    input[type="email"],
-    input[type="password"],
-    input[type="text"],
-    select {
+    /* Optional badge */
+    .badge-optional {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; color: var(--ink-muted);
+      background: var(--paper-warm); border: 1px solid var(--line);
+      padding: 2px 7px; border-radius: 100px;
+    }
+    .badge-required {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; color: var(--accent);
+      background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2);
+      padding: 2px 7px; border-radius: 100px;
+    }
+
+    input[type="email"], input[type="password"], input[type="text"], select {
       width: 100%; padding: 12px 16px;
       border: 1.5px solid var(--line); border-radius: 10px;
       font-family: var(--sans); font-size: 15px; color: var(--ink);
@@ -115,276 +95,145 @@
     select {
       background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat; background-position: right 14px center;
-      padding-right: 36px; cursor: pointer; color: #c4c2bc;
+      padding-right: 36px; cursor: pointer;
     }
-    select.selected { color: var(--ink); }
+    select option[value=""] { color: #8a8a82; }
 
-    /* ── SECTION LABEL ── */
     .section-label {
+      display: flex; align-items: center; justify-content: space-between;
       font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
       color: var(--ink-muted); margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
     }
+    .section-label .section-tag {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+      padding: 2px 8px; border-radius: 100px;
+    }
+    .section-tag.required { color: var(--accent); background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2); }
+    .section-tag.optional { color: var(--ink-muted); background: var(--paper-warm); border: 1px solid var(--line); }
 
-    /* ── MULTISELECT ── */
     .multiselect-wrap { position: relative; }
     .multiselect-trigger {
       width: 100%; padding: 12px 36px 12px 16px;
       border: 1.5px solid var(--line); border-radius: 10px;
       font-family: var(--sans); font-size: 15px; background: white;
-      color: #c4c2bc; text-align: left; cursor: pointer;
+      color: #8a8a82; text-align: left; cursor: pointer;
       background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat; background-position: right 14px center;
       transition: all 0.2s; font-weight: 300;
     }
     .multiselect-trigger.has-value { color: var(--ink); font-weight: 400; }
     .multiselect-wrap.open .multiselect-trigger { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
-    .multiselect-panel {
-      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-      background: white; border: 1.5px solid var(--line); border-radius: 10px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1); z-index: 50;
-      max-height: 220px; overflow-y: auto; padding: 6px 0;
-    }
+    .multiselect-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1.5px solid var(--line); border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); z-index: 50; max-height: 220px; overflow-y: auto; padding: 6px 0; }
     .multiselect-wrap.open .multiselect-panel { display: block; }
-    .multiselect-panel label {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 16px; font-size: 14px; color: var(--ink); cursor: pointer; font-weight: 400;
-    }
+    .multiselect-panel label { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 14px; color: var(--ink); cursor: pointer; font-weight: 400; }
     .multiselect-panel label:hover { background: var(--paper); }
-    .multiselect-panel input[type="checkbox"] {
-      width: 16px; height: 16px; accent-color: var(--accent);
-      flex-shrink: 0; padding: 0; border: none; background: none; box-shadow: none;
-    }
+    .multiselect-panel input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); flex-shrink: 0; padding: 0; border: none; background: none; box-shadow: none; }
 
-    /* ── BUTTONS ── */
-    .btn-next, .btn-submit {
-      width: 100%; padding: 13px; background: var(--accent); color: white;
-      border: none; border-radius: 10px; font-family: var(--sans);
-      font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px;
-    }
+    .btn-next, .btn-submit { width: 100%; padding: 13px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
     .btn-next:hover, .btn-submit:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
-    .btn-back {
-      width: 100%; padding: 13px; background: transparent; color: var(--ink-muted);
-      border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans);
-      font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; margin-top: 8px;
-    }
+    .btn-back { width: 100%; padding: 13px; background: transparent; color: var(--ink-muted); border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
     .btn-back:hover { background: var(--paper-warm); border-color: var(--ink-muted); }
-    .btn-skip {
-      width: 100%; padding: 10px; background: transparent; color: var(--ink-muted);
-      border: none; font-family: var(--sans); font-size: 14px;
-      cursor: pointer; margin-top: 4px; transition: color 0.2s;
-    }
+    .btn-skip { width: 100%; padding: 10px; background: transparent; color: var(--ink-muted); border: none; font-family: var(--sans); font-size: 14px; cursor: pointer; margin-top: 4px; transition: color 0.2s; }
     .btn-skip:hover { color: var(--ink); }
     .form-footer { text-align: center; margin-top: 20px; font-size: 14px; color: var(--ink-muted); }
     .form-footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
     .form-footer a:hover { text-decoration: underline; }
 
-    /* ── CONSENT MODAL ── */
-    .modal-backdrop {
-      position: fixed; inset: 0;
-      background: rgba(26,26,24,0.5);
-      backdrop-filter: blur(4px);
-      z-index: 200;
-      display: flex; align-items: center; justify-content: center;
-      padding: 24px;
-      animation: fadeIn 0.25s ease;
+    /* Optional hint */
+    .optional-hint {
+      background: rgba(45,106,79,0.05);
+      border: 1px solid rgba(45,106,79,0.15);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin-bottom: 20px;
+      line-height: 1.5;
     }
 
-    .modal {
-      background: var(--paper);
-      border: 1.5px solid var(--line);
-      border-radius: 20px;
-      width: 100%;
-      max-width: 520px;
-      max-height: 88vh;
-      display: flex;
-      flex-direction: column;
-      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .modal-header {
-      padding: 28px 28px 20px;
-      border-bottom: 1px solid var(--line);
-      flex-shrink: 0;
-    }
-
+    /* MODAL */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(26,26,24,0.5); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; animation: fadeIn 0.25s ease; }
+    .modal { background: var(--paper); border: 1.5px solid var(--line); border-radius: 20px; width: 100%; max-width: 520px; max-height: 88vh; display: flex; flex-direction: column; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .modal-header { padding: 28px 28px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
     .modal-icon { font-size: 28px; margin-bottom: 10px; display: block; }
-
-    .modal-header h2 {
-      font-family: var(--serif);
-      font-size: 22px; color: var(--ink);
-      letter-spacing: -0.3px; margin-bottom: 6px;
-    }
-
-    .modal-header p {
-      font-size: 13px; color: var(--ink-muted);
-      font-weight: 300; line-height: 1.5;
-    }
-
-    /* ── PRIVACY CONTENT ── */
-    .modal-body {
-      padding: 20px 28px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
+    .modal-header h2 { font-family: var(--serif); font-size: 22px; color: var(--ink); letter-spacing: -0.3px; margin-bottom: 6px; }
+    .modal-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; line-height: 1.5; }
+    .modal-body { padding: 20px 28px; overflow-y: auto; flex: 1; }
     .privacy-section { margin-bottom: 18px; }
-
     .privacy-section:last-child { margin-bottom: 0; }
-
-    .privacy-section h4 {
-      font-size: 13px; font-weight: 700;
-      color: var(--ink-soft); margin-bottom: 6px;
-      display: flex; align-items: center; gap: 6px;
-    }
-
-    .privacy-section p {
-      font-size: 13px; color: var(--ink-muted);
-      line-height: 1.65; font-weight: 300;
-    }
-
+    .privacy-section h4 { font-size: 13px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .privacy-section p { font-size: 13px; color: var(--ink-muted); line-height: 1.65; font-weight: 300; }
     .privacy-divider { height: 1px; background: var(--line); margin: 18px 0; }
-
-    /* ── CHECKBOX AGREEMENT ── */
-    .consent-check-area {
-      padding: 16px 28px;
-      border-top: 1px solid var(--line);
-      background: var(--paper-warm);
-      border-radius: 0 0 4px 4px;
-      flex-shrink: 0;
-    }
-
-    .consent-label {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      cursor: pointer;
-      margin-bottom: 14px;
-    }
-
-    .consent-checkbox {
-      width: 18px; height: 18px;
-      accent-color: var(--accent);
-      cursor: pointer; flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .consent-text {
-      font-size: 13px; color: var(--ink-soft);
-      line-height: 1.5; font-weight: 400;
-    }
-
+    .consent-check-area { padding: 16px 28px; border-top: 1px solid var(--line); background: var(--paper-warm); border-radius: 0 0 4px 4px; flex-shrink: 0; }
+    .consent-label { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 14px; }
+    .consent-checkbox { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+    .consent-text { font-size: 13px; color: var(--ink-soft); line-height: 1.5; font-weight: 400; }
     .consent-text strong { color: var(--ink); font-weight: 600; }
-
-    .btn-agree {
-      width: 100%; padding: 12px;
-      background: var(--accent); color: white;
-      border: none; border-radius: 10px;
-      font-family: var(--sans); font-size: 14px; font-weight: 600;
-      cursor: pointer; transition: all 0.2s;
-      opacity: 0.4; pointer-events: none;
-    }
-
-    .btn-agree.enabled {
-      opacity: 1; pointer-events: auto;
-    }
-
-    .btn-agree.enabled:hover {
-      background: #245c43;
-      box-shadow: 0 4px 14px rgba(45,106,79,0.3);
-    }
-
-    .btn-decline {
-      width: 100%; padding: 9px;
-      background: transparent; color: var(--ink-muted);
-      border: none; font-family: var(--sans); font-size: 13px;
-      cursor: pointer; margin-top: 6px; transition: color 0.2s;
-      text-align: center;
-    }
-
+    .btn-agree { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; opacity: 0.4; pointer-events: none; }
+    .btn-agree.enabled { opacity: 1; pointer-events: auto; }
+    .btn-agree.enabled:hover { background: #245c43; box-shadow: 0 4px 14px rgba(45,106,79,0.3); }
+    .btn-decline { width: 100%; padding: 9px; background: transparent; color: var(--ink-muted); border: none; font-family: var(--sans); font-size: 13px; cursor: pointer; margin-top: 6px; transition: color 0.2s; text-align: center; }
     .btn-decline:hover { color: var(--ink); }
 
-    /* ── ANIMATIONS ── */
-    @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(24px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
-    /* ── MOBILE ── */
     @media (max-width: 768px) {
       body { grid-template-columns: 1fr; }
       .left-panel { display: none; }
       .right-panel { padding: 40px 24px; }
       .form-row { grid-template-columns: 1fr; }
-      .modal { max-height: 92vh; }
     }
   </style>
 </head>
 <body>
 
-<!-- ── CONSENT MODAL ── -->
+<!-- CONSENT MODAL -->
 <div class="modal-backdrop" id="consentModal" style="display:none;">
   <div class="modal">
-
     <div class="modal-header">
       <span class="modal-icon">🔒</span>
       <h2>Privacy & Data Agreement</h2>
       <p>Please read and agree to our data practices before creating your account.</p>
     </div>
-
     <div class="modal-body">
-
       <div class="privacy-section">
         <h4>📋 What we collect</h4>
         <p>We collect your email address, password (encrypted), and the profile information you choose to share — such as age range, field of study, and behavioral preferences. All profile fields are optional.</p>
       </div>
-
       <div class="privacy-divider"></div>
-
       <div class="privacy-section">
         <h4>🎯 How we use your data</h4>
         <p>Your profile information is used exclusively to match you with relevant research studies on Insighta. We do not use your data for advertising, and we do not sell or share your personal information with third parties.</p>
       </div>
-
       <div class="privacy-divider"></div>
-
       <div class="privacy-section">
         <h4>🔬 Research participation</h4>
-        <p>When you participate in a study, researchers can see that a participant matching their criteria completed their survey — but they cannot identify you personally. Your responses are kept anonymous unless you choose to share identifying information directly in the study itself.</p>
+        <p>When you participate in a study, researchers can see that a participant matching their criteria completed their survey — but they cannot identify you personally.</p>
       </div>
-
       <div class="privacy-divider"></div>
-
       <div class="privacy-section">
         <h4>🛡️ Data security</h4>
         <p>Your password is hashed and never stored in plain text. We use industry-standard encryption to protect data in transit and at rest.</p>
       </div>
-
       <div class="privacy-divider"></div>
-
       <div class="privacy-section">
         <h4>✏️ Your rights</h4>
-        <p>You can update or delete your profile information at any time from your profile settings. You may request full account deletion by contacting us, and we will remove your data within 30 days.</p>
+        <p>You can update or delete your profile information at any time. You may request full account deletion by contacting us, and we will remove your data within 30 days.</p>
       </div>
-
     </div>
-
     <div class="consent-check-area">
       <label class="consent-label">
         <input type="checkbox" class="consent-checkbox" id="consentCheckbox" onchange="toggleAgree(this)">
-        <span class="consent-text">
-          I have read and agree to Insighta's data practices described above. I understand that my profile data will be used to match me with research studies, and will not be shared with or sold to third parties.
-        </span>
+        <span class="consent-text">I have read and agree to Insighta's data practices. I understand my profile data will be used to match me with research studies and will not be sold to third parties.</span>
       </label>
-      <button class="btn-agree" id="btnAgree" onclick="agreeAndContinue()">
-        Agree & Continue →
-      </button>
-      <button class="btn-decline" onclick="closeConsent()">
-        Not now — go back
-      </button>
+      <button class="btn-agree" id="btnAgree" onclick="agreeAndContinue()">Agree & Continue →</button>
+      <button class="btn-decline" onclick="closeConsent()">Not now — go back</button>
     </div>
-
   </div>
 </div>
 
-<!-- ── LEFT PANEL ── -->
+<!-- LEFT PANEL -->
 <div class="left-panel">
   <a href="/" class="panel-logo">
     <img src="/static/favicon.png" alt="Insighta">
@@ -411,7 +260,7 @@
   </div>
 </div>
 
-<!-- ── RIGHT PANEL ── -->
+<!-- RIGHT PANEL -->
 <div class="right-panel">
   <div class="form-wrapper">
 
@@ -430,22 +279,21 @@
         </div>
 
         <div class="form-group">
-          <label>Email address</label>
+          <label>Email address <span class="badge-required">Required</span></label>
           <input type="email" name="email" id="email" required placeholder="you@example.com">
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Password</label>
+            <label>Password <span class="badge-required">Required</span></label>
             <input type="password" name="password" id="password" required placeholder="••••••••">
           </div>
           <div class="form-group">
-            <label>Confirm password</label>
+            <label>Confirm password <span class="badge-required">Required</span></label>
             <input type="password" name="confirm" id="confirm" required placeholder="••••••••">
           </div>
         </div>
 
-        <!-- Continue 触发 consent 弹窗，不是直接跳 step 2 -->
         <button type="button" class="btn-next" onclick="requestConsent()">Continue →</button>
         <p class="form-footer">Already have an account? <a href="/login">Sign in</a></p>
       </div>
@@ -455,16 +303,24 @@
         <div class="step-header">
           <span class="step-eyebrow">Step 2 of 2</span>
           <h1>Tell us about yourself.</h1>
-          <p>This helps us match you with the right surveys. All fields are optional.</p>
+          <p>All fields below are optional — but the more you fill in, the better we can match you with relevant surveys.</p>
         </div>
 
-        <div class="section-label">Basics</div>
+        <div class="optional-hint">
+          💡 All fields on this page are <strong>optional</strong>. You can skip any field or click "Skip for now" to go straight to your dashboard and fill these in later from your profile.
+        </div>
+
+        <!-- BASICS -->
+        <div class="section-label">
+          Basics
+          <span class="section-tag optional">Optional</span>
+        </div>
 
         <div class="form-row">
           <div class="form-group">
             <label>Age range</label>
             <select name="age_range">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option value="18-24">18–24</option>
               <option value="25-34">25–34</option>
               <option value="35-44">35–44</option>
@@ -474,7 +330,7 @@
           <div class="form-group">
             <label>Education level</label>
             <select name="education_level">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option value="High School">High School</option>
               <option value="Undergraduate">Undergraduate</option>
               <option value="Graduate">Graduate</option>
@@ -487,8 +343,8 @@
           <div class="form-group">
             <label>Field / Major</label>
             <select name="field">
-              <option value="" disabled selected>Select</option>
-              <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+              <option value="">— skip —</option>
+              <option value="Computer Science & Engineering">CS & Engineering</option>
               <option value="Business & Economics">Business & Economics</option>
               <option value="Medicine & Healthcare">Medicine & Healthcare</option>
               <option value="Natural Sciences">Natural Sciences</option>
@@ -502,7 +358,7 @@
           <div class="form-group">
             <label>Current status</label>
             <select name="status">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option value="student">Student</option>
               <option value="working">Working</option>
               <option value="freelancer">Freelancer</option>
@@ -514,7 +370,7 @@
         <div class="form-group">
           <label>State</label>
           <select name="state">
-            <option value="" disabled selected>Select your state</option>
+            <option value="">— skip —</option>
             <option>Alabama</option><option>Alaska</option><option>Arizona</option>
             <option>Arkansas</option><option>California</option><option>Colorado</option>
             <option>Connecticut</option><option>Delaware</option><option>Florida</option>
@@ -538,7 +394,7 @@
         <div class="form-group">
           <label>Languages you can take surveys in</label>
           <div class="multiselect-wrap" id="language-multiselect">
-            <button type="button" class="multiselect-trigger">Select languages</button>
+            <button type="button" class="multiselect-trigger">— skip —</button>
             <div class="multiselect-panel">
               <label><input type="checkbox" name="language" value="Arabic"> Arabic</label>
               <label><input type="checkbox" name="language" value="English"> English</label>
@@ -554,13 +410,17 @@
           </div>
         </div>
 
-        <div class="section-label">Academic & Participation</div>
+        <!-- ACADEMIC & PARTICIPATION -->
+        <div class="section-label">
+          Academic & Participation
+          <span class="section-tag optional">Optional</span>
+        </div>
 
         <div class="form-row">
           <div class="form-group">
             <label>Student status</label>
             <select name="student_status">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option value="undergrad">Undergraduate</option>
               <option value="grad">Graduate / PhD</option>
               <option value="non-student">Non-student</option>
@@ -569,7 +429,7 @@
           <div class="form-group">
             <label>Year in school</label>
             <select name="year_in_school">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option value="Freshman">Freshman</option>
               <option value="Sophomore">Sophomore</option>
               <option value="Junior">Junior</option>
@@ -585,15 +445,15 @@
           <div class="form-group">
             <label>International or domestic</label>
             <select name="international_domestic">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option value="Domestic">Domestic</option>
               <option value="International">International</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Preferred participation format</label>
+            <label>Participation format</label>
             <select name="participation_format">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option value="online">Online only</option>
               <option value="in_person">In-person ok</option>
               <option value="both">Both</option>
@@ -605,7 +465,7 @@
           <div class="form-group">
             <label>Primary device</label>
             <select name="device_type">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option value="laptop">Laptop / Desktop</option>
               <option value="mobile">Mobile</option>
               <option value="any">Both</option>
@@ -614,9 +474,9 @@
         </div>
 
         <div class="form-group" style="margin-top: 4px;">
-          <label>Your experiences <span style="font-weight:300; color: var(--ink-muted);">(select all that apply)</span></label>
+          <label>Your experiences</label>
           <div class="multiselect-wrap" id="experience-multiselect">
-            <button type="button" class="multiselect-trigger">Select experiences</button>
+            <button type="button" class="multiselect-trigger">— skip —</button>
             <div class="multiselect-panel">
               <label><input type="checkbox" name="experience_tags" value="startup_experience"> 🚀 Startup / product experience</label>
               <label><input type="checkbox" name="experience_tags" value="club_leadership"> 🎓 Club / org leadership</label>
@@ -628,13 +488,17 @@
           </div>
         </div>
 
-        <div class="section-label">Demographics</div>
+        <!-- DEMOGRAPHICS -->
+        <div class="section-label">
+          Demographics
+          <span class="section-tag optional">Optional</span>
+        </div>
 
         <div class="form-row">
           <div class="form-group">
             <label>Ethnicity</label>
             <select name="ethnicity">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option>White</option><option>Black or African American</option>
               <option>Hispanic or Latino</option><option>Asian</option>
               <option>Middle Eastern or North African</option>
@@ -646,7 +510,7 @@
           <div class="form-group">
             <label>Sexual orientation</label>
             <select name="sexual_orientation">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option>Straight / Heterosexual</option><option>Gay or Lesbian</option>
               <option>Bisexual</option><option>Other</option><option>Prefer not to say</option>
             </select>
@@ -657,26 +521,30 @@
           <div class="form-group">
             <label>Mental health diagnosis</label>
             <select name="mental_health_diagnosis">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option>Yes</option><option>No</option><option>Prefer not to say</option>
             </select>
           </div>
           <div class="form-group">
             <label>Physical health diagnosis</label>
             <select name="physical_health_diagnosis">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option>Yes</option><option>No</option><option>Prefer not to say</option>
             </select>
           </div>
         </div>
 
-        <div class="section-label">Lifestyle</div>
+        <!-- LIFESTYLE -->
+        <div class="section-label">
+          Lifestyle
+          <span class="section-tag optional">Optional</span>
+        </div>
 
         <div class="form-row">
           <div class="form-group">
             <label>Sport type</label>
             <select name="sport_type">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option>Basketball</option><option>Soccer / Football</option>
               <option>Baseball / Softball</option><option>American Football</option>
               <option>Tennis</option><option>Golf</option><option>Swimming</option>
@@ -689,7 +557,7 @@
           <div class="form-group">
             <label>Sport frequency</label>
             <select name="sport_frequency">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option>Daily</option><option>Several times a week</option>
               <option>Once a week</option><option>A few times a month</option>
               <option>Rarely</option><option>Never</option>
@@ -701,7 +569,7 @@
           <div class="form-group">
             <label>Do you smoke?</label>
             <select name="smoking">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option>Never</option><option>Former smoker</option>
               <option>Rarely</option><option>Occasionally</option>
               <option>Several times a week</option><option>Daily</option>
@@ -711,7 +579,7 @@
           <div class="form-group">
             <label>Cannabis use</label>
             <select name="cannabis_use">
-              <option value="" disabled selected>Select</option>
+              <option value="">— skip —</option>
               <option>Never</option><option>Former user</option>
               <option>Rarely</option><option>Occasionally</option>
               <option>Several times a week</option><option>Daily</option>
@@ -722,7 +590,7 @@
 
         <button type="submit" class="btn-submit">Create Account →</button>
         <button type="button" class="btn-back" onclick="goToStep1()">← Back</button>
-        <button type="submit" class="btn-skip">Skip for now</button>
+        <button type="submit" class="btn-skip">Skip for now →</button>
       </div>
 
     </form>
@@ -730,24 +598,13 @@
 </div>
 
 <script>
-  // ── Consent modal ─────────────────────────────────────────────
   function requestConsent() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const confirm = document.getElementById('confirm').value;
-
-    if (!email || !password || !confirm) {
-      alert('Please fill in all required fields.');
-      return;
-    }
-    if (password !== confirm) {
-      alert('Passwords do not match.');
-      return;
-    }
-
-    // 验证通过，弹出 consent
+    if (!email || !password || !confirm) { alert('Please fill in all required fields.'); return; }
+    if (password !== confirm) { alert('Passwords do not match.'); return; }
     document.getElementById('consentModal').style.display = 'flex';
-    // 重置勾选状态
     document.getElementById('consentCheckbox').checked = false;
     document.getElementById('btnAgree').classList.remove('enabled');
   }
@@ -765,7 +622,6 @@
     document.getElementById('consentModal').style.display = 'none';
   }
 
-  // ── Step navigation ───────────────────────────────────────────
   function goToStep2() {
     document.getElementById('step1').classList.remove('active');
     document.getElementById('step2').classList.add('active');
@@ -784,14 +640,15 @@
     window.scrollTo(0, 0);
   }
 
-  // ── Select color fix ──────────────────────────────────────────
+  // Select color — empty value = muted
   document.querySelectorAll('select').forEach(s => {
-    s.addEventListener('change', function() {
-      this.classList.toggle('selected', this.value !== '');
-    });
+    const update = () => {
+      s.style.color = s.value === '' ? '#8a8a82' : '#1a1a18';
+    };
+    s.addEventListener('change', update);
+    update();
   });
 
-  // ── Generic multiselect ───────────────────────────────────────
   function initMultiselect(id, placeholder) {
     const wrap = document.getElementById(id);
     if (!wrap) return;
@@ -818,8 +675,8 @@
     update();
   }
 
-  initMultiselect('language-multiselect', 'Select languages');
-  initMultiselect('experience-multiselect', 'Select experiences');
+  initMultiselect('language-multiselect', '— skip —');
+  initMultiselect('experience-multiselect', '— skip —');
 </script>
 
 </body>
