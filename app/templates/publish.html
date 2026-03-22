@@ -34,7 +34,6 @@
 
     .container { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
 
-    /* AI */
     .ai-section { background: linear-gradient(135deg, rgba(45,106,79,0.06) 0%, rgba(82,183,136,0.04) 100%); border: 1.5px solid rgba(45,106,79,0.2); border-radius: 16px; padding: 28px 32px; margin-bottom: 24px; }
     .ai-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
     .ai-icon { width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
@@ -78,20 +77,17 @@
     .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
     .form-row .form-group, .form-row-3 .form-group { margin-bottom: 0; }
 
-    /* INCENTIVE PILLS */
     .incentive-pills { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
     .incentive-pill { padding: 9px 18px; border: 1.5px solid var(--line); border-radius: 100px; font-size: 13px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: all 0.15s; user-select: none; }
     .incentive-pill:hover { border-color: var(--accent-light); color: var(--ink); }
     .incentive-pill.selected { border-color: var(--accent); background: rgba(45,106,79,0.08); color: var(--accent); }
 
-    /* URGENCY PILLS */
     .urgency-pills { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
     .urgency-pill { padding: 9px 18px; border: 1.5px solid var(--line); border-radius: 100px; font-size: 13px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: all 0.15s; user-select: none; }
     .urgency-pill:hover { border-color: var(--accent-light); color: var(--ink); }
     .urgency-pill.selected { border-color: var(--accent); background: var(--accent); color: white; }
     .urgency-pill.urgent.selected { border-color: #c05621; background: #c05621; }
 
-    /* COMMISSION BOX */
     .commission-box { display: none; margin-top: 16px; background: white; border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
     .commission-row { padding: 14px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
     .commission-row:last-child { border-bottom: none; background: rgba(45,106,79,0.04); }
@@ -101,11 +97,9 @@
     .commission-row .cvalue.orange { color: var(--accent-warm); }
     .commission-row .cvalue.total { font-family: var(--serif); font-size: 22px; color: var(--accent); }
 
-    /* NON-CASH RAFFLE BOX */
     .raffle-box { display: none; margin-top: 16px; background: rgba(224,122,60,0.06); border: 1.5px solid rgba(224,122,60,0.2); border-radius: 12px; padding: 16px 20px; font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
     .raffle-box strong { color: var(--accent-warm); display: block; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
 
-    /* FILE UPLOAD */
     .file-upload-area { border: 1.5px dashed var(--line); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
     .file-upload-area:hover { border-color: var(--accent); background: rgba(45,106,79,0.02); }
     .file-upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
@@ -114,7 +108,6 @@
     .file-upload-text strong { color: var(--accent); font-weight: 600; }
     .file-name { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 6px; display: none; }
 
-    /* CHECKBOX GROUP */
     .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; font-size: 13px; color: var(--ink-soft); }
     .checkbox-item:hover { border-color: var(--accent-light); background: rgba(45,106,79,0.03); }
@@ -291,7 +284,7 @@
         <div><h2>Budget & Timeline</h2><p>Set your incentive, budget, and deadline</p></div>
       </div>
 
-      <!-- ── STEP 1: Incentive type FIRST ── -->
+      <!-- Incentive type -->
       <div class="form-group">
         <label>Incentive Type</label>
         <div class="label-desc">Choose how you'll reward participants</div>
@@ -304,22 +297,24 @@
         <input type="hidden" name="incentive_type" id="incentiveInput" value="cash">
       </div>
 
-      <!-- Raffle / Volunteer note (shown instead of budget) -->
+      <!-- Target Responses — ALWAYS visible, outside budgetSection -->
+      <div class="form-group" style="margin-top: 4px;">
+        <label>Target Responses *</label>
+        <div class="label-desc">How many responses do you need?</div>
+        <input type="number" id="targetInput" name="target_responses" placeholder="e.g. 100" min="1" required style="margin-top: 8px;">
+      </div>
+
+      <!-- Raffle / Volunteer note -->
       <div class="raffle-box" id="raffleBox">
         <strong>No payment required</strong>
         For raffle and volunteer studies, participants are not paid per response. You can describe the incentive details in your survey description.
       </div>
 
-      <!-- ── STEP 2: Budget (hidden for raffle/volunteer) ── -->
+      <!-- Budget (hidden for raffle/volunteer) -->
       <div id="budgetSection">
         <div class="info-box" style="margin-top: 20px;">
           <strong>How pricing works</strong>
           Enter either your per-person amount or total budget — we'll calculate the other. Platform fee: 15% (under $15/person), 20% ($15–24), 25% ($25+).
-        </div>
-
-        <div class="form-group">
-          <label>Target Responses</label>
-          <input type="number" id="targetInput" name="target_responses" placeholder="e.g. 100" min="10" required>
         </div>
 
         <div class="form-row" style="margin-bottom: 0;">
@@ -335,28 +330,15 @@
           </div>
         </div>
 
-        <!-- Commission breakdown -->
         <div class="commission-box" id="commissionBox">
-          <div class="commission-row">
-            <span class="clabel">Per person (you pay)</span>
-            <span class="cvalue" id="dispPerPerson">—</span>
-          </div>
-          <div class="commission-row">
-            <span class="clabel">Platform fee (<span id="dispFeeRate">—</span>)</span>
-            <span class="cvalue orange" id="dispFee">—</span>
-          </div>
-          <div class="commission-row">
-            <span class="clabel">Participant receives</span>
-            <span class="cvalue green" id="dispReward">—</span>
-          </div>
-          <div class="commission-row">
-            <span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span>
-            <span class="cvalue total" id="dispTotal">—</span>
-          </div>
+          <div class="commission-row"><span class="clabel">Per person (you pay)</span><span class="cvalue" id="dispPerPerson">—</span></div>
+          <div class="commission-row"><span class="clabel">Platform fee (<span id="dispFeeRate">—</span>)</span><span class="cvalue orange" id="dispFee">—</span></div>
+          <div class="commission-row"><span class="clabel">Participant receives</span><span class="cvalue green" id="dispReward">—</span></div>
+          <div class="commission-row"><span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span><span class="cvalue total" id="dispTotal">—</span></div>
         </div>
       </div>
 
-      <!-- ── STEP 3: Timeline ── -->
+      <!-- Timeline -->
       <div class="form-group" style="margin-top: 24px;">
         <label>Recruitment Timeline</label>
         <div class="label-desc">Urgent studies get boosted visibility</div>
@@ -368,7 +350,6 @@
         <input type="hidden" name="urgency_level" id="urgencyInput" value="flexible">
       </div>
 
-      <!-- Specific deadline date -->
       <div class="form-group" style="margin-top: 8px;">
         <label>Specific Deadline <span style="font-weight:300; color: var(--ink-muted);">(Optional)</span></label>
         <div class="label-desc">If you need responses by a specific date</div>
@@ -416,35 +397,17 @@
         </div>
       </div>
 
-      <!-- State — only shown when US is selected -->
       <div class="form-row" style="margin-bottom: 16px;" id="stateRow" style="display:none;">
         <div class="form-group">
           <label>State <span style="font-weight:300; color: var(--ink-muted);">(US only)</span></label>
           <select name="target_state">
             <option value="all" selected>All states</option>
-            <option>Alabama</option><option>Alaska</option><option>Arizona</option>
-            <option>Arkansas</option><option>California</option><option>Colorado</option>
-            <option>Connecticut</option><option>Delaware</option><option>Florida</option>
-            <option>Georgia</option><option>Hawaii</option><option>Idaho</option>
-            <option>Illinois</option><option>Indiana</option><option>Iowa</option>
-            <option>Kansas</option><option>Kentucky</option><option>Louisiana</option>
-            <option>Maine</option><option>Maryland</option><option>Massachusetts</option>
-            <option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
-            <option>Missouri</option><option>Montana</option><option>Nebraska</option>
-            <option>Nevada</option><option>New Hampshire</option><option>New Jersey</option>
-            <option>New Mexico</option><option>New York</option><option>North Carolina</option>
-            <option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
-            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option>
-            <option>South Carolina</option><option>South Dakota</option><option>Tennessee</option>
-            <option>Texas</option><option>Utah</option><option>Vermont</option>
-            <option>Virginia</option><option>Washington</option><option>West Virginia</option>
-            <option>Wisconsin</option><option>Wyoming</option>
+            <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option><option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option><option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option><option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option><option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option><option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option><option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option><option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option><option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option><option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option><option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option><option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option><option>Wisconsin</option><option>Wyoming</option>
           </select>
         </div>
-        <div class="form-group"><!-- spacer --></div>
+        <div class="form-group"></div>
       </div>
 
-      <!-- Other country text input -->
       <div class="form-group" id="otherCountryRow" style="display:none; margin-bottom: 16px;">
         <label>Specify Country</label>
         <input type="text" name="target_country_other" placeholder="e.g. Singapore, Netherlands..." style="max-width: 360px;">
@@ -455,10 +418,7 @@
           <label>Language</label>
           <select name="target_language">
             <option value="all" selected>All languages</option>
-            <option>Arabic</option><option>English</option><option>French</option>
-            <option>German</option><option>Hindi</option><option>Japanese</option>
-            <option>Korean</option><option>Mandarin Chinese</option><option>Spanish</option>
-            <option>Other</option>
+            <option>Arabic</option><option>English</option><option>French</option><option>German</option><option>Hindi</option><option>Japanese</option><option>Korean</option><option>Mandarin Chinese</option><option>Spanish</option><option>Other</option>
           </select>
         </div>
         <div class="form-group">
@@ -486,12 +446,7 @@
           <label>Year in School</label>
           <select name="target_year_in_school">
             <option value="all" selected>All years</option>
-            <option value="Freshman">Freshman</option>
-            <option value="Sophomore">Sophomore</option>
-            <option value="Junior">Junior</option>
-            <option value="Senior">Senior</option>
-            <option value="Graduate Year 1">Graduate Year 1</option>
-            <option value="Graduate Year 2+">Graduate Year 2+</option>
+            <option value="Freshman">Freshman</option><option value="Sophomore">Sophomore</option><option value="Junior">Junior</option><option value="Senior">Senior</option><option value="Graduate Year 1">Graduate Year 1</option><option value="Graduate Year 2+">Graduate Year 2+</option>
           </select>
         </div>
       </div>
@@ -500,25 +455,14 @@
           <label>Field / Major</label>
           <select name="target_field">
             <option value="all" selected>All fields</option>
-            <option value="Computer Science & Engineering">CS & Engineering</option>
-            <option value="Business & Economics">Business & Economics</option>
-            <option value="Medicine & Healthcare">Medicine & Healthcare</option>
-            <option value="Natural Sciences">Natural Sciences</option>
-            <option value="Social Sciences">Social Sciences</option>
-            <option value="Arts & Humanities">Arts & Humanities</option>
-            <option value="Education">Education</option>
-            <option value="Law">Law</option>
-            <option value="Other">Other</option>
+            <option value="Computer Science & Engineering">CS & Engineering</option><option value="Business & Economics">Business & Economics</option><option value="Medicine & Healthcare">Medicine & Healthcare</option><option value="Natural Sciences">Natural Sciences</option><option value="Social Sciences">Social Sciences</option><option value="Arts & Humanities">Arts & Humanities</option><option value="Education">Education</option><option value="Law">Law</option><option value="Other">Other</option>
           </select>
         </div>
         <div class="form-group">
           <label>Employment Status</label>
           <select name="target_status">
             <option value="all" selected>All</option>
-            <option value="student">Student</option>
-            <option value="working">Working</option>
-            <option value="freelancer">Freelancer</option>
-            <option value="other">Other</option>
+            <option value="student">Student</option><option value="working">Working</option><option value="freelancer">Freelancer</option><option value="other">Other</option>
           </select>
         </div>
       </div>
@@ -526,21 +470,13 @@
         <div class="form-group">
           <label>Min Education</label>
           <select name="target_education_min">
-            <option value="">No limit</option>
-            <option value="1">High School</option>
-            <option value="2">Undergraduate</option>
-            <option value="3">Graduate</option>
-            <option value="4">PhD</option>
+            <option value="">No limit</option><option value="1">High School</option><option value="2">Undergraduate</option><option value="3">Graduate</option><option value="4">PhD</option>
           </select>
         </div>
         <div class="form-group">
           <label>Max Education</label>
           <select name="target_education_max">
-            <option value="">No limit</option>
-            <option value="1">High School</option>
-            <option value="2">Undergraduate</option>
-            <option value="3">Graduate</option>
-            <option value="4">PhD</option>
+            <option value="">No limit</option><option value="1">High School</option><option value="2">Undergraduate</option><option value="3">Graduate</option><option value="4">PhD</option>
           </select>
         </div>
         <div class="form-group"></div>
@@ -565,50 +501,34 @@
               <label>Ethnicity</label>
               <select name="target_ethnicity">
                 <option value="all" selected>All</option>
-                <option>White</option><option>Black or African American</option>
-                <option>Hispanic or Latino</option><option>Asian</option>
-                <option>Middle Eastern or North African</option>
-                <option>Native American or Pacific Islander</option>
-                <option>Two or more races</option><option>Other</option>
+                <option>White</option><option>Black or African American</option><option>Hispanic or Latino</option><option>Asian</option><option>Middle Eastern or North African</option><option>Native American or Pacific Islander</option><option>Two or more races</option><option>Other</option>
               </select>
             </div>
             <div class="form-group">
               <label>Sexual Orientation</label>
               <select name="target_sexual_orientation">
                 <option value="all" selected>All</option>
-                <option>Straight / Heterosexual</option>
-                <option>Gay or Lesbian</option><option>Bisexual</option><option>Other</option>
+                <option>Straight / Heterosexual</option><option>Gay or Lesbian</option><option>Bisexual</option><option>Other</option>
               </select>
             </div>
           </div>
           <div class="form-row">
-            <div class="form-group">
-              <label>Mental health diagnosis</label>
-              <select name="target_mental_health_diagnosis"><option value="all" selected>All</option><option>Yes</option><option>No</option></select>
-            </div>
-            <div class="form-group">
-              <label>Physical health diagnosis</label>
-              <select name="target_physical_health_diagnosis"><option value="all" selected>All</option><option>Yes</option><option>No</option></select>
-            </div>
+            <div class="form-group"><label>Mental health diagnosis</label><select name="target_mental_health_diagnosis"><option value="all" selected>All</option><option>Yes</option><option>No</option></select></div>
+            <div class="form-group"><label>Physical health diagnosis</label><select name="target_physical_health_diagnosis"><option value="all" selected>All</option><option>Yes</option><option>No</option></select></div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label>Sport type</label>
               <select name="target_sport_type">
                 <option value="all" selected>All</option>
-                <option>Basketball</option><option>Soccer / Football</option><option>Baseball / Softball</option>
-                <option>American Football</option><option>Tennis</option><option>Golf</option>
-                <option>Swimming</option><option>Running / Jogging</option><option>Cycling</option>
-                <option>Yoga / Pilates</option><option>Gym / Weightlifting</option><option>Martial Arts</option>
-                <option>Volleyball</option><option>Hockey</option><option>Other</option><option>None</option>
+                <option>Basketball</option><option>Soccer / Football</option><option>Baseball / Softball</option><option>American Football</option><option>Tennis</option><option>Golf</option><option>Swimming</option><option>Running / Jogging</option><option>Cycling</option><option>Yoga / Pilates</option><option>Gym / Weightlifting</option><option>Martial Arts</option><option>Volleyball</option><option>Hockey</option><option>Other</option><option>None</option>
               </select>
             </div>
             <div class="form-group">
               <label>Sport frequency</label>
               <select name="target_sport_frequency">
                 <option value="all" selected>All</option>
-                <option>Daily</option><option>Several times a week</option><option>Once a week</option>
-                <option>A few times a month</option><option>Rarely</option><option>Never</option>
+                <option>Daily</option><option>Several times a week</option><option>Once a week</option><option>A few times a month</option><option>Rarely</option><option>Never</option>
               </select>
             </div>
           </div>
@@ -617,16 +537,14 @@
               <label>Smoking</label>
               <select name="target_smoking">
                 <option value="all" selected>All</option>
-                <option>Never</option><option>Former smoker</option><option>Rarely</option>
-                <option>Occasionally</option><option>Several times a week</option><option>Daily</option>
+                <option>Never</option><option>Former smoker</option><option>Rarely</option><option>Occasionally</option><option>Several times a week</option><option>Daily</option>
               </select>
             </div>
             <div class="form-group">
               <label>Cannabis use</label>
               <select name="target_cannabis_use">
                 <option value="all" selected>All</option>
-                <option>Never</option><option>Former user</option><option>Rarely</option>
-                <option>Occasionally</option><option>Several times a week</option><option>Daily</option>
+                <option>Never</option><option>Former user</option><option>Rarely</option><option>Occasionally</option><option>Several times a week</option><option>Daily</option>
               </select>
             </div>
           </div>
@@ -644,7 +562,6 @@
 </div>
 
 <script>
-  // ── Incentive → show/hide budget ────────────────────────
   function selectIncentive(el) {
     document.querySelectorAll('.incentive-pill').forEach(p => p.classList.remove('selected'));
     el.classList.add('selected');
@@ -655,23 +572,15 @@
     document.getElementById('budgetSection').style.display = noCash ? 'none' : 'block';
     document.getElementById('raffleBox').style.display = noCash ? 'block' : 'none';
     document.getElementById('submitBtn').textContent = noCash ? 'Publish →' : 'Pay & Publish →';
-
-    // remove required from budget fields when hidden
-    const budgetFields = ['targetInput', 'perPersonInput', 'totalBudgetInput'];
-    budgetFields.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.required = !noCash && id === 'targetInput';
-    });
+    // target_responses is always visible — no need to toggle required
   }
 
-  // ── Country → show/hide state / other ───────────────────
   function toggleStateField() {
     const val = document.getElementById('targetCountry').value;
     document.getElementById('stateRow').style.display = val === 'US' ? 'grid' : 'none';
     document.getElementById('otherCountryRow').style.display = val === 'other' ? 'block' : 'none';
   }
 
-  // ── Commission calculator ────────────────────────────────
   const perPersonInput = document.getElementById('perPersonInput');
   const totalBudgetInput = document.getElementById('totalBudgetInput');
   const targetInput = document.getElementById('targetInput');
@@ -716,7 +625,6 @@
   totalBudgetInput.addEventListener('input', updateCommission);
   targetInput.addEventListener('input', updateCommission);
 
-  // ── AI Fill ──────────────────────────────────────────────
   async function fillWithAI() {
     const prompt = document.getElementById('aiPrompt').value.trim();
     if (!prompt) { alert('Please enter a description first.'); return; }
@@ -746,35 +654,29 @@
 
   document.getElementById('aiPrompt').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fillWithAI(); } });
 
-  // ── Urgency pills ────────────────────────────────────────
   function selectUrgency(el) {
     document.querySelectorAll('.urgency-pill').forEach(p => p.classList.remove('selected'));
     el.classList.add('selected');
     document.getElementById('urgencyInput').value = el.dataset.value;
   }
 
-  // ── Checkbox ─────────────────────────────────────────────
   function updateCheckbox(input) { input.closest('.checkbox-item').classList.toggle('checked', input.checked); }
 
-  // ── File upload ──────────────────────────────────────────
   document.getElementById('coverImageInput').addEventListener('change', function() {
     const fn = document.getElementById('fileName');
     fn.textContent = this.files[0] ? '✓ ' + this.files[0].name : '';
     fn.style.display = this.files[0] ? 'block' : 'none';
   });
 
-  // ── Select color fix ─────────────────────────────────────
   document.querySelectorAll('select').forEach(s => {
     const update = () => s.classList.toggle('has-value', !!s.value && s.value !== '');
     s.addEventListener('change', update); update();
   });
 
-  // ── Advanced toggle ──────────────────────────────────────
   document.querySelector('details').addEventListener('toggle', function() {
     document.getElementById('advArrow').textContent = this.open ? '▾' : '▸';
   });
 
-  // ── Submit ───────────────────────────────────────────────
   document.getElementById('publishForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const incentive = document.getElementById('incentiveInput').value;
