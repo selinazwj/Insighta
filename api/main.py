@@ -15,9 +15,6 @@ import stripe
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 from app.database import engine, get_db
 from app.models import Base, User, Survey, Response, Feedback
@@ -60,12 +57,6 @@ router = APIRouter()
 # ---------------------------
 
 def calculate_commission(per_person_gross: float):
-    """
-    Returns (commission_rate, reward_amount)
-    per_person_gross >= 25 → 25% commission
-    per_person_gross 15-24 → 20% commission
-    per_person_gross < 15  → 15% commission
-    """
     if per_person_gross >= 25:
         rate = 0.25
     elif per_person_gross >= 15:
@@ -355,7 +346,6 @@ def delete_survey(
     if not survey:
         raise HTTPException(404, "Survey not found")
 
-    # Delete associated responses first to avoid foreign key constraint
     db.query(Response).filter(Response.survey_id == survey_id).delete()
     db.delete(survey)
     db.commit()
@@ -547,11 +537,9 @@ def start_survey(
         db.add(Response(survey_id=survey_id, participant_id=current_user.id, status="started"))
         db.commit()
 
-        # Send email notification to publisher
         publisher = db.query(User).filter(User.id == survey.publisher_id).first()
         if publisher and publisher.email:
             participant_name = current_user.username or current_user.email
-            approve_url = f"https://insightaco.org/publisher"
             send_email(
                 to=publisher.email,
                 subject=f"[Insighta] Someone started your survey: {survey.title}",
@@ -559,23 +547,19 @@ def start_survey(
                 <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
                   <h2 style="font-size: 22px; margin-bottom: 8px;">📋 New Survey Response</h2>
                   <p style="color: #8a8a82; margin-bottom: 24px;">Someone has started filling out your survey.</p>
-
                   <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
                     <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
                     <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
                     <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
                     <div style="font-size: 15px;">{participant_name}</div>
                   </div>
-
                   <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
                     Please check your <strong>Google Form backend</strong> to verify the response was submitted.
                     Once confirmed, go to your dashboard to approve and release the reward.
                   </p>
-
-                  <a href="{approve_url}" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
                     Go to Dashboard →
                   </a>
-
                   <p style="font-size: 12px; color: #8a8a82; margin-top: 32px;">
                     Insighta · <a href="https://insightaco.org" style="color: #2d6a4f;">insightaco.org</a>
                   </p>
@@ -674,12 +658,9 @@ def approve_response(
     r.payout_amount = survey.reward_amount
     r.payout_status = "pending"
 
-    # Add to participant's pending earnings
     participant = db.query(User).filter(User.id == r.participant_id).first()
     if participant:
         participant.pending_earnings = (getattr(participant, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
-
-        # Notify participant
         send_email(
             to=participant.email,
             subject=f"[Insighta] Your response was approved! 💰",
@@ -687,22 +668,18 @@ def approve_response(
             <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
               <h2 style="font-size: 22px; margin-bottom: 8px;">🎉 Response Approved!</h2>
               <p style="color: #8a8a82; margin-bottom: 24px;">Your survey response has been verified and approved.</p>
-
               <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
                 <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
                 <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
                 <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Reward Added</div>
                 <div style="font-size: 22px; font-weight: 700; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
               </div>
-
               <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
                 Your earnings have been added to your account. You can withdraw anytime from your dashboard.
               </p>
-
               <a href="https://insightaco.org/dashboard" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
                 View Earnings →
               </a>
-
               <p style="font-size: 12px; color: #8a8a82; margin-top: 32px;">
                 Insighta · <a href="https://insightaco.org" style="color: #2d6a4f;">insightaco.org</a>
               </p>
@@ -750,6 +727,11 @@ def get_pending_responses(
         })
 
     return JSONResponse(result)
+
+
+# ---------------------------
+# Publish survey page
+# ---------------------------
 
 @app.get("/publish", response_class=HTMLResponse)
 def publish_page(request: Request, current_user: User = Depends(get_current_user)):
@@ -802,8 +784,8 @@ async def publish_survey(
     task_type: str = Form("survey"),
     category: str = Form(...),
     estimated_time: int = Form(...),
-    per_person_gross: float = Form(None),
-    total_budget: float = Form(None),
+    per_person_gross: Optional[float] = Form(None),
+    total_budget: Optional[float] = Form(None),
     target_responses: int = Form(...),
     urgency_level: str = Form(None),
     incentive_type: str = Form(None),
@@ -835,16 +817,23 @@ async def publish_survey(
     experience_list = form.getlist("target_experience_tags")
     target_experience_tags = ",".join(experience_list) if experience_list else None
 
-    # Calculate commission
-    if per_person_gross:
-        ppg = float(per_person_gross)
-    elif total_budget:
-        ppg = float(total_budget) / int(target_responses)
-    else:
-        ppg = 5.0
+    # raffle/volunteer: no payment needed, set ppg to 0
+    is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
 
-    rate, reward = calculate_commission(ppg)
-    total = round(ppg * int(target_responses), 2)
+    if is_no_pay:
+        ppg = 0.0
+        rate = 0.0
+        reward = 0.0
+        total = 0.0
+    else:
+        if per_person_gross:
+            ppg = float(per_person_gross)
+        elif total_budget:
+            ppg = float(total_budget) / int(target_responses)
+        else:
+            ppg = 5.0
+        rate, reward = calculate_commission(ppg)
+        total = round(ppg * int(target_responses), 2)
 
     image_url = None
     if cover_image and cover_image.filename:
@@ -869,7 +858,7 @@ async def publish_survey(
         per_person_gross=ppg,
         total_budget=total,
         commission_rate=rate,
-        payment_status="unpaid",
+        payment_status="unpaid" if not is_no_pay else "paid",
         target_responses=target_responses,
         urgency_level=_clean_target(urgency_level),
         incentive_type=_clean_target(incentive_type),
@@ -903,7 +892,11 @@ async def publish_survey(
     db.commit()
     db.refresh(survey)
 
-    # Create Stripe Checkout session
+    # raffle/volunteer → skip Stripe, go straight to publisher
+    if is_no_pay:
+        return RedirectResponse("/publisher", status_code=303)
+
+    # Cash/gift card → Stripe Checkout
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
         line_items=[{
@@ -931,9 +924,20 @@ async def publish_survey(
 
     return RedirectResponse(session.url, status_code=303)
 
+
+# ---------------------------
+# Publish interview page + POST
+# ---------------------------
+
 @app.get("/publish_interview", response_class=HTMLResponse)
-def publish_interview_page(request: Request):
-    return templates.TemplateResponse("publish_interview.html", {"request": request})
+def publish_interview_page(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    return templates.TemplateResponse("publish_interview.html", {
+        "request": request,
+        "current_user": current_user
+    })
 
 @app.post("/publish_interview")
 async def publish_interview(
@@ -944,38 +948,58 @@ async def publish_interview(
     estimated_time: int = Form(...),
     target_responses: int = Form(...),
     interview_format: str = Form("video"),
-    scheduling_link: str = Form(None),
-    availability_notes: str = Form(None),
-    interview_location: str = Form(None),
-    urgency_level: str = Form(None),
-    deadline_date: str = Form(None),
-    incentive_type: str = Form(None),
-    per_person_gross: float = Form(None),
+    scheduling_link: Optional[str] = Form(None),
+    availability_notes: Optional[str] = Form(None),
+    interview_location: Optional[str] = Form(None),
+    urgency_level: Optional[str] = Form(None),
+    deadline_date: Optional[str] = Form(None),
+    incentive_type: Optional[str] = Form(None),
+    per_person_gross: Optional[float] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     form = await request.form()
     experience_list = form.getlist("target_experience_tags")
 
+    is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
+    reward = 0.0 if is_no_pay else (per_person_gross or 0.0)
+
     survey = Survey(
         publisher_id=current_user.id,
         title=title,
         description=description,
-        form_url=scheduling_link or "",   # 复用 form_url 字段存 scheduling link
+        form_url=scheduling_link or "",
         task_type="interview",
         category=category,
         estimated_time=estimated_time,
-        reward_amount=per_person_gross or 0.0,
+        reward_amount=reward,
+        per_person_gross=reward,
+        total_budget=round(reward * target_responses, 2),
+        commission_rate=0.0,
+        payment_status="paid",          # interviews don't go through Stripe for now
         target_responses=target_responses,
         urgency_level=_clean_target(urgency_level),
         incentive_type=_clean_target(incentive_type),
+        target_age_range=_clean_target(form.get("target_age_range")),
+        target_field=_clean_target(form.get("target_field")),
+        target_status=_clean_target(form.get("target_status")),
+        target_state=_clean_target(form.get("target_state")),
+        target_language=_clean_target(form.get("target_language")),
+        target_student_status=_clean_target(form.get("target_student_status")),
+        target_year_in_school=_clean_target(form.get("target_year_in_school")),
+        target_international_domestic=_clean_target(form.get("target_international_domestic")),
         target_experience_tags=",".join(experience_list) if experience_list else None,
-        # 其余 target_ 字段同 publish 路由写法
+        target_participation_format=_clean_target(form.get("target_participation_format")),
+        target_device=_clean_target(form.get("target_device")),
         status="draft",
+        published_at=None,
+        closed_at=None,
     )
     db.add(survey)
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
+
+
 # ---------------------------
 # Payment success page
 # ---------------------------
@@ -1422,17 +1446,23 @@ async def submit_feedback(
     db.commit()
     return RedirectResponse("/feedback?success=1", status_code=303)
 
-# Admin: grant credit for feedback
+
+# ---------------------------
+# Admin
+# ---------------------------
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page(request: Request):
+    return templates.TemplateResponse("admin.html", {"request": request})
+
 @app.post("/admin/feedback/{feedback_id}/credit")
 async def grant_credit(
     feedback_id: int,
     request: Request,
     db: Session = Depends(get_db)
 ):
-    # Simple admin key check
     body = await request.json()
-    admin_key = body.get("admin_key", "")
-    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"):
+    if body.get("admin_key", "") != os.environ.get("ADMIN_KEY", "insighta-admin"):
         raise HTTPException(403, "Unauthorized")
 
     amount = float(body.get("amount", 0))
@@ -1447,7 +1477,6 @@ async def grant_credit(
     if not user:
         raise HTTPException(404, "User not found")
 
-    # Grant credit
     user.pending_earnings = (getattr(user, 'pending_earnings', 0.0) or 0.0) + amount
     feedback.status = "credited"
     feedback.credit_amount = amount
@@ -1461,12 +1490,6 @@ async def grant_credit(
         "new_balance": user.pending_earnings
     })
 
-# Admin page
-@app.get("/admin", response_class=HTMLResponse)
-def admin_page(request: Request):
-    return templates.TemplateResponse("admin.html", {"request": request})
-
-# Admin: reject feedback
 @app.post("/admin/feedback/{feedback_id}/reject")
 async def reject_feedback(
     feedback_id: int,
@@ -1485,6 +1508,7 @@ async def reject_feedback(
     feedback.reviewed_at = datetime.utcnow()
     db.commit()
     return JSONResponse({"success": True})
+
 @app.get("/admin/feedbacks")
 async def list_feedbacks(
     request: Request,
