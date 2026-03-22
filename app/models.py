@@ -40,19 +40,11 @@ class User(Base):
     participation_format = Column(String, nullable=True)
     device_type = Column(String, nullable=True)
 
-    # ── Stripe 相关 ──────────────────────────────────────────
+    # Stripe 相关
     stripe_account_id = Column(String, nullable=True)
-    # Participant 的 Stripe Connect account ID (acct_...)
-
     stripe_onboarding_complete = Column(String, default="false")
-    # "true" / "false"
-
     pending_earnings = Column(Float, default=0.0)
-    # 已完成问卷但还未提现的金额
-
     total_withdrawn = Column(Float, default=0.0)
-    # 累计已提现金额
-    # ─────────────────────────────────────────────────────────
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -67,7 +59,6 @@ class Survey(Base):
     __tablename__ = "surveys"
 
     id = Column(Integer, primary_key=True, index=True)
-
     publisher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # 原有 target 字段
@@ -97,28 +88,20 @@ class Survey(Base):
     urgency_level = Column(String, nullable=True)
     incentive_type = Column(String, nullable=True)
 
-    # 基본信息
+    # 基本信息
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     form_url = Column(String, nullable=False)
-    task_type = Column(String, nullable=True)
+    task_type = Column(String, default="survey", nullable=True)
     category = Column(String, nullable=False)
     estimated_time = Column(Integer, nullable=False)
     image_url = Column(String, nullable=True)
 
     # 奖励 & 进度
     reward_amount = Column(Float, nullable=False)
-    # per person 税后金额（participant 看到的）
-
     total_budget = Column(Float, nullable=True)
-    # publisher 支付的总金额（含平台抽成）
-
     per_person_gross = Column(Float, nullable=True)
-    # publisher 每人支付的金额（含平台抽成）
-
     commission_rate = Column(Float, nullable=True)
-    # 平台抽成比例 0.15 / 0.20 / 0.25
-
     target_responses = Column(Integer, nullable=False)
     current_responses = Column(Integer, default=0)
 
@@ -128,16 +111,29 @@ class Survey(Base):
     closed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # ── Stripe 支付状态 ───────────────────────────────────────
+    # Stripe 支付状态
     payment_status = Column(String, default="unpaid")
-    # unpaid / paid / refunded
-
     stripe_payment_intent_id = Column(String, nullable=True)
-    # Stripe PaymentIntent 或 Checkout Session ID
-    # ─────────────────────────────────────────────────────────
 
     publisher = relationship("User", back_populates="surveys")
     responses = relationship("Response", back_populates="survey")
+
+
+# ======================
+# Notification（她的新功能）
+# ======================
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    publisher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    participant_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
+    participant_email = Column(String, nullable=True)
+    survey_title = Column(String, nullable=True)
+    task_type = Column(String, default="survey")
+    status = Column(String, default="pending")  # pending / accepted / rejected
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 # ======================
@@ -147,7 +143,6 @@ class Response(Base):
     __tablename__ = "responses"
 
     id = Column(Integer, primary_key=True, index=True)
-
     survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
     participant_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
@@ -155,16 +150,10 @@ class Response(Base):
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
-    # ── Stripe 打款状态 ───────────────────────────────────────
+    # Stripe 打款状态
     payout_status = Column(String, default="pending")
-    # pending / paid / failed
-
     payout_amount = Column(Float, nullable=True)
-    # 实际打给 participant 的金额
-
     stripe_transfer_id = Column(String, nullable=True)
-    # Stripe Transfer ID
-    # ─────────────────────────────────────────────────────────
 
     survey = relationship("Survey", back_populates="responses")
     participant = relationship("User", back_populates="responses")
@@ -180,16 +169,11 @@ class Feedback(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     category = Column(String, nullable=False)
-    # bug / feature_request / ux / general / other
-
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
 
     status = Column(String, default="pending")
-    # pending / reviewed / credited / rejected
-
     credit_amount = Column(Float, nullable=True)
-    # 审核后发放的金额
 
     created_at = Column(DateTime, default=datetime.utcnow)
     reviewed_at = Column(DateTime, nullable=True)

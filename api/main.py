@@ -17,7 +17,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 from app.database import engine, get_db
-from app.models import Base, User, Survey, Response, Feedback
+from app.models import Base, User, Survey, Response, Feedback, Notification
 
 
 app = FastAPI()
@@ -345,7 +345,6 @@ def delete_survey(
     ).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
-
     db.query(Response).filter(Response.survey_id == survey_id).delete()
     db.delete(survey)
     db.commit()
@@ -504,11 +503,21 @@ def get_dashboard_stats(
         Response.completed_at >= today_start_utc
     ).count()
 
-    pending_earnings = getattr(current_user, 'pending_earnings', 0.0) or 0.0
+    completed_responses = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed",
+        Response.completed_at.isnot(None)
+    ).all()
+
+    total_earned = 0.0
+    for resp in completed_responses:
+        survey = db.query(Survey).filter(Survey.id == resp.survey_id).first()
+        if survey:
+            total_earned += survey.reward_amount
 
     return JSONResponse({
         "completed_today": completed_today,
-        "total_earned": pending_earnings
+        "total_earned": total_earned
     })
 
 
@@ -522,6 +531,7 @@ def start_survey(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Start 不发任何邮件
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
@@ -536,36 +546,6 @@ def start_survey(
     if not existing:
         db.add(Response(survey_id=survey_id, participant_id=current_user.id, status="started"))
         db.commit()
-
-        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
-        if publisher and publisher.email:
-            participant_name = current_user.username or current_user.email
-            send_email(
-                to=publisher.email,
-                subject=f"[Insighta] Someone started your survey: {survey.title}",
-                body=f"""
-                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
-                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 New Survey Response</h2>
-                  <p style="color: #8a8a82; margin-bottom: 24px;">Someone has started filling out your survey.</p>
-                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
-                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
-                    <div style="font-size: 15px;">{participant_name}</div>
-                  </div>
-                  <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
-                    Please check your <strong>Google Form backend</strong> to verify the response was submitted.
-                    Once confirmed, go to your dashboard to approve and release the reward.
-                  </p>
-                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-                    Go to Dashboard →
-                  </a>
-                  <p style="font-size: 12px; color: #8a8a82; margin-top: 32px;">
-                    Insighta · <a href="https://insightaco.org" style="color: #2d6a4f;">insightaco.org</a>
-                  </p>
-                </div>
-                """
-            )
 
     return {"message": "Survey started successfully"}
 
@@ -598,6 +578,50 @@ def complete_survey(
         r.payout_status = "pending"
         current_user.pending_earnings = (getattr(current_user, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
 
+        # 创建 Notification
+        notif = Notification(
+            publisher_id=survey.publisher_id,
+            participant_id=current_user.id,
+            survey_id=survey_id,
+            participant_email=current_user.email,
+            survey_title=survey.title,
+            task_type=getattr(survey, "task_type", "survey") or "survey",
+            status="pending"
+        )
+        db.add(notif)
+
+        # 通知 publisher 去审核
+        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+        if publisher and publisher.email:
+            send_email(
+                to=publisher.email,
+                subject=f"[Insighta] New response ready for review: {survey.title}",
+                body=f"""
+                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
+                  <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey and is awaiting your approval.</p>
+                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
+                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
+                    <div style="font-size: 15px;">{current_user.email}</div>
+                    <div style="font-size: 13px; color: #8a8a82; margin-top: 12px; margin-bottom: 4px;">Reward</div>
+                    <div style="font-size: 15px; font-weight: 600; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
+                  </div>
+                  <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
+                    Please check your <strong>Google Form backend</strong> to verify the response was submitted correctly,
+                    then go to your dashboard to approve and release the reward.
+                  </p>
+                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                    Review & Approve →
+                  </a>
+                  <p style="font-size: 12px; color: #8a8a82; margin-top: 32px;">
+                    Insighta · <a href="https://insightaco.org" style="color: #2d6a4f;">insightaco.org</a>
+                  </p>
+                </div>
+                """
+            )
+
     db.commit()
     return RedirectResponse(url="/dashboard", status_code=302)
 
@@ -624,6 +648,60 @@ def modify_completed_survey(
         return {"message": "Response modified"}
 
     return JSONResponse({"detail": "Response not found or not completed"}, status_code=404)
+
+
+# ---------------------------
+# Notifications API
+# ---------------------------
+
+@app.get("/api/notifications")
+def get_notifications(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    notifs = db.query(Notification).filter(
+        Notification.publisher_id == current_user.id
+    ).order_by(Notification.created_at.desc()).all()
+    return JSONResponse([{
+        "id": n.id,
+        "participant_email": n.participant_email,
+        "survey_title": n.survey_title,
+        "task_type": n.task_type or "survey",
+        "status": n.status,
+        "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else ""
+    } for n in notifs])
+
+@app.post("/api/notifications/{notif_id}/accept")
+def accept_notification(
+    notif_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    n = db.query(Notification).filter(
+        Notification.id == notif_id,
+        Notification.publisher_id == current_user.id
+    ).first()
+    if not n:
+        raise HTTPException(404, "Notification not found")
+    n.status = "accepted"
+    db.commit()
+    return {"message": "accepted"}
+
+@app.post("/api/notifications/{notif_id}/reject")
+def reject_notification(
+    notif_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    n = db.query(Notification).filter(
+        Notification.id == notif_id,
+        Notification.publisher_id == current_user.id
+    ).first()
+    if not n:
+        raise HTTPException(404, "Notification not found")
+    n.status = "rejected"
+    db.commit()
+    return {"message": "rejected"}
 
 
 # ---------------------------
@@ -658,6 +736,7 @@ def approve_response(
     r.payout_amount = survey.reward_amount
     r.payout_status = "pending"
 
+    # Approve 才给 participant 发钱到账邮件
     participant = db.query(User).filter(User.id == r.participant_id).first()
     if participant:
         participant.pending_earnings = (getattr(participant, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
@@ -817,14 +896,10 @@ async def publish_survey(
     experience_list = form.getlist("target_experience_tags")
     target_experience_tags = ",".join(experience_list) if experience_list else None
 
-    # raffle/volunteer: no payment needed, set ppg to 0
     is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
 
     if is_no_pay:
-        ppg = 0.0
-        rate = 0.0
-        reward = 0.0
-        total = 0.0
+        ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
     else:
         if per_person_gross:
             ppg = float(per_person_gross)
@@ -848,15 +923,9 @@ async def publish_survey(
 
     survey = Survey(
         publisher_id=current_user.id,
-        title=title,
-        description=description,
-        form_url=form_url,
-        task_type=task_type,
-        category=category,
-        estimated_time=estimated_time,
-        reward_amount=reward,
-        per_person_gross=ppg,
-        total_budget=total,
+        title=title, description=description, form_url=form_url,
+        task_type=task_type, category=category, estimated_time=estimated_time,
+        reward_amount=reward, per_person_gross=ppg, total_budget=total,
         commission_rate=rate,
         payment_status="unpaid" if not is_no_pay else "paid",
         target_responses=target_responses,
@@ -883,20 +952,15 @@ async def publish_survey(
         target_experience_tags=target_experience_tags,
         target_participation_format=_clean_target(target_participation_format),
         target_device=_clean_target(target_device),
-        image_url=image_url,
-        status="draft",
-        published_at=None,
-        closed_at=None,
+        image_url=image_url, status="draft", published_at=None, closed_at=None,
     )
     db.add(survey)
     db.commit()
     db.refresh(survey)
 
-    # raffle/volunteer → skip Stripe, go straight to publisher
     if is_no_pay:
         return RedirectResponse("/publisher", status_code=303)
 
-    # Cash/gift card → Stripe Checkout
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
         line_items=[{
@@ -913,15 +977,11 @@ async def publish_survey(
         mode="payment",
         success_url=f"https://insightaco.org/payment/success?survey_id={survey.id}",
         cancel_url=f"https://insightaco.org/publisher",
-        metadata={
-            "survey_id": str(survey.id),
-            "publisher_id": str(current_user.id),
-        }
+        metadata={"survey_id": str(survey.id), "publisher_id": str(current_user.id)}
     )
 
     survey.stripe_payment_intent_id = session.id
     db.commit()
-
     return RedirectResponse(session.url, status_code=303)
 
 
@@ -930,13 +990,9 @@ async def publish_survey(
 # ---------------------------
 
 @app.get("/publish_interview", response_class=HTMLResponse)
-def publish_interview_page(
-    request: Request,
-    current_user: User = Depends(get_current_user)
-):
+def publish_interview_page(request: Request, current_user: User = Depends(get_current_user)):
     return templates.TemplateResponse("publish_interview.html", {
-        "request": request,
-        "current_user": current_user
+        "request": request, "current_user": current_user
     })
 
 @app.post("/publish_interview")
@@ -966,17 +1022,12 @@ async def publish_interview(
 
     survey = Survey(
         publisher_id=current_user.id,
-        title=title,
-        description=description,
+        title=title, description=description,
         form_url=scheduling_link or "",
-        task_type="interview",
-        category=category,
-        estimated_time=estimated_time,
-        reward_amount=reward,
-        per_person_gross=reward,
-        total_budget=round(reward * target_responses, 2),
-        commission_rate=0.0,
-        payment_status="paid",          # interviews don't go through Stripe for now
+        task_type="interview", category=category,
+        estimated_time=estimated_time, reward_amount=reward,
+        per_person_gross=reward, total_budget=round(reward * target_responses, 2),
+        commission_rate=0.0, payment_status="paid",
         target_responses=target_responses,
         urgency_level=_clean_target(urgency_level),
         incentive_type=_clean_target(incentive_type),
@@ -991,9 +1042,7 @@ async def publish_interview(
         target_experience_tags=",".join(experience_list) if experience_list else None,
         target_participation_format=_clean_target(form.get("target_participation_format")),
         target_device=_clean_target(form.get("target_device")),
-        status="draft",
-        published_at=None,
-        closed_at=None,
+        status="draft", published_at=None, closed_at=None,
     )
     db.add(survey)
     db.commit()
@@ -1015,9 +1064,7 @@ def payment_success(
     if survey_id:
         survey = db.query(Survey).filter(Survey.id == survey_id).first()
     return templates.TemplateResponse("payment_success.html", {
-        "request": request,
-        "survey": survey,
-        "current_user": current_user,
+        "request": request, "survey": survey, "current_user": current_user,
     })
 
 
@@ -1029,18 +1076,14 @@ def payment_success(
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
-
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
-        )
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except Exception as e:
         raise HTTPException(400, str(e))
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
-        metadata = session.get("metadata", {})
-        survey_id = metadata.get("survey_id")
+        survey_id = session.get("metadata", {}).get("survey_id")
         if survey_id:
             survey = db.query(Survey).filter(Survey.id == int(survey_id)).first()
             if survey:
@@ -1062,39 +1105,29 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
 
 # ---------------------------
-# Stripe Connect — Participant onboarding
+# Stripe Connect
 # ---------------------------
 
 @app.get("/connect/onboard")
-def connect_onboard(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def connect_onboard(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not getattr(current_user, 'stripe_account_id', None):
         account = stripe.Account.create(
-            type="express",
-            email=current_user.email,
+            type="express", email=current_user.email,
             capabilities={"transfers": {"requested": True}},
         )
         current_user.stripe_account_id = account.id
         db.commit()
-
     account_link = stripe.AccountLink.create(
         account=current_user.stripe_account_id,
         refresh_url="https://insightaco.org/connect/onboard",
         return_url="https://insightaco.org/connect/complete",
         type="account_onboarding",
     )
-
     return RedirectResponse(account_link.url)
 
 
 @app.get("/connect/complete", response_class=HTMLResponse)
-def connect_complete(
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def connect_complete(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if getattr(current_user, 'stripe_account_id', None):
         account = stripe.Account.retrieve(current_user.stripe_account_id)
         if account.charges_enabled:
@@ -1108,41 +1141,28 @@ def connect_complete(
 # ---------------------------
 
 @app.post("/api/withdraw")
-async def withdraw(
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+async def withdraw(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if getattr(current_user, 'stripe_onboarding_complete', 'false') != 'true':
         raise HTTPException(400, "Please complete Stripe onboarding first")
-
     pending = getattr(current_user, 'pending_earnings', 0.0) or 0.0
     if pending < 1.0:
         raise HTTPException(400, "Minimum withdrawal is $1.00")
-
     try:
         transfer = stripe.Transfer.create(
-            amount=int(pending * 100),
-            currency="usd",
+            amount=int(pending * 100), currency="usd",
             destination=current_user.stripe_account_id,
             description=f"Insighta payout for user {current_user.id}",
         )
-
-        pending_responses = db.query(Response).filter(
+        for r in db.query(Response).filter(
             Response.participant_id == current_user.id,
             Response.payout_status == "pending"
-        ).all()
-
-        for r in pending_responses:
+        ).all():
             r.payout_status = "paid"
             r.stripe_transfer_id = transfer.id
-
         current_user.total_withdrawn = (getattr(current_user, 'total_withdrawn', 0.0) or 0.0) + pending
         current_user.pending_earnings = 0.0
         db.commit()
-
         return JSONResponse({"success": True, "amount": pending, "transfer_id": transfer.id})
-
     except stripe.error.StripeError as e:
         raise HTTPException(400, str(e))
 
@@ -1152,17 +1172,9 @@ async def withdraw(
 # ---------------------------
 
 @app.post("/surveys/{survey_id}/publish")
-def publish_existing_survey(
-    survey_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    s = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.publisher_id == current_user.id
-    ).first()
-    if not s:
-        raise HTTPException(404, "Survey not found")
+def publish_existing_survey(survey_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    s = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
+    if not s: raise HTTPException(404, "Survey not found")
     if getattr(s, 'payment_status', 'unpaid') != 'paid':
         raise HTTPException(400, "Survey must be paid before publishing")
     if s.status != "published":
@@ -1174,17 +1186,9 @@ def publish_existing_survey(
 
 
 @app.post("/surveys/{survey_id}/close")
-def close_existing_survey(
-    survey_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    s = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.publisher_id == current_user.id
-    ).first()
-    if not s:
-        raise HTTPException(404, "Survey not found")
+def close_existing_survey(survey_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    s = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
+    if not s: raise HTTPException(404, "Survey not found")
     if s.status != "closed":
         s.status = "closed"
         s.closed_at = datetime.utcnow()
@@ -1193,17 +1197,9 @@ def close_existing_survey(
 
 
 @app.post("/surveys/{survey_id}/reopen")
-def reopen_closed_survey(
-    survey_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    s = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.publisher_id == current_user.id
-    ).first()
-    if not s:
-        raise HTTPException(404, "Survey not found")
+def reopen_closed_survey(survey_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    s = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
+    if not s: raise HTTPException(404, "Survey not found")
     if s.status == "closed":
         s.status = "published"
         s.closed_at = None
@@ -1219,8 +1215,7 @@ def reopen_closed_survey(
 def edit_survey_get(request: Request, survey_id: int, db: Session = Depends(get_db)):
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     current_responses = db.query(Response).filter(
-        Response.survey_id == survey_id,
-        Response.status == "completed"
+        Response.survey_id == survey_id, Response.status == "completed"
     ).count()
     survey.current_responses = current_responses
     return templates.TemplateResponse("edit_publish.html", {"request": request, "survey": survey})
@@ -1228,36 +1223,23 @@ def edit_survey_get(request: Request, survey_id: int, db: Session = Depends(get_
 
 @app.post("/publisher/edit/{survey_id}")
 async def edit_survey_post(
-    request: Request,
-    survey_id: int,
-    title: str = Form(...),
-    description: str = Form(...),
-    form_url: str = Form(...),
-    task_type: str = Form("survey"),
-    category: str = Form(...),
-    estimated_time: int = Form(...),
-    reward_amount: float = Form(...),
+    request: Request, survey_id: int,
+    title: str = Form(...), description: str = Form(...), form_url: str = Form(...),
+    task_type: str = Form("survey"), category: str = Form(...),
+    estimated_time: int = Form(...), reward_amount: float = Form(...),
     additional_needed: int = Form(...),
-    urgency_level: str = Form(None),
-    incentive_type: str = Form(None),
-    target_age_range: str = Form(None),
-    target_field: str = Form(None),
-    target_status: str = Form(None),
-    target_state: str = Form(None),
-    target_language: str = Form(None),
-    target_ethnicity: str = Form(None),
+    urgency_level: str = Form(None), incentive_type: str = Form(None),
+    target_age_range: str = Form(None), target_field: str = Form(None),
+    target_status: str = Form(None), target_state: str = Form(None),
+    target_language: str = Form(None), target_ethnicity: str = Form(None),
     target_sexual_orientation: str = Form(None),
     target_mental_health_diagnosis: str = Form(None),
     target_physical_health_diagnosis: str = Form(None),
-    target_sport_type: str = Form(None),
-    target_sport_frequency: str = Form(None),
-    target_smoking: str = Form(None),
-    target_cannabis_use: str = Form(None),
-    target_student_status: str = Form(None),
-    target_year_in_school: str = Form(None),
+    target_sport_type: str = Form(None), target_sport_frequency: str = Form(None),
+    target_smoking: str = Form(None), target_cannabis_use: str = Form(None),
+    target_student_status: str = Form(None), target_year_in_school: str = Form(None),
     target_international_domestic: str = Form(None),
-    target_participation_format: str = Form(None),
-    target_device: str = Form(None),
+    target_participation_format: str = Form(None), target_device: str = Form(None),
     cover_image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
@@ -1270,17 +1252,11 @@ async def edit_survey_post(
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if survey:
         current_responses = db.query(Response).filter(
-            Response.survey_id == survey_id,
-            Response.status == "completed"
+            Response.survey_id == survey_id, Response.status == "completed"
         ).count()
-
-        survey.title = title
-        survey.description = description
-        survey.form_url = form_url
-        survey.task_type = task_type
-        survey.category = category
-        survey.estimated_time = estimated_time
-        survey.reward_amount = reward_amount
+        survey.title = title; survey.description = description; survey.form_url = form_url
+        survey.task_type = task_type; survey.category = category
+        survey.estimated_time = estimated_time; survey.reward_amount = reward_amount
         survey.target_responses = current_responses + additional_needed
         survey.urgency_level = _clean_target(urgency_level)
         survey.incentive_type = _clean_target(incentive_type)
@@ -1327,21 +1303,13 @@ async def edit_survey_post(
 @app.get("/profile", response_class=HTMLResponse)
 def profile_get(request: Request, current_user: User = Depends(get_current_user)):
     prev_url = request.headers.get("referer", "/choice")
-    return templates.TemplateResponse(
-        "profile.html",
-        {"request": request, "user": current_user, "prev_url": prev_url}
-    )
+    return templates.TemplateResponse("profile.html", {"request": request, "user": current_user, "prev_url": prev_url})
 
 @app.post("/profile")
-async def profile_post(
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+async def profile_post(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     form = await request.form()
     language_list = form.getlist("language")
     experience_list = form.getlist("experience_tags")
-
     current_user.username = form.get("username")
     current_user.email = form.get("email") or ""
     current_user.age_range = form.get("age_range")
@@ -1364,7 +1332,6 @@ async def profile_post(
     current_user.experience_tags = ",".join(experience_list) if experience_list else None
     current_user.participation_format = form.get("participation_format")
     current_user.device_type = form.get("device_type")
-
     db.commit()
     return RedirectResponse("/choice", status_code=303)
 
@@ -1423,17 +1390,10 @@ Return ONLY a valid JSON object with these exact fields, no extra text:
 
 @app.get("/feedback", response_class=HTMLResponse)
 def feedback_page(request: Request, current_user: User = Depends(get_current_user)):
-    return templates.TemplateResponse("feedback.html", {
-        "request": request,
-        "current_user": current_user
-    })
+    return templates.TemplateResponse("feedback.html", {"request": request, "current_user": current_user})
 
 @app.post("/feedback")
-async def submit_feedback(
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+async def submit_feedback(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     form = await request.form()
     feedback = Feedback(
         user_id=current_user.id,
@@ -1456,81 +1416,45 @@ def admin_page(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
 
 @app.post("/admin/feedback/{feedback_id}/credit")
-async def grant_credit(
-    feedback_id: int,
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def grant_credit(feedback_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
     if body.get("admin_key", "") != os.environ.get("ADMIN_KEY", "insighta-admin"):
         raise HTTPException(403, "Unauthorized")
-
     amount = float(body.get("amount", 0))
-    if amount <= 0:
-        raise HTTPException(400, "Amount must be > 0")
-
+    if amount <= 0: raise HTTPException(400, "Amount must be > 0")
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
-    if not feedback:
-        raise HTTPException(404, "Feedback not found")
-
+    if not feedback: raise HTTPException(404, "Feedback not found")
     user = db.query(User).filter(User.id == feedback.user_id).first()
-    if not user:
-        raise HTTPException(404, "User not found")
-
+    if not user: raise HTTPException(404, "User not found")
     user.pending_earnings = (getattr(user, 'pending_earnings', 0.0) or 0.0) + amount
-    feedback.status = "credited"
-    feedback.credit_amount = amount
+    feedback.status = "credited"; feedback.credit_amount = amount
     feedback.reviewed_at = datetime.utcnow()
     db.commit()
-
-    return JSONResponse({
-        "success": True,
-        "user_email": user.email,
-        "amount": amount,
-        "new_balance": user.pending_earnings
-    })
+    return JSONResponse({"success": True, "user_email": user.email, "amount": amount, "new_balance": user.pending_earnings})
 
 @app.post("/admin/feedback/{feedback_id}/reject")
-async def reject_feedback(
-    feedback_id: int,
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def reject_feedback(feedback_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
     if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"):
         raise HTTPException(403, "Unauthorized")
-
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
-    if not feedback:
-        raise HTTPException(404, "Feedback not found")
-
-    feedback.status = "rejected"
-    feedback.reviewed_at = datetime.utcnow()
+    if not feedback: raise HTTPException(404, "Feedback not found")
+    feedback.status = "rejected"; feedback.reviewed_at = datetime.utcnow()
     db.commit()
     return JSONResponse({"success": True})
 
 @app.get("/admin/feedbacks")
-async def list_feedbacks(
-    request: Request,
-    admin_key: str = Query(None),
-    db: Session = Depends(get_db)
-):
+async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Session = Depends(get_db)):
     if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"):
         raise HTTPException(403, "Unauthorized")
-
     feedbacks = db.query(Feedback).order_by(Feedback.created_at.desc()).all()
     result = []
     for f in feedbacks:
         user = db.query(User).filter(User.id == f.user_id).first()
         result.append({
-            "id": f.id,
-            "user_email": user.email if user else "unknown",
-            "category": f.category,
-            "title": f.title,
-            "content": f.content,
-            "status": f.status,
-            "credit_amount": f.credit_amount,
-            "created_at": str(f.created_at),
+            "id": f.id, "user_email": user.email if user else "unknown",
+            "category": f.category, "title": f.title, "content": f.content,
+            "status": f.status, "credit_amount": f.credit_amount, "created_at": str(f.created_at),
         })
     return JSONResponse(result)
 
