@@ -12,354 +12,170 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --ink: #1a1a18;
-      --ink-soft: #4a4a44;
-      --ink-muted: #8a8a82;
-      --paper: #faf9f5;
-      --paper-warm: #f3f1ea;
-      --accent: #2d6a4f;
-      --accent-light: #52b788;
-      --accent-warm: #e07a3c;
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
+      --paper: #faf9f5; --paper-warm: #f3f1ea;
+      --accent: #2d6a4f; --accent-light: #52b788; --accent-warm: #e07a3c;
       --line: #e0ddd3;
       --serif: 'DM Serif Display', Georgia, serif;
       --sans: 'DM Sans', system-ui, sans-serif;
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: var(--sans);
-      background: var(--paper);
-      color: var(--ink);
-      min-height: 100vh;
-    }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
 
     /* ── NAVBAR ── */
-    .navbar {
-      background: rgba(250,249,245,0.88);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--line);
-      padding: 14px 48px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .navbar-left {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .back-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--ink-muted);
-      text-decoration: none;
-      padding: 7px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--line);
-      transition: all 0.2s;
-    }
-
-    .back-btn:hover {
-      color: var(--ink);
-      background: var(--paper-warm);
-      border-color: var(--ink-muted);
-    }
-
-    .navbar-brand {
-      font-family: var(--serif);
-      font-size: 18px;
-      color: var(--ink);
-      letter-spacing: -0.3px;
-    }
-
+    .navbar { background: rgba(250,249,245,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 14px 48px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .navbar-left { display: flex; align-items: center; gap: 20px; }
+    .back-btn { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--ink-muted); text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s; }
+    .back-btn:hover { color: var(--ink); background: var(--paper-warm); border-color: var(--ink-muted); }
+    .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); letter-spacing: -0.3px; }
     .navbar-brand span { color: var(--accent); }
-
-    .navbar-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .avatar-link {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      text-decoration: none;
-      color: var(--ink-soft);
-      font-size: 14px;
-      font-weight: 500;
-      padding: 6px 12px;
-      border-radius: 8px;
-      transition: all 0.2s;
-    }
-
+    .navbar-right { display: flex; align-items: center; gap: 12px; }
+    .avatar-link { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink-soft); font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: 8px; transition: all 0.2s; }
     .avatar-link:hover { background: var(--paper-warm); color: var(--ink); }
-
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 700;
-    }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
 
     /* ── CONTAINER ── */
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 48px 24px;
-    }
+    .container { max-width: 900px; margin: 0 auto; padding: 48px 24px; }
 
     /* ── HEADER ── */
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-bottom: 40px;
-    }
+    .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
+    .page-header h1 { font-family: var(--serif); font-size: clamp(28px, 4vw, 40px); color: var(--ink); letter-spacing: -1px; }
+    .page-header h1 em { font-style: italic; color: var(--accent); }
 
-    .page-header h1 {
-      font-family: var(--serif);
-      font-size: clamp(28px, 4vw, 40px);
-      color: var(--ink);
-      letter-spacing: -1px;
-    }
-
-    .page-header h1 em {
-      font-style: italic;
-      color: var(--accent);
-    }
-
-    .create-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 11px 22px;
-      background: var(--accent);
-      color: white;
-      border-radius: 10px;
-      font-family: var(--sans);
-      font-size: 14px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-
-    .create-btn:hover {
-      background: #245c43;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(45,106,79,0.25);
-    }
+    .create-btn { display: inline-flex; align-items: center; gap: 6px; padding: 11px 22px; background: var(--accent); color: white; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.2s; white-space: nowrap; border: none; cursor: pointer; }
+    .create-btn:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
 
     /* ── EMPTY STATE ── */
-    .empty-state {
-      text-align: center;
-      padding: 80px 20px;
-    }
-
+    .empty-state { text-align: center; padding: 80px 20px; }
     .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
-
-    .empty-state h3 {
-      font-family: var(--serif);
-      font-size: 24px;
-      color: var(--ink);
-      margin-bottom: 8px;
-    }
-
-    .empty-state p {
-      font-size: 15px;
-      color: var(--ink-muted);
-      font-weight: 300;
-      margin-bottom: 24px;
-    }
+    .empty-state h3 { font-family: var(--serif); font-size: 24px; color: var(--ink); margin-bottom: 8px; }
+    .empty-state p { font-size: 15px; color: var(--ink-muted); font-weight: 300; margin-bottom: 24px; }
 
     /* ── SURVEY CARDS ── */
-    .survey-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .card {
-      background: white;
-      border: 1.5px solid var(--line);
-      border-radius: 16px;
-      padding: 28px 32px;
-      transition: all 0.2s;
-    }
-
-    .card:hover {
-      box-shadow: 0 8px 28px rgba(0,0,0,0.07);
-      border-color: rgba(45,106,79,0.25);
-    }
-
-    /* card top row */
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 6px;
-    }
-
-    .card h3 {
-      font-family: var(--serif);
-      font-size: 20px;
-      color: var(--ink);
-      letter-spacing: -0.3px;
-      line-height: 1.3;
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 12px;
-      border-radius: 100px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .status-badge::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-
-    .status-draft {
-      background: #FEF3C7;
-      color: #92400E;
-    }
+    .survey-list { display: flex; flex-direction: column; gap: 16px; }
+    .card { background: white; border: 1.5px solid var(--line); border-radius: 16px; padding: 28px 32px; transition: all 0.2s; }
+    .card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.07); border-color: rgba(45,106,79,0.25); }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 6px; }
+    .card h3 { font-family: var(--serif); font-size: 20px; color: var(--ink); letter-spacing: -0.3px; line-height: 1.3; }
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
+    .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+    .status-draft { background: #FEF3C7; color: #92400E; }
     .status-draft::before { background: #F59E0B; }
-
-    .status-published {
-      background: rgba(45,106,79,0.1);
-      color: var(--accent);
-    }
+    .status-published { background: rgba(45,106,79,0.1); color: var(--accent); }
     .status-published::before { background: var(--accent-light); }
-
-    .status-closed {
-      background: #F3F4F6;
-      color: #6B7280;
-    }
+    .status-closed { background: #F3F4F6; color: #6B7280; }
     .status-closed::before { background: #9CA3AF; }
+    .card-meta { font-size: 14px; color: var(--ink-muted); font-weight: 300; margin-bottom: 16px; }
+    .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .progress-bar { flex: 1; height: 6px; border-radius: 100px; background: var(--paper-warm); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); transition: width 0.5s ease; }
+    .progress-text { font-size: 13px; font-weight: 600; color: var(--ink-soft); min-width: 56px; text-align: right; }
+    .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn { padding: 8px 16px; border-radius: 8px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; border: 1.5px solid var(--line); background: white; color: var(--ink-soft); text-decoration: none; display: inline-flex; align-items: center; }
+    .btn:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
+    .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+    .btn-primary:hover { background: #245c43; border-color: #245c43; box-shadow: 0 4px 12px rgba(45,106,79,0.25); }
+    .btn-danger { background: white; color: #EF4444; border-color: #FECACA; }
+    .btn-danger:hover { background: #FFF5F5; border-color: #EF4444; }
+    .btn-disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
-    /* meta */
-    .card-meta {
-      font-size: 14px;
-      color: var(--ink-muted);
-      font-weight: 300;
-      margin-bottom: 16px;
+    /* ── NEW LISTING MODAL ── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(26,26,24,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      animation: fadeIn 0.2s ease;
     }
 
-    /* progress */
-    .progress-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .progress-bar {
-      flex: 1;
-      height: 6px;
-      border-radius: 100px;
-      background: var(--paper-warm);
+    .modal {
+      background: var(--paper);
+      border: 1.5px solid var(--line);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 480px;
+      animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       overflow: hidden;
     }
 
-    .progress-fill {
-      height: 100%;
-      border-radius: 100px;
-      background: linear-gradient(90deg, var(--accent), var(--accent-light));
-      transition: width 0.5s ease;
+    .modal-header {
+      padding: 28px 28px 20px;
+      border-bottom: 1px solid var(--line);
     }
 
-    .progress-text {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink-soft);
-      min-width: 56px;
-      text-align: right;
+    .modal-header h2 {
+      font-family: var(--serif);
+      font-size: 22px; color: var(--ink);
+      letter-spacing: -0.3px; margin-bottom: 4px;
     }
 
-    /* actions */
-    .card-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+    .modal-header p {
+      font-size: 13px; color: var(--ink-muted); font-weight: 300;
     }
 
-    .btn {
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-family: var(--sans);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      border: 1.5px solid var(--line);
-      background: white;
-      color: var(--ink-soft);
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
+    .modal-close {
+      float: right; margin-top: -2px;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--paper-warm); border: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; cursor: pointer; color: var(--ink-muted);
+      transition: all 0.15s; float: right;
+    }
+    .modal-close:hover { background: var(--line); color: var(--ink); }
+
+    .modal-body { padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 12px; }
+
+    /* type choice cards */
+    .type-card {
+      display: flex; align-items: center; gap: 16px;
+      padding: 20px 22px;
+      background: white; border: 1.5px solid var(--line);
+      border-radius: 14px; cursor: pointer;
+      text-decoration: none; transition: all 0.18s;
     }
 
-    .btn:hover {
-      background: var(--paper-warm);
-      border-color: var(--ink-muted);
-      color: var(--ink);
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: white;
+    .type-card:hover {
       border-color: var(--accent);
+      box-shadow: 0 4px 16px rgba(45,106,79,0.1);
+      transform: translateY(-1px);
     }
 
-    .btn-primary:hover {
-      background: #245c43;
-      border-color: #245c43;
-      box-shadow: 0 4px 12px rgba(45,106,79,0.25);
+    .type-card-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
     }
 
-    .btn-danger {
-      background: white;
-      color: #EF4444;
-      border-color: #FECACA;
+    .icon-survey { background: rgba(45,106,79,0.1); }
+    .icon-interview { background: rgba(224,122,60,0.1); }
+
+    .type-card-text { flex: 1; }
+
+    .type-card-title {
+      font-family: var(--serif);
+      font-size: 18px; color: var(--ink);
+      letter-spacing: -0.2px; margin-bottom: 3px;
     }
 
-    .btn-danger:hover {
-      background: #FFF5F5;
-      border-color: #EF4444;
+    .type-card-desc {
+      font-size: 13px; color: var(--ink-muted);
+      font-weight: 300; line-height: 1.4;
     }
 
-    .btn-disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-      pointer-events: none;
+    .type-card-arrow {
+      font-size: 18px; color: var(--ink-muted);
+      flex-shrink: 0; transition: transform 0.15s;
     }
+
+    .type-card:hover .type-card-arrow {
+      transform: translateX(3px);
+      color: var(--accent);
+    }
+
+    @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
     /* ── MOBILE ── */
     @media (max-width: 640px) {
@@ -374,13 +190,46 @@
 </head>
 <body>
 
+<!-- ── NEW LISTING MODAL ── -->
+<div class="modal-backdrop" id="newListingModal" style="display:none;" onclick="handleBackdropClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-close" onclick="closeModal()">✕</span>
+      <h2>What are you creating?</h2>
+      <p>Choose the type of study you want to post.</p>
+    </div>
+    <div class="modal-body">
+
+      <a href="/publish" class="type-card">
+        <div class="type-card-icon icon-survey">📋</div>
+        <div class="type-card-text">
+          <div class="type-card-title">Survey</div>
+          <div class="type-card-desc">Share a Google Form and collect responses at scale. Best for quantitative research, feedback, or quick studies.</div>
+        </div>
+        <div class="type-card-arrow">→</div>
+      </a>
+
+      <a href="/publish_interview" class="type-card">
+        <div class="type-card-icon icon-interview">🎙️</div>
+        <div class="type-card-text">
+          <div class="type-card-title">Interview</div>
+          <div class="type-card-desc">Schedule 1-on-1 or group sessions. Best for qualitative research, UX studies, or in-depth conversations.</div>
+        </div>
+        <div class="type-card-arrow">→</div>
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── NAVBAR ── -->
 <nav class="navbar">
   <div class="navbar-left">
     <a href="/choice" class="back-btn">← Back</a>
     <div class="navbar-brand">Insight<span>a</span></div>
   </div>
   <div class="navbar-right">
-    <a href="/feedback" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(224,122,60,0.1);border:1.5px solid rgba(224,122,60,0.3);border-radius:100px;font-size:13px;font-weight:600;color:var(--accent-warm);text-decoration:none;">💬 Feedback</a>
+    <a href="/feedback" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(224,122,60,0.1);border:1.5px solid rgba(224,122,60,0.3);border-radius:100px;font-size:13px;font-weight:600;color:var(--accent-warm);text-decoration:none;">💬 Feedback & Earn</a>
     <a href="/profile" class="avatar-link">
       <div class="avatar">{{ current_user.username[0].upper() if current_user.username else 'U' }}</div>
       <span>Profile</span>
@@ -392,7 +241,7 @@
 
   <div class="page-header">
     <h1>My <em>Listings</em></h1>
-    <a href="/publish" class="create-btn">+ New Listing</a>
+    <button class="create-btn" onclick="openModal()">+ New Listing</button>
   </div>
 
   <!-- PENDING RESPONSES -->
@@ -420,7 +269,7 @@
       <div class="empty-icon">📋</div>
       <h3>No surveys yet</h3>
       <p>Create your first survey and start collecting responses.</p>
-      <a href="/publish" class="create-btn">+ Create Your First Survey</a>
+      <button class="create-btn" onclick="openModal()">+ Create Your First Survey</button>
     </div>
     {% else %}
     <div class="survey-list">
@@ -475,8 +324,8 @@
     <div class="empty-state">
       <div class="empty-icon">🎙️</div>
       <h3>No interviews yet</h3>
-      <p>Create your first interview listing.</p>
-      <a href="/publish" class="create-btn">+ Create Interview</a>
+      <p>Post your first interview and find the right participants.</p>
+      <button class="create-btn" onclick="openModal()">+ Create Interview</button>
     </div>
     {% else %}
     <div class="survey-list">
@@ -528,10 +377,12 @@
 </div>
 
 <script>
+  // ── Progress bars ─────────────────────────────────────────
   document.querySelectorAll('.progress-fill').forEach(el => {
     el.style.width = (el.dataset.pct || 0) + '%';
   });
 
+  // ── Tabs ──────────────────────────────────────────────────
   function switchPubTab(tab, btn) {
     document.getElementById('tab-surveys').style.display = tab === 'surveys' ? 'block' : 'none';
     document.getElementById('tab-interviews').style.display = tab === 'interviews' ? 'block' : 'none';
@@ -543,67 +394,59 @@
     btn.style.borderBottomColor = 'var(--accent)';
   }
 
-  // Load pending responses
+  // ── New Listing modal ─────────────────────────────────────
+  function openModal() {
+    document.getElementById('newListingModal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    const m = document.getElementById('newListingModal');
+    m.style.opacity = '0';
+    m.style.transition = 'opacity 0.15s';
+    setTimeout(() => { m.style.display = 'none'; m.style.opacity = '1'; m.style.transition = ''; }, 150);
+  }
+
+  function handleBackdropClick(e) {
+    if (e.target === document.getElementById('newListingModal')) closeModal();
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ── Pending responses ─────────────────────────────────────
   async function loadPending() {
     try {
       const res = await fetch('/api/publisher/pending-responses', { credentials: 'same-origin' });
       if (!res.ok) return;
       const data = await res.json();
       if (data.length === 0) return;
-
       document.getElementById('pendingSection').style.display = 'block';
       document.getElementById('pendingCount').textContent = data.length;
-
       const list = document.getElementById('pendingList');
       list.innerHTML = data.map(r => `
-        <div style="background: white; border: 1.5px solid var(--line); border-radius: 14px; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px;" id="pending-${r.response_id}">
+        <div style="background:white;border:1.5px solid var(--line);border-radius:14px;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;" id="pending-${r.response_id}">
           <div>
-            <div style="font-family: var(--serif); font-size: 17px; color: var(--ink); margin-bottom: 4px;">${r.survey_title}</div>
-            <div style="font-size: 13px; color: var(--ink-muted);">
-              👤 ${r.participant_name} &nbsp;·&nbsp; 💰 $${r.reward.toFixed(2)} reward
-            </div>
+            <div style="font-family:var(--serif);font-size:17px;color:var(--ink);margin-bottom:4px;">${r.survey_title}</div>
+            <div style="font-size:13px;color:var(--ink-muted);">👤 ${r.participant_name} &nbsp;·&nbsp; 💰 $${r.reward.toFixed(2)} reward</div>
           </div>
-          <div style="display:flex; gap: 8px; flex-shrink:0;">
-            <button onclick="approveResponse(${r.survey_id}, ${r.response_id})"
-              style="padding: 9px 18px; background: var(--accent); color: white; border: none; border-radius: 8px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer;">
-              ✓ Approve
-            </button>
-          </div>
-        </div>
-      `).join('');
-    } catch (e) {
-      console.error('Failed to load pending responses:', e);
-    }
+          <button onclick="approveResponse(${r.survey_id}, ${r.response_id})" style="padding:9px 18px;background:var(--accent);color:white;border:none;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;">✓ Approve</button>
+        </div>`).join('');
+    } catch(e) { console.error('Failed to load pending responses:', e); }
   }
 
   async function approveResponse(surveyId, responseId) {
     const card = document.getElementById(`pending-${responseId}`);
     const btn = card.querySelector('button');
-    btn.disabled = true;
-    btn.textContent = 'Approving...';
-
+    btn.disabled = true; btn.textContent = 'Approving...';
     try {
-      const res = await fetch(`/surveys/${surveyId}/approve/${responseId}`, {
-        method: 'POST',
-        credentials: 'same-origin'
-      });
+      const res = await fetch(`/surveys/${surveyId}/approve/${responseId}`, { method: 'POST', credentials: 'same-origin' });
       if (res.ok || res.redirected) {
-        card.style.opacity = '0.5';
-        card.innerHTML = `<div style="font-size: 14px; color: var(--accent); font-weight: 600; padding: 4px 0;">✓ Approved — reward released to participant</div>`;
-        // Update count
+        card.innerHTML = `<div style="font-size:14px;color:var(--accent);font-weight:600;padding:4px 0;">✓ Approved — reward released to participant</div>`;
         const countEl = document.getElementById('pendingCount');
         const current = parseInt(countEl.textContent) - 1;
-        if (current <= 0) {
-          document.getElementById('pendingSection').style.display = 'none';
-        } else {
-          countEl.textContent = current;
-        }
+        if (current <= 0) document.getElementById('pendingSection').style.display = 'none';
+        else countEl.textContent = current;
       }
-    } catch {
-      btn.disabled = false;
-      btn.textContent = '✓ Approve';
-      alert('Network error. Please try again.');
-    }
+    } catch { btn.disabled = false; btn.textContent = '✓ Approve'; alert('Network error. Please try again.'); }
   }
 
   loadPending();

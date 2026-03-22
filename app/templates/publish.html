@@ -12,57 +12,30 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --ink: #1a1a18;
-      --ink-soft: #4a4a44;
-      --ink-muted: #8a8a82;
-      --paper: #faf9f5;
-      --paper-warm: #f3f1ea;
-      --accent: #2d6a4f;
-      --accent-light: #52b788;
-      --accent-warm: #e07a3c;
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
+      --paper: #faf9f5; --paper-warm: #f3f1ea;
+      --accent: #2d6a4f; --accent-light: #52b788; --accent-warm: #e07a3c;
       --line: #e0ddd3;
       --serif: 'DM Serif Display', Georgia, serif;
       --sans: 'DM Sans', system-ui, sans-serif;
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
 
-    .navbar {
-      background: rgba(250,249,245,0.88); backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--line); padding: 14px 48px;
-      display: flex; justify-content: space-between; align-items: center;
-      position: sticky; top: 0; z-index: 100;
-    }
+    .navbar { background: rgba(250,249,245,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 14px 48px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
     .navbar-left { display: flex; align-items: center; gap: 20px; }
-    .back-btn {
-      display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500;
-      color: var(--ink-muted); text-decoration: none; padding: 7px 12px;
-      border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s;
-    }
+    .back-btn { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--ink-muted); text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s; }
     .back-btn:hover { color: var(--ink); background: var(--paper-warm); border-color: var(--ink-muted); }
     .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); }
     .navbar-brand span { color: var(--accent); }
-    .avatar-link {
-      display: flex; align-items: center; gap: 8px; text-decoration: none;
-      color: var(--ink-soft); font-size: 14px; font-weight: 500;
-      padding: 6px 12px; border-radius: 8px; transition: all 0.2s;
-    }
+    .avatar-link { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink-soft); font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: 8px; transition: all 0.2s; }
     .avatar-link:hover { background: var(--paper-warm); }
-    .avatar {
-      width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
-      color: white; display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700;
-    }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
 
     .container { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
 
-    /* AI SECTION */
-    .ai-section {
-      background: linear-gradient(135deg, rgba(45,106,79,0.06) 0%, rgba(82,183,136,0.04) 100%);
-      border: 1.5px solid rgba(45,106,79,0.2); border-radius: 16px;
-      padding: 28px 32px; margin-bottom: 24px;
-    }
+    /* AI */
+    .ai-section { background: linear-gradient(135deg, rgba(45,106,79,0.06) 0%, rgba(82,183,136,0.04) 100%); border: 1.5px solid rgba(45,106,79,0.2); border-radius: 16px; padding: 28px 32px; margin-bottom: 24px; }
     .ai-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
     .ai-icon { width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
     .ai-header h3 { font-family: var(--serif); font-size: 18px; color: var(--ink); margin-bottom: 4px; }
@@ -95,11 +68,7 @@
     .form-group:last-child { margin-bottom: 0; }
     .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 7px; }
     .label-desc { font-size: 12px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
-    .form-group input, .form-group textarea, .form-group select {
-      width: 100%; padding: 12px 16px; border: 1.5px solid var(--line);
-      border-radius: 10px; font-family: var(--sans); font-size: 15px;
-      color: var(--ink); background: white; transition: all 0.2s;
-    }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; color: var(--ink); background: white; transition: all 0.2s; }
     .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
     .form-group input::placeholder, .form-group textarea::placeholder { color: #c4c2bc; font-weight: 300; }
     .form-group textarea { resize: vertical; min-height: 96px; line-height: 1.6; }
@@ -109,22 +78,32 @@
     .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
     .form-row .form-group, .form-row-3 .form-group { margin-bottom: 0; }
 
+    /* INCENTIVE PILLS */
+    .incentive-pills { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .incentive-pill { padding: 9px 18px; border: 1.5px solid var(--line); border-radius: 100px; font-size: 13px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: all 0.15s; user-select: none; }
+    .incentive-pill:hover { border-color: var(--accent-light); color: var(--ink); }
+    .incentive-pill.selected { border-color: var(--accent); background: rgba(45,106,79,0.08); color: var(--accent); }
+
+    /* URGENCY PILLS */
+    .urgency-pills { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .urgency-pill { padding: 9px 18px; border: 1.5px solid var(--line); border-radius: 100px; font-size: 13px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: all 0.15s; user-select: none; }
+    .urgency-pill:hover { border-color: var(--accent-light); color: var(--ink); }
+    .urgency-pill.selected { border-color: var(--accent); background: var(--accent); color: white; }
+    .urgency-pill.urgent.selected { border-color: #c05621; background: #c05621; }
+
     /* COMMISSION BOX */
-    .commission-box {
-      display: none; margin-top: 16px;
-      background: white; border: 1.5px solid var(--line);
-      border-radius: 12px; overflow: hidden;
-    }
-    .commission-row {
-      padding: 14px 20px; border-bottom: 1px solid var(--line);
-      display: flex; justify-content: space-between; align-items: center;
-    }
+    .commission-box { display: none; margin-top: 16px; background: white; border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .commission-row { padding: 14px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
     .commission-row:last-child { border-bottom: none; background: rgba(45,106,79,0.04); }
     .commission-row .clabel { font-size: 13px; color: var(--ink-muted); }
     .commission-row .cvalue { font-weight: 600; color: var(--ink); }
     .commission-row .cvalue.green { color: var(--accent); }
     .commission-row .cvalue.orange { color: var(--accent-warm); }
     .commission-row .cvalue.total { font-family: var(--serif); font-size: 22px; color: var(--accent); }
+
+    /* NON-CASH RAFFLE BOX */
+    .raffle-box { display: none; margin-top: 16px; background: rgba(224,122,60,0.06); border: 1.5px solid rgba(224,122,60,0.2); border-radius: 12px; padding: 16px 20px; font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+    .raffle-box strong { color: var(--accent-warm); display: block; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
 
     /* FILE UPLOAD */
     .file-upload-area { border: 1.5px dashed var(--line); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
@@ -134,14 +113,6 @@
     .file-upload-text { font-size: 14px; color: var(--ink-muted); font-weight: 300; }
     .file-upload-text strong { color: var(--accent); font-weight: 600; }
     .file-name { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 6px; display: none; }
-
-    /* PILLS */
-    .urgency-pills, .incentive-pills { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    .urgency-pill, .incentive-pill { padding: 9px 18px; border: 1.5px solid var(--line); border-radius: 100px; font-size: 13px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: all 0.15s; user-select: none; }
-    .urgency-pill:hover, .incentive-pill:hover { border-color: var(--accent-light); color: var(--ink); }
-    .urgency-pill.selected, .incentive-pill.selected { border-color: var(--accent); background: var(--accent); color: white; }
-    .urgency-pill.urgent.selected { border-color: #c05621; background: #c05621; }
-    .incentive-pill.selected { background: rgba(45,106,79,0.08); color: var(--accent); }
 
     /* CHECKBOX GROUP */
     .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
@@ -254,7 +225,6 @@
           <label>Study Type</label>
           <select name="task_type" required>
             <option value="survey" selected>Online Survey</option>
-            <option value="interview">Remote Interview</option>
             <option value="product_testing">Product Testing / UX</option>
             <option value="story_collection">Story Collection</option>
             <option value="in_person_experiment">In-Person Experiment</option>
@@ -318,52 +288,75 @@
     <div class="form-section">
       <div class="section-header">
         <div class="section-icon">💰</div>
-        <div><h2>Budget & Timeline</h2><p>Set your budget and recruitment urgency</p></div>
+        <div><h2>Budget & Timeline</h2><p>Set your incentive, budget, and deadline</p></div>
       </div>
 
-      <div class="info-box">
-        <strong>How pricing works</strong>
-        Enter either your per-person amount or total budget — we'll calculate the other automatically. Platform fee: 15% (under $15/person), 20% ($15–24), 25% ($25+).
-      </div>
-
+      <!-- ── STEP 1: Incentive type FIRST ── -->
       <div class="form-group">
-        <label>Target Responses</label>
-        <input type="number" id="targetInput" name="target_responses" placeholder="e.g. 100" min="10" required>
+        <label>Incentive Type</label>
+        <div class="label-desc">Choose how you'll reward participants</div>
+        <div class="incentive-pills" style="margin-top: 10px;">
+          <div class="incentive-pill selected" data-value="cash" onclick="selectIncentive(this)">💵 Cash</div>
+          <div class="incentive-pill" data-value="gift_card" onclick="selectIncentive(this)">🎁 Gift card</div>
+          <div class="incentive-pill" data-value="raffle" onclick="selectIncentive(this)">🎰 Raffle</div>
+          <div class="incentive-pill" data-value="volunteer" onclick="selectIncentive(this)">🤝 Volunteer</div>
+        </div>
+        <input type="hidden" name="incentive_type" id="incentiveInput" value="cash">
       </div>
 
-      <div class="form-row" style="margin-bottom: 16px;">
+      <!-- Raffle / Volunteer note (shown instead of budget) -->
+      <div class="raffle-box" id="raffleBox">
+        <strong>No payment required</strong>
+        For raffle and volunteer studies, participants are not paid per response. You can describe the incentive details in your survey description.
+      </div>
+
+      <!-- ── STEP 2: Budget (hidden for raffle/volunteer) ── -->
+      <div id="budgetSection">
+        <div class="info-box" style="margin-top: 20px;">
+          <strong>How pricing works</strong>
+          Enter either your per-person amount or total budget — we'll calculate the other. Platform fee: 15% (under $15/person), 20% ($15–24), 25% ($25+).
+        </div>
+
         <div class="form-group">
-          <label>Per Person Budget ($)</label>
-          <div class="label-desc">What you pay per response</div>
-          <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 10.00" step="0.50" min="0.01" style="margin-top: 8px;">
+          <label>Target Responses</label>
+          <input type="number" id="targetInput" name="target_responses" placeholder="e.g. 100" min="10" required>
         </div>
-        <div class="form-group">
-          <label>Total Budget ($)</label>
-          <div class="label-desc">Total amount you want to spend</div>
-          <input type="number" id="totalBudgetInput" name="total_budget" placeholder="e.g. 1000.00" step="1" min="1" style="margin-top: 8px;">
+
+        <div class="form-row" style="margin-bottom: 0;">
+          <div class="form-group">
+            <label>Per Person Budget ($)</label>
+            <div class="label-desc">What you pay per response</div>
+            <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 10.00" step="0.50" min="0.01" style="margin-top: 8px;">
+          </div>
+          <div class="form-group">
+            <label>Total Budget ($)</label>
+            <div class="label-desc">Total amount you want to spend</div>
+            <input type="number" id="totalBudgetInput" name="total_budget" placeholder="e.g. 1000.00" step="1" min="1" style="margin-top: 8px;">
+          </div>
+        </div>
+
+        <!-- Commission breakdown -->
+        <div class="commission-box" id="commissionBox">
+          <div class="commission-row">
+            <span class="clabel">Per person (you pay)</span>
+            <span class="cvalue" id="dispPerPerson">—</span>
+          </div>
+          <div class="commission-row">
+            <span class="clabel">Platform fee (<span id="dispFeeRate">—</span>)</span>
+            <span class="cvalue orange" id="dispFee">—</span>
+          </div>
+          <div class="commission-row">
+            <span class="clabel">Participant receives</span>
+            <span class="cvalue green" id="dispReward">—</span>
+          </div>
+          <div class="commission-row">
+            <span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span>
+            <span class="cvalue total" id="dispTotal">—</span>
+          </div>
         </div>
       </div>
 
-      <!-- Commission breakdown -->
-      <div class="commission-box" id="commissionBox">
-        <div class="commission-row">
-          <span class="clabel">Per person (you pay)</span>
-          <span class="cvalue" id="dispPerPerson">—</span>
-        </div>
-        <div class="commission-row">
-          <span class="clabel">Platform fee (<span id="dispFeeRate">—</span>)</span>
-          <span class="cvalue orange" id="dispFee">—</span>
-        </div>
-        <div class="commission-row">
-          <span class="clabel">Participant receives</span>
-          <span class="cvalue green" id="dispReward">—</span>
-        </div>
-        <div class="commission-row">
-          <span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span>
-          <span class="cvalue total" id="dispTotal">—</span>
-        </div>
-      </div>
-
+      <!-- ── STEP 3: Timeline ── -->
       <div class="form-group" style="margin-top: 24px;">
         <label>Recruitment Timeline</label>
         <div class="label-desc">Urgent studies get boosted visibility</div>
@@ -375,15 +368,11 @@
         <input type="hidden" name="urgency_level" id="urgencyInput" value="flexible">
       </div>
 
+      <!-- Specific deadline date -->
       <div class="form-group" style="margin-top: 8px;">
-        <label>Incentive Type</label>
-        <div class="incentive-pills">
-          <div class="incentive-pill selected" data-value="cash" onclick="selectIncentive(this)">💵 Cash</div>
-          <div class="incentive-pill" data-value="gift_card" onclick="selectIncentive(this)">🎁 Gift card</div>
-          <div class="incentive-pill" data-value="raffle" onclick="selectIncentive(this)">🎰 Raffle</div>
-          <div class="incentive-pill" data-value="volunteer" onclick="selectIncentive(this)">🤝 Volunteer</div>
-        </div>
-        <input type="hidden" name="incentive_type" id="incentiveInput" value="cash">
+        <label>Specific Deadline <span style="font-weight:300; color: var(--ink-muted);">(Optional)</span></label>
+        <div class="label-desc">If you need responses by a specific date</div>
+        <input type="date" name="deadline_date" id="deadlineDate" style="margin-top: 8px; max-width: 240px;">
       </div>
     </div>
 
@@ -407,7 +396,30 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Location</label>
+          <label>Country</label>
+          <select name="target_country" id="targetCountry" onchange="toggleStateField()">
+            <option value="all" selected>All countries</option>
+            <option value="US">United States</option>
+            <option value="CN">China</option>
+            <option value="IN">India</option>
+            <option value="GB">United Kingdom</option>
+            <option value="CA">Canada</option>
+            <option value="AU">Australia</option>
+            <option value="DE">Germany</option>
+            <option value="FR">France</option>
+            <option value="KR">South Korea</option>
+            <option value="JP">Japan</option>
+            <option value="BR">Brazil</option>
+            <option value="MX">Mexico</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- State — only shown when US is selected -->
+      <div class="form-row" style="margin-bottom: 16px;" id="stateRow" style="display:none;">
+        <div class="form-group">
+          <label>State <span style="font-weight:300; color: var(--ink-muted);">(US only)</span></label>
           <select name="target_state">
             <option value="all" selected>All states</option>
             <option>Alabama</option><option>Alaska</option><option>Arizona</option>
@@ -429,7 +441,15 @@
             <option>Wisconsin</option><option>Wyoming</option>
           </select>
         </div>
+        <div class="form-group"><!-- spacer --></div>
       </div>
+
+      <!-- Other country text input -->
+      <div class="form-group" id="otherCountryRow" style="display:none; margin-bottom: 16px;">
+        <label>Specify Country</label>
+        <input type="text" name="target_country_other" placeholder="e.g. Singapore, Netherlands..." style="max-width: 360px;">
+      </div>
+
       <div class="form-row" style="margin-bottom: 16px;">
         <div class="form-group">
           <label>Language</label>
@@ -617,13 +637,40 @@
     <!-- SUBMIT -->
     <div class="submit-section">
       <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
-      <button type="submit" class="btn-publish">Pay & Publish →</button>
+      <button type="submit" class="btn-publish" id="submitBtn">Pay & Publish →</button>
     </div>
 
   </form>
 </div>
 
 <script>
+  // ── Incentive → show/hide budget ────────────────────────
+  function selectIncentive(el) {
+    document.querySelectorAll('.incentive-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    const val = el.dataset.value;
+    document.getElementById('incentiveInput').value = val;
+
+    const noCash = val === 'raffle' || val === 'volunteer';
+    document.getElementById('budgetSection').style.display = noCash ? 'none' : 'block';
+    document.getElementById('raffleBox').style.display = noCash ? 'block' : 'none';
+    document.getElementById('submitBtn').textContent = noCash ? 'Publish →' : 'Pay & Publish →';
+
+    // remove required from budget fields when hidden
+    const budgetFields = ['targetInput', 'perPersonInput', 'totalBudgetInput'];
+    budgetFields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.required = !noCash && id === 'targetInput';
+    });
+  }
+
+  // ── Country → show/hide state / other ───────────────────
+  function toggleStateField() {
+    const val = document.getElementById('targetCountry').value;
+    document.getElementById('stateRow').style.display = val === 'US' ? 'grid' : 'none';
+    document.getElementById('otherCountryRow').style.display = val === 'other' ? 'block' : 'none';
+  }
+
   // ── Commission calculator ────────────────────────────────
   const perPersonInput = document.getElementById('perPersonInput');
   const totalBudgetInput = document.getElementById('totalBudgetInput');
@@ -640,10 +687,7 @@
     let ppg = parseFloat(perPersonInput.value) || 0;
     let total = parseFloat(totalBudgetInput.value) || 0;
 
-    if (!ppg && !total) {
-      document.getElementById('commissionBox').style.display = 'none';
-      return;
-    }
+    if (!ppg && !total) { document.getElementById('commissionBox').style.display = 'none'; return; }
 
     if (ppg && target && !totalBudgetInput.matches(':focus')) {
       total = ppg * target;
@@ -653,10 +697,7 @@
       perPersonInput.value = ppg.toFixed(2);
     }
 
-    if (!ppg || !target) {
-      document.getElementById('commissionBox').style.display = 'none';
-      return;
-    }
+    if (!ppg || !target) { document.getElementById('commissionBox').style.display = 'none'; return; }
 
     const rate = getCommissionRate(ppg);
     const fee = ppg * rate;
@@ -679,98 +720,69 @@
   async function fillWithAI() {
     const prompt = document.getElementById('aiPrompt').value.trim();
     if (!prompt) { alert('Please enter a description first.'); return; }
-
     const btn = document.getElementById('aiBtn');
-    const btnText = document.getElementById('aiBtnText');
-    const btnLoading = document.getElementById('aiBtnLoading');
     const errorEl = document.getElementById('aiError');
     const successEl = document.getElementById('aiSuccess');
-
     btn.disabled = true;
-    btnText.style.display = 'none';
-    btnLoading.style.display = 'inline';
-    errorEl.style.display = 'none';
-    successEl.style.display = 'none';
-
+    document.getElementById('aiBtnText').style.display = 'none';
+    document.getElementById('aiBtnLoading').style.display = 'inline';
+    errorEl.style.display = 'none'; successEl.style.display = 'none';
     try {
-      const res = await fetch('/api/ai-fill', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ prompt })
-      });
+      const res = await fetch('/api/ai-fill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ prompt }) });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-
       if (data.title) document.querySelector('input[name="title"]').value = data.title;
       if (data.description) document.querySelector('textarea[name="description"]').value = data.description;
       if (data.category) { const s = document.querySelector('select[name="category"]'); s.value = data.category; s.classList.add('has-value'); }
       if (data.estimated_time) { const s = document.querySelector('select[name="estimated_time"]'); s.value = String(data.estimated_time); s.classList.add('has-value'); }
-      if (data.per_person_gross) { perPersonInput.value = parseFloat(data.per_person_gross).toFixed(2); }
-      if (data.target_responses) { targetInput.value = data.target_responses; }
-
+      if (data.per_person_gross) perPersonInput.value = parseFloat(data.per_person_gross).toFixed(2);
+      if (data.target_responses) targetInput.value = data.target_responses;
       updateCommission();
       successEl.style.display = 'block';
       document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
-    } catch (err) {
-      errorEl.textContent = 'Something went wrong. Please try again.';
-      errorEl.style.display = 'block';
-    } finally {
-      btn.disabled = false;
-      btnText.style.display = 'inline';
-      btnLoading.style.display = 'none';
-    }
+    } catch { errorEl.textContent = 'Something went wrong. Please try again.'; errorEl.style.display = 'block'; }
+    finally { btn.disabled = false; document.getElementById('aiBtnText').style.display = 'inline'; document.getElementById('aiBtnLoading').style.display = 'none'; }
   }
 
-  document.getElementById('aiPrompt').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); fillWithAI(); }
-  });
+  document.getElementById('aiPrompt').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fillWithAI(); } });
 
-  // ── Urgency / Incentive pills ────────────────────────────
+  // ── Urgency pills ────────────────────────────────────────
   function selectUrgency(el) {
     document.querySelectorAll('.urgency-pill').forEach(p => p.classList.remove('selected'));
     el.classList.add('selected');
     document.getElementById('urgencyInput').value = el.dataset.value;
   }
 
-  function selectIncentive(el) {
-    document.querySelectorAll('.incentive-pill').forEach(p => p.classList.remove('selected'));
-    el.classList.add('selected');
-    document.getElementById('incentiveInput').value = el.dataset.value;
-  }
-
-  // ── Experience tag checkboxes ────────────────────────────
-  function updateCheckbox(input) {
-    input.closest('.checkbox-item').classList.toggle('checked', input.checked);
-  }
+  // ── Checkbox ─────────────────────────────────────────────
+  function updateCheckbox(input) { input.closest('.checkbox-item').classList.toggle('checked', input.checked); }
 
   // ── File upload ──────────────────────────────────────────
   document.getElementById('coverImageInput').addEventListener('change', function() {
     const fn = document.getElementById('fileName');
-    if (this.files[0]) { fn.textContent = '✓ ' + this.files[0].name; fn.style.display = 'block'; }
-    else { fn.style.display = 'none'; }
+    fn.textContent = this.files[0] ? '✓ ' + this.files[0].name : '';
+    fn.style.display = this.files[0] ? 'block' : 'none';
   });
 
   // ── Select color fix ─────────────────────────────────────
   document.querySelectorAll('select').forEach(s => {
     const update = () => s.classList.toggle('has-value', !!s.value && s.value !== '');
-    s.addEventListener('change', update);
-    update();
+    s.addEventListener('change', update); update();
   });
 
-  // ── Advanced toggle arrow ────────────────────────────────
+  // ── Advanced toggle ──────────────────────────────────────
   document.querySelector('details').addEventListener('toggle', function() {
     document.getElementById('advArrow').textContent = this.open ? '▾' : '▸';
   });
 
-  // ── Submit → validate budget ─────────────────────────────
+  // ── Submit ───────────────────────────────────────────────
   document.getElementById('publishForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    const ppg = parseFloat(perPersonInput.value) || 0;
-    const total = parseFloat(totalBudgetInput.value) || 0;
-    if (!ppg && !total) {
-      alert('Please enter a per-person budget or total budget.');
-      return;
+    const incentive = document.getElementById('incentiveInput').value;
+    const noCash = incentive === 'raffle' || incentive === 'volunteer';
+    if (!noCash) {
+      const ppg = parseFloat(perPersonInput.value) || 0;
+      const total = parseFloat(totalBudgetInput.value) || 0;
+      if (!ppg && !total) { alert('Please enter a per-person budget or total budget.'); return; }
     }
     ['target_education_min', 'target_education_max'].forEach(name => {
       const el = this.querySelector(`select[name="${name}"]`);
@@ -779,6 +791,5 @@
     this.submit();
   });
 </script>
-
 </body>
 </html>

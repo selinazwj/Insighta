@@ -28,434 +28,77 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
 html { scroll-behavior: smooth; }
-
-body {
-  font-family: var(--sans);
-  background: var(--paper);
-  color: var(--ink);
-  overflow-x: hidden;
-}
+body { font-family: var(--sans); background: var(--paper); color: var(--ink); overflow-x: hidden; }
 
 /* ── NAVBAR ── */
 .navbar {
-  position: fixed;
-  top: 0; left: 0; right: 0;
+  position: fixed; top: 0; left: 0; right: 0;
   padding: 18px 48px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flex; justify-content: space-between; align-items: center;
   background: rgba(250, 249, 245, 0.88);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
   z-index: 200;
 }
-
-.navbar-logo {
-  font-family: var(--serif);
-  font-size: 22px;
-  color: var(--ink);
-  text-decoration: none;
-  letter-spacing: -0.3px;
-}
-
+.navbar-logo { font-family: var(--serif); font-size: 22px; color: var(--ink); text-decoration: none; letter-spacing: -0.3px; }
 .navbar-logo span { color: var(--accent); }
-
-.navbar-links {
-  display: flex;
-  gap: 36px;
-  align-items: center;
-}
-
-.navbar-links a {
-  font-family: var(--sans);
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--ink-soft);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
+.navbar-links { display: flex; gap: 36px; align-items: center; }
+.navbar-links a { font-family: var(--sans); font-size: 15px; font-weight: 500; color: var(--ink-soft); text-decoration: none; transition: color 0.2s; }
 .navbar-links a:hover { color: var(--ink); }
-
-.nav-cta {
-  background: var(--ink) !important;
-  color: white !important;
-  padding: 9px 20px;
-  border-radius: 6px;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  transition: background 0.2s !important;
-}
-
+.nav-cta { background: var(--ink) !important; color: white !important; padding: 9px 20px; border-radius: 6px; font-size: 14px !important; font-weight: 600 !important; transition: background 0.2s !important; }
 .nav-cta:hover { background: var(--accent) !important; }
 
 /* ── HERO ── */
-.hero {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  padding: 120px 48px 80px;
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 60% 50% at 70% 40%, rgba(82,183,136,0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 60% at 20% 80%, rgba(224,122,60,0.06) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-.hero-grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  background-size: 200px;
-  pointer-events: none;
-}
-
-.hero-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 80px;
-  align-items: center;
-  position: relative;
-  z-index: 1;
-}
-
-.hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent);
-  background: rgba(45,106,79,0.08);
-  border: 1px solid rgba(45,106,79,0.2);
-  padding: 6px 14px;
-  border-radius: 100px;
-  margin-bottom: 32px;
-}
-
-.hero-eyebrow::before {
-  content: '';
-  width: 6px; height: 6px;
-  background: var(--accent-light);
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
-}
-
-.hero-title {
-  font-family: var(--serif);
-  font-size: clamp(44px, 5.5vw, 68px);
-  line-height: 1.08;
-  letter-spacing: -1.5px;
-  color: var(--ink);
-  margin-bottom: 28px;
-}
-
+.hero { min-height: 100vh; display: flex; align-items: center; padding: 120px 48px 80px; position: relative; overflow: hidden; }
+.hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 70% 40%, rgba(82,183,136,0.08) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 20% 80%, rgba(224,122,60,0.06) 0%, transparent 50%); pointer-events: none; }
+.hero-grain { position: absolute; inset: 0; opacity: 0.025; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); background-size: 200px; pointer-events: none; }
+.hero-inner { max-width: 1200px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; position: relative; z-index: 1; }
+.hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2); padding: 6px 14px; border-radius: 100px; margin-bottom: 32px; }
+.hero-eyebrow::before { content: ''; width: 6px; height: 6px; background: var(--accent-light); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+.hero-title { font-family: var(--serif); font-size: clamp(44px, 5.5vw, 68px); line-height: 1.08; letter-spacing: -1.5px; color: var(--ink); margin-bottom: 28px; }
 .hero-title em { font-style: italic; color: var(--accent); }
-
-.hero-subtitle {
-  font-size: 18px;
-  line-height: 1.75;
-  color: var(--ink-soft);
-  max-width: 480px;
-  margin-bottom: 44px;
-  font-weight: 300;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 13px 26px;
-  font-family: var(--sans);
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.btn-primary {
-  background: var(--ink);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(45,106,79,0.25);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--ink-soft);
-  border: 1.5px solid var(--line);
-}
-
-.btn-outline:hover {
-  background: var(--paper-warm);
-  border-color: var(--ink-soft);
-  color: var(--ink-soft);
-}
-
-/* Guide link */
-.guide-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink-muted);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
+.hero-subtitle { font-size: 18px; line-height: 1.75; color: var(--ink-soft); max-width: 480px; margin-bottom: 44px; font-weight: 300; }
+.hero-actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 26px; font-family: var(--sans); font-size: 15px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; text-decoration: none; transition: all 0.2s ease; }
+.btn-primary { background: var(--ink); color: white; }
+.btn-primary:hover { background: var(--accent); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(45,106,79,0.25); }
+.btn-outline { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--line); }
+.btn-outline:hover { background: var(--paper-warm); border-color: var(--ink-soft); color: var(--ink-soft); }
+.guide-link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--ink-muted); text-decoration: none; transition: color 0.2s; }
 .guide-link:hover { color: var(--accent); }
-
 .hero-right { position: relative; }
-
-.hero-card-stack {
-  position: relative;
-  height: 460px;
-}
-
-.hero-card {
-  position: absolute;
-  background: white;
-  border-radius: 16px;
-  padding: 28px 32px;
-  border: 1px solid var(--line);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-}
-
-.hero-card-main {
-  width: 320px;
-  top: 30px;
-  left: 40px;
-  z-index: 3;
-  animation: float 4s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-
-.hero-card-side {
-  width: 260px;
-  top: 180px;
-  right: 0;
-  z-index: 2;
-  animation: float 4s ease-in-out infinite 1.5s;
-}
-
-.hero-card-back {
-  width: 280px;
-  top: 50px;
-  right: 20px;
-  z-index: 1;
-  opacity: 0.5;
-  transform: rotate(3deg);
-}
-
-.card-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 10px;
-}
-
-.card-title {
-  font-family: var(--serif);
-  font-size: 18px;
-  color: var(--ink);
-  margin-bottom: 14px;
-  line-height: 1.3;
-}
-
-.card-progress-bar {
-  height: 6px;
-  background: var(--paper-warm);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.card-progress-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-light));
-  animation: fill 3s ease-in-out infinite;
-}
-
-@keyframes fill {
-  0% { width: 20%; }
-  50% { width: 78%; }
-  100% { width: 20%; }
-}
-
-.card-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--ink-muted);
-}
-
-.card-reward {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent-warm);
-  background: rgba(224,122,60,0.1);
-  padding: 5px 12px;
-  border-radius: 100px;
-  margin-bottom: 10px;
-}
-
-.card-tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-.tag {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--ink-soft);
-  background: var(--paper-warm);
-  padding: 4px 10px;
-  border-radius: 100px;
-  border: 1px solid var(--line);
-}
+.hero-card-stack { position: relative; height: 460px; }
+.hero-card { position: absolute; background: white; border-radius: 16px; padding: 28px 32px; border: 1px solid var(--line); box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+.hero-card-main { width: 320px; top: 30px; left: 40px; z-index: 3; animation: float 4s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+.hero-card-side { width: 260px; top: 180px; right: 0; z-index: 2; animation: float 4s ease-in-out infinite 1.5s; }
+.hero-card-back { width: 280px; top: 50px; right: 20px; z-index: 1; opacity: 0.5; transform: rotate(3deg); }
+.card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.card-title { font-family: var(--serif); font-size: 18px; color: var(--ink); margin-bottom: 14px; line-height: 1.3; }
+.card-progress-bar { height: 6px; background: var(--paper-warm); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.card-progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); animation: fill 3s ease-in-out infinite; }
+@keyframes fill { 0% { width: 20%; } 50% { width: 78%; } 100% { width: 20%; } }
+.card-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-muted); }
+.card-reward { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--accent-warm); background: rgba(224,122,60,0.1); padding: 5px 12px; border-radius: 100px; margin-bottom: 10px; }
+.card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.tag { font-size: 11px; font-weight: 500; color: var(--ink-soft); background: var(--paper-warm); padding: 4px 10px; border-radius: 100px; border: 1px solid var(--line); }
 
 /* ── STATS BAR ── */
-.stats-bar {
-  background: var(--ink);
-  padding: 40px 48px;
-}
-
-.stats-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-}
-
-.stat-item {
-  text-align: center;
-  padding: 20px;
-  border-right: 1px solid rgba(255,255,255,0.1);
-}
-
+.stats-bar { background: var(--ink); padding: 40px 48px; }
+.stats-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.stat-item { text-align: center; padding: 20px; border-right: 1px solid rgba(255,255,255,0.1); }
 .stat-item:last-child { border-right: none; }
-
-.stat-number {
-  font-family: var(--serif);
-  font-size: 36px;
-  color: white;
-  margin-bottom: 6px;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: rgba(255,255,255,0.5);
-  font-weight: 400;
-}
+.stat-number { font-family: var(--serif); font-size: 36px; color: white; margin-bottom: 6px; }
+.stat-label { font-size: 13px; color: rgba(255,255,255,0.5); font-weight: 400; }
 
 /* ── SECTION SHARED ── */
-.section-eyebrow {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 16px;
-}
-
-.section-header {
-  text-align: center;
-  max-width: 680px;
-  margin: 0 auto 72px;
-}
-
-.section-header h2 {
-  font-family: var(--serif);
-  font-size: clamp(34px, 4vw, 52px);
-  line-height: 1.1;
-  letter-spacing: -1px;
-  color: var(--ink);
-  margin-bottom: 20px;
-}
-
-.section-header p {
-  font-size: 18px;
-  line-height: 1.7;
-  color: var(--ink-soft);
-  font-weight: 300;
-}
-
-.divider {
-  width: 48px;
-  height: 3px;
-  background: var(--accent);
-  margin: 20px auto 0;
-  border-radius: 2px;
-}
-
-/* ── STORY SECTION ── */
-.story-section { padding: 120px 48px; background: white; }
-.story-inner { max-width: 1200px; margin: 0 auto; }
-.story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: start; }
-.story-left { position: sticky; top: 120px; }
-.story-left .section-eyebrow { margin-bottom: 24px; }
-.story-left h2 { font-family: var(--serif); font-size: clamp(34px, 3.5vw, 48px); line-height: 1.1; letter-spacing: -1px; color: var(--ink); margin-bottom: 28px; }
-.story-left h2 em { font-style: italic; color: var(--accent); }
-.story-left .lead { font-size: 19px; line-height: 1.75; color: var(--ink-soft); font-weight: 300; border-left: 3px solid var(--accent); padding-left: 20px; margin-bottom: 32px; }
-.story-image-block { background: var(--paper-warm); border-radius: 16px; padding: 36px; border: 1px solid var(--line); margin-top: 32px; }
-.story-image-block .quote { font-family: var(--serif); font-size: 22px; font-style: italic; line-height: 1.5; color: var(--ink); margin-bottom: 16px; }
-.story-image-block .quote-attr { font-size: 13px; color: var(--ink-muted); font-weight: 500; }
-.story-right { padding-top: 8px; }
-.story-block { margin-bottom: 56px; padding-bottom: 56px; border-bottom: 1px solid var(--line); }
-.story-block:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
-.story-block-num { font-family: var(--serif); font-size: 72px; font-style: italic; color: rgba(45,106,79,0.12); line-height: 1; margin-bottom: 0; display: block; }
-.story-block h3 { font-family: var(--serif); font-size: 26px; color: var(--ink); margin-top: -16px; margin-bottom: 16px; letter-spacing: -0.5px; }
-.story-block p { font-size: 16px; line-height: 1.85; color: var(--ink-soft); margin-bottom: 14px; font-weight: 300; }
-.story-block p:last-child { margin-bottom: 0; }
-.story-block .callout { background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 0 8px 8px 0; font-size: 15px; font-style: italic; color: var(--ink-soft); margin-top: 20px; line-height: 1.7; }
+.section-eyebrow { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+.section-header { text-align: center; max-width: 680px; margin: 0 auto 72px; }
+.section-header h2 { font-family: var(--serif); font-size: clamp(34px, 4vw, 52px); line-height: 1.1; letter-spacing: -1px; color: var(--ink); margin-bottom: 20px; }
+.section-header p { font-size: 18px; line-height: 1.7; color: var(--ink-soft); font-weight: 300; }
+.divider { width: 48px; height: 3px; background: var(--accent); margin: 20px auto 0; border-radius: 2px; }
 
 /* ── HOW IT WORKS ── */
 .how-section { padding: 120px 48px; background: var(--paper); }
@@ -489,6 +132,27 @@ body {
 .mock-reward-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .mock-reward { font-size: 13px; font-weight: 600; color: var(--accent-warm); }
 .mock-btn { font-size: 12px; font-weight: 600; background: var(--ink); color: white; padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+
+/* ── STORY SECTION ── */
+.story-section { padding: 120px 48px; background: white; }
+.story-inner { max-width: 1200px; margin: 0 auto; }
+.story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: start; }
+.story-left { position: sticky; top: 120px; }
+.story-left .section-eyebrow { margin-bottom: 24px; }
+.story-left h2 { font-family: var(--serif); font-size: clamp(34px, 3.5vw, 48px); line-height: 1.1; letter-spacing: -1px; color: var(--ink); margin-bottom: 28px; }
+.story-left h2 em { font-style: italic; color: var(--accent); }
+.story-left .lead { font-size: 19px; line-height: 1.75; color: var(--ink-soft); font-weight: 300; border-left: 3px solid var(--accent); padding-left: 20px; margin-bottom: 32px; }
+.story-image-block { background: var(--paper-warm); border-radius: 16px; padding: 36px; border: 1px solid var(--line); margin-top: 32px; }
+.story-image-block .quote { font-family: var(--serif); font-size: 22px; font-style: italic; line-height: 1.5; color: var(--ink); margin-bottom: 16px; }
+.story-image-block .quote-attr { font-size: 13px; color: var(--ink-muted); font-weight: 500; }
+.story-right { padding-top: 8px; }
+.story-block { margin-bottom: 56px; padding-bottom: 56px; border-bottom: 1px solid var(--line); }
+.story-block:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+.story-block-num { font-family: var(--serif); font-size: 72px; font-style: italic; color: rgba(45,106,79,0.12); line-height: 1; margin-bottom: 0; display: block; }
+.story-block h3 { font-family: var(--serif); font-size: 26px; color: var(--ink); margin-top: -16px; margin-bottom: 16px; letter-spacing: -0.5px; }
+.story-block p { font-size: 16px; line-height: 1.85; color: var(--ink-soft); margin-bottom: 14px; font-weight: 300; }
+.story-block p:last-child { margin-bottom: 0; }
+.story-block .callout { background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 0 8px 8px 0; font-size: 15px; font-style: italic; color: var(--ink-soft); margin-top: 20px; line-height: 1.7; }
 
 /* ── JOURNEY ── */
 .journey-section { padding: 120px 48px; background: white; overflow: hidden; }
@@ -563,25 +227,12 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   .how-step:last-child { border-radius: 0 0 15px 15px; }
   .how-detail { grid-template-columns: 1fr; }
   .timeline::before { left: 20px; top: 0; }
-  .timeline-item {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 16px;
-    margin-bottom: 40px;
-    align-items: flex-start;
-    grid-template-columns: unset !important;
-  }
+  .timeline-item { display: flex !important; flex-direction: row !important; gap: 16px; margin-bottom: 40px; align-items: flex-start; grid-template-columns: unset !important; }
   .timeline-item:nth-child(even) .timeline-content:first-child { order: unset; text-align: left; }
   .timeline-item:nth-child(even) .timeline-content:last-child { order: unset; }
   .timeline-empty { display: none; }
   .timeline-content { padding: 0; flex: 1; }
-  .timeline-center {
-    flex-direction: column;
-    align-items: center;
-    flex-shrink: 0;
-    width: 40px;
-    padding-top: 0;
-  }
+  .timeline-center { flex-direction: column; align-items: center; flex-shrink: 0; width: 40px; padding-top: 0; }
   .timeline-year { display: none; }
   .timeline-dot { width: 36px; height: 36px; font-size: 14px; }
   .values-grid { grid-template-columns: 1fr; }
@@ -594,19 +245,18 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
 </head>
 <body>
 
-<!-- NAVBAR -->
+<!-- NAVBAR — How It Works 在 Our Story 前面 -->
 <nav class="navbar">
   <a class="navbar-logo" href="/">Insight<span>a</span></a>
   <div class="navbar-links">
-    <a href="#story">Our Story</a>
     <a href="#how">How It Works</a>
+    <a href="#story">Our Story</a>
     <a href="#journey">Journey</a>
     <a href="#contact">Contact</a>
     <a href="/login" style="color: var(--ink-soft)">Login</a>
     <a href="/register" class="nav-cta btn">Get Started →</a>
   </div>
 </nav>
-
 
 <!-- HERO -->
 <section class="hero">
@@ -625,122 +275,45 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
       </p>
       <div class="hero-actions">
         <a href="/register" class="btn btn-primary">Start for free →</a>
-        <a href="#story" class="btn btn-outline">Read our story</a>
+        <a href="#how" class="btn btn-outline">How it works</a>
         <a href="https://docs.google.com/document/d/1ghKrghm0yIe5YtuDWodHbYxynEw_899f2YKMImSjrDI/edit" target="_blank" class="guide-link">📖 Getting Started Guide</a>
       </div>
     </div>
-
     <div class="hero-right">
       <div class="hero-card-stack">
         <div class="hero-card hero-card-back">
           <div class="card-label">Survey Match</div>
           <div class="card-title">Sleep Patterns in College Students</div>
-          <div class="card-tags">
-            <span class="tag">Psychology</span>
-            <span class="tag">18–24</span>
-          </div>
+          <div class="card-tags"><span class="tag">Psychology</span><span class="tag">18–24</span></div>
         </div>
         <div class="hero-card hero-card-main">
           <div class="card-label">📊 Active Survey</div>
           <div class="card-title">How Social Media Affects Decision Making</div>
-          <div class="card-progress-bar">
-            <div class="card-progress-fill"></div>
-          </div>
-          <div class="card-meta">
-            <span>78 / 100 responses</span>
-            <span>~4 min</span>
-          </div>
-          <div class="card-tags">
-            <span class="tag">Behavioral Science</span>
-            <span class="tag">College</span>
-            <span class="tag">Anonymous</span>
-          </div>
+          <div class="card-progress-bar"><div class="card-progress-fill"></div></div>
+          <div class="card-meta"><span>78 / 100 responses</span><span>~4 min</span></div>
+          <div class="card-tags"><span class="tag">Behavioral Science</span><span class="tag">College</span><span class="tag">Anonymous</span></div>
         </div>
         <div class="hero-card hero-card-side">
           <div class="card-reward">💸 $8 reward</div>
           <div class="card-title">New match for you!</div>
-          <div class="card-tags">
-            <span class="tag">Marketing</span>
-            <span class="tag">Grad Students</span>
-          </div>
+          <div class="card-tags"><span class="tag">Marketing</span><span class="tag">Grad Students</span></div>
         </div>
       </div>
     </div>
   </div>
 </section>
-
 
 <!-- STATS -->
 <div class="stats-bar">
   <div class="stats-inner">
-    <div class="stat-item">
-      <div class="stat-number">Early Access</div>
-      <div class="stat-label">Researchers & Publishers</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number">Growing</div>
-      <div class="stat-label">Participant Community</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number">Live Now</div>
-      <div class="stat-label">Real Surveys & Studies</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-number">User-Driven</div>
-      <div class="stat-label">Built With Our Community</div>
-    </div>
+    <div class="stat-item"><div class="stat-number">Early Access</div><div class="stat-label">Researchers & Publishers</div></div>
+    <div class="stat-item"><div class="stat-number">Growing</div><div class="stat-label">Participant Community</div></div>
+    <div class="stat-item"><div class="stat-number">Live Now</div><div class="stat-label">Real Surveys & Studies</div></div>
+    <div class="stat-item"><div class="stat-number">User-Driven</div><div class="stat-label">Built With Our Community</div></div>
   </div>
 </div>
 
-
-<!-- STORY SECTION -->
-<section class="story-section" id="story">
-  <div class="story-inner">
-    <div class="story-grid">
-      <div class="story-left">
-        <span class="section-eyebrow">Our Story</span>
-        <h2>We built this because<br>we <em>lived</em> the problem.</h2>
-        <p class="lead">Every great research project should stand or fall on the quality of its ideas; not on whether the researcher could guilt-trip enough friends into filling out a Google Form.</p>
-        <div class="story-image-block">
-          <div class="quote">"We spent two weeks begging people to fill our survey. That's when we knew something was deeply broken."</div>
-          <div class="quote-attr">— The Insighta founding team, BU 2025</div>
-        </div>
-      </div>
-      <div class="story-right">
-        <div class="story-block">
-          <span class="story-block-num">01</span>
-          <h3>The Night Before the Deadline</h3>
-          <p>It was 11pm. The survey deadline was tomorrow. We had 23 responses out of the 100 we needed for statistical significance.</p>
-          <p>We posted in every Facebook group we could find. We texted acquaintances we hadn't spoken to since freshman orientation. We stood outside the dining hall with a laptop, we stick our poster in every bathroom door. It was embarrassing, exhausting, and — if we're being honest — completely normal. Every researcher goes through this.</p>
-          <div class="callout">That night, one of us asked: "Why isn't there a platform that just… connects researchers with people who actually want to participate?"</div>
-        </div>
-        <div class="story-block">
-          <span class="story-block-num">02</span>
-          <h3>The Other Side of the Problem</h3>
-          <p>As we started talking to more people, we discovered the flip side was just as broken. Hundreds of students were filling out random surveys for course credit or pocket money, but the process was scattered, unreliable, and often felt like their time was being wasted.</p>
-          <p>We spoke to a sophomore psychology student who had spent three hours on a research participation portal only to realize the survey she completed never properly recorded her response. We talked to a pre-med junior who had no idea that her unique experience with a chronic illness could be exactly the data a researcher across campus was desperately looking for.</p>
-          <p>The knowledge was there. The willingness was there. The connection was missing.</p>
-        </div>
-        <div class="story-block">
-          <span class="story-block-num">03</span>
-          <h3>Why We're Different</h3>
-          <p>Existing tools are built for corporations running focus groups with big budgets. They're powerful, yes, but they treat participants as commodities and researchers as just another paying customer. There's no community. No matching. No sense that both sides of the equation actually matter.</p>
-          <p>Insighta is built from the ground up for the academic and independent research ecosystem: where budgets are small, timelines are tight, and the research actually matters. We're not trying to be another survey tool. We're building the infrastructure for a generation of curious people to actually do their work.</p>
-          <div class="callout">We believe that better research leads to better decisions: in science, in policy, in business. And that starts with making research accessible to everyone who wants to do it.</div>
-        </div>
-        <div class="story-block">
-          <span class="story-block-num">04</span>
-          <h3>What We're Building Toward</h3>
-          <p>We're still early. We launched as a small team of students at Boston University, and we're building this as we go, listening closely to every researcher and every participant who uses the platform. This is not a venture-backed rocket ship chasing scale. This is a slow, careful build toward something genuinely useful.</p>
-          <p>Our dream is a world where a first-year student with a fascinating research question has the same access to real participants as a tenured professor with a full lab. Where a curious person can make $20 sharing their authentic experiences and feel like their voice contributed to something meaningful. Where research is a conversation, not a transaction.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- HOW IT WORKS -->
+<!-- HOW IT WORKS — 现在在 Our Story 前面 -->
 <section class="how-section" id="how">
   <div class="how-inner">
     <div class="section-header">
@@ -825,6 +398,51 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   </div>
 </section>
 
+<!-- STORY SECTION — 现在在 How It Works 后面 -->
+<section class="story-section" id="story">
+  <div class="story-inner">
+    <div class="story-grid">
+      <div class="story-left">
+        <span class="section-eyebrow">Our Story</span>
+        <h2>We built this because<br>we <em>lived</em> the problem.</h2>
+        <p class="lead">Every great research project should stand or fall on the quality of its ideas; not on whether the researcher could guilt-trip enough friends into filling out a Google Form.</p>
+        <div class="story-image-block">
+          <div class="quote">"We spent two weeks begging people to fill our survey. That's when we knew something was deeply broken."</div>
+          <div class="quote-attr">— The Insighta founding team, BU 2025</div>
+        </div>
+      </div>
+      <div class="story-right">
+        <div class="story-block">
+          <span class="story-block-num">01</span>
+          <h3>The Night Before the Deadline</h3>
+          <p>It was 11pm. The survey deadline was tomorrow. We had 23 responses out of the 100 we needed for statistical significance.</p>
+          <p>We posted in every Facebook group we could find. We texted acquaintances we hadn't spoken to since freshman orientation. We stood outside the dining hall with a laptop, we stick our poster in every bathroom door. It was embarrassing, exhausting, and — if we're being honest — completely normal. Every researcher goes through this.</p>
+          <div class="callout">That night, one of us asked: "Why isn't there a platform that just… connects researchers with people who actually want to participate?"</div>
+        </div>
+        <div class="story-block">
+          <span class="story-block-num">02</span>
+          <h3>The Other Side of the Problem</h3>
+          <p>As we started talking to more people, we discovered the flip side was just as broken. Hundreds of students were filling out random surveys for course credit or pocket money, but the process was scattered, unreliable, and often felt like their time was being wasted.</p>
+          <p>We spoke to a sophomore psychology student who had spent three hours on a research participation portal only to realize the survey she completed never properly recorded her response. We talked to a pre-med junior who had no idea that her unique experience with a chronic illness could be exactly the data a researcher across campus was desperately looking for.</p>
+          <p>The knowledge was there. The willingness was there. The connection was missing.</p>
+        </div>
+        <div class="story-block">
+          <span class="story-block-num">03</span>
+          <h3>Why We're Different</h3>
+          <p>Existing tools are built for corporations running focus groups with big budgets. They're powerful, yes, but they treat participants as commodities and researchers as just another paying customer. There's no community. No matching. No sense that both sides of the equation actually matter.</p>
+          <p>Insighta is built from the ground up for the academic and independent research ecosystem: where budgets are small, timelines are tight, and the research actually matters. We're not trying to be another survey tool. We're building the infrastructure for a generation of curious people to actually do their work.</p>
+          <div class="callout">We believe that better research leads to better decisions: in science, in policy, in business. And that starts with making research accessible to everyone who wants to do it.</div>
+        </div>
+        <div class="story-block">
+          <span class="story-block-num">04</span>
+          <h3>What We're Building Toward</h3>
+          <p>We're still early. We launched as a small team of students at Boston University, and we're building this as we go, listening closely to every researcher and every participant who uses the platform. This is not a venture-backed rocket ship chasing scale. This is a slow, careful build toward something genuinely useful.</p>
+          <p>Our dream is a world where a first-year student with a fascinating research question has the same access to real participants as a tenured professor with a full lab. Where a curious person can make $20 sharing their authentic experiences and feel like their voice contributed to something meaningful. Where research is a conversation, not a transaction.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- JOURNEY -->
 <section class="journey-section" id="journey">
@@ -870,7 +488,6 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   </div>
 </section>
 
-
 <!-- VALUES -->
 <section class="values-section">
   <div class="values-inner">
@@ -890,7 +507,6 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
     </div>
   </div>
 </section>
-
 
 <!-- CTA -->
 <section class="cta-section" id="contact">
@@ -912,10 +528,9 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
         <a href="/register" class="btn btn-outline">Find Surveys →</a>
       </div>
     </div>
-    <p style="font-size: 14px; color: var(--ink-muted);">Have questions? Reach out at <a href="/cdn-cgi/l/email-protection#61170712002103144f040514" style="color: var(--accent); text-decoration: none; font-weight: 500;"><span class="__cf_email__" data-cfemail="a6d0c0d5c7e6c4d388c3c2d3">[email&#160;protected]</span></a> — we actually read every email.</p>
+    <p style="font-size: 14px; color: var(--ink-muted);">Have questions? Reach out at <a href="mailto:insightcom@gmail.com" style="color: var(--accent); text-decoration: none; font-weight: 500;">insightcom@gmail.com</a> — we actually read every email.</p>
   </div>
 </section>
-
 
 <!-- FOOTER -->
 <footer id="footer">
@@ -926,8 +541,8 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
     </div>
     <div class="footer-col">
       <h4>Platform</h4>
-      <a href="#story">Our Story</a>
       <a href="#how">How It Works</a>
+      <a href="#story">Our Story</a>
       <a href="#journey">Our Journey</a>
       <a href="/register">Get Started</a>
     </div>
@@ -940,7 +555,7 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
     </div>
     <div class="footer-col">
       <h4>Connect</h4>
-      <a href="/cdn-cgi/l/email-protection#d9afbfaab899bbacf7bcbdac">Email Us</a>
+      <a href="mailto:insightcom@gmail.com">Email Us</a>
       <a href="https://www.instagram.com/surveybridge?igsh=MWloN3JhbG1sbndzOA%3D%3D&utm_source=qr" target="_blank">Instagram</a>
     </div>
   </div>
@@ -950,8 +565,7 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   </div>
 </footer>
 
-
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 function switchTab(tab, btn) {
   document.querySelectorAll('.how-content').forEach(c => c.classList.remove('active'));
   document.querySelectorAll('.how-tab').forEach(b => b.classList.remove('active'));
@@ -975,6 +589,6 @@ document.querySelectorAll('.story-block, .timeline-card, .value-card, .cta-card,
   observer.observe(el);
 });
 </script>
- 
+
 </body>
 </html>

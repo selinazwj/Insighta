@@ -931,7 +931,51 @@ async def publish_survey(
 
     return RedirectResponse(session.url, status_code=303)
 
+@app.get("/publish_interview", response_class=HTMLResponse)
+def publish_interview_page(request: Request):
+    return templates.TemplateResponse("publish_interview.html", {"request": request})
 
+@app.post("/publish_interview")
+async def publish_interview(
+    request: Request,
+    title: str = Form(...),
+    description: str = Form(...),
+    category: str = Form(...),
+    estimated_time: int = Form(...),
+    target_responses: int = Form(...),
+    interview_format: str = Form("video"),
+    scheduling_link: str = Form(None),
+    availability_notes: str = Form(None),
+    interview_location: str = Form(None),
+    urgency_level: str = Form(None),
+    deadline_date: str = Form(None),
+    incentive_type: str = Form(None),
+    per_person_gross: float = Form(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    form = await request.form()
+    experience_list = form.getlist("target_experience_tags")
+
+    survey = Survey(
+        publisher_id=current_user.id,
+        title=title,
+        description=description,
+        form_url=scheduling_link or "",   # 复用 form_url 字段存 scheduling link
+        task_type="interview",
+        category=category,
+        estimated_time=estimated_time,
+        reward_amount=per_person_gross or 0.0,
+        target_responses=target_responses,
+        urgency_level=_clean_target(urgency_level),
+        incentive_type=_clean_target(incentive_type),
+        target_experience_tags=",".join(experience_list) if experience_list else None,
+        # 其余 target_ 字段同 publish 路由写法
+        status="draft",
+    )
+    db.add(survey)
+    db.commit()
+    return RedirectResponse("/publisher", status_code=303)
 # ---------------------------
 # Payment success page
 # ---------------------------
