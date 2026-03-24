@@ -683,7 +683,43 @@ def accept_notification(
     ).first()
     if not n:
         raise HTTPException(404, "Notification not found")
+
     n.status = "accepted"
+
+    # 找到对应的 response，发钱给 participant
+    r = db.query(Response).filter(
+        Response.survey_id == n.survey_id,
+        Response.participant_id == n.participant_id
+    ).first()
+
+    if r:
+        survey = db.query(Survey).filter(Survey.id == n.survey_id).first()
+        participant = db.query(User).filter(User.id == n.participant_id).first()
+        if participant and survey:
+            participant.pending_earnings = (getattr(participant, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
+            send_email(
+                to=participant.email,
+                subject=f"[Insighta] Your response was approved! 💰",
+                body=f"""
+                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+                  <h2 style="font-size: 22px; margin-bottom: 8px;">🎉 Response Approved!</h2>
+                  <p style="color: #8a8a82; margin-bottom: 24px;">Your response has been verified and approved.</p>
+                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
+                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Reward Added</div>
+                    <div style="font-size: 22px; font-weight: 700; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
+                  </div>
+                  <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
+                    Your earnings have been added to your account. You can withdraw anytime from your dashboard.
+                  </p>
+                  <a href="https://insightaco.org/dashboard" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                    View Earnings →
+                  </a>
+                </div>
+                """
+            )
+
     db.commit()
     return {"message": "accepted"}
 
@@ -703,7 +739,7 @@ def reject_notification(
     db.commit()
     return {"message": "rejected"}
 
-
+'''
 # ---------------------------
 # Publisher approve response
 # ---------------------------
@@ -769,7 +805,7 @@ def approve_response(
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
 
-
+'''
 # ---------------------------
 # Publisher get pending responses
 # ---------------------------
