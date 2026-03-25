@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <meta name="theme-color" content="#faf9f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18;
+      --ink-soft: #4a4a44;
+      --ink-muted: #8a8a82;
+      --paper: #faf9f5;
+      --paper-warm: #f3f1ea;
+      --accent: #2d6a4f;
+      --accent-light: #52b788;
+      --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    /* ── LEFT PANEL ── */
+    .left-panel {
+      background: var(--accent);
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      bottom: -150px; right: -150px;
+    }
+    .left-panel::after {
+      content: '';
+      position: absolute;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      top: -80px; left: -80px;
+    }
+    .panel-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; position: relative; z-index: 1; }
+    .panel-logo img { height: 36px; width: auto; filter: brightness(0) invert(1); }
+    .panel-logo span { font-family: var(--serif); font-size: 22px; color: white; }
+    .panel-body { position: relative; z-index: 1; }
+    .avatar-big {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); border: 3px solid rgba(255,255,255,0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--serif); font-size: 32px; color: white; margin-bottom: 20px;
+    }
+    .panel-body h2 { font-family: var(--serif); font-size: 28px; color: white; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .panel-body p { font-size: 15px; color: rgba(255,255,255,0.6); font-weight: 300; line-height: 1.6; }
+    .panel-footer { position: relative; z-index: 1; }
+    .back-link { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.7); text-decoration: none; transition: color 0.2s; }
+    .back-link:hover { color: white; }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel { padding: 60px 48px; overflow-y: auto; }
+    .form-wrapper { max-width: 480px; margin: 0 auto; }
+    .form-header { margin-bottom: 36px; }
+    .form-header h1 { font-family: var(--serif); font-size: 32px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
+    .form-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; }
+
+    /* ── SECTION LABEL ── */
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--ink-muted);
+      margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+    }
+
+    /* ── FORM ELEMENTS ── */
+    .form-group { margin-bottom: 16px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 7px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row .form-group { margin-bottom: 0; }
+
+    input, select {
+      width: 100%; padding: 12px 16px;
+      border: 1.5px solid var(--line); border-radius: 10px;
+      font-family: var(--sans); font-size: 15px; color: var(--ink);
+      background: white; transition: all 0.2s; appearance: none;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
+    input::placeholder { color: #c4c2bc; font-weight: 300; }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      padding-right: 36px; cursor: pointer;
+    }
+
+    /* ── MULTISELECT ── */
+    .multiselect-wrap { position: relative; }
+    .multiselect-trigger {
+      width: 100%; padding: 12px 36px 12px 16px;
+      border: 1.5px solid var(--line); border-radius: 10px;
+      font-family: var(--sans); font-size: 15px; background: white;
+      color: #c4c2bc; text-align: left; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      transition: all 0.2s; font-weight: 300;
+    }
+    .multiselect-trigger.has-value { color: var(--ink); font-weight: 400; }
+    .multiselect-wrap.open .multiselect-trigger { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
+    .multiselect-panel {
+      display: none; position: absolute;
+      top: calc(100% + 4px); left: 0; right: 0;
+      background: white; border: 1.5px solid var(--line);
+      border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      z-index: 50; max-height: 220px; overflow-y: auto; padding: 6px 0;
+    }
+    .multiselect-wrap.open .multiselect-panel { display: block; }
+    .multiselect-panel label {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; font-size: 14px; color: var(--ink);
+      cursor: pointer; font-weight: 400; margin-bottom: 0;
+    }
+    .multiselect-panel label:hover { background: var(--paper); }
+    .multiselect-panel input[type="checkbox"] {
+      width: 16px; height: 16px; accent-color: var(--accent);
+      flex-shrink: 0; padding: 0; border: none; background: none; box-shadow: none;
+    }
+
+    /* ── SUBMIT ── */
+    .btn-submit {
+      width: 100%; padding: 13px; background: var(--accent); color: white;
+      border: none; border-radius: 10px; font-family: var(--sans);
+      font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 32px;
+    }
+    .btn-submit:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+      .right-panel { padding: 40px 24px; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LEFT PANEL -->
+<div class="left-panel">
+  <a href="{{ prev_url or '/choice' }}" class="panel-logo">
+    <img src="/static/favicon.png" alt="Insighta">
+    <span>Insighta</span>
+  </a>
+  <div class="panel-body">
+    <div class="avatar-big">
+      {{ user.username[0].upper() if user.username else user.email[0].upper() }}
+    </div>
+    <h2>{{ user.username or 'Your Profile' }}</h2>
+    <p>{{ user.email }}</p>
+  </div>
+  <div class="panel-footer">
+    <a href="{{ prev_url or '/choice' }}" class="back-link">← Back</a>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <div class="form-wrapper">
+
+    <div class="form-header">
+      <h1>Edit Profile</h1>
+      <p>Keep your profile up to date to get better survey matches.</p>
+    </div>
+
+    <form method="POST" action="/profile">
+
+      <!-- Account -->
+      <div class="section-label">Account</div>
+      <div class="form-group">
+        <label>Username</label>
+        <input name="username" type="text" placeholder="Your name" value="{{ user.username or '' }}">
+      </div>
+      <div class="form-group">
+        <label>Email address</label>
+        <input name="email" type="email" required placeholder="you@example.com" value="{{ user.email }}">
+      </div>
+
+      <!-- Basics -->
+      <div class="section-label">Basics</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Age range</label>
+          <select name="age_range">
+            <option value="" disabled {% if not user.age_range %}selected{% endif %}>Select</option>
+            <option value="18-24" {% if user.age_range=='18-24' %}selected{% endif %}>18–24</option>
+            <option value="25-34" {% if user.age_range=='25-34' %}selected{% endif %}>25–34</option>
+            <option value="35-44" {% if user.age_range=='35-44' %}selected{% endif %}>35–44</option>
+            <option value="45+" {% if user.age_range=='45+' %}selected{% endif %}>45+</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Education level</label>
+          <select name="education_level">
+            <option value="" disabled {% if not user.education_level %}selected{% endif %}>Select</option>
+            <option value="High School" {% if user.education_level=='High School' %}selected{% endif %}>High School</option>
+            <option value="Undergraduate" {% if user.education_level=='Undergraduate' %}selected{% endif %}>Undergraduate</option>
+            <option value="Graduate" {% if user.education_level=='Graduate' %}selected{% endif %}>Graduate</option>
+            <option value="PhD" {% if user.education_level=='PhD' %}selected{% endif %}>PhD</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Field / Major</label>
+          <select name="field">
+            <option value="" disabled {% if not user.field %}selected{% endif %}>Select</option>
+            <option value="Computer Science & Engineering" {% if user.field in ['Computer Science & Engineering','Computer Science','Engineering'] %}selected{% endif %}>Computer Science & Engineering</option>
+            <option value="Business & Economics" {% if user.field in ['Business & Economics','Business'] %}selected{% endif %}>Business & Economics</option>
+            <option value="Medicine & Healthcare" {% if user.field in ['Medicine & Healthcare','Medicine / Healthcare'] %}selected{% endif %}>Medicine & Healthcare</option>
+            <option value="Natural Sciences" {% if user.field=='Natural Sciences' %}selected{% endif %}>Natural Sciences</option>
+            <option value="Social Sciences" {% if user.field=='Social Sciences' %}selected{% endif %}>Social Sciences</option>
+            <option value="Arts & Humanities" {% if user.field=='Arts & Humanities' %}selected{% endif %}>Arts & Humanities</option>
+            <option value="Education" {% if user.field=='Education' %}selected{% endif %}>Education</option>
+            <option value="Law" {% if user.field=='Law' %}selected{% endif %}>Law</option>
+            <option value="Other" {% if user.field=='Other' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Current status</label>
+          <select name="status">
+            <option value="" disabled {% if not user.status %}selected{% endif %}>Select</option>
+            <option value="student" {% if user.status=='student' %}selected{% endif %}>Student</option>
+            <option value="working" {% if user.status=='working' %}selected{% endif %}>Working</option>
+            <option value="freelancer" {% if user.status=='freelancer' %}selected{% endif %}>Freelancer</option>
+            <option value="other" {% if user.status=='other' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>State</label>
+        <select name="state">
+          <option value="" disabled {% if not user.state %}selected{% endif %}>Select your state</option>
+          {% for s in ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'] %}
+          <option value="{{ s }}" {% if user.state==s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Languages you can take surveys in</label>
+        {% set ul = ',' ~ (user.language or '') ~ ',' %}
+        <div class="multiselect-wrap" id="language-multiselect">
+          <button type="button" class="multiselect-trigger" aria-haspopup="listbox">Select languages</button>
+          <div class="multiselect-panel">
+            {% for lang in ['Arabic','English','French','German','Hindi','Japanese','Korean','Mandarin Chinese','Spanish','Other'] %}
+            <label><input type="checkbox" name="language" value="{{ lang }}" {% if (',' ~ lang ~ ',') in ul %}checked{% endif %}> {{ lang }}</label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 新增：Academic & Participation ── -->
+      <div class="section-label">Academic & Participation</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Student status</label>
+          <select name="student_status">
+            <option value="" disabled {% if not user.student_status %}selected{% endif %}>Select</option>
+            <option value="undergrad" {% if user.student_status=='undergrad' %}selected{% endif %}>Undergraduate</option>
+            <option value="grad" {% if user.student_status=='grad' %}selected{% endif %}>Graduate / PhD</option>
+            <option value="non-student" {% if user.student_status=='non-student' %}selected{% endif %}>Non-student</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Year in school</label>
+          <select name="year_in_school">
+            <option value="" disabled {% if not user.year_in_school %}selected{% endif %}>Select</option>
+            {% for yr in ['Freshman','Sophomore','Junior','Senior','Graduate Year 1','Graduate Year 2+','N/A'] %}
+            <option value="{{ yr }}" {% if user.year_in_school==yr %}selected{% endif %}>{{ yr }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>International or domestic</label>
+          <select name="international_domestic">
+            <option value="" disabled {% if not user.international_domestic %}selected{% endif %}>Select</option>
+            <option value="Domestic" {% if user.international_domestic=='Domestic' %}selected{% endif %}>Domestic</option>
+            <option value="International" {% if user.international_domestic=='International' %}selected{% endif %}>International</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Preferred participation format</label>
+          <select name="participation_format">
+            <option value="" disabled {% if not user.participation_format %}selected{% endif %}>Select</option>
+            <option value="online" {% if user.participation_format=='online' %}selected{% endif %}>Online only</option>
+            <option value="in_person" {% if user.participation_format=='in_person' %}selected{% endif %}>In-person ok</option>
+            <option value="both" {% if user.participation_format=='both' %}selected{% endif %}>Both</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Primary device</label>
+          <select name="device_type">
+            <option value="" disabled {% if not user.device_type %}selected{% endif %}>Select</option>
+            <option value="laptop" {% if user.device_type=='laptop' %}selected{% endif %}>Laptop / Desktop</option>
+            <option value="mobile" {% if user.device_type=='mobile' %}selected{% endif %}>Mobile</option>
+            <option value="any" {% if user.device_type=='any' %}selected{% endif %}>Both</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 4px;">
+        <label>Your experiences <span style="font-weight:300; color: var(--ink-muted);">(select all that apply)</span></label>
+        {% set etags = ',' ~ (user.experience_tags or '') ~ ',' %}
+        <div class="multiselect-wrap" id="experience-multiselect">
+          <button type="button" class="multiselect-trigger" aria-haspopup="listbox">Select experiences</button>
+          <div class="multiselect-panel">
+            <label><input type="checkbox" name="experience_tags" value="startup_experience" {% if ',startup_experience,' in etags %}checked{% endif %}> 🚀 Startup / product experience</label>
+            <label><input type="checkbox" name="experience_tags" value="club_leadership" {% if ',club_leadership,' in etags %}checked{% endif %}> 🎓 Club / org leadership</label>
+            <label><input type="checkbox" name="experience_tags" value="mental_health_experience" {% if ',mental_health_experience,' in etags %}checked{% endif %}> 🧠 Mental health experience</label>
+            <label><input type="checkbox" name="experience_tags" value="chronic_illness" {% if ',chronic_illness,' in etags %}checked{% endif %}> 🏥 Chronic illness</label>
+            <label><input type="checkbox" name="experience_tags" value="heavy_social_media" {% if ',heavy_social_media,' in etags %}checked{% endif %}> 📱 Heavy social media user</label>
+            <label><input type="checkbox" name="experience_tags" value="prior_research" {% if ',prior_research,' in etags %}checked{% endif %}> 🔬 Prior research participation</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Demographics -->
+      <div class="section-label">Demographics</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Ethnicity</label>
+          <select name="ethnicity">
+            <option value="" disabled {% if not user.ethnicity %}selected{% endif %}>Select</option>
+            {% for e in ['White','Black or African American','Hispanic or Latino','Asian','Middle Eastern or North African','Native American or Pacific Islander','Two or more races','Other','Prefer not to say'] %}
+            <option value="{{ e }}" {% if user.ethnicity==e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sexual orientation</label>
+          <select name="sexual_orientation">
+            <option value="" disabled {% if not user.sexual_orientation %}selected{% endif %}>Select</option>
+            {% for o in ['Straight / Heterosexual','Gay or Lesbian','Bisexual','Other','Prefer not to say'] %}
+            <option value="{{ o }}" {% if user.sexual_orientation==o %}selected{% endif %}>{{ o }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Mental health diagnosis</label>
+          <select name="mental_health_diagnosis">
+            <option value="" disabled {% if not user.mental_health_diagnosis %}selected{% endif %}>Select</option>
+            <option value="Yes" {% if user.mental_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
+            <option value="No" {% if user.mental_health_diagnosis=='No' %}selected{% endif %}>No</option>
+            <option value="Prefer not to say" {% if user.mental_health_diagnosis=='Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Physical health diagnosis</label>
+          <select name="physical_health_diagnosis">
+            <option value="" disabled {% if not user.physical_health_diagnosis %}selected{% endif %}>Select</option>
+            <option value="Yes" {% if user.physical_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
+            <option value="No" {% if user.physical_health_diagnosis=='No' %}selected{% endif %}>No</option>
+            <option value="Prefer not to say" {% if user.physical_health_diagnosis=='Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Lifestyle -->
+      <div class="section-label">Lifestyle</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Sport type</label>
+          <select name="sport_type">
+            <option value="" disabled {% if not user.sport_type %}selected{% endif %}>Select</option>
+            {% for st in ['Basketball','Soccer / Football','Baseball / Softball','American Football','Tennis','Golf','Swimming','Running / Jogging','Cycling','Yoga / Pilates','Gym / Weightlifting','Martial Arts','Volleyball','Hockey','Other','None'] %}
+            <option value="{{ st }}" {% if user.sport_type==st %}selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sport frequency</label>
+          <select name="sport_frequency">
+            <option value="" disabled {% if not user.sport_frequency %}selected{% endif %}>Select</option>
+            {% for sf in ['Daily','Several times a week','Once a week','A few times a month','Rarely','Never'] %}
+            <option value="{{ sf }}" {% if user.sport_frequency==sf %}selected{% endif %}>{{ sf }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Do you smoke?</label>
+          <select name="smoking">
+            <option value="" disabled {% if not user.smoking %}selected{% endif %}>Select</option>
+            {% for sm in ['Never','Former smoker','Rarely','Occasionally','Several times a week','Daily','Prefer not to say'] %}
+            <option value="{{ sm }}" {% if user.smoking==sm %}selected{% endif %}>{{ sm }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cannabis use</label>
+          <select name="cannabis_use">
+            <option value="" disabled {% if not user.cannabis_use %}selected{% endif %}>Select</option>
+            {% for cu in ['Never','Former user','Rarely','Occasionally','Several times a week','Daily','Prefer not to say'] %}
+            <option value="{{ cu }}" {% if user.cannabis_use==cu %}selected{% endif %}>{{ cu }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit">Save Changes →</button>
+
+    </form>
+  </div>
+</div>
+
+<script>
+  // Select color
+  document.querySelectorAll('select').forEach(s => {
+    const update = () => s.style.color = s.value ? 'var(--ink)' : '#c4c2bc';
+    s.addEventListener('change', update);
+    update();
+  });
+
+  // Generic multiselect initializer
+  function initMultiselect(id, placeholder) {
+    const wrap = document.getElementById(id);
+    if (!wrap) return;
+    const trigger = wrap.querySelector('.multiselect-trigger');
+    const panel = wrap.querySelector('.multiselect-panel');
+    const checkboxes = panel.querySelectorAll('input[type="checkbox"]');
+
+    function update() {
+      const labels = [];
+      checkboxes.forEach(cb => { if (cb.checked) labels.push(cb.parentElement.textContent.trim()); });
+      trigger.textContent = labels.length ? labels.join(', ') : placeholder;
+      trigger.classList.toggle('has-value', labels.length > 0);
+    }
+
+    trigger.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      document.querySelectorAll('.multiselect-wrap.open').forEach(w => { if (w !== wrap) w.classList.remove('open'); });
+      wrap.classList.toggle('open');
+    });
+
+    panel.addEventListener('click', e => e.stopPropagation());
+    checkboxes.forEach(cb => cb.addEventListener('change', update));
+    document.addEventListener('click', () => wrap.classList.remove('open'));
+    update();
+  }
+
+  initMultiselect('language-multiselect', 'Select languages');
+  initMultiselect('experience-multiselect', 'Select experiences');
+</script>
+
+</body>
+</html>

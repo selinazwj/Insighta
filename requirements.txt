@@ -1,0 +1,12 @@
+fastapi==0.115.0
+uvicorn
+jinja2
+sqlalchemy
+asyncpg
+python-multipart
+passlib[bcrypt]
+bcrypt==4.0.1
+python-dotenv
+psycopg2-binary
+anthropic
+stripe

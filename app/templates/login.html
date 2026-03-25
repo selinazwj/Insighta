@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <meta name="theme-color" content="#faf9f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root { --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82; --paper: #faf9f5; --paper-warm: #f3f1ea; --accent: #2d6a4f; --accent-light: #52b788; --accent-warm: #e07a3c; --line: #e0ddd3; --success-bg: #effaf3; --success-border: #b7e4c7; --success-text: #1b5e3f; --serif: 'DM Serif Display', Georgia, serif; --sans: 'DM Sans', system-ui, sans-serif; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); background: var(--paper); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
+    .left-panel { background: var(--accent); padding: 60px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+    .left-panel::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.06); bottom: -150px; right: -150px; }
+    .left-panel::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -80px; left: -80px; }
+    .panel-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; position: relative; z-index: 1; }
+    .panel-logo img { height: 36px; width: auto; filter: brightness(0) invert(1); }
+    .panel-logo span { font-family: var(--serif); font-size: 22px; color: white; letter-spacing: -0.3px; }
+    .panel-body, .panel-footer { position: relative; z-index: 1; }
+    .panel-body h2 { font-family: var(--serif); font-size: clamp(32px, 3vw, 44px); color: white; line-height: 1.15; letter-spacing: -1px; margin-bottom: 20px; }
+    .panel-body h2 em { font-style: italic; opacity: 0.75; }
+    .panel-body p { font-size: 16px; color: rgba(255,255,255,0.65); line-height: 1.75; font-weight: 300; max-width: 360px; }
+    .panel-quote { border-left: 3px solid rgba(255,255,255,0.3); padding-left: 20px; }
+    .panel-quote p { font-family: var(--serif); font-size: 17px; font-style: italic; color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 10px; }
+    .panel-quote span { font-size: 13px; color: rgba(255,255,255,0.45); }
+    .right-panel { display: flex; align-items: center; justify-content: center; padding: 60px 40px; }
+    .form-wrapper { width: 100%; max-width: 420px; }
+    .form-header { margin-bottom: 34px; }
+    .form-header h1 { font-family: var(--serif); font-size: 34px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
+    .form-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; line-height: 1.7; }
+    .error-box, .success-box { padding: 12px 16px; border-radius: 10px; margin-bottom: 18px; font-size: 14px; }
+    .error-box { background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; }
+    .success-box { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
+    .form-group input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; color: var(--ink); background: white; transition: all 0.2s; }
+    .form-group input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
+    .form-group input::placeholder { color: #c4c2bc; font-weight: 300; }
+    .inline-link { color: var(--accent); font-size: 13px; font-weight: 600; text-decoration: none; }
+    .inline-link:hover { text-decoration: underline; }
+    .btn-submit, .btn-secondary { width: 100%; padding: 13px; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; letter-spacing: 0.01em; }
+    .btn-submit { background: var(--accent); color: white; border: none; margin-top: 4px; }
+    .btn-submit:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
+    .btn-secondary { background: white; color: var(--accent); border: 1.5px solid rgba(45,106,79,0.18); }
+    .btn-secondary:hover { border-color: var(--accent); background: rgba(45,106,79,0.04); }
+    .form-footer { text-align: center; margin-top: 22px; font-size: 14px; color: var(--ink-muted); }
+    .form-footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .form-footer a:hover { text-decoration: underline; }
+    .helper-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 10px; }
+    .helper-row button { background: transparent; border: none; padding: 0; font: inherit; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .helper-row button:hover { text-decoration: underline; }
+    .modal { position: fixed; inset: 0; background: rgba(26,26,24,0.48); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 1200; }
+    .modal.open { display: flex; }
+    .modal-card { width: 100%; max-width: 520px; background: white; border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 24px 80px rgba(0,0,0,0.18); overflow: hidden; }
+    .modal-top { padding: 26px 28px 18px; background: linear-gradient(180deg, rgba(45,106,79,0.08), rgba(45,106,79,0)); }
+    .modal-top .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 8px; }
+    .modal-top h2 { font-family: var(--serif); font-size: 30px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
+    .modal-top p { font-size: 14px; color: var(--ink-muted); line-height: 1.7; }
+    .modal-body { padding: 0 28px 28px; }
+    .code-row { display: grid; grid-template-columns: minmax(0, 1fr) 160px; gap: 12px; align-items: end; }
+    .code-helper { margin-top: 8px; font-size: 13px; color: var(--ink-muted); line-height: 1.6; min-height: 20px; }
+    .send-btn { height: 48px; border-radius: 10px; border: 1.5px solid rgba(45,106,79,0.18); background: white; color: var(--accent); font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .send-btn:hover { border-color: var(--accent); background: rgba(45,106,79,0.04); }
+    .send-btn:disabled { opacity: 0.65; cursor: wait; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+    @media (max-width: 768px) { body { grid-template-columns: 1fr; } .left-panel { display: none; } .right-panel { padding: 48px 24px; } .code-row, .modal-actions { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="left-panel">
+  <a href="/" class="panel-logo"><img src="/static/favicon.png" alt="Insighta"><span>Insighta</span></a>
+  <div class="panel-body"><h2>Research that works for <em>everyone</em> in the room.</h2><p>Connect with real participants, gather real insights, and do the research you've always wanted to do — without the hassle.</p></div>
+  <div class="panel-footer"><div class="panel-quote"><p>"We spent two weeks begging people to fill our survey. That's when we knew something was deeply broken."</p><span>— The Insighta founding team, BU 2025</span></div></div>
+</div>
+<div class="right-panel"><div class="form-wrapper"><div class="form-header"><h1>Welcome back.</h1><p>Sign in to your Insighta account, or reset your password securely with an email verification code.</p></div>{% if error %}<div class="error-box">{{ error }}</div>{% endif %}{% if success %}<div class="success-box">{{ success }}</div>{% endif %}{% if reset_success %}<div class="success-box">{{ reset_success }}</div>{% endif %}<form method="POST" action="/login"><div class="form-group"><label>Email address</label><input type="email" name="email" required placeholder="you@example.com" value="{{ login_email or '' }}"></div><div class="form-group"><label>Password <a href="#" class="inline-link" id="forgotPasswordLink">Forgot password?</a></label><input type="password" name="password" required placeholder="••••••••"></div><button type="submit" class="btn-submit">Sign In →</button></form><div class="helper-row"><span style="font-size:13px;color:var(--ink-muted);">Need to recover access?</span><button type="button" id="forgotPasswordLinkBottom">Reset with email code</button></div><p class="form-footer">Don't have an account? <a href="/register">Create one free</a></p></div></div>
+<div class="modal {% if reset_open %}open{% endif %}" id="resetModal"><div class="modal-card"><div class="modal-top"><span class="eyebrow">Password recovery</span><h2>Reset your password.</h2><p>Enter your account email, send a verification code, then set a new password — all without leaving this page.</p></div><div class="modal-body">{% if reset_error %}<div class="error-box">{{ reset_error }}</div>{% endif %}{% if reset_success %}<div class="success-box">{{ reset_success }}</div>{% endif %}<form method="POST" action="/password-reset" id="resetPasswordForm"><div class="form-group"><label>Account email</label><input type="email" name="email" id="reset_email" required placeholder="you@example.com" value="{{ reset_email or '' }}"></div><div class="form-group"><label>Verification code</label><div class="code-row"><input type="text" name="verification_code" id="reset_verification_code" required placeholder="6-digit code" maxlength="6" inputmode="numeric"><button type="button" class="send-btn" id="resetSendCodeBtn">Send code</button></div><div class="code-helper" id="resetCodeHelper"></div></div><div class="form-group"><label>New password</label><input type="password" name="new_password" required placeholder="At least 6 characters"></div><div class="form-group"><label>Confirm new password</label><input type="password" name="confirm_password" required placeholder="Repeat your new password"></div><div class="modal-actions"><button type="button" class="btn-secondary" id="closeResetModal">Cancel</button><button type="submit" class="btn-submit">Update password →</button></div></form></div></div></div>
+<script>
+const resetModal=document.getElementById('resetModal');const forgotLinks=[document.getElementById('forgotPasswordLink'),document.getElementById('forgotPasswordLinkBottom')].filter(Boolean);const closeResetModal=document.getElementById('closeResetModal');const resetSendCodeBtn=document.getElementById('resetSendCodeBtn');const resetEmailInput=document.getElementById('reset_email');const resetCodeHelper=document.getElementById('resetCodeHelper');function openResetModal(){resetModal.classList.add('open');}function hideResetModal(){resetModal.classList.remove('open');}forgotLinks.forEach(link=>link.addEventListener('click',function(event){event.preventDefault();openResetModal();}));if(closeResetModal)closeResetModal.addEventListener('click',hideResetModal);resetModal.addEventListener('click',function(event){if(event.target===resetModal)hideResetModal();});async function sendCode(button,emailInput,helper,purpose){const email=(emailInput.value||'').trim();if(!email){helper.textContent='Please enter your email address first.';helper.style.color='#c53030';emailInput.focus();return;}const payload=new FormData();payload.append('email',email);payload.append('purpose',purpose);button.disabled=true;const originalText=button.textContent;button.textContent='Sending...';helper.textContent='';try{const response=await fetch('/auth/send-code',{method:'POST',body:payload});const data=await response.json();helper.textContent=data.message||(response.ok?'Verification code sent.':'Unable to send verification code.');helper.style.color=response.ok?'#1b5e3f':'#c53030';}catch(error){helper.textContent='Network error while sending verification code.';helper.style.color='#c53030';}finally{button.disabled=false;button.textContent=originalText;}}if(resetSendCodeBtn){resetSendCodeBtn.addEventListener('click',function(){sendCode(resetSendCodeBtn,resetEmailInput,resetCodeHelper,'reset_password');});}{% if reset_open %}openResetModal();{% endif %}
+</script>
+</body>
+</html>
