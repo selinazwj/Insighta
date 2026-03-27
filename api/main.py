@@ -352,7 +352,8 @@ def login(
         })
 
     response = RedirectResponse("/choice", status_code=303)
-    response.set_cookie("user_id", str(user.id), httponly=True)
+    response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
+
     return response
 
 
@@ -480,7 +481,7 @@ async def do_register(
     db.refresh(user)
 
     response = RedirectResponse("/choice?welcome=1", status_code=303)
-    response.set_cookie("user_id", str(user.id), httponly=True)
+    response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
     return response
 
 
