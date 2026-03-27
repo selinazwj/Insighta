@@ -12,27 +12,17 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --ink: #1a1a18;
-      --ink-soft: #4a4a44;
-      --ink-muted: #8a8a82;
-      --paper: #faf9f5;
-      --paper-warm: #f3f1ea;
-      --accent: #2d6a4f;
-      --accent-light: #52b788;
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
+      --paper: #faf9f5; --paper-warm: #f3f1ea;
+      --accent: #2d6a4f; --accent-light: #52b788;
       --line: #e0ddd3;
       --serif: 'DM Serif Display', Georgia, serif;
       --sans: 'DM Sans', system-ui, sans-serif;
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     body { font-family: var(--sans); background: var(--paper); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
 
-    .left-panel {
-      background: var(--accent); padding: 60px;
-      display: flex; flex-direction: column; justify-content: space-between;
-      position: sticky; top: 0; height: 100vh; overflow: hidden;
-    }
+    .left-panel { background: var(--accent); padding: 60px; display: flex; flex-direction: column; justify-content: space-between; position: sticky; top: 0; height: 100vh; overflow: hidden; }
     .left-panel::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.06); bottom: -150px; right: -150px; }
     .left-panel::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -80px; left: -80px; }
     .panel-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; position: relative; z-index: 1; }
@@ -70,57 +60,40 @@
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .form-row .form-group { margin-bottom: 0; }
 
-    /* Optional badge */
-    .badge-optional {
-      font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
-      text-transform: uppercase; color: var(--ink-muted);
-      background: var(--paper-warm); border: 1px solid var(--line);
-      padding: 2px 7px; border-radius: 100px;
-    }
-    .badge-required {
-      font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
-      text-transform: uppercase; color: var(--accent);
-      background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2);
-      padding: 2px 7px; border-radius: 100px;
-    }
+    .badge-optional { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-muted); background: var(--paper-warm); border: 1px solid var(--line); padding: 2px 7px; border-radius: 100px; }
+    .badge-required { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2); padding: 2px 7px; border-radius: 100px; }
 
-    input[type="email"], input[type="password"], input[type="text"], select {
-      width: 100%; padding: 12px 16px;
-      border: 1.5px solid var(--line); border-radius: 10px;
-      font-family: var(--sans); font-size: 15px; color: var(--ink);
-      background: white; transition: all 0.2s; appearance: none;
+    input[type="email"], input[type="password"], input[type="text"], input[type="number"], select {
+      width: 100%; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px;
+      font-family: var(--sans); font-size: 15px; color: var(--ink); background: white; transition: all 0.2s; appearance: none;
     }
     input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
     input::placeholder { color: #c4c2bc; font-weight: 300; }
-    select {
-      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 14px center;
-      padding-right: 36px; cursor: pointer;
-    }
-    select option[value=""] { color: #8a8a82; }
+    select { background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
 
-    .section-label {
-      display: flex; align-items: center; justify-content: space-between;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--ink-muted); margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
-    }
-    .section-label .section-tag {
-      font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
-      padding: 2px 8px; border-radius: 100px;
-    }
+    /* Verification code row */
+    .code-row { display: flex; gap: 10px; align-items: flex-end; }
+    .code-row input { flex: 1; letter-spacing: 4px; font-size: 18px; font-weight: 600; text-align: center; }
+    .btn-send-code { padding: 12px 18px; background: white; color: var(--accent); border: 1.5px solid rgba(45,106,79,0.4); border-radius: 10px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; }
+    .btn-send-code:hover { background: rgba(45,106,79,0.06); }
+    .btn-send-code:disabled { opacity: 0.5; cursor: not-allowed; }
+    .code-hint { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
+    .code-hint.success { color: var(--accent); }
+    .code-hint.error { color: #c53030; }
+
+    /* Password strength */
+    .pw-strength { margin-top: 8px; }
+    .pw-bar { height: 4px; border-radius: 100px; background: var(--line); overflow: hidden; margin-bottom: 4px; }
+    .pw-bar-fill { height: 100%; border-radius: 100px; transition: width 0.3s, background 0.3s; width: 0%; }
+    .pw-hint { font-size: 12px; color: var(--ink-muted); }
+
+    .section-label { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-muted); margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+    .section-label .section-tag { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 100px; }
     .section-tag.required { color: var(--accent); background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2); }
     .section-tag.optional { color: var(--ink-muted); background: var(--paper-warm); border: 1px solid var(--line); }
 
     .multiselect-wrap { position: relative; }
-    .multiselect-trigger {
-      width: 100%; padding: 12px 36px 12px 16px;
-      border: 1.5px solid var(--line); border-radius: 10px;
-      font-family: var(--sans); font-size: 15px; background: white;
-      color: #8a8a82; text-align: left; cursor: pointer;
-      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 14px center;
-      transition: all 0.2s; font-weight: 300;
-    }
+    .multiselect-trigger { width: 100%; padding: 12px 36px 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; background: white; color: #8a8a82; text-align: left; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; transition: all 0.2s; font-weight: 300; }
     .multiselect-trigger.has-value { color: var(--ink); font-weight: 400; }
     .multiselect-wrap.open .multiselect-trigger { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
     .multiselect-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1.5px solid var(--line); border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); z-index: 50; max-height: 220px; overflow-y: auto; padding: 6px 0; }
@@ -139,17 +112,7 @@
     .form-footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
     .form-footer a:hover { text-decoration: underline; }
 
-    /* Optional hint */
-    .optional-hint {
-      background: rgba(45,106,79,0.05);
-      border: 1px solid rgba(45,106,79,0.15);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      color: var(--ink-soft);
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
+    .optional-hint { background: rgba(45,106,79,0.05); border: 1px solid rgba(45,106,79,0.15); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--ink-soft); margin-bottom: 20px; line-height: 1.5; }
 
     /* MODAL */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(26,26,24,0.5); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; animation: fadeIn 0.25s ease; }
@@ -242,17 +205,11 @@
   <div class="panel-steps">
     <div class="panel-step active" id="panelStep1">
       <div class="step-dot">1</div>
-      <div class="step-info">
-        <h4>Account Setup</h4>
-        <p>Email & password</p>
-      </div>
+      <div class="step-info"><h4>Account Setup</h4><p>Email, verification & password</p></div>
     </div>
     <div class="panel-step" id="panelStep2">
       <div class="step-dot">2</div>
-      <div class="step-info">
-        <h4>Your Profile</h4>
-        <p>Help us match you better</p>
-      </div>
+      <div class="step-info"><h4>Your Profile</h4><p>Help us match you better</p></div>
     </div>
   </div>
   <div class="panel-footer">
@@ -280,13 +237,32 @@
 
         <div class="form-group">
           <label>Email address <span class="badge-required">Required</span></label>
-          <input type="email" name="email" id="email" required placeholder="you@example.com">
+          <input type="email" name="email" id="email" required placeholder="you@example.com"
+            value="{{ register_email or '' }}">
+        </div>
+
+        <!-- Verification code -->
+        <div class="form-group">
+          <label>Verification code <span class="badge-required">Required</span></label>
+          <div class="code-row">
+            <input type="text" name="verification_code" id="verificationCode"
+              placeholder="6-digit code" maxlength="6" autocomplete="one-time-code">
+            <button type="button" class="btn-send-code" id="btnSendCode" onclick="sendCode()">
+              Send Code
+            </button>
+          </div>
+          <div class="code-hint" id="codeHint">Enter your email first, then click Send Code.</div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label>Password <span class="badge-required">Required</span></label>
-            <input type="password" name="password" id="password" required placeholder="••••••••">
+            <input type="password" name="password" id="password" required placeholder="••••••••"
+              oninput="checkPasswordStrength(this.value)">
+            <div class="pw-strength">
+              <div class="pw-bar"><div class="pw-bar-fill" id="pwBarFill"></div></div>
+              <div class="pw-hint" id="pwHint">Min 8 chars, uppercase, lowercase, number, special char</div>
+            </div>
           </div>
           <div class="form-group">
             <label>Confirm password <span class="badge-required">Required</span></label>
@@ -303,28 +279,21 @@
         <div class="step-header">
           <span class="step-eyebrow">Step 2 of 2</span>
           <h1>Tell us about yourself.</h1>
-          <p>All fields below are optional — but the more you fill in, the better we can match you with relevant surveys.</p>
+          <p>All fields below are optional — but the more you fill in, the better we can match you.</p>
         </div>
 
         <div class="optional-hint">
-          💡 All fields on this page are <strong>optional</strong>. You can skip any field or click "Skip for now" to go straight to your dashboard and fill these in later from your profile.
+          💡 All fields on this page are <strong>optional</strong>. You can skip any field or click "Skip for now".
         </div>
 
-        <!-- BASICS -->
-        <div class="section-label">
-          Basics
-          <span class="section-tag optional">Optional</span>
-        </div>
-
+        <div class="section-label">Basics <span class="section-tag optional">Optional</span></div>
         <div class="form-row">
           <div class="form-group">
             <label>Age range</label>
             <select name="age_range">
               <option value="">— skip —</option>
-              <option value="18-24">18–24</option>
-              <option value="25-34">25–34</option>
-              <option value="35-44">35–44</option>
-              <option value="45+">45+</option>
+              <option value="18-24">18–24</option><option value="25-34">25–34</option>
+              <option value="35-44">35–44</option><option value="45+">45+</option>
             </select>
           </div>
           <div class="form-group">
@@ -338,7 +307,6 @@
             </select>
           </div>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label>Field / Major</label>
@@ -366,33 +334,27 @@
             </select>
           </div>
         </div>
-
         <div class="form-group">
           <label>State</label>
           <select name="state">
             <option value="">— skip —</option>
-            <option>Alabama</option><option>Alaska</option><option>Arizona</option>
-            <option>Arkansas</option><option>California</option><option>Colorado</option>
-            <option>Connecticut</option><option>Delaware</option><option>Florida</option>
-            <option>Georgia</option><option>Hawaii</option><option>Idaho</option>
-            <option>Illinois</option><option>Indiana</option><option>Iowa</option>
-            <option>Kansas</option><option>Kentucky</option><option>Louisiana</option>
-            <option>Maine</option><option>Maryland</option><option>Massachusetts</option>
-            <option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
-            <option>Missouri</option><option>Montana</option><option>Nebraska</option>
-            <option>Nevada</option><option>New Hampshire</option><option>New Jersey</option>
-            <option>New Mexico</option><option>New York</option><option>North Carolina</option>
-            <option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
-            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option>
-            <option>South Carolina</option><option>South Dakota</option><option>Tennessee</option>
-            <option>Texas</option><option>Utah</option><option>Vermont</option>
-            <option>Virginia</option><option>Washington</option><option>West Virginia</option>
+            <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+            <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+            <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+            <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+            <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+            <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+            <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+            <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+            <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+            <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+            <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
             <option>Wisconsin</option><option>Wyoming</option>
           </select>
         </div>
-
         <div class="form-group">
-          <label>Languages you can take surveys in</label>
+          <label>Languages</label>
           <div class="multiselect-wrap" id="language-multiselect">
             <button type="button" class="multiselect-trigger">— skip —</button>
             <div class="multiselect-panel">
@@ -410,12 +372,7 @@
           </div>
         </div>
 
-        <!-- ACADEMIC & PARTICIPATION -->
-        <div class="section-label">
-          Academic & Participation
-          <span class="section-tag optional">Optional</span>
-        </div>
-
+        <div class="section-label">Academic & Participation <span class="section-tag optional">Optional</span></div>
         <div class="form-row">
           <div class="form-group">
             <label>Student status</label>
@@ -430,17 +387,14 @@
             <label>Year in school</label>
             <select name="year_in_school">
               <option value="">— skip —</option>
-              <option value="Freshman">Freshman</option>
-              <option value="Sophomore">Sophomore</option>
-              <option value="Junior">Junior</option>
-              <option value="Senior">Senior</option>
+              <option value="Freshman">Freshman</option><option value="Sophomore">Sophomore</option>
+              <option value="Junior">Junior</option><option value="Senior">Senior</option>
               <option value="Graduate Year 1">Graduate Year 1</option>
               <option value="Graduate Year 2+">Graduate Year 2+</option>
               <option value="N/A">N/A</option>
             </select>
           </div>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label>International or domestic</label>
@@ -460,7 +414,6 @@
             </select>
           </div>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label>Primary device</label>
@@ -472,7 +425,6 @@
             </select>
           </div>
         </div>
-
         <div class="form-group" style="margin-top: 4px;">
           <label>Your experiences</label>
           <div class="multiselect-wrap" id="experience-multiselect">
@@ -488,12 +440,7 @@
           </div>
         </div>
 
-        <!-- DEMOGRAPHICS -->
-        <div class="section-label">
-          Demographics
-          <span class="section-tag optional">Optional</span>
-        </div>
-
+        <div class="section-label">Demographics <span class="section-tag optional">Optional</span></div>
         <div class="form-row">
           <div class="form-group">
             <label>Ethnicity</label>
@@ -516,7 +463,6 @@
             </select>
           </div>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label>Mental health diagnosis</label>
@@ -534,45 +480,35 @@
           </div>
         </div>
 
-        <!-- LIFESTYLE -->
-        <div class="section-label">
-          Lifestyle
-          <span class="section-tag optional">Optional</span>
-        </div>
-
+        <div class="section-label">Lifestyle <span class="section-tag optional">Optional</span></div>
         <div class="form-row">
           <div class="form-group">
             <label>Sport type</label>
             <select name="sport_type">
               <option value="">— skip —</option>
-              <option>Basketball</option><option>Soccer / Football</option>
-              <option>Baseball / Softball</option><option>American Football</option>
-              <option>Tennis</option><option>Golf</option><option>Swimming</option>
-              <option>Running / Jogging</option><option>Cycling</option>
-              <option>Yoga / Pilates</option><option>Gym / Weightlifting</option>
-              <option>Martial Arts</option><option>Volleyball</option>
-              <option>Hockey</option><option>Other</option><option>None</option>
+              <option>Basketball</option><option>Soccer / Football</option><option>Baseball / Softball</option>
+              <option>American Football</option><option>Tennis</option><option>Golf</option>
+              <option>Swimming</option><option>Running / Jogging</option><option>Cycling</option>
+              <option>Yoga / Pilates</option><option>Gym / Weightlifting</option><option>Martial Arts</option>
+              <option>Volleyball</option><option>Hockey</option><option>Other</option><option>None</option>
             </select>
           </div>
           <div class="form-group">
             <label>Sport frequency</label>
             <select name="sport_frequency">
               <option value="">— skip —</option>
-              <option>Daily</option><option>Several times a week</option>
-              <option>Once a week</option><option>A few times a month</option>
-              <option>Rarely</option><option>Never</option>
+              <option>Daily</option><option>Several times a week</option><option>Once a week</option>
+              <option>A few times a month</option><option>Rarely</option><option>Never</option>
             </select>
           </div>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label>Do you smoke?</label>
             <select name="smoking">
               <option value="">— skip —</option>
-              <option>Never</option><option>Former smoker</option>
-              <option>Rarely</option><option>Occasionally</option>
-              <option>Several times a week</option><option>Daily</option>
+              <option>Never</option><option>Former smoker</option><option>Rarely</option>
+              <option>Occasionally</option><option>Several times a week</option><option>Daily</option>
               <option>Prefer not to say</option>
             </select>
           </div>
@@ -580,9 +516,8 @@
             <label>Cannabis use</label>
             <select name="cannabis_use">
               <option value="">— skip —</option>
-              <option>Never</option><option>Former user</option>
-              <option>Rarely</option><option>Occasionally</option>
-              <option>Several times a week</option><option>Daily</option>
+              <option>Never</option><option>Former user</option><option>Rarely</option>
+              <option>Occasionally</option><option>Several times a week</option><option>Daily</option>
               <option>Prefer not to say</option>
             </select>
           </div>
@@ -598,12 +533,72 @@
 </div>
 
 <script>
+  // ── Send verification code ────────────────────────────────
+  let codeSent = false;
+
+  async function sendCode() {
+    const email = document.getElementById('email').value.trim();
+    const btn = document.getElementById('btnSendCode');
+    const hint = document.getElementById('codeHint');
+
+    if (!email) { hint.textContent = 'Please enter your email first.'; hint.className = 'code-hint error'; return; }
+
+    btn.disabled = true; btn.textContent = 'Sending...';
+    hint.textContent = ''; hint.className = 'code-hint';
+
+    try {
+      const fd = new FormData();
+      fd.append('email', email); fd.append('purpose', 'register');
+      const res = await fetch('/auth/send-code', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.ok) {
+        hint.textContent = data.message; hint.className = 'code-hint success';
+        codeSent = true;
+        // countdown
+        let secs = 60;
+        const interval = setInterval(() => {
+          secs--;
+          btn.textContent = `Resend (${secs}s)`;
+          if (secs <= 0) { clearInterval(interval); btn.disabled = false; btn.textContent = 'Resend Code'; }
+        }, 1000);
+      } else {
+        hint.textContent = data.message; hint.className = 'code-hint error';
+        btn.disabled = false; btn.textContent = 'Send Code';
+      }
+    } catch {
+      hint.textContent = 'Network error. Please try again.'; hint.className = 'code-hint error';
+      btn.disabled = false; btn.textContent = 'Send Code';
+    }
+  }
+
+  // ── Password strength ─────────────────────────────────────
+  function checkPasswordStrength(val) {
+    const fill = document.getElementById('pwBarFill');
+    const hint = document.getElementById('pwHint');
+    let score = 0;
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[a-z]/.test(val)) score++;
+    if (/\d/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const pct = (score / 5) * 100;
+    fill.style.width = pct + '%';
+    if (score <= 2) { fill.style.background = '#ef4444'; hint.textContent = 'Weak — add uppercase, numbers, special chars'; hint.style.color = '#ef4444'; }
+    else if (score <= 3) { fill.style.background = '#f59e0b'; hint.textContent = 'Fair — getting better'; hint.style.color = '#f59e0b'; }
+    else if (score === 4) { fill.style.background = '#3b82f6'; hint.textContent = 'Good — almost there'; hint.style.color = '#3b82f6'; }
+    else { fill.style.background = '#2d6a4f'; hint.textContent = 'Strong ✓'; hint.style.color = '#2d6a4f'; }
+  }
+
+  // ── Consent modal ─────────────────────────────────────────
   function requestConsent() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const confirm = document.getElementById('confirm').value;
+    const code = document.getElementById('verificationCode').value;
     if (!email || !password || !confirm) { alert('Please fill in all required fields.'); return; }
     if (password !== confirm) { alert('Passwords do not match.'); return; }
+    if (!code) { alert('Please enter the verification code sent to your email.'); return; }
     document.getElementById('consentModal').style.display = 'flex';
     document.getElementById('consentCheckbox').checked = false;
     document.getElementById('btnAgree').classList.remove('enabled');
@@ -640,36 +635,33 @@
     window.scrollTo(0, 0);
   }
 
-  // Select color — empty value = muted
+  // If error from server, stay on step1
+  {% if error %}
+  document.getElementById('step1').classList.add('active');
+  document.getElementById('step2').classList.remove('active');
+  {% endif %}
+
   document.querySelectorAll('select').forEach(s => {
-    const update = () => {
-      s.style.color = s.value === '' ? '#8a8a82' : '#1a1a18';
-    };
-    s.addEventListener('change', update);
-    update();
+    const update = () => { s.style.color = s.value === '' ? '#8a8a82' : '#1a1a18'; };
+    s.addEventListener('change', update); update();
   });
 
   function initMultiselect(id, placeholder) {
-    const wrap = document.getElementById(id);
-    if (!wrap) return;
+    const wrap = document.getElementById(id); if (!wrap) return;
     const trigger = wrap.querySelector('.multiselect-trigger');
-    const panel = wrap.querySelector('.multiselect-panel');
-    const checkboxes = panel.querySelectorAll('input[type="checkbox"]');
-
+    const checkboxes = wrap.querySelectorAll('input[type="checkbox"]');
     function update() {
       const labels = [];
       checkboxes.forEach(cb => { if (cb.checked) labels.push(cb.parentElement.textContent.trim()); });
       trigger.textContent = labels.length ? labels.join(', ') : placeholder;
       trigger.classList.toggle('has-value', labels.length > 0);
     }
-
     trigger.addEventListener('click', e => {
       e.preventDefault(); e.stopPropagation();
       document.querySelectorAll('.multiselect-wrap.open').forEach(w => { if (w !== wrap) w.classList.remove('open'); });
       wrap.classList.toggle('open');
     });
-
-    panel.addEventListener('click', e => e.stopPropagation());
+    wrap.querySelector('.multiselect-panel').addEventListener('click', e => e.stopPropagation());
     checkboxes.forEach(cb => cb.addEventListener('change', update));
     document.addEventListener('click', () => wrap.classList.remove('open'));
     update();

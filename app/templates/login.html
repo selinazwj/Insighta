@@ -12,245 +12,72 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --ink: #1a1a18;
-      --ink-soft: #4a4a44;
-      --ink-muted: #8a8a82;
-      --paper: #faf9f5;
-      --paper-warm: #f3f1ea;
-      --accent: #2d6a4f;
-      --accent-light: #52b788;
-      --accent-warm: #e07a3c;
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
+      --paper: #faf9f5; --paper-warm: #f3f1ea;
+      --accent: #2d6a4f; --accent-light: #52b788; --accent-warm: #e07a3c;
       --line: #e0ddd3;
       --serif: 'DM Serif Display', Georgia, serif;
       --sans: 'DM Sans', system-ui, sans-serif;
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); background: var(--paper); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
 
-    body {
-      font-family: var(--sans);
-      background: var(--paper);
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
+    .left-panel { background: var(--accent); padding: 60px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+    .left-panel::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.06); bottom: -150px; right: -150px; }
+    .left-panel::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -80px; left: -80px; }
+    .panel-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; position: relative; z-index: 1; }
+    .panel-logo img { height: 36px; filter: brightness(0) invert(1); }
+    .panel-logo span { font-family: var(--serif); font-size: 22px; color: white; letter-spacing: -0.3px; }
+    .panel-body { position: relative; z-index: 1; }
+    .panel-body h2 { font-family: var(--serif); font-size: clamp(32px, 3vw, 44px); color: white; line-height: 1.15; letter-spacing: -1px; margin-bottom: 20px; }
+    .panel-body h2 em { font-style: italic; opacity: 0.75; }
+    .panel-body p { font-size: 16px; color: rgba(255,255,255,0.65); line-height: 1.75; font-weight: 300; max-width: 340px; }
+    .panel-footer { position: relative; z-index: 1; }
+    .panel-quote { border-left: 3px solid rgba(255,255,255,0.3); padding-left: 20px; }
+    .panel-quote p { font-family: var(--serif); font-size: 17px; font-style: italic; color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 10px; }
+    .panel-quote span { font-size: 13px; color: rgba(255,255,255,0.45); }
 
-    /* ── LEFT PANEL ── */
-    .left-panel {
-      background: var(--accent);
-      padding: 60px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      position: relative;
-      overflow: hidden;
-    }
+    .right-panel { display: flex; align-items: center; justify-content: center; padding: 60px 40px; }
+    .form-wrapper { width: 100%; max-width: 380px; }
 
-    .left-panel::before {
-      content: '';
-      position: absolute;
-      width: 500px; height: 500px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.06);
-      bottom: -150px; right: -150px;
-    }
+    .form-header { margin-bottom: 40px; }
+    .form-header h1 { font-family: var(--serif); font-size: 34px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
+    .form-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; }
 
-    .left-panel::after {
-      content: '';
-      position: absolute;
-      width: 300px; height: 300px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.04);
-      top: -80px; left: -80px;
-    }
+    .error-box { background: #fff5f5; color: #c53030; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; border: 1px solid #fed7d7; }
+    .success-box { background: rgba(45,106,79,0.06); color: var(--accent); padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; border: 1px solid rgba(45,106,79,0.2); }
 
-    .panel-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-      position: relative;
-      z-index: 1;
-    }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
+    .form-group input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; color: var(--ink); background: white; transition: all 0.2s; }
+    .form-group input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
+    .form-group input::placeholder { color: #c4c2bc; font-weight: 300; }
 
-    .panel-logo img {
-      height: 36px;
-      width: auto;
-      filter: brightness(0) invert(1);
-    }
+    .code-row { display: flex; gap: 10px; align-items: flex-end; }
+    .code-row input { flex: 1; letter-spacing: 4px; font-size: 18px; font-weight: 600; text-align: center; }
+    .btn-send-code { padding: 12px 16px; background: white; color: var(--accent); border: 1.5px solid rgba(45,106,79,0.4); border-radius: 10px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; }
+    .btn-send-code:hover { background: rgba(45,106,79,0.06); }
+    .btn-send-code:disabled { opacity: 0.5; cursor: not-allowed; }
+    .code-hint { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
+    .code-hint.success { color: var(--accent); }
+    .code-hint.error { color: #c53030; }
 
-    .panel-logo span {
-      font-family: var(--serif);
-      font-size: 22px;
-      color: white;
-      letter-spacing: -0.3px;
-    }
+    .btn-submit { width: 100%; padding: 13px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+    .btn-submit:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
 
-    .panel-body {
-      position: relative;
-      z-index: 1;
-    }
+    .forgot-link { display: block; text-align: right; font-size: 13px; color: var(--ink-muted); margin-top: -12px; margin-bottom: 20px; cursor: pointer; }
+    .forgot-link:hover { color: var(--accent); }
 
-    .panel-body h2 {
-      font-family: var(--serif);
-      font-size: clamp(32px, 3vw, 44px);
-      color: white;
-      line-height: 1.15;
-      letter-spacing: -1px;
-      margin-bottom: 20px;
-    }
-
-    .panel-body h2 em {
-      font-style: italic;
-      opacity: 0.75;
-    }
-
-    .panel-body p {
-      font-size: 16px;
-      color: rgba(255,255,255,0.65);
-      line-height: 1.75;
-      font-weight: 300;
-      max-width: 340px;
-    }
-
-    .panel-footer {
-      position: relative;
-      z-index: 1;
-    }
-
-    .panel-quote {
-      border-left: 3px solid rgba(255,255,255,0.3);
-      padding-left: 20px;
-    }
-
-    .panel-quote p {
-      font-family: var(--serif);
-      font-size: 17px;
-      font-style: italic;
-      color: rgba(255,255,255,0.8);
-      line-height: 1.6;
-      margin-bottom: 10px;
-    }
-
-    .panel-quote span {
-      font-size: 13px;
-      color: rgba(255,255,255,0.45);
-    }
-
-    /* ── RIGHT PANEL ── */
-    .right-panel {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 40px;
-    }
-
-    .form-wrapper {
-      width: 100%;
-      max-width: 380px;
-    }
-
-    .form-header {
-      margin-bottom: 40px;
-    }
-
-    .form-header h1 {
-      font-family: var(--serif);
-      font-size: 34px;
-      color: var(--ink);
-      letter-spacing: -0.5px;
-      margin-bottom: 8px;
-    }
-
-    .form-header p {
-      font-size: 15px;
-      color: var(--ink-muted);
-      font-weight: 300;
-    }
-
-    .error-box {
-      background: #fff5f5;
-      color: #c53030;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 24px;
-      font-size: 14px;
-      border: 1px solid #fed7d7;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink-soft);
-      margin-bottom: 8px;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1.5px solid var(--line);
-      border-radius: 10px;
-      font-family: var(--sans);
-      font-size: 15px;
-      color: var(--ink);
-      background: white;
-      transition: all 0.2s;
-    }
-
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(45,106,79,0.08);
-    }
-
-    .form-group input::placeholder {
-      color: #c4c2bc;
-      font-weight: 300;
-    }
-
-    .btn-submit {
-      width: 100%;
-      padding: 13px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-family: var(--sans);
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-top: 4px;
-      letter-spacing: 0.01em;
-    }
-
-    .btn-submit:hover {
-      background: #245c43;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(45,106,79,0.25);
-    }
-
-    .form-footer {
-      text-align: center;
-      margin-top: 24px;
-      font-size: 14px;
-      color: var(--ink-muted);
-    }
-
-    .form-footer a {
-      color: var(--accent);
-      font-weight: 600;
-      text-decoration: none;
-    }
-
+    .form-footer { text-align: center; margin-top: 24px; font-size: 14px; color: var(--ink-muted); }
+    .form-footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
     .form-footer a:hover { text-decoration: underline; }
 
-    /* ── MOBILE ── */
+    /* Reset panel */
+    .reset-panel { display: none; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--line); }
+    .reset-panel.open { display: block; }
+    .reset-panel h3 { font-family: var(--serif); font-size: 22px; color: var(--ink); margin-bottom: 6px; }
+    .reset-panel p { font-size: 14px; color: var(--ink-muted); margin-bottom: 24px; font-weight: 300; }
+
     @media (max-width: 768px) {
       body { grid-template-columns: 1fr; }
       .left-panel { display: none; }
@@ -260,18 +87,15 @@
 </head>
 <body>
 
-<!-- LEFT -->
 <div class="left-panel">
   <a href="/" class="panel-logo">
     <img src="/static/favicon.png" alt="Insighta">
     <span>Insighta</span>
   </a>
-
   <div class="panel-body">
     <h2>Research that works for <em>everyone</em> in the room.</h2>
     <p>Connect with real participants, gather real insights, and do the research you've always wanted to do — without the hassle.</p>
   </div>
-
   <div class="panel-footer">
     <div class="panel-quote">
       <p>"We spent two weeks begging people to fill our survey. That's when we knew something was deeply broken."</p>
@@ -280,7 +104,6 @@
   </div>
 </div>
 
-<!-- RIGHT -->
 <div class="right-panel">
   <div class="form-wrapper">
 
@@ -293,24 +116,120 @@
     <div class="error-box">{{ error }}</div>
     {% endif %}
 
+    {% if success %}
+    <div class="success-box">{{ success }}</div>
+    {% endif %}
+
+    <!-- LOGIN FORM -->
     <form method="POST" action="/login">
       <div class="form-group">
         <label>Email address</label>
-        <input type="email" name="email" required placeholder="you@example.com">
+        <input type="email" name="email" required placeholder="you@example.com"
+          value="{{ login_email or '' }}">
       </div>
       <div class="form-group">
         <label>Password</label>
         <input type="password" name="password" required placeholder="••••••••">
       </div>
+      <span class="forgot-link" onclick="toggleReset()">Forgot password?</span>
       <button type="submit" class="btn-submit">Sign In →</button>
     </form>
 
-    <p class="form-footer">
-      Don't have an account? <a href="/register">Create one free</a>
-    </p>
+    <p class="form-footer">Don't have an account? <a href="/register">Create one free</a></p>
+
+    <!-- PASSWORD RESET PANEL -->
+    <div class="reset-panel {% if reset_open %}open{% endif %}" id="resetPanel">
+      <h3>Reset password</h3>
+      <p>Enter your email, get a verification code, and set a new password.</p>
+
+      {% if reset_error %}
+      <div class="error-box">{{ reset_error }}</div>
+      {% endif %}
+
+      {% if reset_success %}
+      <div class="success-box">{{ reset_success }}</div>
+      {% endif %}
+
+      <form method="POST" action="/password-reset">
+        <div class="form-group">
+          <label>Email address</label>
+          <input type="email" name="email" required placeholder="you@example.com"
+            value="{{ reset_email or '' }}">
+        </div>
+
+        <div class="form-group">
+          <label>Verification code</label>
+          <div class="code-row">
+            <input type="text" name="verification_code" placeholder="6-digit code"
+              maxlength="6" autocomplete="one-time-code" style="letter-spacing:4px;font-size:18px;font-weight:600;text-align:center;">
+            <button type="button" class="btn-send-code" id="btnResetCode" onclick="sendResetCode()">
+              Send Code
+            </button>
+          </div>
+          <div class="code-hint" id="resetCodeHint"></div>
+        </div>
+
+        <div class="form-group">
+          <label>New password</label>
+          <input type="password" name="new_password" required placeholder="••••••••" minlength="6">
+        </div>
+        <div class="form-group">
+          <label>Confirm new password</label>
+          <input type="password" name="confirm_password" required placeholder="••••••••">
+        </div>
+
+        <button type="submit" class="btn-submit">Reset Password →</button>
+      </form>
+    </div>
 
   </div>
 </div>
+
+<script>
+  function toggleReset() {
+    const panel = document.getElementById('resetPanel');
+    panel.classList.toggle('open');
+  }
+
+  async function sendResetCode() {
+    const emailInput = document.querySelector('#resetPanel input[name="email"]');
+    const btn = document.getElementById('btnResetCode');
+    const hint = document.getElementById('resetCodeHint');
+    const email = emailInput ? emailInput.value.trim() : '';
+
+    if (!email) { hint.textContent = 'Please enter your email first.'; hint.className = 'code-hint error'; return; }
+
+    btn.disabled = true; btn.textContent = 'Sending...';
+    hint.textContent = ''; hint.className = 'code-hint';
+
+    try {
+      const fd = new FormData();
+      fd.append('email', email); fd.append('purpose', 'reset_password');
+      const res = await fetch('/auth/send-code', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.ok) {
+        hint.textContent = data.message; hint.className = 'code-hint success';
+        let secs = 60;
+        const interval = setInterval(() => {
+          secs--;
+          btn.textContent = `Resend (${secs}s)`;
+          if (secs <= 0) { clearInterval(interval); btn.disabled = false; btn.textContent = 'Resend Code'; }
+        }, 1000);
+      } else {
+        hint.textContent = data.message; hint.className = 'code-hint error';
+        btn.disabled = false; btn.textContent = 'Send Code';
+      }
+    } catch {
+      hint.textContent = 'Network error. Please try again.'; hint.className = 'code-hint error';
+      btn.disabled = false; btn.textContent = 'Send Code';
+    }
+  }
+
+  // Auto open reset panel if server says so
+  {% if reset_open %}
+  document.getElementById('resetPanel').classList.add('open');
+  {% endif %}
+</script>
 
 </body>
 </html>
