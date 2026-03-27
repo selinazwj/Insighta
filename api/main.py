@@ -1114,9 +1114,22 @@ async def publish_interview(
 # ---------------------------
 
 @app.get("/payment/success", response_class=HTMLResponse)
-def payment_success(request: Request, survey_id: int = Query(None), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def payment_success(
+    request: Request,
+    survey_id: int = Query(None),
+    user_id: str = Cookie(None),
+    db: Session = Depends(get_db)
+):
+    current_user = None
+    if user_id:
+        try:
+            current_user = db.query(User).filter(User.id == int(user_id)).first()
+        except:
+            pass
     survey = db.query(Survey).filter(Survey.id == survey_id).first() if survey_id else None
-    return templates.TemplateResponse("payment_success.html", {"request": request, "survey": survey, "current_user": current_user})
+    return templates.TemplateResponse("payment_success.html", {
+        "request": request, "survey": survey, "current_user": current_user,
+    })
 
 
 # ---------------------------

@@ -284,7 +284,6 @@
         <div><h2>Budget & Timeline</h2><p>Set your incentive, budget, and deadline</p></div>
       </div>
 
-      <!-- Incentive type -->
       <div class="form-group">
         <label>Incentive Type</label>
         <div class="label-desc">Choose how you'll reward participants</div>
@@ -297,14 +296,13 @@
         <input type="hidden" name="incentive_type" id="incentiveInput" value="cash">
       </div>
 
-      <!-- Target Responses — ALWAYS visible, outside budgetSection -->
+      <!-- Target Responses — always visible, outside budgetSection -->
       <div class="form-group" style="margin-top: 4px;">
         <label>Target Responses *</label>
         <div class="label-desc">How many responses do you need?</div>
         <input type="number" id="targetInput" name="target_responses" placeholder="e.g. 100" min="1" required style="margin-top: 8px;">
       </div>
 
-      <!-- Raffle / Volunteer note -->
       <div class="raffle-box" id="raffleBox">
         <strong>No payment required</strong>
         For raffle and volunteer studies, participants are not paid per response. You can describe the incentive details in your survey description.
@@ -314,7 +312,7 @@
       <div id="budgetSection">
         <div class="info-box" style="margin-top: 20px;">
           <strong>How pricing works</strong>
-          Enter either your per-person amount or total budget — we'll calculate the other. Platform fee: 15% (under $15/person), 20% ($15–24), 25% ($25+).
+          Enter your per-person budget. We deduct a platform fee and pass the rest to the participant as their reward. Fee tiers: 15% (under $15/person), 20% ($15–$24), 25% ($25+). The <em>"Participant receives"</em> row shows exactly what they get after the fee.
         </div>
 
         <div class="form-row" style="margin-bottom: 0;">
@@ -331,10 +329,25 @@
         </div>
 
         <div class="commission-box" id="commissionBox">
-          <div class="commission-row"><span class="clabel">Per person (you pay)</span><span class="cvalue" id="dispPerPerson">—</span></div>
-          <div class="commission-row"><span class="clabel">Platform fee (<span id="dispFeeRate">—</span>)</span><span class="cvalue orange" id="dispFee">—</span></div>
-          <div class="commission-row"><span class="clabel">Participant receives</span><span class="cvalue green" id="dispReward">—</span></div>
-          <div class="commission-row"><span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span><span class="cvalue total" id="dispTotal">—</span></div>
+          <div class="commission-row">
+            <span class="clabel">Per person (you pay)</span>
+            <span class="cvalue" id="dispPerPerson">—</span>
+          </div>
+          <div class="commission-row">
+            <span class="clabel">Platform fee (<span id="dispFeeRate">—</span>)</span>
+            <span class="cvalue orange" id="dispFee">—</span>
+          </div>
+          <div class="commission-row">
+            <span class="clabel">
+              Participant receives
+              <span style="font-size:11px; font-weight:400; color:var(--ink-muted); margin-left:4px;">after platform fee</span>
+            </span>
+            <span class="cvalue green" id="dispReward">—</span>
+          </div>
+          <div class="commission-row">
+            <span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span>
+            <span class="cvalue total" id="dispTotal">—</span>
+          </div>
         </div>
       </div>
 
@@ -567,12 +580,10 @@
     el.classList.add('selected');
     const val = el.dataset.value;
     document.getElementById('incentiveInput').value = val;
-
     const noCash = val === 'raffle' || val === 'volunteer';
     document.getElementById('budgetSection').style.display = noCash ? 'none' : 'block';
     document.getElementById('raffleBox').style.display = noCash ? 'block' : 'none';
     document.getElementById('submitBtn').textContent = noCash ? 'Publish →' : 'Pay & Publish →';
-    // target_responses is always visible — no need to toggle required
   }
 
   function toggleStateField() {
@@ -648,8 +659,14 @@
       updateCommission();
       successEl.style.display = 'block';
       document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
-    } catch { errorEl.textContent = 'Something went wrong. Please try again.'; errorEl.style.display = 'block'; }
-    finally { btn.disabled = false; document.getElementById('aiBtnText').style.display = 'inline'; document.getElementById('aiBtnLoading').style.display = 'none'; }
+    } catch {
+      errorEl.textContent = 'Something went wrong. Please try again.';
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      document.getElementById('aiBtnText').style.display = 'inline';
+      document.getElementById('aiBtnLoading').style.display = 'none';
+    }
   }
 
   document.getElementById('aiPrompt').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fillWithAI(); } });
