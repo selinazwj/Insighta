@@ -522,9 +522,17 @@ def choice(request: Request, user_id: str = Cookie(None), db: Session = Depends(
 @app.get("/publisher", response_class=HTMLResponse)
 def publisher_dashboard(
     request: Request,
-    current_user: User = Depends(get_current_user),
+    user_id: str = Cookie(None),
     db: Session = Depends(get_db)
 ):
+    if not user_id:
+        return RedirectResponse("/login", status_code=303)
+    try:
+        current_user = db.query(User).filter(User.id == int(user_id)).first()
+    except:
+        return RedirectResponse("/login", status_code=303)
+    if not current_user:
+        return RedirectResponse("/login", status_code=303)
     all_items = db.query(Survey).filter(Survey.publisher_id == current_user.id).all()
     survey_ids = [s.id for s in all_items]
 
