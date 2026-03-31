@@ -16,7 +16,7 @@ class User(Base):
     password = Column(String, nullable=False)
     username = Column(String, nullable=True)
 
-    # 原有字段
+    # Core profile fields
     age_range = Column(String, nullable=True)
     education_level = Column(String, nullable=True)
     field = Column(String, nullable=True)
@@ -32,7 +32,7 @@ class User(Base):
     cannabis_use = Column(String, nullable=True)
     language = Column(String, nullable=True)
 
-    # 学生细分
+    # Student segmentation
     student_status = Column(String, nullable=True)
     year_in_school = Column(String, nullable=True)
     international_domestic = Column(String, nullable=True)
@@ -40,7 +40,7 @@ class User(Base):
     participation_format = Column(String, nullable=True)
     device_type = Column(String, nullable=True)
 
-    # Stripe 相关
+    # Stripe fields
     stripe_account_id = Column(String, nullable=True)
     stripe_onboarding_complete = Column(String, default="false")
     pending_earnings = Column(Float, default=0.0)
@@ -61,7 +61,7 @@ class Survey(Base):
     id = Column(Integer, primary_key=True, index=True)
     publisher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    # 原有 target 字段
+    # Core targeting fields
     target_age_range = Column(String, nullable=True)
     target_education_min = Column(Integer, nullable=True)
     target_education_max = Column(Integer, nullable=True)
@@ -78,7 +78,7 @@ class Survey(Base):
     target_smoking = Column(String, nullable=True)
     target_cannabis_use = Column(String, nullable=True)
 
-    # 新增 target 字段
+    # Extended targeting fields
     target_student_status = Column(String, nullable=True)
     target_year_in_school = Column(String, nullable=True)
     target_international_domestic = Column(String, nullable=True)
@@ -88,7 +88,7 @@ class Survey(Base):
     urgency_level = Column(String, nullable=True)
     incentive_type = Column(String, nullable=True)
 
-    # 基本信息
+    # Survey metadata
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     form_url = Column(String, nullable=False)
@@ -97,7 +97,7 @@ class Survey(Base):
     estimated_time = Column(Integer, nullable=False)
     image_url = Column(String, nullable=True)
 
-    # 奖励 & 进度
+    # Reward & progress
     reward_amount = Column(Float, nullable=False)
     total_budget = Column(Float, nullable=True)
     per_person_gross = Column(Float, nullable=True)
@@ -105,13 +105,13 @@ class Survey(Base):
     target_responses = Column(Integer, nullable=False)
     current_responses = Column(Integer, default=0)
 
-    # 状态
+    # Status & timestamps
     status = Column(String, default="draft")
     published_at = Column(DateTime, nullable=True)
     closed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Stripe 支付状态
+    # Stripe payment status
     payment_status = Column(String, default="unpaid")
     stripe_payment_intent_id = Column(String, nullable=True)
 
@@ -120,7 +120,7 @@ class Survey(Base):
 
 
 # ======================
-# Notification（她的新功能）
+# Notification
 # ======================
 class Notification(Base):
     __tablename__ = "notifications"
@@ -150,7 +150,7 @@ class Response(Base):
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
-    # Stripe 打款状态
+    # Stripe payout status
     payout_status = Column(String, default="pending")
     payout_amount = Column(Float, nullable=True)
     stripe_transfer_id = Column(String, nullable=True)
