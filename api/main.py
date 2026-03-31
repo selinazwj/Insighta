@@ -261,6 +261,16 @@ def _send_verification_email(email: str, purpose: str, code: str):
 # Send verification code API
 # ---------------------------
 
+@app.get("/auth/check-email")
+async def check_email_exists(email: str, db: Session = Depends(get_db)):
+    """Lightweight endpoint: checks if an email is already registered. Used for real-time feedback on the registration page."""
+    normalized = _normalize_email(email)
+    if not normalized:
+        return JSONResponse({"exists": False})
+    exists = db.query(User).filter(User.email == normalized).first() is not None
+    return JSONResponse({"exists": exists})
+
+
 @app.post("/auth/send-code")
 async def send_auth_code(
     email: str = Form(...),

@@ -54,7 +54,7 @@ SURVEY_NEW_COLUMNS = [
     "target_cannabis_use",
 ]
 
-# ── Stripe 新增字段 ───────────────────────────────────────────
+# ── Stripe fields ────────────────────────────────────────────
 USER_STRIPE_COLUMNS = [
     ("stripe_account_id", "VARCHAR"),
     ("stripe_onboarding_complete", "VARCHAR DEFAULT 'false'"),
