@@ -7,7 +7,7 @@ load_dotenv()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
-    # 本地开发：使用 SQLite，数据库文件在项目根目录
+    # Local development: use SQLite, database file in project root
     DATABASE_URL = "sqlite:///./survey.db"
 
 engine = create_engine(
