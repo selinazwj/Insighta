@@ -238,7 +238,10 @@
         <div class="form-group">
           <label>Email address <span class="badge-required">Required</span></label>
           <input type="email" name="email" id="email" required placeholder="you@example.com"
-            value="{{ register_email or '' }}">
+            value="{{ register_email or '' }}" onblur="checkEmailExists(this.value)">
+          <div id="emailExistsHint" style="display:none; margin-top:6px; font-size:13px; color:#c53030; background:#fff5f5; border:1px solid #fed7d7; border-radius:8px; padding:8px 12px;">
+            ⚠️ This email is already registered. <a href="/login" style="color:#c53030; font-weight:700; text-decoration:underline;">Sign in instead →</a>
+          </div>
         </div>
 
         <!-- Verification code -->
@@ -533,6 +536,26 @@
 </div>
 
 <script>
+  // ── Email existence check (on blur) ──────────────────────
+  async function checkEmailExists(email) {
+    const hint = document.getElementById('emailExistsHint');
+    const emailInput = document.getElementById('email');
+    if (!email || !email.includes('@')) { hint.style.display = 'none'; return; }
+    try {
+      const res = await fetch('/auth/check-email?email=' + encodeURIComponent(email.trim()));
+      const data = await res.json();
+      if (data.exists) {
+        hint.style.display = 'block';
+        emailInput.style.borderColor = '#fc8181';
+        emailInput.style.boxShadow = '0 0 0 3px rgba(252,129,129,0.15)';
+      } else {
+        hint.style.display = 'none';
+        emailInput.style.borderColor = '';
+        emailInput.style.boxShadow = '';
+      }
+    } catch { hint.style.display = 'none'; }
+  }
+
   // ── Send verification code ────────────────────────────────
   let codeSent = false;
 
