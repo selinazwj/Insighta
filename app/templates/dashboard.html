@@ -193,7 +193,7 @@
     </button>
   </div>
 
-  <!-- SURVEY SUB-TABS -->
+  <!-- SURVEY TABS -->
   <div class="tabs-wrapper" id="surveyTabs">
     <div class="tabs">
       <div class="tab" onclick="switchTab('research', event)">Research</div>
@@ -205,7 +205,7 @@
     </div>
   </div>
 
-  <!-- INTERVIEW SUB-TABS -->
+  <!-- INTERVIEW TABS -->
   <div class="tabs-wrapper" id="interviewTabs" style="display:none;">
     <div class="tabs">
       <div class="tab itab" onclick="switchTab('interview_research', event)">Research</div>
@@ -338,11 +338,28 @@
       const completedBadge = s.is_completed ? '<div class="completed-badge">✓ Completed</div>' : '';
       const completedClass = s.is_completed ? 'completed' : '';
       const isInterview = s.type === 'interview';
+      // Built-in survey: no external link
+      const isBuiltIn = !s.link || s.link === '';
 
-      const actions = s.is_completed
-        ? `<button class="action-btn primary" onclick="modifySurvey(event,${s.id})">${isInterview ? 'Modify Booking' : 'Modify Response'}</button>`
-        : `<button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}')">${isInterview ? 'Book Interview →' : 'Take Survey →'}</button>
-           <button class="action-btn" onclick="completeSurvey(event,${s.id})">${isInterview ? 'Mark Booked' : 'Mark Complete'}</button>`;
+      let actions;
+      if (s.is_completed) {
+        actions = `<button class="action-btn primary" onclick="modifySurvey(event,${s.id})">
+          ${isInterview ? 'Modify Booking' : 'Modify Response'}
+        </button>`;
+      } else if (isInterview) {
+        actions = `
+          <button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}',false)">Book Interview →</button>
+          <button class="action-btn" onclick="completeSurvey(event,${s.id})">Mark Booked</button>`;
+      } else if (isBuiltIn) {
+        // Built-in survey — go to /surveys/{id}/take
+        actions = `
+          <button class="action-btn primary" onclick="startSurvey(event,${s.id},'',true)">Take Survey →</button>`;
+      } else {
+        // External link survey
+        actions = `
+          <button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}',false)">Take Survey →</button>
+          <button class="action-btn" onclick="completeSurvey(event,${s.id})">Mark Complete</button>`;
+      }
 
       return `
         <div class="card ${completedClass}" id="card-${s.id}">
@@ -370,12 +387,17 @@
     }).join('');
   }
 
-  async function startSurvey(e, id, link) {
+  // Start survey — built-in goes to /take, external opens new tab
+  async function startSurvey(e, id, link, isBuiltIn) {
     e.preventDefault(); e.stopPropagation();
     try {
       const res = await fetch(`/surveys/${id}/start`, { method: 'POST', credentials: 'same-origin' });
       if (!res.ok) { alert(await res.text()); return; }
-      window.open(link, '_blank');
+      if (isBuiltIn) {
+        window.location.href = `/surveys/${id}/take`;
+      } else {
+        window.open(link, '_blank');
+      }
     } catch { alert('Network error'); }
   }
 
@@ -399,7 +421,10 @@
             badges.insertAdjacentHTML('afterbegin', '<div class="completed-badge">✓ Completed</div>');
           }
           const actionsEl = card.querySelector('.card-actions');
-          if (actionsEl) actionsEl.innerHTML = `<button class="action-btn primary" onclick="modifySurvey(event,${id})">${isInterview ? 'Modify Booking' : 'Modify Response'}</button>`;
+          if (actionsEl) actionsEl.innerHTML = `
+            <button class="action-btn primary" onclick="modifySurvey(event,${id})">
+              ${isInterview ? 'Modify Booking' : 'Modify Response'}
+            </button>`;
         }
       }
     } catch { alert('Network error'); }
@@ -417,15 +442,27 @@
       }
       if (survey) {
         const isInterview = survey.type === 'interview';
+        const isBuiltIn = !survey.link || survey.link === '';
         const card = document.getElementById(`card-${id}`);
         if (card) {
           card.classList.remove('completed');
           const badge = card.querySelector('.completed-badge');
           if (badge) badge.remove();
           const actionsEl = card.querySelector('.card-actions');
-          if (actionsEl) actionsEl.innerHTML = `
-            <button class="action-btn primary" onclick="startSurvey(event,${id},'${survey.link}')">${isInterview ? 'Book Interview →' : 'Take Survey →'}</button>
-            <button class="action-btn" onclick="completeSurvey(event,${id})">${isInterview ? 'Mark Booked' : 'Mark Complete'}</button>`;
+          if (actionsEl) {
+            if (isInterview) {
+              actionsEl.innerHTML = `
+                <button class="action-btn primary" onclick="startSurvey(event,${id},'${survey.link}',false)">Book Interview →</button>
+                <button class="action-btn" onclick="completeSurvey(event,${id})">Mark Booked</button>`;
+            } else if (isBuiltIn) {
+              actionsEl.innerHTML = `
+                <button class="action-btn primary" onclick="startSurvey(event,${id},'',true)">Take Survey →</button>`;
+            } else {
+              actionsEl.innerHTML = `
+                <button class="action-btn primary" onclick="startSurvey(event,${id},'${survey.link}',false)">Take Survey →</button>
+                <button class="action-btn" onclick="completeSurvey(event,${id})">Mark Complete</button>`;
+            }
+          }
         }
       }
     } catch { alert('Network error'); }
