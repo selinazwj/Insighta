@@ -1386,7 +1386,73 @@ Return ONLY a valid JSON object with these exact fields, no extra text:
     except Exception as e:
         import traceback; print(traceback.format_exc())
         raise HTTPException(500, str(e))
+@app.post("/api/ai-generate-questions")
+async def ai_generate_questions(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        body = await request.json()
+        prompt = body.get("prompt", "")
+        if not prompt:
+            raise HTTPException(400, "Prompt is required")
 
+        import anthropic, json, re
+        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2000,
+            messages=[{
+                "role": "user",
+                "content": f"""You are helping a researcher design a survey.
+Based on this research goal: "{prompt}"
+
+Generate 6-8 survey questions. Return ONLY a valid JSON array, no extra text:
+[
+  {{
+    "question_text": "What is your current year in school?",
+    "question_type": "single",
+    "options": ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"],
+    "is_required": true,
+    "order_index": 1
+  }},
+  {{
+    "question_text": "How many hours do you sleep on average per night?",
+    "question_type": "scale",
+    "options": null,
+    "is_required": true,
+    "order_index": 2
+  }},
+  {{
+    "question_text": "Describe any sleep difficulties you experience.",
+    "question_type": "text",
+    "options": null,
+    "is_required": false,
+    "order_index": 3
+  }}
+]
+
+Rules:
+- Mix question types: single/multiple for closed, scale for ratings, text for open-ended
+- Keep questions neutral, avoid leading language
+- scale and text questions must have options: null
+- options field is only for single, multiple, dropdown types
+"""
+            }]
+        )
+
+        text = message.content[0].text
+        match = re.search(r'\[.*\]', text, re.DOTALL)
+        if not match:
+            raise HTTPException(500, "AI response parsing failed")
+
+        questions = json.loads(match.group())
+        return JSONResponse({"questions": questions})
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(500, str(e))
 
 # ---------------------------
 # Feedback
@@ -1597,6 +1663,29 @@ async def reorder_questions(
     db.commit()
     return JSONResponse({"message": "reordered"})
 
+# ---------------------------
+# Survey Builder page
+# ---------------------------
+
+@app.get("/surveys/{survey_id}/builder", response_class=HTMLResponse)
+def survey_builder(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    return templates.TemplateResponse("survey_builder.html", {
+        "request": request,
+        "survey": survey,
+        "survey_id": survey_id,
+        "current_user": current_user
+    })
 # ---------------------------
 # Answers API
 # ---------------------------
