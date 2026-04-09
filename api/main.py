@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from sqlalchemy import func, case
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta, timezone
@@ -19,7 +19,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 from app.database import engine, get_db
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode
+from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer
 
 
 app = FastAPI()
@@ -1446,5 +1446,329 @@ async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Ses
         result.append({"id": f.id, "user_email": user.email if user else "unknown", "category": f.category, "title": f.title, "content": f.content, "status": f.status, "credit_amount": f.credit_amount, "created_at": str(f.created_at)})
     return JSONResponse(result)
 
+# ---------------------------
+# Questions API
+# ---------------------------
+
+@app.post("/surveys/{survey_id}/questions")
+def add_question(
+    survey_id: int,
+    request_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    # 当前最大 order_index + 1
+    max_order = db.query(func.max(Question.order_index)).filter(
+        Question.survey_id == survey_id
+    ).scalar() or 0
+
+    q = Question(
+        survey_id=survey_id,
+        question_text=request_data.get("question_text", ""),
+        question_type=request_data.get("question_type", "single"),
+        options=request_data.get("options"),
+        is_required=request_data.get("is_required", True),
+        order_index=request_data.get("order_index", max_order + 1)
+    )
+    db.add(q)
+    db.commit()
+    db.refresh(q)
+    return JSONResponse({
+        "id": q.id,
+        "survey_id": q.survey_id,
+        "question_text": q.question_text,
+        "question_type": q.question_type,
+        "options": q.options,
+        "is_required": q.is_required,
+        "order_index": q.order_index
+    })
+
+
+@app.get("/surveys/{survey_id}/questions")
+def get_questions(
+    survey_id: int,
+    db: Session = Depends(get_db)
+):
+    questions = db.query(Question).filter(
+        Question.survey_id == survey_id
+    ).order_by(Question.order_index).all()
+    return JSONResponse([{
+        "id": q.id,
+        "question_text": q.question_text,
+        "question_type": q.question_type,
+        "options": q.options,
+        "is_required": q.is_required,
+        "order_index": q.order_index
+    } for q in questions])
+
+
+@app.put("/surveys/{survey_id}/questions/{question_id}")
+def update_question(
+    survey_id: int,
+    question_id: int,
+    request_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    q = db.query(Question).filter(
+        Question.id == question_id,
+        Question.survey_id == survey_id
+    ).first()
+    if not q:
+        raise HTTPException(404, "Question not found")
+
+    if "question_text" in request_data:
+        q.question_text = request_data["question_text"]
+    if "question_type" in request_data:
+        q.question_type = request_data["question_type"]
+    if "options" in request_data:
+        q.options = request_data["options"]
+    if "is_required" in request_data:
+        q.is_required = request_data["is_required"]
+
+    db.commit()
+    return JSONResponse({"message": "updated"})
+
+
+@app.delete("/surveys/{survey_id}/questions/{question_id}")
+def delete_question(
+    survey_id: int,
+    question_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    q = db.query(Question).filter(
+        Question.id == question_id,
+        Question.survey_id == survey_id
+    ).first()
+    if not q:
+        raise HTTPException(404, "Question not found")
+
+    db.delete(q)
+    db.commit()
+    return JSONResponse({"message": "deleted"})
+
+
+@app.post("/surveys/{survey_id}/questions/reorder")
+async def reorder_questions(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    body = await request.json()
+    # body = [{"id": 1, "order_index": 1}, {"id": 2, "order_index": 2}, ...]
+    for item in body:
+        q = db.query(Question).filter(
+            Question.id == item["id"],
+            Question.survey_id == survey_id
+        ).first()
+        if q:
+            q.order_index = item["order_index"]
+
+    db.commit()
+    return JSONResponse({"message": "reordered"})
+
+# ---------------------------
+# Answers API
+# ---------------------------
+
+@app.post("/surveys/{survey_id}/submit")
+async def submit_answers(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    if survey.status != "published":
+        raise HTTPException(400, "Survey not published")
+
+    body = await request.json()
+    # body = [{"question_id": 1, "answer_value": "Freshman"}, ...]
+
+    # 找到或创建 response
+    r = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.participant_id == current_user.id
+    ).first()
+    if not r:
+        r = Response(
+            survey_id=survey_id,
+            participant_id=current_user.id,
+            status="started"
+        )
+        db.add(r)
+        db.flush()
+
+    # 存每道题的答案
+    for item in body:
+        existing = db.query(Answer).filter(
+            Answer.response_id == r.id,
+            Answer.question_id == item["question_id"]
+        ).first()
+        if existing:
+            existing.answer_value = item["answer_value"]
+        else:
+            db.add(Answer(
+                response_id=r.id,
+                question_id=item["question_id"],
+                answer_value=item["answer_value"]
+            ))
+
+    # 标记完成，触发现有逻辑
+    if r.status != "completed":
+        r.status = "completed"
+        r.completed_at = datetime.now(timezone.utc)
+        r.payout_amount = survey.reward_amount
+        r.payout_status = "pending"
+        current_user.pending_earnings = (
+            getattr(current_user, 'pending_earnings', 0.0) or 0.0
+        ) + survey.reward_amount
+
+        # 创建 notification 通知 publisher
+        notif = Notification(
+            publisher_id=survey.publisher_id,
+            participant_id=current_user.id,
+            survey_id=survey_id,
+            participant_email=current_user.email,
+            survey_title=survey.title,
+            task_type=getattr(survey, "task_type", "survey") or "survey",
+            status="pending"
+        )
+        db.add(notif)
+
+        # 发邮件给 publisher
+        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+        if publisher and publisher.email:
+            send_email(
+                to=publisher.email,
+                subject=f"[Insighta] New response ready for review: {survey.title}",
+                body=f"""
+                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
+                  <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey.</p>
+                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
+                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
+                    <div style="font-size: 15px;">{current_user.email}</div>
+                  </div>
+                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                    Review & Approve →
+                  </a>
+                </div>
+                """
+            )
+
+    db.commit()
+    return JSONResponse({"message": "submitted successfully"})
+
+
+@app.get("/surveys/{survey_id}/results")
+def get_survey_results(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    questions = db.query(Question).filter(
+        Question.survey_id == survey_id
+    ).order_by(Question.order_index).all()
+
+    total_responses = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed"
+    ).count()
+
+    result = []
+    for q in questions:
+        answers = db.query(Answer).join(Response).filter(
+            Response.survey_id == survey_id,
+            Response.status == "completed",
+            Answer.question_id == q.id
+        ).all()
+
+        if q.question_type in ("single", "multiple", "dropdown"):
+            distribution = {}
+            for a in answers:
+                val = a.answer_value
+                if isinstance(val, list):
+                    for v in val:
+                        distribution[v] = distribution.get(v, 0) + 1
+                else:
+                    distribution[str(val)] = distribution.get(str(val), 0) + 1
+            result.append({
+                "question_id": q.id,
+                "question_text": q.question_text,
+                "question_type": q.question_type,
+                "total_answers": len(answers),
+                "distribution": distribution
+            })
+
+        elif q.question_type == "scale":
+            values = [a.answer_value for a in answers if a.answer_value is not None]
+            avg = round(sum(values) / len(values), 2) if values else 0
+            distribution = {str(i): values.count(i) for i in range(1, 6)}
+            result.append({
+                "question_id": q.id,
+                "question_text": q.question_text,
+                "question_type": q.question_type,
+                "total_answers": len(answers),
+                "average": avg,
+                "distribution": distribution
+            })
+
+        elif q.question_type == "text":
+            result.append({
+                "question_id": q.id,
+                "question_text": q.question_text,
+                "question_type": q.question_type,
+                "total_answers": len(answers),
+                "responses": [a.answer_value for a in answers]
+            })
+
+    return JSONResponse({
+        "survey_id": survey_id,
+        "survey_title": survey.title,
+        "total_responses": total_responses,
+        "questions": result
+    })
 
 app.include_router(router)
