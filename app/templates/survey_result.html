@@ -159,7 +159,7 @@
   // ── Load results ──────────────────────────────────────────
   async function loadResults() {
     try {
-      const res = await fetch(`/surveys/${SURVEY_ID}/results`, {
+      const res = await fetch(`/api/surveys/${SURVEY_ID}/results`, {
         credentials: 'same-origin'
       });
       if (!res.ok) throw new Error('Failed to load');
