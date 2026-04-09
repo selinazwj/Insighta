@@ -117,6 +117,7 @@ class Survey(Base):
 
     publisher = relationship("User", back_populates="surveys")
     responses = relationship("Response", back_populates="survey")
+    questions = relationship("Question", back_populates="survey")
 
 
 # ======================
@@ -157,6 +158,7 @@ class Response(Base):
 
     survey = relationship("Survey", back_populates="responses")
     participant = relationship("User", back_populates="responses")
+    answers = relationship("Answer", back_populates="response")
 
 
 # ======================
@@ -194,3 +196,42 @@ class EmailVerificationCode(Base):
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     used_at = Column(DateTime, nullable=True)
+
+# ======================
+# Question
+# ======================
+class Question(Base):
+    __tablename__ = "questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
+    question_text = Column(String, nullable=False)
+    question_type = Column(String, nullable=False)
+    # single / multiple / text / scale / dropdown
+    options = Column(JSON, nullable=True)
+    is_required = Column(Boolean, default=True)
+    order_index = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    survey = relationship("Survey", back_populates="questions")
+    answers = relationship("Answer", back_populates="question")
+
+
+# ======================
+# Answer
+# ======================
+class Answer(Base):
+    __tablename__ = "answers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    response_id = Column(Integer, ForeignKey("responses.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
+    answer_value = Column(JSON, nullable=False)
+    # 单选: "A"
+    # 多选: ["A", "B"]
+    # 文字: "我觉得..."
+    # 量表: 4
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    response = relationship("Response", back_populates="answers")
+    question = relationship("Question", back_populates="answers")
