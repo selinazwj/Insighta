@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta, timezone
@@ -152,7 +152,7 @@ def _clean_target(val: Optional[str]) -> str:
 
 
 # ---------------------------
-# Auth helpers (from yaotian2)
+# Auth helpers
 # ---------------------------
 
 def _normalize_email(value: Optional[str]) -> str:
@@ -263,7 +263,6 @@ def _send_verification_email(email: str, purpose: str, code: str):
 
 @app.get("/auth/check-email")
 async def check_email_exists(email: str, db: Session = Depends(get_db)):
-    """Lightweight endpoint: checks if an email is already registered. Used for real-time feedback on the registration page."""
     normalized = _normalize_email(email)
     if not normalized:
         return JSONResponse({"exists": False})
@@ -363,7 +362,6 @@ def login(
 
     response = RedirectResponse("/choice", status_code=303)
     response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
-
     return response
 
 
@@ -667,9 +665,13 @@ def dashboard(
             "academic": "/static/r2.jpg", "other": "/static/food.jpeg"
         }
 
+        # Pass empty string for built-in surveys so dashboard knows to use /take
+        form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
+
         surveys_data.append({
             "id": s.id, "title": s.title, "desc": s.description,
-            "link": s.form_url, "type": _normalize_task_type(getattr(s, "task_type", None)),
+            "link": form_link,
+            "type": _normalize_task_type(getattr(s, "task_type", None)),
             "category": s.category, "time": f"{s.estimated_time} min",
             "reward": f"${s.reward_amount:.2f}",
             "responses": f"{completed_cnt}/{s.target_responses}",
@@ -827,13 +829,9 @@ def complete_survey(
                     <div style="font-size: 13px; color: #8a8a82; margin-top: 12px; margin-bottom: 4px;">Reward</div>
                     <div style="font-size: 15px; font-weight: 600; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
                   </div>
-                  <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
-                    Please check your <strong>Google Form backend</strong> to verify the response, then approve on your dashboard.
-                  </p>
                   <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
                     Review & Approve →
                   </a>
-                  <p style="font-size: 12px; color: #8a8a82; margin-top: 32px;">Insighta · <a href="https://insightaco.org" style="color: #2d6a4f;">insightaco.org</a></p>
                 </div>
                 """
             )
@@ -908,9 +906,6 @@ def accept_notification(notif_id: int, current_user: User = Depends(get_current_
                     <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Reward Added</div>
                     <div style="font-size: 22px; font-weight: 700; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
                   </div>
-                  <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
-                    Your earnings have been added to your account. You can withdraw anytime from your dashboard.
-                  </p>
                   <a href="https://insightaco.org/dashboard" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View Earnings →</a>
                 </div>
                 """
@@ -963,9 +958,15 @@ def get_pending_responses(current_user: User = Depends(get_current_user), db: Se
 # ---------------------------
 
 @app.get("/publish", response_class=HTMLResponse)
-def publish_page(request: Request, current_user: User = Depends(get_current_user)):
+def publish_page(
+    request: Request,
+    builtin: int = 0,
+    current_user: User = Depends(get_current_user)
+):
     return templates.TemplateResponse("publish.html", {
-        "request": request, "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY
+        "request": request,
+        "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
+        "builtin": builtin
     })
 
 
@@ -1021,7 +1022,9 @@ async def publish_survey(
     experience_list = form.getlist("target_experience_tags")
     target_experience_tags = ",".join(experience_list) if experience_list else None
 
+    is_builtin = (form_url == "__builtin__")
     is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
+
     if is_no_pay:
         ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
     else:
@@ -1067,13 +1070,27 @@ async def publish_survey(
     db.add(survey); db.commit(); db.refresh(survey)
 
     if is_no_pay:
+        # Built-in + no pay → publish immediately and go to builder
+        if is_builtin:
+            survey.status = "published"
+            survey.published_at = datetime.utcnow()
+            db.commit()
+            return RedirectResponse(f"/surveys/{survey.id}/builder", status_code=303)
         return RedirectResponse("/publisher", status_code=303)
+
+    # Paid survey → Stripe checkout
+    # Built-in paid survey → redirect to builder after payment
+    success_url = (
+        f"https://insightaco.org/surveys/{survey.id}/builder"
+        if is_builtin
+        else f"https://insightaco.org/payment/success?survey_id={survey.id}"
+    )
 
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
         line_items=[{"price_data": {"currency": "usd", "product_data": {"name": f"Survey: {survey.title}", "description": f"{survey.target_responses} responses × ${reward:.2f} per person"}, "unit_amount": int(round(total * 100))}, "quantity": 1}],
         mode="payment",
-        success_url=f"https://insightaco.org/payment/success?survey_id={survey.id}",
+        success_url=success_url,
         cancel_url=f"https://insightaco.org/publisher",
         metadata={"survey_id": str(survey.id), "publisher_id": str(current_user.id)}
     )
@@ -1169,13 +1186,17 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if survey_id:
             survey = db.query(Survey).filter(Survey.id == int(survey_id)).first()
             if survey:
-                survey.payment_status = "paid"; survey.status = "published"
-                survey.published_at = datetime.utcnow(); db.commit()
+                survey.payment_status = "paid"
+                survey.status = "published"
+                survey.published_at = datetime.utcnow()
+                db.commit()
     elif event["type"] == "account.updated":
         account = event["data"]["object"]
         if account.get("charges_enabled"):
             user = db.query(User).filter(User.stripe_account_id == account.get("id")).first()
-            if user: user.stripe_onboarding_complete = "true"; db.commit()
+            if user:
+                user.stripe_onboarding_complete = "true"
+                db.commit()
 
     return JSONResponse({"status": "ok"})
 
@@ -1201,7 +1222,9 @@ def connect_onboard(current_user: User = Depends(get_current_user), db: Session 
 def connect_complete(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if getattr(current_user, 'stripe_account_id', None):
         account = stripe.Account.retrieve(current_user.stripe_account_id)
-        if account.charges_enabled: current_user.stripe_onboarding_complete = "true"; db.commit()
+        if account.charges_enabled:
+            current_user.stripe_onboarding_complete = "true"
+            db.commit()
     return RedirectResponse("/dashboard")
 
 
@@ -1386,6 +1409,12 @@ Return ONLY a valid JSON object with these exact fields, no extra text:
     except Exception as e:
         import traceback; print(traceback.format_exc())
         raise HTTPException(500, str(e))
+
+
+# ---------------------------
+# AI Generate Questions
+# ---------------------------
+
 @app.post("/api/ai-generate-questions")
 async def ai_generate_questions(
     request: Request,
@@ -1397,7 +1426,7 @@ async def ai_generate_questions(
         if not prompt:
             raise HTTPException(400, "Prompt is required")
 
-        import anthropic, json, re
+        import anthropic, json as _json
         client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
@@ -1446,13 +1475,14 @@ Rules:
         if not match:
             raise HTTPException(500, "AI response parsing failed")
 
-        questions = json.loads(match.group())
+        questions = _json.loads(match.group())
         return JSONResponse({"questions": questions})
 
     except Exception as e:
         import traceback
         print(traceback.format_exc())
         raise HTTPException(500, str(e))
+
 
 # ---------------------------
 # Feedback
@@ -1512,14 +1542,15 @@ async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Ses
         result.append({"id": f.id, "user_email": user.email if user else "unknown", "category": f.category, "title": f.title, "content": f.content, "status": f.status, "credit_amount": f.credit_amount, "created_at": str(f.created_at)})
     return JSONResponse(result)
 
+
 # ---------------------------
 # Questions API
 # ---------------------------
 
 @app.post("/surveys/{survey_id}/questions")
-def add_question(
+async def add_question(
     survey_id: int,
-    request_data: dict,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1530,7 +1561,8 @@ def add_question(
     if not survey:
         raise HTTPException(404, "Survey not found")
 
-    # 当前最大 order_index + 1
+    request_data = await request.json()
+
     max_order = db.query(func.max(Question.order_index)).filter(
         Question.survey_id == survey_id
     ).scalar() or 0
@@ -1576,10 +1608,10 @@ def get_questions(
 
 
 @app.put("/surveys/{survey_id}/questions/{question_id}")
-def update_question(
+async def update_question(
     survey_id: int,
     question_id: int,
-    request_data: dict,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1589,6 +1621,8 @@ def update_question(
     ).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
+
+    request_data = await request.json()
 
     q = db.query(Question).filter(
         Question.id == question_id,
@@ -1651,7 +1685,6 @@ async def reorder_questions(
         raise HTTPException(404, "Survey not found")
 
     body = await request.json()
-    # body = [{"id": 1, "order_index": 1}, {"id": 2, "order_index": 2}, ...]
     for item in body:
         q = db.query(Question).filter(
             Question.id == item["id"],
@@ -1662,6 +1695,7 @@ async def reorder_questions(
 
     db.commit()
     return JSONResponse({"message": "reordered"})
+
 
 # ---------------------------
 # Survey Builder page
@@ -1686,105 +1720,62 @@ def survey_builder(
         "survey_id": survey_id,
         "current_user": current_user
     })
+
+
 # ---------------------------
-# Answers API
+# Survey Take page
 # ---------------------------
 
-@app.post("/surveys/{survey_id}/submit")
-async def submit_answers(
+@app.get("/surveys/{survey_id}/take", response_class=HTMLResponse)
+def survey_take(
     survey_id: int,
     request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.status == "published"
+    ).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
-    if survey.status != "published":
-        raise HTTPException(400, "Survey not published")
+    return templates.TemplateResponse("survey_take.html", {
+        "request": request,
+        "survey": survey,
+        "current_user": current_user
+    })
 
-    body = await request.json()
-    # body = [{"question_id": 1, "answer_value": "Freshman"}, ...]
 
-    # 找到或创建 response
-    r = db.query(Response).filter(
-        Response.survey_id == survey_id,
-        Response.participant_id == current_user.id
+# ---------------------------
+# Survey Results page (HTML)
+# ---------------------------
+
+@app.get("/surveys/{survey_id}/results", response_class=HTMLResponse)
+def survey_results_page(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
     ).first()
-    if not r:
-        r = Response(
-            survey_id=survey_id,
-            participant_id=current_user.id,
-            status="started"
-        )
-        db.add(r)
-        db.flush()
-
-    # 存每道题的答案
-    for item in body:
-        existing = db.query(Answer).filter(
-            Answer.response_id == r.id,
-            Answer.question_id == item["question_id"]
-        ).first()
-        if existing:
-            existing.answer_value = item["answer_value"]
-        else:
-            db.add(Answer(
-                response_id=r.id,
-                question_id=item["question_id"],
-                answer_value=item["answer_value"]
-            ))
-
-    # 标记完成，触发现有逻辑
-    if r.status != "completed":
-        r.status = "completed"
-        r.completed_at = datetime.now(timezone.utc)
-        r.payout_amount = survey.reward_amount
-        r.payout_status = "pending"
-        current_user.pending_earnings = (
-            getattr(current_user, 'pending_earnings', 0.0) or 0.0
-        ) + survey.reward_amount
-
-        # 创建 notification 通知 publisher
-        notif = Notification(
-            publisher_id=survey.publisher_id,
-            participant_id=current_user.id,
-            survey_id=survey_id,
-            participant_email=current_user.email,
-            survey_title=survey.title,
-            task_type=getattr(survey, "task_type", "survey") or "survey",
-            status="pending"
-        )
-        db.add(notif)
-
-        # 发邮件给 publisher
-        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
-        if publisher and publisher.email:
-            send_email(
-                to=publisher.email,
-                subject=f"[Insighta] New response ready for review: {survey.title}",
-                body=f"""
-                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
-                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
-                  <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey.</p>
-                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
-                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
-                    <div style="font-size: 15px;">{current_user.email}</div>
-                  </div>
-                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-                    Review & Approve →
-                  </a>
-                </div>
-                """
-            )
-
-    db.commit()
-    return JSONResponse({"message": "submitted successfully"})
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    return templates.TemplateResponse("survey_results.html", {
+        "request": request,
+        "survey": survey,
+        "survey_id": survey_id,
+        "current_user": current_user
+    })
 
 
-@app.get("/surveys/{survey_id}/results")
+# ---------------------------
+# Survey Results data (JSON) — used by survey_results.html
+# ---------------------------
+
+@app.get("/api/surveys/{survey_id}/results")
 def get_survey_results(
     survey_id: int,
     current_user: User = Depends(get_current_user),
@@ -1859,5 +1850,171 @@ def get_survey_results(
         "total_responses": total_responses,
         "questions": result
     })
+
+
+# ---------------------------
+# AI Analyze survey
+# ---------------------------
+
+@app.post("/surveys/{survey_id}/analyze")
+async def analyze_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    questions = db.query(Question).filter(
+        Question.survey_id == survey_id
+    ).order_by(Question.order_index).all()
+
+    answers_data = []
+    for q in questions:
+        answers = db.query(Answer).join(Response).filter(
+            Response.survey_id == survey_id,
+            Response.status == "completed",
+            Answer.question_id == q.id
+        ).all()
+        answers_data.append({
+            "question": q.question_text,
+            "type": q.question_type,
+            "answers": [a.answer_value for a in answers]
+        })
+
+    total_responses = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed"
+    ).count()
+
+    import anthropic, json as _json
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1500,
+        messages=[{
+            "role": "user",
+            "content": f"""You are analyzing survey results for a researcher.
+
+Survey title: {survey.title}
+Survey description: {survey.description}
+Total responses: {total_responses}
+
+Data:
+{_json.dumps(answers_data, ensure_ascii=False, indent=2)}
+
+Please provide:
+1. Key findings (3-5 bullet points with actual numbers)
+2. Notable patterns or trends
+3. Text response themes (if any open-ended questions)
+4. One recommendation for the researcher
+
+Be concise and specific. Use the actual numbers from the data.
+Write in the same language as the survey questions.
+"""
+        }]
+    )
+
+    return JSONResponse({
+        "analysis": message.content[0].text,
+        "generated_at": datetime.utcnow().isoformat()
+    })
+
+
+# ---------------------------
+# Answers submit API
+# ---------------------------
+
+@app.post("/surveys/{survey_id}/submit")
+async def submit_answers(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    if survey.status != "published":
+        raise HTTPException(400, "Survey not published")
+
+    body = await request.json()
+
+    r = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.participant_id == current_user.id
+    ).first()
+    if not r:
+        r = Response(
+            survey_id=survey_id,
+            participant_id=current_user.id,
+            status="started"
+        )
+        db.add(r)
+        db.flush()
+
+    for item in body:
+        existing = db.query(Answer).filter(
+            Answer.response_id == r.id,
+            Answer.question_id == item["question_id"]
+        ).first()
+        if existing:
+            existing.answer_value = item["answer_value"]
+        else:
+            db.add(Answer(
+                response_id=r.id,
+                question_id=item["question_id"],
+                answer_value=item["answer_value"]
+            ))
+
+    if r.status != "completed":
+        r.status = "completed"
+        r.completed_at = datetime.now(timezone.utc)
+        r.payout_amount = survey.reward_amount
+        r.payout_status = "pending"
+        current_user.pending_earnings = (
+            getattr(current_user, 'pending_earnings', 0.0) or 0.0
+        ) + survey.reward_amount
+
+        notif = Notification(
+            publisher_id=survey.publisher_id,
+            participant_id=current_user.id,
+            survey_id=survey_id,
+            participant_email=current_user.email,
+            survey_title=survey.title,
+            task_type=getattr(survey, "task_type", "survey") or "survey",
+            status="pending"
+        )
+        db.add(notif)
+
+        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+        if publisher and publisher.email:
+            send_email(
+                to=publisher.email,
+                subject=f"[Insighta] New response ready for review: {survey.title}",
+                body=f"""
+                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
+                  <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey.</p>
+                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
+                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
+                    <div style="font-size: 15px;">{current_user.email}</div>
+                  </div>
+                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                    Review & Approve →
+                  </a>
+                </div>
+                """
+            )
+
+    db.commit()
+    return JSONResponse({"message": "submitted successfully"})
+
 
 app.include_router(router)
