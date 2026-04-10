@@ -31,8 +31,39 @@
 
     /* Layout */
     .container { max-width: 820px; margin: 0 auto; padding: 40px 24px 80px; }
-    .page-header { margin-bottom: 32px; }
-    .page-header h1 { font-family: var(--serif); font-size: 36px; color: var(--ink); letter-spacing: -1px; margin-bottom: 6px; }
+
+    /* Survey info panel */
+    .survey-info-panel { background: white; border: 1.5px solid var(--line); border-radius: 16px; padding: 24px 28px; margin-bottom: 24px; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .panel-header h2 { font-family: var(--serif); font-size: 20px; color: var(--ink); }
+    .panel-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
+    .panel-save-status { font-size: 12px; color: var(--ink-muted); }
+    .panel-save-status.saving { color: var(--accent-warm); }
+    .panel-save-status.saved { color: var(--accent); }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .info-field label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-muted); margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .info-field input, .info-field textarea, .info-field select {
+      width: 100%; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 8px;
+      font-family: var(--sans); font-size: 14px; color: var(--ink); background: var(--paper);
+      transition: all 0.2s;
+    }
+    .info-field input:focus, .info-field textarea:focus, .info-field select:focus {
+      outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); background: white;
+    }
+    .info-field input::placeholder, .info-field textarea::placeholder { color: #c4c2bc; font-weight: 300; }
+    .info-field textarea { resize: none; min-height: 72px; line-height: 1.5; }
+    .info-field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
+    .info-field.full { grid-column: 1 / -1; }
+
+    .publish-bar { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .publish-hint { font-size: 13px; color: var(--ink-muted); font-weight: 300; }
+    .btn-publish-survey { padding: 11px 24px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-publish-survey:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
+
+    /* Page header */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-family: var(--serif); font-size: 32px; color: var(--ink); letter-spacing: -1px; margin-bottom: 4px; }
     .page-header h1 em { font-style: italic; color: var(--accent); }
     .page-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; }
 
@@ -57,7 +88,6 @@
     .questions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .questions-header h2 { font-family: var(--serif); font-size: 20px; color: var(--ink); }
     .questions-count { font-size: 13px; color: var(--ink-muted); }
-
     .questions-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
 
     /* Question card */
@@ -68,20 +98,17 @@
     .q-text-input { flex: 1; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 8px; font-family: var(--sans); font-size: 15px; color: var(--ink); background: var(--paper); transition: all 0.2s; resize: none; min-height: 44px; }
     .q-text-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); background: white; }
     .q-text-input::placeholder { color: #c4c2bc; font-weight: 300; }
-
     .q-card-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .q-type-select { padding: 7px 12px; border: 1.5px solid var(--line); border-radius: 8px; font-family: var(--sans); font-size: 13px; color: var(--ink); background: white; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
     .q-type-select:focus { outline: none; border-color: var(--accent); }
-
     .q-required-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-muted); cursor: pointer; user-select: none; }
     .q-required-toggle input { accent-color: var(--accent); width: 14px; height: 14px; }
-
     .q-actions { display: flex; gap: 6px; margin-left: auto; }
     .q-action-btn { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 7px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; color: var(--ink-muted); }
     .q-action-btn:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
     .q-action-btn.delete:hover { background: #fff5f5; border-color: #fecaca; color: #ef4444; }
 
-    /* Options for single/multiple/dropdown */
+    /* Options */
     .q-options { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
     .option-row { display: flex; align-items: center; gap: 8px; }
     .option-dot { width: 16px; height: 16px; border: 1.5px solid var(--line); border-radius: 50%; flex-shrink: 0; }
@@ -112,7 +139,6 @@
     /* Buttons */
     .btn-add-question { width: 100%; padding: 13px; background: white; color: var(--accent); border: 1.5px dashed rgba(45,106,79,0.4); border-radius: 12px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn-add-question:hover { background: rgba(45,106,79,0.04); border-color: var(--accent); }
-
     .btn-primary { padding: 12px 28px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .btn-primary:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
     .btn-secondary { padding: 12px 24px; background: white; color: var(--ink-muted); border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
@@ -127,6 +153,7 @@
       .navbar { padding: 12px 16px; }
       .container { padding: 28px 16px 60px; }
       .ai-input-row { flex-direction: column; }
+      .info-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -140,7 +167,7 @@
   <div class="navbar-right">
     <span class="save-status" id="saveStatus"></span>
     <button class="btn-secondary" onclick="window.location.href='/publisher'">Cancel</button>
-    <button class="btn-primary" onclick="finishAndPublish()">Done →</button>
+ 
   </div>
 </nav>
 
@@ -148,7 +175,30 @@
 
   <div class="page-header">
     <h1>Build your <em>Survey</em></h1>
-    <p>Add questions below, or let AI generate them for you.</p>
+    <p>Set up your survey details and design your questions below.</p>
+  </div>
+
+  <!-- Survey info panel -->
+  <div class="survey-info-panel">
+    <div class="panel-header">
+      <div>
+        <h2>Survey Details</h2>
+        <p>Fill in the basics — auto-saved as you type.</p>
+      </div>
+      <span class="panel-save-status" id="infoSaveStatus"></span>
+    </div>
+    <div class="info-grid">
+      <div class="info-field full">
+        <label>Title *</label>
+        <input type="text" id="infoTitle" placeholder="e.g. Student Sleep Habits Study"
+          value="{{ survey.title if survey.title != 'Untitled Survey' else '' }}"
+          oninput="scheduleInfoSave()">
+      </div>
+      <div class="info-field full">
+        <label>Description</label>
+        <textarea id="infoDescription" placeholder="Brief description of your research..."
+          oninput="scheduleInfoSave()">{{ survey.description or '' }}</textarea>
+      </div>
   </div>
 
   <!-- AI Generate Section -->
@@ -183,7 +233,7 @@
     <span class="save-status" id="bottomSaveStatus"></span>
     <div style="display:flex; gap:10px;">
       <button class="btn-secondary" onclick="window.location.href='/publisher'">Cancel</button>
-      <button class="btn-primary" onclick="finishAndPublish()">Done →</button>
+      <button class="btn-primary" onclick="finishAndPublish()">Publish →</button>
     </div>
   </div>
 
@@ -193,8 +243,9 @@
   const SURVEY_ID = {{ survey_id }};
   let questions = [];
   let saveTimeout = null;
+  let infoSaveTimeout = null;
 
-  // ── Load existing questions on page open ──────────────────
+  // ── Load existing questions ────────────────────────────
   async function loadQuestions() {
     try {
       const res = await fetch(`/surveys/${SURVEY_ID}/questions`, { credentials: 'same-origin' });
@@ -206,7 +257,7 @@
     }
   }
 
-  // ── Render all questions ──────────────────────────────────
+  // ── Render all questions ───────────────────────────────
   function renderAll() {
     const list = document.getElementById('questionsList');
     const count = document.getElementById('questionsCount');
@@ -225,7 +276,7 @@
     list.innerHTML = questions.map((q, i) => renderQuestionCard(q, i)).join('');
   }
 
-  // ── Render a single question card ─────────────────────────
+  // ── Render single question card ────────────────────────
   function renderQuestionCard(q, index) {
     const isChoice = ['single', 'multiple', 'dropdown'].includes(q.question_type);
     const options = q.options || [];
@@ -292,7 +343,7 @@
       </div>`;
   }
 
-  // ── Add new question ──────────────────────────────────────
+  // ── Add new question ───────────────────────────────────
   async function addQuestion(preset = null) {
     const newQ = preset || {
       question_text: '',
@@ -312,7 +363,6 @@
       const saved = await res.json();
       questions.push(saved);
       renderAll();
-      // Scroll to new question
       setTimeout(() => {
         const card = document.getElementById(`card-${saved.id}`);
         if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -322,7 +372,7 @@
     }
   }
 
-  // ── Delete question ───────────────────────────────────────
+  // ── Delete question ────────────────────────────────────
   async function deleteQuestion(qId) {
     if (!confirm('Delete this question?')) return;
     try {
@@ -336,14 +386,12 @@
     }
   }
 
-  // ── Update question text ──────────────────────────────────
   function updateQuestionText(qId, text) {
     const q = questions.find(q => q.id === qId);
     if (q) q.question_text = text;
     scheduleSave(qId);
   }
 
-  // ── Update question type ──────────────────────────────────
   async function updateQuestionType(qId, type) {
     const q = questions.find(q => q.id === qId);
     if (!q) return;
@@ -355,14 +403,12 @@
     renderAll();
   }
 
-  // ── Update required ───────────────────────────────────────
   function updateRequired(qId, checked) {
     const q = questions.find(q => q.id === qId);
     if (q) q.is_required = checked;
     scheduleSave(qId);
   }
 
-  // ── Options management ────────────────────────────────────
   function updateOption(qId, optIndex, value) {
     const q = questions.find(q => q.id === qId);
     if (q && q.options) {
@@ -388,7 +434,6 @@
     }
   }
 
-  // ── Move up / down ────────────────────────────────────────
   async function moveUp(qId) {
     const idx = questions.findIndex(q => q.id === qId);
     if (idx <= 0) return;
@@ -419,7 +464,6 @@
     }
   }
 
-  // ── Save single question ──────────────────────────────────
   async function saveQuestion(qId) {
     const q = questions.find(q => q.id === qId);
     if (!q) return;
@@ -460,7 +504,46 @@
     });
   }
 
-  // ── AI generate questions ─────────────────────────────────
+  // ── Save survey info (title, description, etc.) ────────
+  async function saveInfo() {
+    const title = document.getElementById('infoTitle').value.trim();
+    if (!title) return;
+
+
+    setInfoSaveStatus('saving');
+    try {
+      await fetch(`/surveys/${SURVEY_ID}/update-info`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          title,
+          description: document.getElementById('infoDescription').value,
+        })
+      });
+      setInfoSaveStatus('saved');
+    } catch(e) {
+      console.error('Info save failed:', e);
+      setInfoSaveStatus('');
+    }
+  }
+
+  function scheduleInfoSave() {
+    clearTimeout(infoSaveTimeout);
+    setInfoSaveStatus('saving');
+    infoSaveTimeout = setTimeout(saveInfo, 800);
+  }
+
+  function setInfoSaveStatus(status) {
+    const el = document.getElementById('infoSaveStatus');
+    if (!el) return;
+    el.className = 'panel-save-status ' + status;
+    if (status === 'saving') el.textContent = 'Saving...';
+    else if (status === 'saved') el.textContent = '✓ Saved';
+    else el.textContent = '';
+  }
+
+  // ── AI generate questions ──────────────────────────────
   async function generateWithAI() {
     const prompt = document.getElementById('aiPrompt').value.trim();
     if (!prompt) {
@@ -484,12 +567,18 @@
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
 
-      // Clear existing and add AI questions one by one
       for (const q of data.questions) {
         await addQuestion(q);
       }
 
       showAiStatus('success', `✓ ${data.questions.length} questions generated. Review and edit below.`);
+
+      // Also auto-fill title if still empty
+      const titleEl = document.getElementById('infoTitle');
+      if (!titleEl.value.trim()) {
+        titleEl.value = prompt.length > 60 ? prompt.substring(0, 57) + '...' : prompt;
+        scheduleInfoSave();
+      }
     } catch(e) {
       showAiStatus('error', 'Something went wrong. Please try again.');
     } finally {
@@ -505,16 +594,32 @@
     el.style.display = msg ? 'block' : 'none';
   }
 
-  // ── Done button ───────────────────────────────────────────
-  function finishAndPublish() {
-    if (questions.length === 0) {
-      alert('Please add at least one question before continuing.');
-      return;
+  // ── Publish button ─────────────────────────────────────
+async function finishAndPublish() {
+    const title = document.getElementById('infoTitle').value.trim();
+    if (!title) {
+        alert('Please add a survey title before publishing.');
+        document.getElementById('infoTitle').focus();
+        return;
     }
-    window.location.href = '/publisher';
-  }
+    if (questions.length === 0) {
+        alert('Please add at least one question before publishing.');
+        return;
+    }
+    await saveInfo();
 
-  // ── Helpers ───────────────────────────────────────────────
+    // 直接发布（survey 已存在，直接调用 publish 接口）
+    try {
+        const res = await fetch(`/surveys/${SURVEY_ID}/publish`, {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+        window.location.href = '/publisher';
+    } catch(e) {
+        alert('Failed to publish. Please try again.');
+    }
+}
+  // ── Helpers ────────────────────────────────────────────
   function escHtml(str) {
     return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
@@ -524,7 +629,7 @@
     el.style.height = el.scrollHeight + 'px';
   }
 
-  // ── Init ──────────────────────────────────────────────────
+  // ── Init ───────────────────────────────────────────────
   loadQuestions();
 </script>
 

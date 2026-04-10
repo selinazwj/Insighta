@@ -175,7 +175,7 @@
     <div class="form-section">
       <div class="section-header">
         <div class="section-icon">✏️</div>
-        <div><h2>Basic Information</h2><p>Title, description, and form link</p></div>
+        <div><h2>Basic Information</h2><p>{% if survey.form_url == '__builtin__' %}Title and description{% else %}Title, description, and form link{% endif %}</p></div>
       </div>
       <div class="form-group">
         <label>Survey Title</label>
@@ -185,10 +185,21 @@
         <label>Description</label>
         <textarea name="description" required>{{ survey.description }}</textarea>
       </div>
-      <div class="form-group">
-        <label>Google Form Link</label>
-        <input type="url" name="form_url" value="{{ survey.form_url }}" required>
-      </div>
+     {% if survey.form_url == '__builtin__' %}
+        <input type="hidden" name="form_url" value="__builtin__">
+        <div class="builtin-badge" style="display:flex; align-items:flex-start; gap:14px; background:rgba(45,106,79,0.06); border:1.5px solid rgba(45,106,79,0.2); border-radius:12px; padding:16px 20px;">
+          <div style="font-size:22px;">✨</div>
+          <div style="font-size:14px; color:var(--ink-soft); line-height:1.6;">
+            <strong style="display:block; font-weight:700; color:var(--accent); margin-bottom:3px;">Insighta Built-in Survey</strong>
+            This survey uses Insighta's built-in question builder. No external link needed.
+          </div>
+        </div>
+      {% else %}
+        <div class="form-group">
+          <label>Form Link</label>
+          <input type="url" name="form_url" value="{{ survey.form_url }}" required>
+        </div>
+      {% endif %}
     </div>
 
     <!-- SURVEY DETAILS -->
@@ -273,20 +284,44 @@
         <span class="progress-label">Current Progress</span>
         <span class="progress-value">{{ survey.current_responses }} / {{ survey.target_responses }} responses</span>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Reward per Response ($)</label>
-          <div class="label-desc">Amount participant receives after platform fee</div>
-          <input type="number" name="reward_amount" value="{{ "%.2f"|format(survey.reward_amount) }}" step="0.01" min="0.01" required style="margin-top: 8px;">
+
+      <input type="hidden" name="reward_amount" value="{{ survey.reward_amount }}">
+
+      {% if survey.status == 'published' %}
+        <div style="display:flex; align-items:flex-start; gap:14px; background:var(--paper-warm); border:1.5px solid var(--line); border-radius:12px; padding:16px 20px; margin-bottom:20px;">
+          <div style="font-size:22px;">🔒</div>
+          <div style="font-size:14px; color:var(--ink-soft); line-height:1.6;">
+            <strong style="display:block; font-weight:700; color:var(--ink); margin-bottom:3px;">Reward locked</strong>
+            Reward cannot be changed after publishing to protect participants.
+            Current reward: <strong style="color:var(--accent);">${{ "%.2f"|format(survey.reward_amount) }} per response</strong>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Additional Responses Needed</label>
-          <div class="label-desc">Added on top of current {{ survey.current_responses }}</div>
-          <input type="number" name="additional_needed" value="{{ survey.target_responses - survey.current_responses }}" min="0" required style="margin-top: 8px;">
+      {% elif survey.incentive_type in ('raffle', 'volunteer') %}
+        <div style="display:flex; align-items:flex-start; gap:14px; background:rgba(224,122,60,0.06); border:1.5px solid rgba(224,122,60,0.2); border-radius:12px; padding:16px 20px; margin-bottom:20px;">
+          <div style="font-size:22px;">🤝</div>
+          <div style="font-size:14px; color:var(--ink-soft); line-height:1.6;">
+            <strong style="display:block; font-weight:700; color:var(--accent-warm); margin-bottom:3px;">
+              {{ 'Volunteer' if survey.incentive_type == 'volunteer' else 'Raffle' }} Study — No payment required
+            </strong>
+            Participants are not paid per response for this study type.
+          </div>
         </div>
+      {% else %}
+        <div class="form-row" style="margin-bottom:0;">
+          <div class="form-group">
+            <label>Reward per Response ($)</label>
+            <div class="label-desc">Amount participant receives after platform fee</div>
+            <input type="number" name="reward_amount" value="{{ "%.2f"|format(survey.reward_amount) }}" step="0.01" min="0.01" required style="margin-top: 8px;">
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="form-group" style="margin-top: 16px;">
+        <label>Additional Responses Needed</label>
+        <div class="label-desc">Added on top of current {{ survey.current_responses }}</div>
+        <input type="number" name="additional_needed" value="{{ survey.target_responses - survey.current_responses }}" min="0" required>
       </div>
     </div>
-
     <!-- TARGET AUDIENCE -->
     <div class="form-section">
       <div class="section-header">
@@ -543,11 +578,18 @@
     document.getElementById('advArrow').textContent = this.open ? '▾' : '▸';
   });
 
-  document.querySelector('form').addEventListener('submit', function() {
-    ['target_education_min', 'target_education_max'].forEach(name => {
-      const el = this.querySelector(`select[name="${name}"]`);
-      if (el && !el.value) el.removeAttribute('name');
-    });
+  document.querySelector('form').addEventListener('submit', function(e) {
+      ['target_education_min', 'target_education_max'].forEach(name => {
+          const el = this.querySelector(`select[name="${name}"]`);
+          if (el && !el.value) el.removeAttribute('name');
+      });
+      // 只有显示了 reward 字段才验证
+      const rewardInput = document.getElementById('rewardInput');
+      if (rewardInput && (parseFloat(rewardInput.value) || 0) <= 0) {
+          e.preventDefault();
+          alert('Please enter a reward amount greater than 0.');
+          rewardInput.focus();
+      }
   });
 </script>
 
