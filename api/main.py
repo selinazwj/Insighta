@@ -1148,10 +1148,17 @@ def payment_success(
         except:
             pass
     survey = db.query(Survey).filter(Survey.id == survey_id).first() if survey_id else None
+
+    # 兜底：付款成功页直接发布
+    if survey and survey.payment_status != "paid":
+        survey.payment_status = "paid"
+        survey.status = "published"
+        survey.published_at = datetime.utcnow()
+        db.commit()
+
     return templates.TemplateResponse("payment_success.html", {
         "request": request, "survey": survey, "current_user": current_user,
     })
-
 
 # ---------------------------
 # Stripe Webhook
