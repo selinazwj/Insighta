@@ -1002,7 +1002,7 @@ async def publish_survey(
     request: Request,
     title: str = Form(...), description: str = Form(...), form_url: str = Form(...),
     task_type: str = Form("survey"), category: str = Form(...), estimated_time: int = Form(...),
-    per_person_gross: Optional[float] = Form(None), total_budget: Optional[float] = Form(None),
+    per_person_gross: Optional[str] = Form(None), total_budget: Optional[str] = Form(None),
     target_responses: int = Form(...), urgency_level: str = Form(None), incentive_type: str = Form(None),
     target_age_range: str = Form(None), target_field: str = Form(None), target_status: str = Form(None),
     target_state: str = Form(None), target_language: str = Form(None), target_ethnicity: str = Form(None),
@@ -1025,8 +1025,10 @@ async def publish_survey(
     if is_no_pay:
         ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
     else:
-        if per_person_gross: ppg = float(per_person_gross)
-        elif total_budget: ppg = float(total_budget) / int(target_responses)
+        _ppg = float(per_person_gross) if per_person_gross and per_person_gross.strip() else 0.0
+        _tb = float(total_budget) if total_budget and total_budget.strip() else 0.0
+        if _ppg: ppg = _ppg
+        elif _tb: ppg = _tb / int(target_responses)
         else: ppg = 5.0
         rate, reward = calculate_commission(ppg)
         total = round(ppg * int(target_responses), 2)
