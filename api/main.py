@@ -1196,7 +1196,13 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 @app.get("/connect/onboard")
 def connect_onboard(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not getattr(current_user, 'stripe_account_id', None):
-        account = stripe.Account.create(type="express", email=current_user.email, capabilities={"transfers": {"requested": True}})
+        account = stripe.Account.create(
+            type="express",
+            email=current_user.email,
+            business_type="individual",
+            individual={"email": current_user.email},
+            capabilities={"transfers": {"requested": True}}
+        )
         current_user.stripe_account_id = account.id; db.commit()
     account_link = stripe.AccountLink.create(
         account=current_user.stripe_account_id,
