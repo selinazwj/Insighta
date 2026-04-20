@@ -207,10 +207,6 @@
       <div class="step-dot">1</div>
       <div class="step-info"><h4>Account Setup</h4><p>Email, verification & password</p></div>
     </div>
-    <div class="panel-step" id="panelStep2">
-      <div class="step-dot">2</div>
-      <div class="step-info"><h4>Your Profile</h4><p>Help us match you better</p></div>
-    </div>
   </div>
   <div class="panel-footer">
     <p>Already have an account? <a href="/login">Sign in →</a></p>
@@ -273,263 +269,10 @@
           </div>
         </div>
 
-        <button type="button" class="btn-next" onclick="requestConsent()">Continue →</button>
+        <button type="button" class="btn-next" onclick="requestConsent()">Create Account →</button>
         <p class="form-footer">Already have an account? <a href="/login">Sign in</a></p>
       </div>
 
-      <!-- STEP 2 -->
-      <div class="step" id="step2">
-        <div class="step-header">
-          <span class="step-eyebrow">Step 2 of 2</span>
-          <h1>Tell us about yourself.</h1>
-          <p>All fields below are optional — but the more you fill in, the better we can match you.</p>
-        </div>
-
-        <div class="optional-hint">
-          💡 All fields on this page are <strong>optional</strong>. You can skip any field or click "Skip for now".
-        </div>
-
-        <div class="section-label">Basics <span class="section-tag optional">Optional</span></div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Age range</label>
-            <select name="age_range">
-              <option value="">— skip —</option>
-              <option value="18-24">18–24</option><option value="25-34">25–34</option>
-              <option value="35-44">35–44</option><option value="45+">45+</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Education level</label>
-            <select name="education_level">
-              <option value="">— skip —</option>
-              <option value="High School">High School</option>
-              <option value="Undergraduate">Undergraduate</option>
-              <option value="Graduate">Graduate</option>
-              <option value="PhD">PhD</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Field / Major</label>
-            <select name="field">
-              <option value="">— skip —</option>
-              <option value="Computer Science & Engineering">CS & Engineering</option>
-              <option value="Business & Economics">Business & Economics</option>
-              <option value="Medicine & Healthcare">Medicine & Healthcare</option>
-              <option value="Natural Sciences">Natural Sciences</option>
-              <option value="Social Sciences">Social Sciences</option>
-              <option value="Arts & Humanities">Arts & Humanities</option>
-              <option value="Education">Education</option>
-              <option value="Law">Law</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Current status</label>
-            <select name="status">
-              <option value="">— skip —</option>
-              <option value="student">Student</option>
-              <option value="working">Working</option>
-              <option value="freelancer">Freelancer</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>State</label>
-          <select name="state">
-            <option value="">— skip —</option>
-            <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
-            <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
-            <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
-            <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
-            <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
-            <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
-            <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
-            <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
-            <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
-            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
-            <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
-            <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
-            <option>Wisconsin</option><option>Wyoming</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Languages</label>
-          <div class="multiselect-wrap" id="language-multiselect">
-            <button type="button" class="multiselect-trigger">— skip —</button>
-            <div class="multiselect-panel">
-              <label><input type="checkbox" name="language" value="Arabic"> Arabic</label>
-              <label><input type="checkbox" name="language" value="English"> English</label>
-              <label><input type="checkbox" name="language" value="French"> French</label>
-              <label><input type="checkbox" name="language" value="German"> German</label>
-              <label><input type="checkbox" name="language" value="Hindi"> Hindi</label>
-              <label><input type="checkbox" name="language" value="Japanese"> Japanese</label>
-              <label><input type="checkbox" name="language" value="Korean"> Korean</label>
-              <label><input type="checkbox" name="language" value="Mandarin Chinese"> Mandarin Chinese</label>
-              <label><input type="checkbox" name="language" value="Spanish"> Spanish</label>
-              <label><input type="checkbox" name="language" value="Other"> Other</label>
-            </div>
-          </div>
-        </div>
-
-        <div class="section-label">Academic & Participation <span class="section-tag optional">Optional</span></div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Student status</label>
-            <select name="student_status">
-              <option value="">— skip —</option>
-              <option value="undergrad">Undergraduate</option>
-              <option value="grad">Graduate / PhD</option>
-              <option value="non-student">Non-student</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Year in school</label>
-            <select name="year_in_school">
-              <option value="">— skip —</option>
-              <option value="Freshman">Freshman</option><option value="Sophomore">Sophomore</option>
-              <option value="Junior">Junior</option><option value="Senior">Senior</option>
-              <option value="Graduate Year 1">Graduate Year 1</option>
-              <option value="Graduate Year 2+">Graduate Year 2+</option>
-              <option value="N/A">N/A</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>International or domestic</label>
-            <select name="international_domestic">
-              <option value="">— skip —</option>
-              <option value="Domestic">Domestic</option>
-              <option value="International">International</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Participation format</label>
-            <select name="participation_format">
-              <option value="">— skip —</option>
-              <option value="online">Online only</option>
-              <option value="in_person">In-person ok</option>
-              <option value="both">Both</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Primary device</label>
-            <select name="device_type">
-              <option value="">— skip —</option>
-              <option value="laptop">Laptop / Desktop</option>
-              <option value="mobile">Mobile</option>
-              <option value="any">Both</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-group" style="margin-top: 4px;">
-          <label>Your experiences</label>
-          <div class="multiselect-wrap" id="experience-multiselect">
-            <button type="button" class="multiselect-trigger">— skip —</button>
-            <div class="multiselect-panel">
-              <label><input type="checkbox" name="experience_tags" value="startup_experience"> 🚀 Startup / product experience</label>
-              <label><input type="checkbox" name="experience_tags" value="club_leadership"> 🎓 Club / org leadership</label>
-              <label><input type="checkbox" name="experience_tags" value="mental_health_experience"> 🧠 Mental health experience</label>
-              <label><input type="checkbox" name="experience_tags" value="chronic_illness"> 🏥 Chronic illness</label>
-              <label><input type="checkbox" name="experience_tags" value="heavy_social_media"> 📱 Heavy social media user</label>
-              <label><input type="checkbox" name="experience_tags" value="prior_research"> 🔬 Prior research participation</label>
-            </div>
-          </div>
-        </div>
-
-        <div class="section-label">Demographics <span class="section-tag optional">Optional</span></div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Ethnicity</label>
-            <select name="ethnicity">
-              <option value="">— skip —</option>
-              <option>White</option><option>Black or African American</option>
-              <option>Hispanic or Latino</option><option>Asian</option>
-              <option>Middle Eastern or North African</option>
-              <option>Native American or Pacific Islander</option>
-              <option>Two or more races</option><option>Other</option>
-              <option>Prefer not to say</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Sexual orientation</label>
-            <select name="sexual_orientation">
-              <option value="">— skip —</option>
-              <option>Straight / Heterosexual</option><option>Gay or Lesbian</option>
-              <option>Bisexual</option><option>Other</option><option>Prefer not to say</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Mental health diagnosis</label>
-            <select name="mental_health_diagnosis">
-              <option value="">— skip —</option>
-              <option>Yes</option><option>No</option><option>Prefer not to say</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Physical health diagnosis</label>
-            <select name="physical_health_diagnosis">
-              <option value="">— skip —</option>
-              <option>Yes</option><option>No</option><option>Prefer not to say</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="section-label">Lifestyle <span class="section-tag optional">Optional</span></div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Sport type</label>
-            <select name="sport_type">
-              <option value="">— skip —</option>
-              <option>Basketball</option><option>Soccer / Football</option><option>Baseball / Softball</option>
-              <option>American Football</option><option>Tennis</option><option>Golf</option>
-              <option>Swimming</option><option>Running / Jogging</option><option>Cycling</option>
-              <option>Yoga / Pilates</option><option>Gym / Weightlifting</option><option>Martial Arts</option>
-              <option>Volleyball</option><option>Hockey</option><option>Other</option><option>None</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Sport frequency</label>
-            <select name="sport_frequency">
-              <option value="">— skip —</option>
-              <option>Daily</option><option>Several times a week</option><option>Once a week</option>
-              <option>A few times a month</option><option>Rarely</option><option>Never</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Do you smoke?</label>
-            <select name="smoking">
-              <option value="">— skip —</option>
-              <option>Never</option><option>Former smoker</option><option>Rarely</option>
-              <option>Occasionally</option><option>Several times a week</option><option>Daily</option>
-              <option>Prefer not to say</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Cannabis use</label>
-            <select name="cannabis_use">
-              <option value="">— skip —</option>
-              <option>Never</option><option>Former user</option><option>Rarely</option>
-              <option>Occasionally</option><option>Several times a week</option><option>Daily</option>
-              <option>Prefer not to say</option>
-            </select>
-          </div>
-        </div>
-
-        <button type="submit" class="btn-submit">Create Account →</button>
-        <button type="button" class="btn-back" onclick="goToStep1()">← Back</button>
-        <button type="submit" class="btn-skip">Skip for now →</button>
-      </div>
 
     </form>
   </div>
@@ -632,31 +375,14 @@
   }
 
   function agreeAndContinue() {
-    document.getElementById('consentModal').style.display = 'none';
-    goToStep2();
+      document.getElementById('consentModal').style.display = 'none';
+      document.getElementById('registerForm').submit();
   }
-
   function closeConsent() {
     document.getElementById('consentModal').style.display = 'none';
   }
 
-  function goToStep2() {
-    document.getElementById('step1').classList.remove('active');
-    document.getElementById('step2').classList.add('active');
-    document.getElementById('panelStep1').classList.remove('active');
-    document.getElementById('panelStep1').classList.add('done');
-    document.getElementById('panelStep2').classList.add('active');
-    window.scrollTo(0, 0);
-  }
 
-  function goToStep1() {
-    document.getElementById('step2').classList.remove('active');
-    document.getElementById('step1').classList.add('active');
-    document.getElementById('panelStep2').classList.remove('active');
-    document.getElementById('panelStep1').classList.remove('done');
-    document.getElementById('panelStep1').classList.add('active');
-    window.scrollTo(0, 0);
-  }
 
   // If error from server, stay on step1
   {% if error %}
@@ -669,29 +395,7 @@
     s.addEventListener('change', update); update();
   });
 
-  function initMultiselect(id, placeholder) {
-    const wrap = document.getElementById(id); if (!wrap) return;
-    const trigger = wrap.querySelector('.multiselect-trigger');
-    const checkboxes = wrap.querySelectorAll('input[type="checkbox"]');
-    function update() {
-      const labels = [];
-      checkboxes.forEach(cb => { if (cb.checked) labels.push(cb.parentElement.textContent.trim()); });
-      trigger.textContent = labels.length ? labels.join(', ') : placeholder;
-      trigger.classList.toggle('has-value', labels.length > 0);
-    }
-    trigger.addEventListener('click', e => {
-      e.preventDefault(); e.stopPropagation();
-      document.querySelectorAll('.multiselect-wrap.open').forEach(w => { if (w !== wrap) w.classList.remove('open'); });
-      wrap.classList.toggle('open');
-    });
-    wrap.querySelector('.multiselect-panel').addEventListener('click', e => e.stopPropagation());
-    checkboxes.forEach(cb => cb.addEventListener('change', update));
-    document.addEventListener('click', () => wrap.classList.remove('open'));
-    update();
-  }
-
-  initMultiselect('language-multiselect', '— skip —');
-  initMultiselect('experience-multiselect', '— skip —');
+  
 </script>
 
 </body>

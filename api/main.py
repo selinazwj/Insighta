@@ -646,49 +646,19 @@ async def do_register(
             "request": request, "error": msg, "register_email": email
         })
 
-    if not email:
-        return reg_error("Email is required.")
-    if password != confirm:
-        return reg_error("Passwords do not match.")
-
+    if not email: return reg_error("Email is required.")
+    if password != confirm: return reg_error("Passwords do not match.")
     pw_error = _validate_registration_password(password)
-    if pw_error:
-        return reg_error(pw_error)
-
+    if pw_error: return reg_error(pw_error)
     if db.query(User).filter(User.email == email).first():
         return reg_error("Email already exists.")
-
     if not _consume_verification_code(db, email, "register", verification_code):
-        return reg_error("Invalid or expired verification code. Please request a new one.")
-
-    language_list = form.getlist("language")
-    experience_list = form.getlist("experience_tags")
+        return reg_error("Invalid or expired verification code.")
 
     user = User(
         email=email,
         password=pwd_context.hash(password),
-        age_range=form.get("age_range"),
-        education_level=form.get("education_level"),
-        field=form.get("field"),
-        status=form.get("status"),
-        state=form.get("state"),
-        ethnicity=form.get("ethnicity"),
-        mental_health_diagnosis=form.get("mental_health_diagnosis"),
-        physical_health_diagnosis=form.get("physical_health_diagnosis"),
-        sexual_orientation=form.get("sexual_orientation"),
-        sport_type=form.get("sport_type"),
-        sport_frequency=form.get("sport_frequency"),
-        smoking=form.get("smoking"),
-        cannabis_use=form.get("cannabis_use"),
-        language=",".join(language_list) if language_list else None,
-        student_status=form.get("student_status"),
-        year_in_school=form.get("year_in_school"),
-        international_domestic=form.get("international_domestic"),
-        experience_tags=",".join(experience_list) if experience_list else None,
-        participation_format=form.get("participation_format"),
-        device_type=form.get("device_type"),
     )
-
     db.add(user)
     db.commit()
     db.refresh(user)
