@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/static/favicon.png">
-    <link rel="apple-touch-icon" href="/static/favicon.png">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
     <meta name="theme-color" content="#050E1F">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Insighta">
 <title>Insighta — Where Research Meets Reality</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -590,5 +592,15 @@ document.querySelectorAll('.story-block, .timeline-card, .value-card, .cta-card,
 });
 </script>
 
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/static/service-worker.js')
+        .then(() => console.log('Service Worker registered'))
+        .catch(err => console.log('SW error:', err));
+    });
+  }
+</script>
 </body>
 </html>
