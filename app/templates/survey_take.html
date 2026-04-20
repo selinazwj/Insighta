@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ survey.title }} — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
+      --paper: #faf9f5; --paper-warm: #f3f1ea;
+      --accent: #2d6a4f; --accent-light: #52b788;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+    /* Navbar */
+    .navbar { background: rgba(250,249,245,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 14px 48px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+    .navbar-brand span { color: var(--accent); }
+    .progress-wrap { display: flex; align-items: center; gap: 10px; }
+    .progress-bar { width: 160px; height: 5px; background: var(--line); border-radius: 100px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent-light); border-radius: 100px; transition: width 0.4s ease; }
+    .progress-label { font-size: 13px; color: var(--ink-muted); }
+
+    /* Layout */
+    .container { max-width: 680px; margin: 0 auto; padding: 48px 24px 100px; }
+
+    /* Survey header */
+    .survey-header { margin-bottom: 40px; }
+    .survey-header h1 { font-family: var(--serif); font-size: 32px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
+    .survey-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; line-height: 1.6; }
+    .survey-meta { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+    .meta-pill { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--ink-muted); background: var(--paper-warm); border: 1px solid var(--line); padding: 5px 12px; border-radius: 100px; }
+
+    /* Question card */
+    .q-block { background: white; border: 1.5px solid var(--line); border-radius: 14px; padding: 24px 28px; margin-bottom: 16px; transition: border-color 0.2s; }
+    .q-block.has-error { border-color: #fca5a5; }
+    .q-label { font-size: 16px; font-weight: 500; color: var(--ink); margin-bottom: 4px; line-height: 1.5; }
+    .q-required-star { color: #ef4444; margin-left: 3px; }
+    .q-sublabel { font-size: 13px; color: var(--ink-muted); margin-bottom: 16px; font-weight: 300; }
+    .q-error { font-size: 13px; color: #ef4444; margin-top: 8px; display: none; }
+    .q-block.has-error .q-error { display: block; }
+
+    /* Single choice */
+    .radio-group { display: flex; flex-direction: column; gap: 8px; }
+    .radio-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; user-select: none; }
+    .radio-item:hover { border-color: var(--accent-light); background: rgba(45,106,79,0.03); }
+    .radio-item.selected { border-color: var(--accent); background: rgba(45,106,79,0.06); }
+    .radio-item input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+    .radio-item span { font-size: 15px; color: var(--ink); }
+
+    /* Multiple choice */
+    .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+    .checkbox-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; user-select: none; }
+    .checkbox-item:hover { border-color: var(--accent-light); background: rgba(45,106,79,0.03); }
+    .checkbox-item.selected { border-color: var(--accent); background: rgba(45,106,79,0.06); }
+    .checkbox-item input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+    .checkbox-item span { font-size: 15px; color: var(--ink); }
+
+    /* Text answer */
+    .text-answer { width: 100%; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; color: var(--ink); background: white; resize: vertical; min-height: 100px; line-height: 1.6; transition: all 0.2s; }
+    .text-answer:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
+    .text-answer::placeholder { color: #c4c2bc; font-weight: 300; }
+
+    /* Scale */
+    .scale-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .scale-btn { width: 52px; height: 52px; border: 1.5px solid var(--line); border-radius: 10px; background: white; cursor: pointer; font-size: 16px; font-weight: 600; color: var(--ink-muted); transition: all 0.15s; font-family: var(--sans); }
+    .scale-btn:hover { border-color: var(--accent-light); color: var(--ink); }
+    .scale-btn.selected { border-color: var(--accent); background: var(--accent); color: white; }
+    .scale-labels { display: flex; justify-content: space-between; margin-top: 8px; }
+    .scale-labels span { font-size: 12px; color: var(--ink-muted); }
+
+    /* Dropdown */
+    .dropdown-answer { width: 100%; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; color: var(--ink); background: white; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; transition: all 0.2s; }
+    .dropdown-answer:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
+
+    /* Submit bar */
+    .submit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(250,249,245,0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--line); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+    .submit-hint { font-size: 13px; color: var(--ink-muted); }
+    .btn-submit { padding: 12px 32px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-submit:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* Loading state */
+    .loading-state { text-align: center; padding: 80px 20px; }
+    .loading-state p { font-size: 15px; color: var(--ink-muted); }
+
+    @media (max-width: 640px) {
+      .navbar { padding: 12px 16px; }
+      .progress-wrap { display: none; }
+      .container { padding: 32px 16px 100px; }
+      .q-block { padding: 18px 20px; }
+      .scale-btn { width: 44px; height: 44px; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">Insight<span>a</span></div>
+  <div class="progress-wrap">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+    </div>
+    <span class="progress-label" id="progressLabel">0%</span>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Survey header -->
+  <div class="survey-header">
+    <h1>{{ survey.title }}</h1>
+    <p>{{ survey.description }}</p>
+    <div class="survey-meta">
+      <span class="meta-pill">⏱ {{ survey.estimated_time }} min</span>
+      <span class="meta-pill">💰 ${{ "%.2f"|format(survey.reward_amount) }} reward</span>
+    </div>
+  </div>
+
+  <!-- Questions rendered by JS -->
+  <div id="questionsList">
+    <div class="loading-state"><p>Loading questions...</p></div>
+  </div>
+
+</div>
+
+<!-- Fixed submit bar -->
+<div class="submit-bar">
+  <span class="submit-hint" id="submitHint">Answer all required questions to submit.</span>
+  <button class="btn-submit" id="submitBtn" onclick="submitAnswers()">Submit →</button>
+</div>
+
+<script>
+  const SURVEY_ID = {{ survey.id }};
+  let questions = [];
+  let answers = {};  // { question_id: value }
+
+  // ── Load questions ────────────────────────────────────────
+  async function loadQuestions() {
+    try {
+      const res = await fetch(`/surveys/${SURVEY_ID}/questions`, {
+        credentials: 'same-origin'
+      });
+      if (!res.ok) throw new Error('Failed to load');
+      questions = await res.json();
+      renderQuestions();
+    } catch(e) {
+      document.getElementById('questionsList').innerHTML =
+        '<div class="loading-state"><p>Failed to load questions. Please refresh.</p></div>';
+    }
+  }
+
+  // ── Render questions ──────────────────────────────────────
+  function renderQuestions() {
+    const list = document.getElementById('questionsList');
+    if (questions.length === 0) {
+      list.innerHTML = '<div class="loading-state"><p>No questions found.</p></div>';
+      return;
+    }
+    list.innerHTML = questions.map((q, i) => renderQuestion(q, i)).join('');
+    updateProgress();
+  }
+
+  function renderQuestion(q, index) {
+    const requiredStar = q.is_required
+      ? `<span class="q-required-star">*</span>` : '';
+    let inputHtml = '';
+
+    if (q.question_type === 'single') {
+      inputHtml = `<div class="radio-group">
+        ${(q.options || []).map(opt => `
+          <label class="radio-item" onclick="selectRadio(${q.id}, '${escHtml(opt)}', this)">
+            <input type="radio" name="q_${q.id}" value="${escHtml(opt)}">
+            <span>${escHtml(opt)}</span>
+          </label>`).join('')}
+      </div>`;
+
+    } else if (q.question_type === 'multiple') {
+      inputHtml = `<div class="checkbox-group">
+        ${(q.options || []).map(opt => `
+          <label class="checkbox-item" onclick="toggleCheckbox(${q.id}, '${escHtml(opt)}', this)">
+            <input type="checkbox" value="${escHtml(opt)}">
+            <span>${escHtml(opt)}</span>
+          </label>`).join('')}
+      </div>`;
+
+    } else if (q.question_type === 'text') {
+      inputHtml = `<textarea class="text-answer" rows="4"
+        placeholder="Type your answer here..."
+        oninput="updateAnswer(${q.id}, this.value); updateProgress()"></textarea>`;
+
+    } else if (q.question_type === 'scale') {
+      inputHtml = `
+        <div class="scale-group">
+          ${[1,2,3,4,5].map(n => `
+            <button type="button" class="scale-btn" data-q="${q.id}" data-val="${n}"
+              onclick="selectScale(${q.id}, ${n}, this)">${n}</button>
+          `).join('')}
+        </div>
+        <div class="scale-labels">
+          <span>Strongly disagree</span>
+          <span>Strongly agree</span>
+        </div>`;
+
+    } else if (q.question_type === 'dropdown') {
+      inputHtml = `<select class="dropdown-answer"
+        onchange="updateAnswer(${q.id}, this.value); updateProgress()">
+        <option value="">— Select an option —</option>
+        ${(q.options || []).map(opt =>
+          `<option value="${escHtml(opt)}">${escHtml(opt)}</option>`
+        ).join('')}
+      </select>`;
+    }
+
+    return `
+      <div class="q-block" id="qblock-${q.id}">
+        <div class="q-label">
+          <span style="color:var(--ink-muted); font-size:13px; font-weight:400;">Q${index+1}</span>
+          &nbsp;${escHtml(q.question_text)}${requiredStar}
+        </div>
+        ${q.is_required ? '' : '<div class="q-sublabel">Optional</div>'}
+        ${inputHtml}
+        <div class="q-error" id="err-${q.id}">This question is required.</div>
+      </div>`;
+  }
+
+  // ── Answer handlers ───────────────────────────────────────
+  function selectRadio(qId, value, labelEl) {
+    answers[qId] = value;
+    document.querySelectorAll(`[name="q_${qId}"]`).forEach(r => {
+      r.closest('.radio-item').classList.remove('selected');
+    });
+    labelEl.classList.add('selected');
+    clearError(qId);
+    updateProgress();
+  }
+
+  function toggleCheckbox(qId, value, labelEl) {
+    const cb = labelEl.querySelector('input[type="checkbox"]');
+    // Let browser toggle the checkbox first
+    setTimeout(() => {
+      const selected = Array.from(
+        document.querySelectorAll(`#qblock-${qId} input[type="checkbox"]:checked`)
+      ).map(c => c.value);
+      answers[qId] = selected.length > 0 ? selected : undefined;
+      labelEl.classList.toggle('selected', cb.checked);
+      clearError(qId);
+      updateProgress();
+    }, 0);
+  }
+
+  function selectScale(qId, value, btn) {
+    answers[qId] = value;
+    document.querySelectorAll(`.scale-btn[data-q="${qId}"]`).forEach(b => {
+      b.classList.remove('selected');
+    });
+    btn.classList.add('selected');
+    clearError(qId);
+    updateProgress();
+  }
+
+  function updateAnswer(qId, value) {
+    answers[qId] = value || undefined;
+    clearError(qId);
+  }
+
+  function clearError(qId) {
+    const block = document.getElementById(`qblock-${qId}`);
+    if (block) block.classList.remove('has-error');
+  }
+
+  // ── Progress bar ──────────────────────────────────────────
+  function updateProgress() {
+    const required = questions.filter(q => q.is_required);
+    const answered = required.filter(q => {
+      const a = answers[q.id];
+      return a !== undefined && a !== '' &&
+        !(Array.isArray(a) && a.length === 0);
+    });
+    const pct = required.length > 0
+      ? Math.round((answered.length / required.length) * 100) : 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = pct + '%';
+
+    const remaining = required.length - answered.length;
+    document.getElementById('submitHint').textContent = remaining > 0
+      ? `${remaining} required question${remaining > 1 ? 's' : ''} remaining`
+      : 'Ready to submit!';
+  }
+
+  // ── Validate before submit ────────────────────────────────
+  function validate() {
+    let valid = true;
+    questions.forEach(q => {
+      if (!q.is_required) return;
+      const a = answers[q.id];
+      const empty = a === undefined || a === '' ||
+        (Array.isArray(a) && a.length === 0);
+      if (empty) {
+        const block = document.getElementById(`qblock-${q.id}`);
+        if (block) block.classList.add('has-error');
+        valid = false;
+      }
+    });
+    if (!valid) {
+      // Scroll to first error
+      const first = document.querySelector('.q-block.has-error');
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return valid;
+  }
+
+  // ── Submit ────────────────────────────────────────────────
+  async function submitAnswers() {
+    if (!validate()) return;
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    const payload = questions.map(q => ({
+      question_id: q.id,
+      answer_value: answers[q.id] ?? null
+    }));
+
+    try {
+      const res = await fetch(`/surveys/${SURVEY_ID}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Submit failed');
+      window.location.href = '/dashboard?submitted=1';
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = 'Submit →';
+      alert('Something went wrong. Please try again.');
+    }
+  }
+
+  // ── Helper ────────────────────────────────────────────────
+  function escHtml(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Init ──────────────────────────────────────────────────
+  loadQuestions();
+</script>
+
+</body>
+</html>
