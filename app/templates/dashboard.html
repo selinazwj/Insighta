@@ -182,6 +182,31 @@
     {% endif %}
   </div>
 
+  <!-- PROFILE COMPLETENESS -->
+  {% set profile_fields = [
+      current_user.age_range, current_user.education_level, current_user.field,
+      current_user.status, current_user.state, current_user.language,
+      current_user.ethnicity, current_user.student_status, current_user.year_in_school,
+      current_user.international_domestic, current_user.participation_format,
+      current_user.device_type, current_user.experience_tags, current_user.sexual_orientation,
+      current_user.mental_health_diagnosis, current_user.physical_health_diagnosis,
+      current_user.sport_type, current_user.smoking
+  ] %}
+  {% set filled = profile_fields | select | list | length %}
+  {% set total = profile_fields | length %}
+  {% set pct = (filled * 100 // total) %}
+  {% if pct < 100 %}
+  <a href="/profile" style="display:block; background:white; border:1.5px solid var(--line); border-radius:14px; padding:16px 20px; margin-bottom:20px; text-decoration:none; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--line)'">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div style="font-size:13px; font-weight:600; color:var(--ink-soft);">Complete your profile to get better matches</div>
+      <div style="font-size:13px; font-weight:700; color:var(--accent);">{{ pct }}%</div>
+    </div>
+    <div style="height:6px; background:var(--paper-warm); border-radius:100px; overflow:hidden;">
+      <div style="height:100%; width:{{ pct }}%; background:linear-gradient(90deg, var(--accent), var(--accent-light)); border-radius:100px; transition:width 0.5s;"></div>
+    </div>
+    <div style="font-size:12px; color:var(--ink-muted); margin-top:8px; font-weight:300;">{{ total - filled }} fields missing → Fill in your profile →</div>
+  </a>
+  {% endif %}
   <!-- MODE SWITCHER -->
   <div class="mode-switcher">
     <button class="mode-btn active" id="modeSurvey" onclick="switchMode('survey')">
