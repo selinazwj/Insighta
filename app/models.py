@@ -40,6 +40,10 @@ class User(Base):
     participation_format = Column(String, nullable=True)
     device_type = Column(String, nullable=True)
 
+    # OAuth fields
+    oauth_provider = Column(String, nullable=True)   # "google" | "linkedin" | None
+    oauth_id = Column(String, nullable=True)          # provider's unique user id
+
     # Stripe fields
     stripe_account_id = Column(String, nullable=True)
     stripe_onboarding_complete = Column(String, default="false")

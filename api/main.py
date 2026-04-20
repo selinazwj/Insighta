@@ -8,13 +8,16 @@ from sqlalchemy import func, case
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlencode
 import random
 import re
 import shutil
 import uuid
 import os
+import secrets
 import stripe
 import smtplib
+import httpx
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -38,6 +41,23 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 VERIFICATION_CODE_EXPIRE_MINUTES = 10
+
+# ---------------------------
+# OAuth 2.0 configuration
+# ---------------------------
+BASE_URL = os.environ.get("BASE_URL", "https://insightaco.org")
+
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
+
+LINKEDIN_CLIENT_ID = os.environ.get("LINKEDIN_CLIENT_ID")
+LINKEDIN_CLIENT_SECRET = os.environ.get("LINKEDIN_CLIENT_SECRET")
+LINKEDIN_AUTH_URL = "https://www.linkedin.com/oauth/v2/authorization"
+LINKEDIN_TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
+LINKEDIN_USERINFO_URL = "https://api.linkedin.com/v2/userinfo"
 
 def send_email(to: str, subject: str, body: str):
     try:
@@ -302,6 +322,190 @@ async def send_auth_code(
 
 
 # ---------------------------
+# Google OAuth
+# ---------------------------
+
+@app.get("/auth/google")
+def google_login():
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(503, "Google login is not configured.")
+    state = secrets.token_urlsafe(16)
+    params = urlencode({
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": f"{BASE_URL}/auth/google/callback",
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "offline",
+        "prompt": "select_account",
+    })
+    response = RedirectResponse(f"{GOOGLE_AUTH_URL}?{params}", status_code=302)
+    response.set_cookie("oauth_state", state, httponly=True, samesite="none", secure=True, max_age=300)
+    return response
+
+
+@app.get("/auth/google/callback")
+async def google_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    if error:
+        return RedirectResponse("/login?oauth_error=Google+login+was+cancelled.", status_code=302)
+
+    stored_state = request.cookies.get("oauth_state")
+    if not state or state != stored_state:
+        return RedirectResponse("/login?oauth_error=Invalid+state.+Please+try+again.", status_code=302)
+
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(GOOGLE_TOKEN_URL, data={
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": f"{BASE_URL}/auth/google/callback",
+            "grant_type": "authorization_code",
+        })
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return RedirectResponse("/login?oauth_error=Google+token+exchange+failed.", status_code=302)
+
+        userinfo_resp = await client.get(
+            GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        userinfo = userinfo_resp.json()
+
+    email = _normalize_email(userinfo.get("email", ""))
+    google_id = str(userinfo.get("id", ""))
+    name = userinfo.get("name") or userinfo.get("given_name")
+
+    if not email:
+        return RedirectResponse("/login?oauth_error=Could+not+retrieve+email+from+Google.", status_code=302)
+
+    user = db.query(User).filter(User.email == email).first()
+    is_new = False
+    if not user:
+        user = User(
+            email=email,
+            password=pwd_context.hash(secrets.token_urlsafe(32)),
+            username=name,
+            oauth_provider="google",
+            oauth_id=google_id,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        is_new = True
+    else:
+        if not user.oauth_provider:
+            user.oauth_provider = "google"
+            user.oauth_id = google_id
+            db.commit()
+
+    redirect_url = "/choice?welcome=1" if is_new else "/choice"
+    resp = RedirectResponse(redirect_url, status_code=303)
+    resp.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
+    resp.delete_cookie("oauth_state")
+    return resp
+
+
+# ---------------------------
+# LinkedIn OAuth
+# ---------------------------
+
+@app.get("/auth/linkedin")
+def linkedin_login():
+    if not LINKEDIN_CLIENT_ID:
+        raise HTTPException(503, "LinkedIn login is not configured.")
+    state = secrets.token_urlsafe(16)
+    params = urlencode({
+        "response_type": "code",
+        "client_id": LINKEDIN_CLIENT_ID,
+        "redirect_uri": f"{BASE_URL}/auth/linkedin/callback",
+        "state": state,
+        "scope": "openid profile email",
+    })
+    response = RedirectResponse(f"{LINKEDIN_AUTH_URL}?{params}", status_code=302)
+    response.set_cookie("oauth_state", state, httponly=True, samesite="none", secure=True, max_age=300)
+    return response
+
+
+@app.get("/auth/linkedin/callback")
+async def linkedin_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    if error:
+        return RedirectResponse("/login?oauth_error=LinkedIn+login+was+cancelled.", status_code=302)
+
+    stored_state = request.cookies.get("oauth_state")
+    if not state or state != stored_state:
+        return RedirectResponse("/login?oauth_error=Invalid+state.+Please+try+again.", status_code=302)
+
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(
+            LINKEDIN_TOKEN_URL,
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": f"{BASE_URL}/auth/linkedin/callback",
+                "client_id": LINKEDIN_CLIENT_ID,
+                "client_secret": LINKEDIN_CLIENT_SECRET,
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return RedirectResponse("/login?oauth_error=LinkedIn+token+exchange+failed.", status_code=302)
+
+        userinfo_resp = await client.get(
+            LINKEDIN_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        userinfo = userinfo_resp.json()
+
+    email = _normalize_email(userinfo.get("email", ""))
+    linkedin_id = str(userinfo.get("sub", ""))
+    name = userinfo.get("name") or userinfo.get("given_name")
+
+    if not email:
+        return RedirectResponse("/login?oauth_error=Could+not+retrieve+email+from+LinkedIn.", status_code=302)
+
+    user = db.query(User).filter(User.email == email).first()
+    is_new = False
+    if not user:
+        user = User(
+            email=email,
+            password=pwd_context.hash(secrets.token_urlsafe(32)),
+            username=name,
+            oauth_provider="linkedin",
+            oauth_id=linkedin_id,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        is_new = True
+    else:
+        if not user.oauth_provider:
+            user.oauth_provider = "linkedin"
+            user.oauth_id = linkedin_id
+            db.commit()
+
+    redirect_url = "/choice?welcome=1" if is_new else "/choice"
+    resp = RedirectResponse(redirect_url, status_code=303)
+    resp.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
+    resp.delete_cookie("oauth_state")
+    return resp
+
+
+# ---------------------------
 # Index
 # ---------------------------
 
@@ -322,11 +526,12 @@ def login_page(
     request: Request,
     success: Optional[str] = None,
     reset_success: Optional[str] = None,
-    email: Optional[str] = None
+    email: Optional[str] = None,
+    oauth_error: Optional[str] = None,
 ):
     return templates.TemplateResponse("login.html", {
         "request": request,
-        "error": None,
+        "error": oauth_error or None,
         "success": success,
         "reset_error": None,
         "reset_success": reset_success,
