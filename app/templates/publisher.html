@@ -107,10 +107,11 @@
     .modal-close { float: right; margin-top: -2px; width: 28px; height: 28px; border-radius: 50%; background: var(--paper-warm); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; color: var(--ink-muted); transition: all 0.15s; }
     .modal-close:hover { background: var(--line); color: var(--ink); }
     .modal-body { padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 12px; }
-    .type-card { display: flex; align-items: center; gap: 16px; padding: 20px 22px; background: white; border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer; text-decoration: none; transition: all 0.18s; }
+    .type-card { display: flex; align-items: center; gap: 16px; padding: 20px 22px; background: white; border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer; text-decoration: none; transition: all 0.18s; width: 100%; text-align: left; font-family: var(--sans); }
     .type-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(45,106,79,0.1); transform: translateY(-1px); }
     .type-card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
     .icon-survey { background: rgba(45,106,79,0.1); }
+    .icon-builtin { background: rgba(45,106,79,0.18); }
     .icon-interview { background: rgba(224,122,60,0.1); }
     .type-card-text { flex: 1; }
     .type-card-title { font-family: var(--serif); font-size: 18px; color: var(--ink); letter-spacing: -0.2px; margin-bottom: 3px; }
@@ -128,12 +129,13 @@
       .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
       .card { padding: 20px; }
       .card-top { flex-direction: column; gap: 8px; }
+      .card-actions { gap: 6px; }
     }
   </style>
 </head>
 <body>
 
-<!-- ── NEW LISTING MODAL ── -->
+<!-- NEW LISTING MODAL -->
 <div class="modal-backdrop" id="newListingModal" style="display:none;" onclick="handleBackdropClick(event)">
   <div class="modal">
     <div class="modal-header">
@@ -142,27 +144,44 @@
       <p>Choose the type of study you want to post.</p>
     </div>
     <div class="modal-body">
+
+      <!-- External link survey -->
       <a href="/publish" class="type-card">
         <div class="type-card-icon icon-survey">📋</div>
         <div class="type-card-text">
-          <div class="type-card-title">Survey</div>
-          <div class="type-card-desc">Share a form link and collect responses at scale. Best for quantitative research, feedback, or quick studies.</div>
+          <div class="type-card-title">Survey — External Link</div>
+          <div class="type-card-desc">Use your own Google Form, Qualtrics, or any survey link.</div>
         </div>
         <div class="type-card-arrow">→</div>
       </a>
+
+      <!-- Built-in survey: POST to create draft and go straight to builder -->
+      <form method="post" action="/surveys/create-builtin" style="margin:0;">
+        <button type="submit" class="type-card">
+          <div class="type-card-icon icon-builtin">✨</div>
+          <div class="type-card-text">
+            <div class="type-card-title">Survey — Build in Insighta</div>
+            <div class="type-card-desc">Design your questions with AI. Start building right away.</div>
+          </div>
+          <div class="type-card-arrow">→</div>
+        </button>
+      </form>
+
+      <!-- Interview -->
       <a href="/publish_interview" class="type-card">
         <div class="type-card-icon icon-interview">🎙️</div>
         <div class="type-card-text">
           <div class="type-card-title">Interview</div>
-          <div class="type-card-desc">Schedule 1-on-1 or group sessions. Best for qualitative research, UX studies, or in-depth conversations.</div>
+          <div class="type-card-desc">Schedule 1-on-1 or group sessions for qualitative research.</div>
         </div>
         <div class="type-card-arrow">→</div>
       </a>
+
     </div>
   </div>
 </div>
 
-<!-- ── NOTIFICATION MODAL ── -->
+<!-- NOTIFICATION MODAL -->
 <div id="notifOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;" onclick="closeNotifModal(event)">
   <div id="notifModal" style="background:#fff; border-radius:18px; width:720px; max-width:94vw; height:90vh; display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,0.22); overflow:hidden;" onclick="event.stopPropagation()">
     <div style="padding:20px 24px 16px; border-bottom:1px solid #e8e8e8; display:flex; align-items:center; justify-content:space-between;">
@@ -179,7 +198,7 @@
   </div>
 </div>
 
-<!-- ── NAVBAR ── -->
+<!-- NAVBAR -->
 <nav class="navbar">
   <div class="navbar-left">
     <a href="/choice" class="back-btn">← Back</a>
@@ -240,9 +259,7 @@
         </div>
         <div class="card-actions">
           {% if s.status == "draft" %}
-          <form method="post" action="/surveys/{{ s.id }}/publish" style="display:inline">
-            <button class="btn btn-primary">Publish</button>
-          </form>
+            <a href="/publish?{% if s.form_url == '__builtin__' %}builtin=1&{% endif %}survey_id={{ s.id }}&title={{ s.title | urlencode }}&desc={{ s.description | urlencode }}" class="btn btn-primary">Publish</a>
           {% else %}<button class="btn btn-disabled">Publish</button>{% endif %}
 
           {% if s.status == "published" %}
@@ -254,6 +271,11 @@
             <button class="btn btn-primary">Reopen</button>
           </form>
           {% else %}<button class="btn btn-disabled">Close</button>{% endif %}
+
+          {% if s.form_url == '__builtin__' %}
+          <a href="/surveys/{{ s.id }}/builder" class="btn">Builder</a>
+          <a href="/surveys/{{ s.id }}/results" class="btn">Results</a>
+          {% endif %}
 
           <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
             <button class="btn">Edit</button>
@@ -311,10 +333,8 @@
           <div class="progress-text">{{ completed }} / {{ target }} slots</div>
         </div>
         <div class="card-actions">
-          {% if s.status == "draft" %}
-          <form method="post" action="/surveys/{{ s.id }}/publish" style="display:inline">
-            <button class="btn btn-primary">Publish</button>
-          </form>
+         {% if s.status == "draft" %}
+         <a href="/publish?survey_id={{ s.id }}&title={{ s.title | urlencode }}&desc={{ s.description | urlencode }}" class="btn btn-primary">Publish</a>
           {% else %}<button class="btn btn-disabled">Publish</button>{% endif %}
 
           {% if s.status == "published" %}
@@ -377,7 +397,7 @@
   function handleBackdropClick(e) { if (e.target === document.getElementById('newListingModal')) closeModal(); }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-  // ── Notifications ─────────────────────────────────────────
+  // Notifications
   let allNotifs = [];
 
   async function loadNotifications() {

@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from sqlalchemy import func, case
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta, timezone
@@ -22,7 +22,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 from app.database import engine, get_db
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode
+from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer
 
 
 app = FastAPI()
@@ -172,7 +172,7 @@ def _clean_target(val: Optional[str]) -> str:
 
 
 # ---------------------------
-# Auth helpers (from yaotian2)
+# Auth helpers
 # ---------------------------
 
 def _normalize_email(value: Optional[str]) -> str:
@@ -283,7 +283,6 @@ def _send_verification_email(email: str, purpose: str, code: str):
 
 @app.get("/auth/check-email")
 async def check_email_exists(email: str, db: Session = Depends(get_db)):
-    """Lightweight endpoint: checks if an email is already registered. Used for real-time feedback on the registration page."""
     normalized = _normalize_email(email)
     if not normalized:
         return JSONResponse({"exists": False})
@@ -568,7 +567,6 @@ def login(
 
     response = RedirectResponse("/choice", status_code=303)
     response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
-
     return response
 
 
@@ -783,7 +781,6 @@ def publisher_dashboard(
 # ---------------------------
 # Delete survey
 # ---------------------------
-
 @app.post("/publisher/delete/{survey_id}")
 def delete_survey(
     survey_id: int,
@@ -796,11 +793,16 @@ def delete_survey(
     ).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
-    db.query(Response).filter(Response.survey_id == survey_id).delete()
+
+    # Delete answers first, then questions, then responses, then survey
+    question_ids = [q.id for q in db.query(Question).filter(Question.survey_id == survey_id).all()]
+    if question_ids:
+        db.query(Answer).filter(Answer.question_id.in_(question_ids)).delete(synchronize_session=False)
+    db.query(Question).filter(Question.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(Response).filter(Response.survey_id == survey_id).delete(synchronize_session=False)
     db.delete(survey)
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
-
 
 # ---------------------------
 # Dashboard (participant view)
@@ -872,9 +874,13 @@ def dashboard(
             "academic": "/static/r2.jpg", "other": "/static/food.jpeg"
         }
 
+        # Pass empty string for built-in surveys so dashboard knows to use /take
+        form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
+
         surveys_data.append({
             "id": s.id, "title": s.title, "desc": s.description,
-            "link": s.form_url, "type": _normalize_task_type(getattr(s, "task_type", None)),
+            "link": form_link,
+            "type": _normalize_task_type(getattr(s, "task_type", None)),
             "category": s.category, "time": f"{s.estimated_time} min",
             "reward": f"${s.reward_amount:.2f}",
             "responses": f"{completed_cnt}/{s.target_responses}",
@@ -1032,13 +1038,9 @@ def complete_survey(
                     <div style="font-size: 13px; color: #8a8a82; margin-top: 12px; margin-bottom: 4px;">Reward</div>
                     <div style="font-size: 15px; font-weight: 600; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
                   </div>
-                  <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
-                    Please check your <strong>Google Form backend</strong> to verify the response, then approve on your dashboard.
-                  </p>
                   <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
                     Review & Approve →
                   </a>
-                  <p style="font-size: 12px; color: #8a8a82; margin-top: 32px;">Insighta · <a href="https://insightaco.org" style="color: #2d6a4f;">insightaco.org</a></p>
                 </div>
                 """
             )
@@ -1113,9 +1115,6 @@ def accept_notification(notif_id: int, current_user: User = Depends(get_current_
                     <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Reward Added</div>
                     <div style="font-size: 22px; font-weight: 700; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
                   </div>
-                  <p style="font-size: 14px; color: #4a4a44; line-height: 1.7; margin-bottom: 24px;">
-                    Your earnings have been added to your account. You can withdraw anytime from your dashboard.
-                  </p>
                   <a href="https://insightaco.org/dashboard" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View Earnings →</a>
                 </div>
                 """
@@ -1166,13 +1165,24 @@ def get_pending_responses(current_user: User = Depends(get_current_user), db: Se
 # ---------------------------
 # Publish survey page
 # ---------------------------
-
 @app.get("/publish", response_class=HTMLResponse)
-def publish_page(request: Request, current_user: User = Depends(get_current_user)):
+def publish_page(
+    request: Request,
+    builtin: int = 0,
+    survey_id: Optional[int] = None,
+    title: Optional[str] = None,
+    desc: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
     return templates.TemplateResponse("publish.html", {
-        "request": request, "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY
+        "request": request,
+        "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
+        "builtin": builtin,
+        "existing_survey_id": survey_id or 0,
+        "prefill_title": title or "",
+        "prefill_desc": desc or "",
+        "current_user": current_user
     })
-
 
 # ---------------------------
 # Calculate price API
@@ -1202,90 +1212,6 @@ async def calculate_price(request: Request, current_user: User = Depends(get_cur
 # Publish survey → Stripe Checkout
 # ---------------------------
 
-@app.post("/publish")
-async def publish_survey(
-    request: Request,
-    title: str = Form(...), description: str = Form(...), form_url: str = Form(...),
-    task_type: str = Form("survey"), category: str = Form(...), estimated_time: int = Form(...),
-    per_person_gross: Optional[str] = Form(None), total_budget: Optional[str] = Form(None),
-    target_responses: int = Form(...), urgency_level: str = Form(None), incentive_type: str = Form(None),
-    target_age_range: str = Form(None), target_field: str = Form(None), target_status: str = Form(None),
-    target_state: str = Form(None), target_language: str = Form(None), target_ethnicity: str = Form(None),
-    target_sexual_orientation: str = Form(None), target_mental_health_diagnosis: str = Form(None),
-    target_physical_health_diagnosis: str = Form(None), target_sport_type: str = Form(None),
-    target_sport_frequency: str = Form(None), target_smoking: str = Form(None),
-    target_cannabis_use: str = Form(None), target_student_status: str = Form(None),
-    target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
-    target_participation_format: str = Form(None), target_device: str = Form(None),
-    cover_image: UploadFile = File(None),
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
-):
-    form = await request.form()
-    target_education_min = _parse_optional_int(form.get("target_education_min"))
-    target_education_max = _parse_optional_int(form.get("target_education_max"))
-    experience_list = form.getlist("target_experience_tags")
-    target_experience_tags = ",".join(experience_list) if experience_list else None
-
-    is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
-    if is_no_pay:
-        ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
-    else:
-        _ppg = float(per_person_gross) if per_person_gross and per_person_gross.strip() else 0.0
-        _tb = float(total_budget) if total_budget and total_budget.strip() else 0.0
-        if _ppg: ppg = _ppg
-        elif _tb: ppg = _tb / int(target_responses)
-        else: ppg = 5.0
-        rate, reward = calculate_commission(ppg)
-        total = round(ppg * int(target_responses), 2)
-
-    image_url = None
-    if cover_image and cover_image.filename:
-        uploads_dir = Path("app/static/uploads"); uploads_dir.mkdir(exist_ok=True)
-        unique_filename = f"{uuid.uuid4()}{Path(cover_image.filename).suffix}"
-        file_path = uploads_dir / unique_filename
-        with file_path.open("wb") as buffer: shutil.copyfileobj(cover_image.file, buffer)
-        image_url = f"/static/uploads/{unique_filename}"
-
-    survey = Survey(
-        publisher_id=current_user.id, title=title, description=description, form_url=form_url,
-        task_type=task_type, category=category, estimated_time=estimated_time,
-        reward_amount=reward, per_person_gross=ppg, total_budget=total, commission_rate=rate,
-        payment_status="unpaid" if not is_no_pay else "paid",
-        target_responses=target_responses, urgency_level=_clean_target(urgency_level),
-        incentive_type=_clean_target(incentive_type), target_age_range=_clean_target(target_age_range),
-        target_education_min=target_education_min, target_education_max=target_education_max,
-        target_field=_clean_target(target_field), target_status=_clean_target(target_status),
-        target_state=_clean_target(target_state), target_language=_clean_target(target_language),
-        target_ethnicity=_clean_target(target_ethnicity),
-        target_sexual_orientation=_clean_target(target_sexual_orientation),
-        target_mental_health_diagnosis=_clean_target(target_mental_health_diagnosis),
-        target_physical_health_diagnosis=_clean_target(target_physical_health_diagnosis),
-        target_sport_type=_clean_target(target_sport_type),
-        target_sport_frequency=_clean_target(target_sport_frequency),
-        target_smoking=_clean_target(target_smoking), target_cannabis_use=_clean_target(target_cannabis_use),
-        target_student_status=_clean_target(target_student_status),
-        target_year_in_school=_clean_target(target_year_in_school),
-        target_international_domestic=_clean_target(target_international_domestic),
-        target_experience_tags=target_experience_tags,
-        target_participation_format=_clean_target(target_participation_format),
-        target_device=_clean_target(target_device),
-        image_url=image_url, status="draft", published_at=None, closed_at=None,
-    )
-    db.add(survey); db.commit(); db.refresh(survey)
-
-    if is_no_pay:
-        return RedirectResponse("/publisher", status_code=303)
-
-    session = stripe.checkout.Session.create(
-        payment_method_types=["card"],
-        line_items=[{"price_data": {"currency": "usd", "product_data": {"name": f"Survey: {survey.title}", "description": f"{survey.target_responses} responses × ${reward:.2f} per person"}, "unit_amount": int(round(total * 100))}, "quantity": 1}],
-        mode="payment",
-        success_url=f"https://insightaco.org/payment/success?survey_id={survey.id}",
-        cancel_url=f"https://insightaco.org/publisher",
-        metadata={"survey_id": str(survey.id), "publisher_id": str(current_user.id)}
-    )
-    survey.stripe_payment_intent_id = session.id; db.commit()
-    return RedirectResponse(session.url, status_code=303)
 
 
 # ---------------------------
@@ -1383,13 +1309,17 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if survey_id:
             survey = db.query(Survey).filter(Survey.id == int(survey_id)).first()
             if survey:
-                survey.payment_status = "paid"; survey.status = "published"
-                survey.published_at = datetime.utcnow(); db.commit()
+                survey.payment_status = "paid"
+                survey.status = "published"
+                survey.published_at = datetime.utcnow()
+                db.commit()
     elif event["type"] == "account.updated":
         account = event["data"]["object"]
         if account.get("charges_enabled"):
             user = db.query(User).filter(User.stripe_account_id == account.get("id")).first()
-            if user: user.stripe_onboarding_complete = "true"; db.commit()
+            if user:
+                user.stripe_onboarding_complete = "true"
+                db.commit()
 
     return JSONResponse({"status": "ok"})
 
@@ -1421,7 +1351,9 @@ def connect_onboard(current_user: User = Depends(get_current_user), db: Session 
 def connect_complete(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if getattr(current_user, 'stripe_account_id', None):
         account = stripe.Account.retrieve(current_user.stripe_account_id)
-        if account.charges_enabled: current_user.stripe_onboarding_complete = "true"; db.commit()
+        if account.charges_enabled:
+            current_user.stripe_onboarding_complete = "true"
+            db.commit()
     return RedirectResponse("/dashboard")
 
 
@@ -1503,51 +1435,81 @@ async def edit_survey_post(
     target_cannabis_use: str = Form(None), target_student_status: str = Form(None),
     target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
     target_participation_format: str = Form(None), target_device: str = Form(None),
-    cover_image: UploadFile = File(None), db: Session = Depends(get_db)
+    cover_image: UploadFile = File(None),
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
     target_education_min = _parse_optional_int(form.get("target_education_min"))
     target_education_max = _parse_optional_int(form.get("target_education_max"))
     experience_list = form.getlist("target_experience_tags")
-    target_experience_tags = ",".join(experience_list) if experience_list else None
+    target_experience_tags = "ç,".join(experience_list) if experience_list else None
 
-    survey = db.query(Survey).filter(Survey.id == survey_id).first()
-    if survey:
-        current_responses = db.query(Response).filter(Response.survey_id == survey_id, Response.status == "completed").count()
-        survey.title = title; survey.description = description; survey.form_url = form_url
-        survey.task_type = task_type; survey.category = category
-        survey.estimated_time = estimated_time; survey.reward_amount = reward_amount
-        survey.target_responses = current_responses + additional_needed
-        survey.urgency_level = _clean_target(urgency_level); survey.incentive_type = _clean_target(incentive_type)
-        survey.target_age_range = _clean_target(target_age_range)
-        survey.target_education_min = target_education_min; survey.target_education_max = target_education_max
-        survey.target_field = _clean_target(target_field); survey.target_status = _clean_target(target_status)
-        survey.target_state = _clean_target(target_state); survey.target_language = _clean_target(target_language)
-        survey.target_ethnicity = _clean_target(target_ethnicity)
-        survey.target_sexual_orientation = _clean_target(target_sexual_orientation)
-        survey.target_mental_health_diagnosis = _clean_target(target_mental_health_diagnosis)
-        survey.target_physical_health_diagnosis = _clean_target(target_physical_health_diagnosis)
-        survey.target_sport_type = _clean_target(target_sport_type)
-        survey.target_sport_frequency = _clean_target(target_sport_frequency)
-        survey.target_smoking = _clean_target(target_smoking); survey.target_cannabis_use = _clean_target(target_cannabis_use)
-        survey.target_student_status = _clean_target(target_student_status)
-        survey.target_year_in_school = _clean_target(target_year_in_school)
-        survey.target_international_domestic = _clean_target(target_international_domestic)
-        survey.target_experience_tags = target_experience_tags
-        survey.target_participation_format = _clean_target(target_participation_format)
-        survey.target_device = _clean_target(target_device)
+    survey = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    if survey.status == "published":
+        reward_amount = survey.reward_amount
 
-        if cover_image and cover_image.filename:
-            uploads_dir = Path("app/static/uploads"); uploads_dir.mkdir(exist_ok=True)
-            unique_filename = f"{uuid.uuid4()}{Path(cover_image.filename).suffix}"
-            file_path = uploads_dir / unique_filename
-            with file_path.open("wb") as buffer: shutil.copyfileobj(cover_image.file, buffer)
-            survey.image_url = f"/static/uploads/{unique_filename}"
+    current_responses = db.query(Response).filter(Response.survey_id == survey_id, Response.status == "completed").count()
 
-        db.commit()
+    # 更新所有字段
+    survey.title = title; survey.description = description; survey.form_url = form_url
+    survey.task_type = task_type; survey.category = category
+    survey.estimated_time = estimated_time; survey.reward_amount = reward_amount
+    survey.target_responses = current_responses + additional_needed
+    survey.urgency_level = _clean_target(urgency_level); survey.incentive_type = _clean_target(incentive_type)
+    survey.target_age_range = _clean_target(target_age_range)
+    survey.target_education_min = target_education_min; survey.target_education_max = target_education_max
+    survey.target_field = _clean_target(target_field); survey.target_status = _clean_target(target_status)
+    survey.target_state = _clean_target(target_state); survey.target_language = _clean_target(target_language)
+    survey.target_ethnicity = _clean_target(target_ethnicity)
+    survey.target_sexual_orientation = _clean_target(target_sexual_orientation)
+    survey.target_mental_health_diagnosis = _clean_target(target_mental_health_diagnosis)
+    survey.target_physical_health_diagnosis = _clean_target(target_physical_health_diagnosis)
+    survey.target_sport_type = _clean_target(target_sport_type)
+    survey.target_sport_frequency = _clean_target(target_sport_frequency)
+    survey.target_smoking = _clean_target(target_smoking); survey.target_cannabis_use = _clean_target(target_cannabis_use)
+    survey.target_student_status = _clean_target(target_student_status)
+    survey.target_year_in_school = _clean_target(target_year_in_school)
+    survey.target_international_domestic = _clean_target(target_international_domestic)
+    survey.target_experience_tags = target_experience_tags
+    survey.target_participation_format = _clean_target(target_participation_format)
+    survey.target_device = _clean_target(target_device)
+
+    if cover_image and cover_image.filename:
+        uploads_dir = Path("app/static/uploads"); uploads_dir.mkdir(exist_ok=True)
+        unique_filename = f"{uuid.uuid4()}{Path(cover_image.filename).suffix}"
+        file_path = uploads_dir / unique_filename
+        with file_path.open("wb") as buffer: shutil.copyfileobj(cover_image.file, buffer)
+        survey.image_url = f"/static/uploads/{unique_filename}"
+
+    db.commit()
+
+    # 如果是已发布问卷 + 有额外 responses + 需要付费
+    is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
+    if survey.status == "published" and additional_needed > 0 and not is_no_pay:
+        total = round(reward_amount * additional_needed, 2)
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {
+                        "name": f"Additional responses: {survey.title}",
+                        "description": f"{additional_needed} more responses × ${reward_amount:.2f} per person"
+                    },
+                    "unit_amount": int(round(total * 100))
+                },
+                "quantity": 1
+            }],
+            mode="payment",
+            success_url=f"https://insightaco.org/payment/success?survey_id={survey.id}",
+            cancel_url=f"https://insightaco.org/publisher",
+            metadata={"survey_id": str(survey.id), "publisher_id": str(current_user.id)}
+        )
+        return RedirectResponse(session.url, status_code=303)
+
     return RedirectResponse("/publisher", status_code=303)
-
-
 # ---------------------------
 # Profile
 # ---------------------------
@@ -1609,6 +1571,79 @@ Return ONLY a valid JSON object with these exact fields, no extra text:
 
 
 # ---------------------------
+# AI Generate Questions
+# ---------------------------
+
+@app.post("/api/ai-generate-questions")
+async def ai_generate_questions(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        body = await request.json()
+        prompt = body.get("prompt", "")
+        if not prompt:
+            raise HTTPException(400, "Prompt is required")
+
+        import anthropic, json as _json
+        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2000,
+            messages=[{
+                "role": "user",
+                "content": f"""You are helping a researcher design a survey.
+Based on this research goal: "{prompt}"
+
+Generate 6-8 survey questions. Return ONLY a valid JSON array, no extra text:
+[
+  {{
+    "question_text": "What is your current year in school?",
+    "question_type": "single",
+    "options": ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"],
+    "is_required": true,
+    "order_index": 1
+  }},
+  {{
+    "question_text": "How many hours do you sleep on average per night?",
+    "question_type": "scale",
+    "options": null,
+    "is_required": true,
+    "order_index": 2
+  }},
+  {{
+    "question_text": "Describe any sleep difficulties you experience.",
+    "question_type": "text",
+    "options": null,
+    "is_required": false,
+    "order_index": 3
+  }}
+]
+
+Rules:
+- Mix question types: single/multiple for closed, scale for ratings, text for open-ended
+- Keep questions neutral, avoid leading language
+- scale and text questions must have options: null
+- options field is only for single, multiple, dropdown types
+"""
+            }]
+        )
+
+        text = message.content[0].text
+        match = re.search(r'\[.*\]', text, re.DOTALL)
+        if not match:
+            raise HTTPException(500, "AI response parsing failed")
+
+        questions = _json.loads(match.group())
+        return JSONResponse({"questions": questions})
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(500, str(e))
+
+
+# ---------------------------
 # Feedback
 # ---------------------------
 
@@ -1665,6 +1700,675 @@ async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Ses
         user = db.query(User).filter(User.id == f.user_id).first()
         result.append({"id": f.id, "user_email": user.email if user else "unknown", "category": f.category, "title": f.title, "content": f.content, "status": f.status, "credit_amount": f.credit_amount, "created_at": str(f.created_at)})
     return JSONResponse(result)
+
+# ---------------------------
+# Quick create built-in survey
+# ---------------------------
+
+@app.post("/surveys/create-builtin")
+def create_builtin_survey(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = Survey(
+        publisher_id=current_user.id,
+        title="Untitled Survey",
+        description="",
+        form_url="__builtin__",
+        task_type="survey",
+        category="research",
+        estimated_time=10,
+        reward_amount=0.0,
+        per_person_gross=0.0,
+        total_budget=0.0,
+        commission_rate=0.15,
+        payment_status="unpaid",
+        target_responses=50,
+        status="draft",
+    )
+    db.add(survey)
+    db.commit()
+    db.refresh(survey)
+    return RedirectResponse(f"/surveys/{survey.id}/builder", status_code=303)
+
+@app.post("/publish")
+async def publish_survey(
+    request: Request,
+    title: str = Form(...), description: str = Form(...), form_url: str = Form(...),
+    task_type: str = Form("survey"), category: str = Form(...), estimated_time: int = Form(...),
+    per_person_gross: Optional[float] = Form(None), total_budget: Optional[float] = Form(None),
+    target_responses: int = Form(...), urgency_level: str = Form(None), incentive_type: str = Form(None),
+    target_age_range: str = Form(None), target_field: str = Form(None), target_status: str = Form(None),
+    target_state: str = Form(None), target_language: str = Form(None), target_ethnicity: str = Form(None),
+    target_sexual_orientation: str = Form(None), target_mental_health_diagnosis: str = Form(None),
+    target_physical_health_diagnosis: str = Form(None), target_sport_type: str = Form(None),
+    target_sport_frequency: str = Form(None), target_smoking: str = Form(None),
+    target_cannabis_use: str = Form(None), target_student_status: str = Form(None),
+    target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
+    target_participation_format: str = Form(None), target_device: str = Form(None),
+    cover_image: UploadFile = File(None),
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    form = await request.form()
+    target_education_min = _parse_optional_int(form.get("target_education_min"))
+    target_education_max = _parse_optional_int(form.get("target_education_max"))
+    experience_list = form.getlist("target_experience_tags")
+    target_experience_tags = ",".join(experience_list) if experience_list else None
+    existing_survey_id = int(form.get("existing_survey_id") or 0)
+
+    is_builtin = (form_url == "__builtin__")
+    is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
+
+    if is_no_pay:
+        ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
+    else:
+        if per_person_gross: ppg = float(per_person_gross)
+        elif total_budget: ppg = float(total_budget) / int(target_responses)
+        else: ppg = 5.0
+        rate, reward = calculate_commission(ppg)
+        total = round(ppg * int(target_responses), 2)
+
+    image_url = None
+    if cover_image and cover_image.filename:
+        uploads_dir = Path("app/static/uploads"); uploads_dir.mkdir(exist_ok=True)
+        unique_filename = f"{uuid.uuid4()}{Path(cover_image.filename).suffix}"
+        file_path = uploads_dir / unique_filename
+        with file_path.open("wb") as buffer: shutil.copyfileobj(cover_image.file, buffer)
+        image_url = f"/static/uploads/{unique_filename}"
+
+    if existing_survey_id:
+        survey = db.query(Survey).filter(
+            Survey.id == existing_survey_id,
+            Survey.publisher_id == current_user.id
+        ).first()
+        if not survey:
+            raise HTTPException(404, "Survey not found")
+        survey.title = title
+        survey.description = description
+        survey.category = category
+        survey.estimated_time = estimated_time
+        survey.reward_amount = reward
+        survey.per_person_gross = ppg
+        survey.total_budget = total
+        survey.commission_rate = rate
+        survey.payment_status = "unpaid" if not is_no_pay else "paid"
+        survey.target_responses = target_responses
+        survey.urgency_level = _clean_target(urgency_level)
+        survey.incentive_type = _clean_target(incentive_type)
+        survey.target_age_range = _clean_target(target_age_range)
+        survey.target_education_min = target_education_min
+        survey.target_education_max = target_education_max
+        survey.target_field = _clean_target(target_field)
+        survey.target_status = _clean_target(target_status)
+        survey.target_state = _clean_target(target_state)
+        survey.target_language = _clean_target(target_language)
+        survey.target_ethnicity = _clean_target(target_ethnicity)
+        survey.target_sexual_orientation = _clean_target(target_sexual_orientation)
+        survey.target_mental_health_diagnosis = _clean_target(target_mental_health_diagnosis)
+        survey.target_physical_health_diagnosis = _clean_target(target_physical_health_diagnosis)
+        survey.target_sport_type = _clean_target(target_sport_type)
+        survey.target_sport_frequency = _clean_target(target_sport_frequency)
+        survey.target_smoking = _clean_target(target_smoking)
+        survey.target_cannabis_use = _clean_target(target_cannabis_use)
+        survey.target_student_status = _clean_target(target_student_status)
+        survey.target_year_in_school = _clean_target(target_year_in_school)
+        survey.target_international_domestic = _clean_target(target_international_domestic)
+        survey.target_experience_tags = target_experience_tags
+        survey.target_participation_format = _clean_target(target_participation_format)
+        survey.target_device = _clean_target(target_device)
+        db.commit()
+        db.refresh(survey)
+    else:
+        survey = Survey(
+            publisher_id=current_user.id, title=title, description=description, form_url=form_url,
+            task_type=task_type, category=category, estimated_time=estimated_time,
+            reward_amount=reward, per_person_gross=ppg, total_budget=total, commission_rate=rate,
+            payment_status="unpaid" if not is_no_pay else "paid",
+            target_responses=target_responses, urgency_level=_clean_target(urgency_level),
+            incentive_type=_clean_target(incentive_type), target_age_range=_clean_target(target_age_range),
+            target_education_min=target_education_min, target_education_max=target_education_max,
+            target_field=_clean_target(target_field), target_status=_clean_target(target_status),
+            target_state=_clean_target(target_state), target_language=_clean_target(target_language),
+            target_ethnicity=_clean_target(target_ethnicity),
+            target_sexual_orientation=_clean_target(target_sexual_orientation),
+            target_mental_health_diagnosis=_clean_target(target_mental_health_diagnosis),
+            target_physical_health_diagnosis=_clean_target(target_physical_health_diagnosis),
+            target_sport_type=_clean_target(target_sport_type),
+            target_sport_frequency=_clean_target(target_sport_frequency),
+            target_smoking=_clean_target(target_smoking), target_cannabis_use=_clean_target(target_cannabis_use),
+            target_student_status=_clean_target(target_student_status),
+            target_year_in_school=_clean_target(target_year_in_school),
+            target_international_domestic=_clean_target(target_international_domestic),
+            target_experience_tags=target_experience_tags,
+            target_participation_format=_clean_target(target_participation_format),
+            target_device=_clean_target(target_device),
+            image_url=image_url, status="draft", published_at=None, closed_at=None,
+        )
+        db.add(survey); db.commit(); db.refresh(survey)
+
+    # 统一处理 no_pay 和 Stripe
+    if is_no_pay:
+        survey.status = "published"
+        survey.published_at = datetime.utcnow()
+        db.commit()
+        return RedirectResponse("/publisher", status_code=303)
+
+    success_url = f"https://insightaco.org/payment/success?survey_id={survey.id}"
+    session = stripe.checkout.Session.create(
+        payment_method_types=["card"],
+        line_items=[{"price_data": {"currency": "usd", "product_data": {"name": f"Survey: {survey.title}", "description": f"{survey.target_responses} responses × ${reward:.2f} per person"}, "unit_amount": int(round(total * 100))}, "quantity": 1}],
+        mode="payment",
+        success_url=success_url,
+        cancel_url="https://insightaco.org/publisher",
+        metadata={"survey_id": str(survey.id), "publisher_id": str(current_user.id)}
+    )
+    survey.stripe_payment_intent_id = session.id; db.commit()
+    return RedirectResponse(session.url, status_code=303)
+
+# ---------------------------
+# Update survey info from builder
+# ---------------------------
+
+@app.post("/surveys/{survey_id}/update-info")
+async def update_survey_info(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    body = await request.json()
+    survey.title = body.get("title", survey.title)
+    survey.description = body.get("description", survey.description)
+    survey.category = body.get("category", survey.category)
+    survey.estimated_time = body.get("estimated_time", survey.estimated_time)
+    survey.per_person_gross = body.get("per_person_gross", survey.per_person_gross)
+    survey.reward_amount = body.get("reward_amount", survey.reward_amount)
+    survey.total_budget = body.get("total_budget", survey.total_budget)
+    survey.commission_rate = body.get("commission_rate", survey.commission_rate)
+    survey.target_responses = body.get("target_responses", survey.target_responses)
+    db.commit()
+    return JSONResponse({"message": "updated"})
+# ---------------------------
+# Questions API
+# ---------------------------
+
+@app.post("/surveys/{survey_id}/questions")
+async def add_question(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    request_data = await request.json()
+
+    max_order = db.query(func.max(Question.order_index)).filter(
+        Question.survey_id == survey_id
+    ).scalar() or 0
+
+    q = Question(
+        survey_id=survey_id,
+        question_text=request_data.get("question_text", ""),
+        question_type=request_data.get("question_type", "single"),
+        options=request_data.get("options"),
+        is_required=request_data.get("is_required", True),
+        order_index=request_data.get("order_index", max_order + 1)
+    )
+    db.add(q)
+    db.commit()
+    db.refresh(q)
+    return JSONResponse({
+        "id": q.id,
+        "survey_id": q.survey_id,
+        "question_text": q.question_text,
+        "question_type": q.question_type,
+        "options": q.options,
+        "is_required": q.is_required,
+        "order_index": q.order_index
+    })
+
+
+@app.get("/surveys/{survey_id}/questions")
+def get_questions(
+    survey_id: int,
+    db: Session = Depends(get_db)
+):
+    questions = db.query(Question).filter(
+        Question.survey_id == survey_id
+    ).order_by(Question.order_index).all()
+    return JSONResponse([{
+        "id": q.id,
+        "question_text": q.question_text,
+        "question_type": q.question_type,
+        "options": q.options,
+        "is_required": q.is_required,
+        "order_index": q.order_index
+    } for q in questions])
+
+
+@app.put("/surveys/{survey_id}/questions/{question_id}")
+async def update_question(
+    survey_id: int,
+    question_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    request_data = await request.json()
+
+    q = db.query(Question).filter(
+        Question.id == question_id,
+        Question.survey_id == survey_id
+    ).first()
+    if not q:
+        raise HTTPException(404, "Question not found")
+
+    if "question_text" in request_data:
+        q.question_text = request_data["question_text"]
+    if "question_type" in request_data:
+        q.question_type = request_data["question_type"]
+    if "options" in request_data:
+        q.options = request_data["options"]
+    if "is_required" in request_data:
+        q.is_required = request_data["is_required"]
+
+    db.commit()
+    return JSONResponse({"message": "updated"})
+
+
+@app.delete("/surveys/{survey_id}/questions/{question_id}")
+def delete_question(
+    survey_id: int,
+    question_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    q = db.query(Question).filter(
+        Question.id == question_id,
+        Question.survey_id == survey_id
+    ).first()
+    if not q:
+        raise HTTPException(404, "Question not found")
+
+    db.delete(q)
+    db.commit()
+    return JSONResponse({"message": "deleted"})
+
+
+@app.post("/surveys/{survey_id}/questions/reorder")
+async def reorder_questions(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    body = await request.json()
+    for item in body:
+        q = db.query(Question).filter(
+            Question.id == item["id"],
+            Question.survey_id == survey_id
+        ).first()
+        if q:
+            q.order_index = item["order_index"]
+
+    db.commit()
+    return JSONResponse({"message": "reordered"})
+
+
+# ---------------------------
+# Survey Builder page
+# ---------------------------
+
+@app.get("/surveys/{survey_id}/builder", response_class=HTMLResponse)
+def survey_builder(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    return templates.TemplateResponse("survey_builder.html", {
+        "request": request,
+        "survey": survey,
+        "survey_id": survey_id,
+        "current_user": current_user
+    })
+
+
+# ---------------------------
+# Survey Take page
+# ---------------------------
+
+@app.get("/surveys/{survey_id}/take", response_class=HTMLResponse)
+def survey_take(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.status == "published"
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    return templates.TemplateResponse("survey_take.html", {
+        "request": request,
+        "survey": survey,
+        "current_user": current_user
+    })
+
+
+# ---------------------------
+# Survey Results page (HTML)
+# ---------------------------
+
+@app.get("/surveys/{survey_id}/results", response_class=HTMLResponse)
+def survey_results_page(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    return templates.TemplateResponse("survey_results.html", {
+        "request": request,
+        "survey": survey,
+        "survey_id": survey_id,
+        "current_user": current_user
+    })
+
+
+# ---------------------------
+# Survey Results data (JSON) — used by survey_results.html
+# ---------------------------
+
+@app.get("/api/surveys/{survey_id}/results")
+def get_survey_results(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    questions = db.query(Question).filter(
+        Question.survey_id == survey_id
+    ).order_by(Question.order_index).all()
+
+    total_responses = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed"
+    ).count()
+
+    result = []
+    for q in questions:
+        answers = db.query(Answer).join(Response).filter(
+            Response.survey_id == survey_id,
+            Response.status == "completed",
+            Answer.question_id == q.id
+        ).all()
+
+        if q.question_type in ("single", "multiple", "dropdown"):
+            distribution = {}
+            for a in answers:
+                val = a.answer_value
+                if isinstance(val, list):
+                    for v in val:
+                        distribution[v] = distribution.get(v, 0) + 1
+                else:
+                    distribution[str(val)] = distribution.get(str(val), 0) + 1
+            result.append({
+                "question_id": q.id,
+                "question_text": q.question_text,
+                "question_type": q.question_type,
+                "total_answers": len(answers),
+                "distribution": distribution
+            })
+
+        elif q.question_type == "scale":
+            values = [a.answer_value for a in answers if a.answer_value is not None]
+            avg = round(sum(values) / len(values), 2) if values else 0
+            distribution = {str(i): values.count(i) for i in range(1, 6)}
+            result.append({
+                "question_id": q.id,
+                "question_text": q.question_text,
+                "question_type": q.question_type,
+                "total_answers": len(answers),
+                "average": avg,
+                "distribution": distribution
+            })
+
+        elif q.question_type == "text":
+            result.append({
+                "question_id": q.id,
+                "question_text": q.question_text,
+                "question_type": q.question_type,
+                "total_answers": len(answers),
+                "responses": [a.answer_value for a in answers]
+            })
+
+    return JSONResponse({
+        "survey_id": survey_id,
+        "survey_title": survey.title,
+        "total_responses": total_responses,
+        "questions": result
+    })
+
+
+# ---------------------------
+# AI Analyze survey
+# ---------------------------
+
+@app.post("/surveys/{survey_id}/analyze")
+async def analyze_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    questions = db.query(Question).filter(
+        Question.survey_id == survey_id
+    ).order_by(Question.order_index).all()
+
+    answers_data = []
+    for q in questions:
+        answers = db.query(Answer).join(Response).filter(
+            Response.survey_id == survey_id,
+            Response.status == "completed",
+            Answer.question_id == q.id
+        ).all()
+        answers_data.append({
+            "question": q.question_text,
+            "type": q.question_type,
+            "answers": [a.answer_value for a in answers]
+        })
+
+    total_responses = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed"
+    ).count()
+
+    import anthropic, json as _json
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1500,
+        messages=[{
+            "role": "user",
+            "content": f"""You are analyzing survey results for a researcher.
+
+Survey title: {survey.title}
+Survey description: {survey.description}
+Total responses: {total_responses}
+
+Data:
+{_json.dumps(answers_data, ensure_ascii=False, indent=2)}
+
+Please provide:
+1. Key findings (3-5 bullet points with actual numbers)
+2. Notable patterns or trends
+3. Text response themes (if any open-ended questions)
+4. One recommendation for the researcher
+
+Be concise and specific. Use the actual numbers from the data.
+Write in the same language as the survey questions.
+"""
+        }]
+    )
+
+    return JSONResponse({
+        "analysis": message.content[0].text,
+        "generated_at": datetime.utcnow().isoformat()
+    })
+
+
+# ---------------------------
+# Answers submit API
+# ---------------------------
+
+@app.post("/surveys/{survey_id}/submit")
+async def submit_answers(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    if survey.status != "published":
+        raise HTTPException(400, "Survey not published")
+
+    body = await request.json()
+
+    r = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.participant_id == current_user.id
+    ).first()
+    if not r:
+        r = Response(
+            survey_id=survey_id,
+            participant_id=current_user.id,
+            status="started"
+        )
+        db.add(r)
+        db.flush()
+
+    for item in body:
+        existing = db.query(Answer).filter(
+            Answer.response_id == r.id,
+            Answer.question_id == item["question_id"]
+        ).first()
+        if existing:
+            existing.answer_value = item["answer_value"]
+        else:
+            db.add(Answer(
+                response_id=r.id,
+                question_id=item["question_id"],
+                answer_value=item["answer_value"]
+            ))
+
+    if r.status != "completed":
+        r.status = "completed"
+        r.completed_at = datetime.now(timezone.utc)
+        r.payout_amount = survey.reward_amount
+        r.payout_status = "pending"
+        current_user.pending_earnings = (
+            getattr(current_user, 'pending_earnings', 0.0) or 0.0
+        ) + survey.reward_amount
+
+        notif = Notification(
+            publisher_id=survey.publisher_id,
+            participant_id=current_user.id,
+            survey_id=survey_id,
+            participant_email=current_user.email,
+            survey_title=survey.title,
+            task_type=getattr(survey, "task_type", "survey") or "survey",
+            status="pending"
+        )
+        db.add(notif)
+
+        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+        if publisher and publisher.email:
+            send_email(
+                to=publisher.email,
+                subject=f"[Insighta] New response ready for review: {survey.title}",
+                body=f"""
+                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
+                  <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey.</p>
+                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
+                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
+                    <div style="font-size: 15px;">{current_user.email}</div>
+                  </div>
+                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                    Review & Approve →
+                  </a>
+                </div>
+                """
+            )
+
+    db.commit()
+    return JSONResponse({"message": "submitted successfully"})
+
+
 
 
 app.include_router(router)

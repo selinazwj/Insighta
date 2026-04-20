@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Survey Builder — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
+      --paper: #faf9f5; --paper-warm: #f3f1ea;
+      --accent: #2d6a4f; --accent-light: #52b788; --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+    /* Navbar */
+    .navbar { background: rgba(250,249,245,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 14px 48px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .navbar-left { display: flex; align-items: center; gap: 16px; }
+    .back-btn { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--ink-muted); text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s; }
+    .back-btn:hover { color: var(--ink); background: var(--paper-warm); }
+    .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+    .navbar-brand span { color: var(--accent); }
+    .navbar-right { display: flex; gap: 10px; align-items: center; }
+
+    /* Layout */
+    .container { max-width: 820px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* Survey info panel */
+    .survey-info-panel { background: white; border: 1.5px solid var(--line); border-radius: 16px; padding: 24px 28px; margin-bottom: 24px; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .panel-header h2 { font-family: var(--serif); font-size: 20px; color: var(--ink); }
+    .panel-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
+    .panel-save-status { font-size: 12px; color: var(--ink-muted); }
+    .panel-save-status.saving { color: var(--accent-warm); }
+    .panel-save-status.saved { color: var(--accent); }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .info-field label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-muted); margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .info-field input, .info-field textarea, .info-field select {
+      width: 100%; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 8px;
+      font-family: var(--sans); font-size: 14px; color: var(--ink); background: var(--paper);
+      transition: all 0.2s;
+    }
+    .info-field input:focus, .info-field textarea:focus, .info-field select:focus {
+      outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); background: white;
+    }
+    .info-field input::placeholder, .info-field textarea::placeholder { color: #c4c2bc; font-weight: 300; }
+    .info-field textarea { resize: none; min-height: 72px; line-height: 1.5; }
+    .info-field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
+    .info-field.full { grid-column: 1 / -1; }
+
+    .publish-bar { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .publish-hint { font-size: 13px; color: var(--ink-muted); font-weight: 300; }
+    .btn-publish-survey { padding: 11px 24px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-publish-survey:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
+
+    /* Page header */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-family: var(--serif); font-size: 32px; color: var(--ink); letter-spacing: -1px; margin-bottom: 4px; }
+    .page-header h1 em { font-style: italic; color: var(--accent); }
+    .page-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; }
+
+    /* AI section */
+    .ai-section { background: linear-gradient(135deg, rgba(45,106,79,0.06), rgba(82,183,136,0.04)); border: 1.5px solid rgba(45,106,79,0.2); border-radius: 16px; padding: 24px 28px; margin-bottom: 28px; }
+    .ai-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .ai-icon { width: 38px; height: 38px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .ai-header h3 { font-family: var(--serif); font-size: 17px; color: var(--ink); margin-bottom: 2px; }
+    .ai-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; }
+    .ai-input-row { display: flex; gap: 10px; }
+    .ai-input-row input { flex: 1; padding: 11px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 14px; color: var(--ink); background: white; transition: all 0.2s; }
+    .ai-input-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
+    .ai-input-row input::placeholder { color: #c4c2bc; font-weight: 300; }
+    .ai-btn { padding: 11px 22px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .ai-btn:hover { background: #245c43; }
+    .ai-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .ai-status { margin-top: 10px; font-size: 13px; padding: 8px 12px; border-radius: 8px; display: none; }
+    .ai-status.success { color: var(--accent); background: rgba(45,106,79,0.06); border: 1px solid rgba(45,106,79,0.2); }
+    .ai-status.error { color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; }
+
+    /* Question list */
+    .questions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .questions-header h2 { font-family: var(--serif); font-size: 20px; color: var(--ink); }
+    .questions-count { font-size: 13px; color: var(--ink-muted); }
+    .questions-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+
+    /* Question card */
+    .q-card { background: white; border: 1.5px solid var(--line); border-radius: 14px; padding: 20px 24px; transition: all 0.2s; position: relative; }
+    .q-card:hover { border-color: rgba(45,106,79,0.3); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .q-card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .q-number { width: 28px; height: 28px; border-radius: 50%; background: var(--paper-warm); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--ink-muted); flex-shrink: 0; margin-top: 2px; }
+    .q-text-input { flex: 1; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 8px; font-family: var(--sans); font-size: 15px; color: var(--ink); background: var(--paper); transition: all 0.2s; resize: none; min-height: 44px; }
+    .q-text-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); background: white; }
+    .q-text-input::placeholder { color: #c4c2bc; font-weight: 300; }
+    .q-card-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .q-type-select { padding: 7px 12px; border: 1.5px solid var(--line); border-radius: 8px; font-family: var(--sans); font-size: 13px; color: var(--ink); background: white; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+    .q-type-select:focus { outline: none; border-color: var(--accent); }
+    .q-required-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-muted); cursor: pointer; user-select: none; }
+    .q-required-toggle input { accent-color: var(--accent); width: 14px; height: 14px; }
+    .q-actions { display: flex; gap: 6px; margin-left: auto; }
+    .q-action-btn { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 7px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; color: var(--ink-muted); }
+    .q-action-btn:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
+    .q-action-btn.delete:hover { background: #fff5f5; border-color: #fecaca; color: #ef4444; }
+
+    /* Options */
+    .q-options { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+    .option-row { display: flex; align-items: center; gap: 8px; }
+    .option-dot { width: 16px; height: 16px; border: 1.5px solid var(--line); border-radius: 50%; flex-shrink: 0; }
+    .option-dot.multi { border-radius: 4px; }
+    .option-input { flex: 1; padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 7px; font-family: var(--sans); font-size: 14px; color: var(--ink); background: white; transition: all 0.15s; }
+    .option-input:focus { outline: none; border-color: var(--accent); }
+    .option-input::placeholder { color: #c4c2bc; }
+    .option-remove { width: 26px; height: 26px; border: none; background: none; cursor: pointer; color: var(--ink-muted); font-size: 16px; display: flex; align-items: center; justify-content: center; border-radius: 5px; transition: all 0.15s; flex-shrink: 0; }
+    .option-remove:hover { background: #fff5f5; color: #ef4444; }
+    .add-option-btn { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--accent); background: none; border: 1px dashed rgba(45,106,79,0.3); border-radius: 7px; padding: 7px 12px; cursor: pointer; transition: all 0.15s; font-family: var(--sans); margin-top: 4px; }
+    .add-option-btn:hover { background: rgba(45,106,79,0.04); border-color: var(--accent); }
+
+    /* Scale preview */
+    .scale-preview { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+    .scale-dot { width: 36px; height: 36px; border: 1.5px solid var(--line); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: var(--ink-muted); }
+    .scale-label { font-size: 12px; color: var(--ink-muted); margin-left: 4px; }
+
+    /* Text preview */
+    .text-preview { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .text-preview-box { width: 100%; padding: 10px 14px; border: 1.5px dashed var(--line); border-radius: 8px; font-size: 13px; color: var(--ink-muted); background: var(--paper-warm); font-family: var(--sans); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; border: 1.5px dashed var(--line); border-radius: 16px; }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state h3 { font-family: var(--serif); font-size: 20px; color: var(--ink); margin-bottom: 6px; }
+    .empty-state p { font-size: 14px; color: var(--ink-muted); font-weight: 300; }
+
+    /* Buttons */
+    .btn-add-question { width: 100%; padding: 13px; background: white; color: var(--accent); border: 1.5px dashed rgba(45,106,79,0.4); border-radius: 12px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-add-question:hover { background: rgba(45,106,79,0.04); border-color: var(--accent); }
+    .btn-primary { padding: 12px 28px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
+    .btn-secondary { padding: 12px 24px; background: white; color: var(--ink-muted); border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-secondary:hover { background: var(--paper-warm); color: var(--ink); }
+
+    .bottom-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .save-status { font-size: 13px; color: var(--ink-muted); }
+    .save-status.saving { color: var(--accent-warm); }
+    .save-status.saved { color: var(--accent); }
+
+    @media (max-width: 640px) {
+      .navbar { padding: 12px 16px; }
+      .container { padding: 28px 16px 60px; }
+      .ai-input-row { flex-direction: column; }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-left">
+    <a href="/publisher" class="back-btn">← Back</a>
+    <div class="navbar-brand">Insight<span>a</span></div>
+  </div>
+  <div class="navbar-right">
+    <span class="save-status" id="saveStatus"></span>
+    <button class="btn-secondary" onclick="window.location.href='/publisher'">Cancel</button>
+ 
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="page-header">
+    <h1>Build your <em>Survey</em></h1>
+    <p>Set up your survey details and design your questions below.</p>
+  </div>
+
+  <!-- Survey info panel -->
+  <div class="survey-info-panel">
+    <div class="panel-header">
+      <div>
+        <h2>Survey Details</h2>
+        <p>Fill in the basics — auto-saved as you type.</p>
+      </div>
+      <span class="panel-save-status" id="infoSaveStatus"></span>
+    </div>
+    <div class="info-grid">
+      <div class="info-field full">
+        <label>Title *</label>
+        <input type="text" id="infoTitle" placeholder="e.g. Student Sleep Habits Study"
+          value="{{ survey.title if survey.title != 'Untitled Survey' else '' }}"
+          oninput="scheduleInfoSave()">
+      </div>
+      <div class="info-field full">
+        <label>Description</label>
+        <textarea id="infoDescription" placeholder="Brief description of your research..."
+          oninput="scheduleInfoSave()">{{ survey.description or '' }}</textarea>
+      </div>
+  </div>
+
+  <!-- AI Generate Section -->
+  <div class="ai-section">
+    <div class="ai-header">
+      <div class="ai-icon">✨</div>
+      <div>
+        <h3>Generate with AI</h3>
+        <p>Describe your research goal and we'll build the questions for you.</p>
+      </div>
+    </div>
+    <div class="ai-input-row">
+      <input type="text" id="aiPrompt"
+        placeholder="e.g. Study sleep habits of BU students focusing on academic performance"
+        autocomplete="off">
+      <button class="ai-btn" id="aiGenBtn" onclick="generateWithAI()">Generate →</button>
+    </div>
+    <div class="ai-status" id="aiStatus"></div>
+  </div>
+
+  <!-- Questions -->
+  <div class="questions-header">
+    <h2>Questions</h2>
+    <span class="questions-count" id="questionsCount">0 questions</span>
+  </div>
+
+  <div class="questions-list" id="questionsList"></div>
+
+  <button class="btn-add-question" onclick="addQuestion()">+ Add Question</button>
+
+  <div class="bottom-bar">
+    <span class="save-status" id="bottomSaveStatus"></span>
+    <div style="display:flex; gap:10px;">
+      <button class="btn-secondary" onclick="window.location.href='/publisher'">Cancel</button>
+      <button class="btn-primary" onclick="finishAndPublish()">Publish →</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SURVEY_ID = {{ survey_id }};
+  let questions = [];
+  let saveTimeout = null;
+  let infoSaveTimeout = null;
+
+  // ── Load existing questions ────────────────────────────
+  async function loadQuestions() {
+    try {
+      const res = await fetch(`/surveys/${SURVEY_ID}/questions`, { credentials: 'same-origin' });
+      if (!res.ok) return;
+      questions = await res.json();
+      renderAll();
+    } catch(e) {
+      console.error('Failed to load questions:', e);
+    }
+  }
+
+  // ── Render all questions ───────────────────────────────
+  function renderAll() {
+    const list = document.getElementById('questionsList');
+    const count = document.getElementById('questionsCount');
+    count.textContent = `${questions.length} question${questions.length !== 1 ? 's' : ''}`;
+
+    if (questions.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>No questions yet</h3>
+          <p>Add your first question below, or use AI to generate a full survey.</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = questions.map((q, i) => renderQuestionCard(q, i)).join('');
+  }
+
+  // ── Render single question card ────────────────────────
+  function renderQuestionCard(q, index) {
+    const isChoice = ['single', 'multiple', 'dropdown'].includes(q.question_type);
+    const options = q.options || [];
+
+    let extraHtml = '';
+    if (isChoice) {
+      const dotClass = q.question_type === 'multiple' ? 'option-dot multi' : 'option-dot';
+      extraHtml = `
+        <div class="q-options" id="options-${q.id}">
+          ${options.map((opt, oi) => `
+            <div class="option-row" id="opt-${q.id}-${oi}">
+              <div class="${dotClass}"></div>
+              <input class="option-input" type="text" value="${escHtml(opt)}"
+                placeholder="Option ${oi + 1}"
+                onchange="updateOption(${q.id}, ${oi}, this.value)">
+              <button class="option-remove" onclick="removeOption(${q.id}, ${oi})">×</button>
+            </div>
+          `).join('')}
+          <button class="add-option-btn" onclick="addOption(${q.id})">+ Add option</button>
+        </div>`;
+    } else if (q.question_type === 'scale') {
+      extraHtml = `
+        <div class="scale-preview">
+          ${[1,2,3,4,5].map(n => `<div class="scale-dot">${n}</div>`).join('')}
+          <span class="scale-label">1 = Strongly disagree · 5 = Strongly agree</span>
+        </div>`;
+    } else if (q.question_type === 'text') {
+      extraHtml = `
+        <div class="text-preview">
+          <div class="text-preview-box">Participant will type their answer here...</div>
+        </div>`;
+    }
+
+    return `
+      <div class="q-card" id="card-${q.id}">
+        <div class="q-card-top">
+          <div class="q-number">${index + 1}</div>
+          <textarea class="q-text-input" rows="1"
+            placeholder="Type your question here..."
+            onchange="updateQuestionText(${q.id}, this.value)"
+            oninput="autoResize(this)"
+          >${escHtml(q.question_text)}</textarea>
+        </div>
+        <div class="q-card-meta">
+          <select class="q-type-select" onchange="updateQuestionType(${q.id}, this.value)">
+            <option value="single"    ${q.question_type==='single'    ? 'selected':''}>Single choice</option>
+            <option value="multiple"  ${q.question_type==='multiple'  ? 'selected':''}>Multiple choice</option>
+            <option value="text"      ${q.question_type==='text'      ? 'selected':''}>Text answer</option>
+            <option value="scale"     ${q.question_type==='scale'     ? 'selected':''}>Scale (1–5)</option>
+            <option value="dropdown"  ${q.question_type==='dropdown'  ? 'selected':''}>Dropdown</option>
+          </select>
+          <label class="q-required-toggle">
+            <input type="checkbox" ${q.is_required ? 'checked' : ''}
+              onchange="updateRequired(${q.id}, this.checked)">
+            Required
+          </label>
+          <div class="q-actions">
+            <button class="q-action-btn" onclick="moveUp(${q.id})" title="Move up">↑</button>
+            <button class="q-action-btn" onclick="moveDown(${q.id})" title="Move down">↓</button>
+            <button class="q-action-btn delete" onclick="deleteQuestion(${q.id})" title="Delete">×</button>
+          </div>
+        </div>
+        ${extraHtml}
+      </div>`;
+  }
+
+  // ── Add new question ───────────────────────────────────
+  async function addQuestion(preset = null) {
+    const newQ = preset || {
+      question_text: '',
+      question_type: 'single',
+      options: ['Option 1', 'Option 2'],
+      is_required: true
+    };
+
+    try {
+      const res = await fetch(`/surveys/${SURVEY_ID}/questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(newQ)
+      });
+      if (!res.ok) return;
+      const saved = await res.json();
+      questions.push(saved);
+      renderAll();
+      setTimeout(() => {
+        const card = document.getElementById(`card-${saved.id}`);
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    } catch(e) {
+      console.error('Failed to add question:', e);
+    }
+  }
+
+  // ── Delete question ────────────────────────────────────
+  async function deleteQuestion(qId) {
+    if (!confirm('Delete this question?')) return;
+    try {
+      await fetch(`/surveys/${SURVEY_ID}/questions/${qId}`, {
+        method: 'DELETE', credentials: 'same-origin'
+      });
+      questions = questions.filter(q => q.id !== qId);
+      renderAll();
+    } catch(e) {
+      console.error('Failed to delete question:', e);
+    }
+  }
+
+  function updateQuestionText(qId, text) {
+    const q = questions.find(q => q.id === qId);
+    if (q) q.question_text = text;
+    scheduleSave(qId);
+  }
+
+  async function updateQuestionType(qId, type) {
+    const q = questions.find(q => q.id === qId);
+    if (!q) return;
+    q.question_type = type;
+    if (['single', 'multiple', 'dropdown'].includes(type) && !q.options?.length) {
+      q.options = ['Option 1', 'Option 2'];
+    }
+    await saveQuestion(qId);
+    renderAll();
+  }
+
+  function updateRequired(qId, checked) {
+    const q = questions.find(q => q.id === qId);
+    if (q) q.is_required = checked;
+    scheduleSave(qId);
+  }
+
+  function updateOption(qId, optIndex, value) {
+    const q = questions.find(q => q.id === qId);
+    if (q && q.options) {
+      q.options[optIndex] = value;
+      scheduleSave(qId);
+    }
+  }
+
+  function addOption(qId) {
+    const q = questions.find(q => q.id === qId);
+    if (q) {
+      q.options = q.options || [];
+      q.options.push(`Option ${q.options.length + 1}`);
+      saveQuestion(qId).then(() => renderAll());
+    }
+  }
+
+  function removeOption(qId, optIndex) {
+    const q = questions.find(q => q.id === qId);
+    if (q && q.options && q.options.length > 1) {
+      q.options.splice(optIndex, 1);
+      saveQuestion(qId).then(() => renderAll());
+    }
+  }
+
+  async function moveUp(qId) {
+    const idx = questions.findIndex(q => q.id === qId);
+    if (idx <= 0) return;
+    [questions[idx - 1], questions[idx]] = [questions[idx], questions[idx - 1]];
+    await reorderAll();
+    renderAll();
+  }
+
+  async function moveDown(qId) {
+    const idx = questions.findIndex(q => q.id === qId);
+    if (idx >= questions.length - 1) return;
+    [questions[idx], questions[idx + 1]] = [questions[idx + 1], questions[idx]];
+    await reorderAll();
+    renderAll();
+  }
+
+  async function reorderAll() {
+    const payload = questions.map((q, i) => ({ id: q.id, order_index: i + 1 }));
+    try {
+      await fetch(`/surveys/${SURVEY_ID}/questions/reorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload)
+      });
+    } catch(e) {
+      console.error('Reorder failed:', e);
+    }
+  }
+
+  async function saveQuestion(qId) {
+    const q = questions.find(q => q.id === qId);
+    if (!q) return;
+    setSaveStatus('saving');
+    try {
+      await fetch(`/surveys/${SURVEY_ID}/questions/${qId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          question_text: q.question_text,
+          question_type: q.question_type,
+          options: q.options,
+          is_required: q.is_required
+        })
+      });
+      setSaveStatus('saved');
+    } catch(e) {
+      console.error('Save failed:', e);
+      setSaveStatus('');
+    }
+  }
+
+  function scheduleSave(qId) {
+    clearTimeout(saveTimeout);
+    setSaveStatus('saving');
+    saveTimeout = setTimeout(() => saveQuestion(qId), 800);
+  }
+
+  function setSaveStatus(status) {
+    const els = [document.getElementById('saveStatus'), document.getElementById('bottomSaveStatus')];
+    els.forEach(el => {
+      if (!el) return;
+      el.className = 'save-status ' + status;
+      if (status === 'saving') el.textContent = 'Saving...';
+      else if (status === 'saved') el.textContent = '✓ Saved';
+      else el.textContent = '';
+    });
+  }
+
+  // ── Save survey info (title, description, etc.) ────────
+  async function saveInfo() {
+    const title = document.getElementById('infoTitle').value.trim();
+    if (!title) return;
+
+
+    setInfoSaveStatus('saving');
+    try {
+      await fetch(`/surveys/${SURVEY_ID}/update-info`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          title,
+          description: document.getElementById('infoDescription').value,
+        })
+      });
+      setInfoSaveStatus('saved');
+    } catch(e) {
+      console.error('Info save failed:', e);
+      setInfoSaveStatus('');
+    }
+  }
+
+  function scheduleInfoSave() {
+    clearTimeout(infoSaveTimeout);
+    setInfoSaveStatus('saving');
+    infoSaveTimeout = setTimeout(saveInfo, 800);
+  }
+
+  function setInfoSaveStatus(status) {
+    const el = document.getElementById('infoSaveStatus');
+    if (!el) return;
+    el.className = 'panel-save-status ' + status;
+    if (status === 'saving') el.textContent = 'Saving...';
+    else if (status === 'saved') el.textContent = '✓ Saved';
+    else el.textContent = '';
+  }
+
+  // ── AI generate questions ──────────────────────────────
+  async function generateWithAI() {
+    const prompt = document.getElementById('aiPrompt').value.trim();
+    if (!prompt) {
+      showAiStatus('error', 'Please describe your research goal first.');
+      return;
+    }
+
+    const btn = document.getElementById('aiGenBtn');
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    showAiStatus('', '');
+
+    try {
+      const res = await fetch('/api/ai-generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ prompt })
+      });
+
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+
+      for (const q of data.questions) {
+        await addQuestion(q);
+      }
+
+      showAiStatus('success', `✓ ${data.questions.length} questions generated. Review and edit below.`);
+
+      // Also auto-fill title if still empty
+      const titleEl = document.getElementById('infoTitle');
+      if (!titleEl.value.trim()) {
+        titleEl.value = prompt.length > 60 ? prompt.substring(0, 57) + '...' : prompt;
+        scheduleInfoSave();
+      }
+    } catch(e) {
+      showAiStatus('error', 'Something went wrong. Please try again.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Generate →';
+    }
+  }
+
+  function showAiStatus(type, msg) {
+    const el = document.getElementById('aiStatus');
+    el.className = 'ai-status' + (type ? ' ' + type : '');
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }
+
+  // ── Publish button ─────────────────────────────────────
+async function finishAndPublish() {
+    const title = document.getElementById('infoTitle').value.trim();
+    if (!title) {
+        alert('Please add a survey title before publishing.');
+        document.getElementById('infoTitle').focus();
+        return;
+    }
+    if (questions.length === 0) {
+        alert('Please add at least one question before publishing.');
+        return;
+    }
+    await saveInfo();
+
+    // 直接发布（survey 已存在，直接调用 publish 接口）
+    try {
+        const res = await fetch(`/surveys/${SURVEY_ID}/publish`, {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+        window.location.href = '/publisher';
+    } catch(e) {
+        alert('Failed to publish. Please try again.');
+    }
+}
+  // ── Helpers ────────────────────────────────────────────
+  function escHtml(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  // ── Init ───────────────────────────────────────────────
+  loadQuestions();
+</script>
+
+</body>
+</html>

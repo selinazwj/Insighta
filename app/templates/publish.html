@@ -63,6 +63,11 @@
     .info-box { background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; font-size: 14px; color: var(--ink-soft); margin-bottom: 24px; line-height: 1.6; }
     .info-box strong { display: block; color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
 
+    .builtin-badge { display: flex; align-items: flex-start; gap: 14px; background: rgba(45,106,79,0.06); border: 1.5px solid rgba(45,106,79,0.2); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; }
+    .builtin-badge-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+    .builtin-badge-text { font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+    .builtin-badge-text strong { display: block; font-size: 14px; font-weight: 700; color: var(--accent); margin-bottom: 3px; }
+
     .form-group { margin-bottom: 20px; }
     .form-group:last-child { margin-bottom: 0; }
     .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 7px; }
@@ -149,7 +154,7 @@
     <div class="navbar-brand">Insight<span>a</span></div>
   </div>
   <a href="/profile" class="avatar-link">
-    <div class="avatar">U</div>
+    <div class="avatar">{{ current_user.username[0].upper() if current_user.username else 'U' }}</div>
     <span>Profile</span>
   </a>
 </nav>
@@ -157,8 +162,13 @@
 <div class="container">
 
   <div class="page-header">
+    {% if builtin %}
+    <h1>Set up your <em>Survey</em></h1>
+    <p>Set your target audience and budget, then publish.</p>
+    {% else %}
     <h1>Publish a <em>Survey</em></h1>
-    <p>Share your Google Form and collect quality responses from our community.</p>
+    <p>Share your survey link and collect quality responses from our community.</p>
+    {% endif %}
   </div>
 
   <!-- AI FILL -->
@@ -182,6 +192,7 @@
   </div>
 
   <form id="publishForm" method="POST" action="/publish" enctype="multipart/form-data">
+    <input type="hidden" name="existing_survey_id" value="{{ existing_survey_id or 0 }}">
 
     <!-- BASIC INFO -->
     <div class="form-section">
@@ -189,22 +200,38 @@
         <div class="section-icon">✏️</div>
         <div><h2>Basic Information</h2><p>Essential details about your survey</p></div>
       </div>
+
+      {% if builtin %}
+      <input type="hidden" name="form_url" value="__builtin__">
+      <div class="builtin-badge">
+        <div class="builtin-badge-icon">✨</div>
+        <div class="builtin-badge-text">
+          <strong>Insighta Built-in Survey</strong>
+          Your questions are already designed. Set your audience and budget below to publish.
+        </div>
+      </div>
+      {% else %}
       <div class="info-box">
         <strong>Before you start</strong>
         Make sure your survey link is publicly accessible and set to accept responses.
       </div>
+      {% endif %}
+
       <div class="form-group">
         <label>Survey Title</label>
-        <input type="text" name="title" placeholder="e.g., Student Mental Health Study" required style="margin-top: 8px;">
+        <input type="text" name="title" value="{{ prefill_title }}" placeholder="e.g., Student Mental Health Study" required style="margin-top: 8px;">
       </div>
       <div class="form-group">
         <label>Description</label>
-        <textarea name="description" placeholder="We're researching student mental health patterns..." required style="margin-top: 8px;"></textarea>
+        <textarea name="description" placeholder="We're researching student mental health patterns..." required style="margin-top: 8px;">{{ prefill_desc }}</textarea>
       </div>
+
+      {% if not builtin %}
       <div class="form-group">
         <label>Your Form Link</label>
         <input type="url" name="form_url" placeholder="https://your-survey-link.com/..." required style="margin-top: 8px;">
       </div>
+      {% endif %}
     </div>
 
     <!-- SURVEY DETAILS -->
@@ -296,7 +323,6 @@
         <input type="hidden" name="incentive_type" id="incentiveInput" value="cash">
       </div>
 
-      <!-- Target Responses — always visible, outside budgetSection -->
       <div class="form-group" style="margin-top: 4px;">
         <label>Target Responses *</label>
         <div class="label-desc">How many responses do you need?</div>
@@ -308,26 +334,23 @@
         For raffle and volunteer studies, participants are not paid per response. You can describe the incentive details in your survey description.
       </div>
 
-      <!-- Budget (hidden for raffle/volunteer) -->
       <div id="budgetSection">
         <div class="info-box" style="margin-top: 20px;">
           <strong>How pricing works</strong>
-          Enter your per-person budget. We deduct a platform fee and pass the rest to the participant as their reward. Fee tiers: 15% (under $15/person), 20% ($15–$24), 25% ($25+). The <em>"Participant receives"</em> row shows exactly what they get after the fee.
+          Enter your per-person budget. We deduct a platform fee and pass the rest to the participant as their reward. Fee tiers: 15% (under $15/person), 20% ($15–$24), 25% ($25+).
         </div>
-
         <div class="form-row" style="margin-bottom: 0;">
           <div class="form-group">
             <label>Per Person Budget ($)</label>
             <div class="label-desc">What you pay per response</div>
-            <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 10.00" step="any" min="0.01" style="margin-top: 8px;">
+            <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 10.00" step="any" min="0" value="0" style="margin-top: 8px;">
           </div>
           <div class="form-group">
             <label>Total Budget ($)</label>
             <div class="label-desc">Total amount you want to spend</div>
-            <input type="number" id="totalBudgetInput" name="total_budget" placeholder="e.g. 1000.00" step="any" min="1" style="margin-top: 8px;">
+            <input type="number" id="totalBudgetInput" name="total_budget" placeholder="e.g. 1000.00" step="any" min="0" value="0" style="margin-top: 8px;">
           </div>
         </div>
-
         <div class="commission-box" id="commissionBox">
           <div class="commission-row">
             <span class="clabel">Per person (you pay)</span>
@@ -338,10 +361,7 @@
             <span class="cvalue orange" id="dispFee">—</span>
           </div>
           <div class="commission-row">
-            <span class="clabel">
-              Participant receives
-              <span style="font-size:11px; font-weight:400; color:var(--ink-muted); margin-left:4px;">after platform fee</span>
-            </span>
+            <span class="clabel">Participant receives <span style="font-size:11px; font-weight:400; color:var(--ink-muted); margin-left:4px;">after platform fee</span></span>
             <span class="cvalue green" id="dispReward">—</span>
           </div>
           <div class="commission-row">
@@ -351,7 +371,6 @@
         </div>
       </div>
 
-      <!-- Timeline -->
       <div class="form-group" style="margin-top: 24px;">
         <label>Recruitment Timeline</label>
         <div class="label-desc">Urgent studies get boosted visibility</div>
@@ -410,7 +429,7 @@
         </div>
       </div>
 
-      <div class="form-row" style="margin-bottom: 16px;" id="stateRow" style="display:none;">
+      <div class="form-row" style="margin-bottom: 16px; display:none;" id="stateRow">
         <div class="form-group">
           <label>State <span style="font-weight:300; color: var(--ink-muted);">(US only)</span></label>
           <select name="target_state">
@@ -606,24 +625,17 @@
     const target = parseInt(targetInput.value) || 0;
     let ppg = parseFloat(perPersonInput.value) || 0;
     let total = parseFloat(totalBudgetInput.value) || 0;
-
     if (!ppg && !total) { document.getElementById('commissionBox').style.display = 'none'; return; }
-
     if (ppg && target && !totalBudgetInput.matches(':focus')) {
-      total = ppg * target;
-      totalBudgetInput.value = total.toFixed(2);
+      total = ppg * target; totalBudgetInput.value = total.toFixed(2);
     } else if (total && target && !perPersonInput.matches(':focus')) {
-      ppg = total / target;
-      perPersonInput.value = ppg.toFixed(2);
+      ppg = total / target; perPersonInput.value = ppg.toFixed(2);
     }
-
     if (!ppg || !target) { document.getElementById('commissionBox').style.display = 'none'; return; }
-
     const rate = getCommissionRate(ppg);
     const fee = ppg * rate;
     const reward = ppg - fee;
     const totalPay = ppg * target;
-
     document.getElementById('dispPerPerson').textContent = `$${ppg.toFixed(2)}`;
     document.getElementById('dispFeeRate').textContent = `${Math.round(rate * 100)}%`;
     document.getElementById('dispFee').textContent = `-$${fee.toFixed(2)}`;
