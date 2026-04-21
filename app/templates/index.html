@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    <meta name="theme-color" content="#050E1F">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Insighta">
+<title>Insighta — Where Research Meets Reality</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1a18;
+  --ink-soft: #4a4a44;
+  --ink-muted: #8a8a82;
+  --paper: #faf9f5;
+  --paper-warm: #f3f1ea;
+  --accent: #2d6a4f;
+  --accent-light: #52b788;
+  --accent-warm: #e07a3c;
+  --line: #e0ddd3;
+  --serif: 'DM Serif Display', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--paper); color: var(--ink); overflow-x: hidden; }
+
+/* ── NAVBAR ── */
+.navbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  padding: 18px 48px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(250, 249, 245, 0.88);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  z-index: 200;
+}
+.navbar-logo { font-family: var(--serif); font-size: 22px; color: var(--ink); text-decoration: none; letter-spacing: -0.3px; }
+.navbar-logo span { color: var(--accent); }
+.navbar-links { display: flex; gap: 36px; align-items: center; }
+.navbar-links a { font-family: var(--sans); font-size: 15px; font-weight: 500; color: var(--ink-soft); text-decoration: none; transition: color 0.2s; }
+.navbar-links a:hover { color: var(--ink); }
+.nav-cta { background: var(--ink) !important; color: white !important; padding: 9px 20px; border-radius: 6px; font-size: 14px !important; font-weight: 600 !important; transition: background 0.2s !important; }
+.nav-cta:hover { background: var(--accent) !important; }
+
+/* ── HERO ── */
+.hero { min-height: 100vh; display: flex; align-items: center; padding: 120px 48px 80px; position: relative; overflow: hidden; }
+.hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 70% 40%, rgba(82,183,136,0.08) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 20% 80%, rgba(224,122,60,0.06) 0%, transparent 50%); pointer-events: none; }
+.hero-grain { position: absolute; inset: 0; opacity: 0.025; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); background-size: 200px; pointer-events: none; }
+.hero-inner { max-width: 1200px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; position: relative; z-index: 1; }
+.hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2); padding: 6px 14px; border-radius: 100px; margin-bottom: 32px; }
+.hero-eyebrow::before { content: ''; width: 6px; height: 6px; background: var(--accent-light); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+.hero-title { font-family: var(--serif); font-size: clamp(44px, 5.5vw, 68px); line-height: 1.08; letter-spacing: -1.5px; color: var(--ink); margin-bottom: 28px; }
+.hero-title em { font-style: italic; color: var(--accent); }
+.hero-subtitle { font-size: 18px; line-height: 1.75; color: var(--ink-soft); max-width: 480px; margin-bottom: 44px; font-weight: 300; }
+.hero-actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 26px; font-family: var(--sans); font-size: 15px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; text-decoration: none; transition: all 0.2s ease; }
+.btn-primary { background: var(--ink); color: white; }
+.btn-primary:hover { background: var(--accent); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(45,106,79,0.25); }
+.btn-outline { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--line); }
+.btn-outline:hover { background: var(--paper-warm); border-color: var(--ink-soft); color: var(--ink-soft); }
+.guide-link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--ink-muted); text-decoration: none; transition: color 0.2s; }
+.guide-link:hover { color: var(--accent); }
+.hero-right { position: relative; }
+.hero-card-stack { position: relative; height: 460px; }
+.hero-card { position: absolute; background: white; border-radius: 16px; padding: 28px 32px; border: 1px solid var(--line); box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+.hero-card-main { width: 320px; top: 30px; left: 40px; z-index: 3; animation: float 4s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+.hero-card-side { width: 260px; top: 180px; right: 0; z-index: 2; animation: float 4s ease-in-out infinite 1.5s; }
+.hero-card-back { width: 280px; top: 50px; right: 20px; z-index: 1; opacity: 0.5; transform: rotate(3deg); }
+.card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.card-title { font-family: var(--serif); font-size: 18px; color: var(--ink); margin-bottom: 14px; line-height: 1.3; }
+.card-progress-bar { height: 6px; background: var(--paper-warm); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.card-progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); animation: fill 3s ease-in-out infinite; }
+@keyframes fill { 0% { width: 20%; } 50% { width: 78%; } 100% { width: 20%; } }
+.card-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-muted); }
+.card-reward { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--accent-warm); background: rgba(224,122,60,0.1); padding: 5px 12px; border-radius: 100px; margin-bottom: 10px; }
+.card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.tag { font-size: 11px; font-weight: 500; color: var(--ink-soft); background: var(--paper-warm); padding: 4px 10px; border-radius: 100px; border: 1px solid var(--line); }
+
+/* ── STATS BAR ── */
+.stats-bar { background: var(--ink); padding: 40px 48px; }
+.stats-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.stat-item { text-align: center; padding: 20px; border-right: 1px solid rgba(255,255,255,0.1); }
+.stat-item:last-child { border-right: none; }
+.stat-number { font-family: var(--serif); font-size: 36px; color: white; margin-bottom: 6px; }
+.stat-label { font-size: 13px; color: rgba(255,255,255,0.5); font-weight: 400; }
+
+/* ── SECTION SHARED ── */
+.section-eyebrow { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+.section-header { text-align: center; max-width: 680px; margin: 0 auto 72px; }
+.section-header h2 { font-family: var(--serif); font-size: clamp(34px, 4vw, 52px); line-height: 1.1; letter-spacing: -1px; color: var(--ink); margin-bottom: 20px; }
+.section-header p { font-size: 18px; line-height: 1.7; color: var(--ink-soft); font-weight: 300; }
+.divider { width: 48px; height: 3px; background: var(--accent); margin: 20px auto 0; border-radius: 2px; }
+
+/* ── HOW IT WORKS ── */
+.how-section { padding: 120px 48px; background: var(--paper); }
+.how-inner { max-width: 1200px; margin: 0 auto; }
+.how-tabs { display: flex; justify-content: center; gap: 4px; background: white; border: 1px solid var(--line); border-radius: 12px; padding: 6px; max-width: 440px; margin: 0 auto 72px; }
+.how-tab { flex: 1; padding: 11px 20px; font-family: var(--sans); font-size: 15px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--ink-muted); transition: all 0.2s; }
+.how-tab.active { background: var(--ink); color: white; }
+.how-content { display: none; }
+.how-content.active { display: block; }
+.how-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; background: var(--line); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); }
+.how-step { background: white; padding: 44px 36px; position: relative; }
+.how-step:first-child { border-radius: 15px 0 0 15px; }
+.how-step:last-child { border-radius: 0 15px 15px 0; }
+.step-number { font-family: var(--serif); font-size: 48px; font-style: italic; color: rgba(45,106,79,0.15); line-height: 1; margin-bottom: 12px; }
+.step-icon { font-size: 32px; margin-bottom: 20px; display: block; }
+.how-step h3 { font-family: var(--serif); font-size: 20px; color: var(--ink); margin-bottom: 12px; letter-spacing: -0.3px; }
+.how-step p { font-size: 14px; line-height: 1.75; color: var(--ink-soft); font-weight: 300; }
+.how-step .step-tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); background: rgba(45,106,79,0.08); padding: 4px 10px; border-radius: 100px; margin-bottom: 16px; }
+.how-detail { margin-top: 48px; background: white; border-radius: 16px; padding: 48px; border: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+.how-detail h3 { font-family: var(--serif); font-size: 28px; letter-spacing: -0.5px; color: var(--ink); margin-bottom: 16px; }
+.how-detail p { font-size: 16px; line-height: 1.8; color: var(--ink-soft); font-weight: 300; margin-bottom: 20px; }
+.benefit-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.benefit-list li { display: flex; align-items: flex-start; gap: 12px; font-size: 15px; color: var(--ink-soft); line-height: 1.6; }
+.benefit-list li::before { content: '✓'; font-size: 13px; font-weight: 700; color: white; background: var(--accent); width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+.how-visual { background: var(--paper-warm); border-radius: 12px; padding: 32px; border: 1px solid var(--line); }
+.mock-survey { background: white; border-radius: 10px; padding: 24px; border: 1px solid var(--line); margin-bottom: 12px; }
+.mock-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.mock-title { font-family: var(--serif); font-size: 16px; color: var(--ink); margin-bottom: 12px; }
+.mock-pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.mock-pill { font-size: 11px; padding: 4px 10px; background: var(--paper-warm); border: 1px solid var(--line); border-radius: 100px; color: var(--ink-soft); }
+.mock-reward-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.mock-reward { font-size: 13px; font-weight: 600; color: var(--accent-warm); }
+.mock-btn { font-size: 12px; font-weight: 600; background: var(--ink); color: white; padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+
+/* ── STORY SECTION ── */
+.story-section { padding: 120px 48px; background: white; }
+.story-inner { max-width: 1200px; margin: 0 auto; }
+.story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: start; }
+.story-left { position: sticky; top: 120px; }
+.story-left .section-eyebrow { margin-bottom: 24px; }
+.story-left h2 { font-family: var(--serif); font-size: clamp(34px, 3.5vw, 48px); line-height: 1.1; letter-spacing: -1px; color: var(--ink); margin-bottom: 28px; }
+.story-left h2 em { font-style: italic; color: var(--accent); }
+.story-left .lead { font-size: 19px; line-height: 1.75; color: var(--ink-soft); font-weight: 300; border-left: 3px solid var(--accent); padding-left: 20px; margin-bottom: 32px; }
+.story-image-block { background: var(--paper-warm); border-radius: 16px; padding: 36px; border: 1px solid var(--line); margin-top: 32px; }
+.story-image-block .quote { font-family: var(--serif); font-size: 22px; font-style: italic; line-height: 1.5; color: var(--ink); margin-bottom: 16px; }
+.story-image-block .quote-attr { font-size: 13px; color: var(--ink-muted); font-weight: 500; }
+.story-right { padding-top: 8px; }
+.story-block { margin-bottom: 56px; padding-bottom: 56px; border-bottom: 1px solid var(--line); }
+.story-block:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+.story-block-num { font-family: var(--serif); font-size: 72px; font-style: italic; color: rgba(45,106,79,0.12); line-height: 1; margin-bottom: 0; display: block; }
+.story-block h3 { font-family: var(--serif); font-size: 26px; color: var(--ink); margin-top: -16px; margin-bottom: 16px; letter-spacing: -0.5px; }
+.story-block p { font-size: 16px; line-height: 1.85; color: var(--ink-soft); margin-bottom: 14px; font-weight: 300; }
+.story-block p:last-child { margin-bottom: 0; }
+.story-block .callout { background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 0 8px 8px 0; font-size: 15px; font-style: italic; color: var(--ink-soft); margin-top: 20px; line-height: 1.7; }
+
+/* ── JOURNEY ── */
+.journey-section { padding: 120px 48px; background: white; overflow: hidden; }
+.journey-inner { max-width: 1200px; margin: 0 auto; }
+.timeline { position: relative; padding-top: 60px; }
+.timeline::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--line); transform: translateX(-50%); }
+.timeline-item { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 0; margin-bottom: 72px; align-items: start; }
+.timeline-item:last-child { margin-bottom: 0; }
+.timeline-content { padding: 0 48px; }
+.timeline-item:nth-child(even) .timeline-content:first-child { order: 3; text-align: right; }
+.timeline-item:nth-child(even) .timeline-content:last-child { order: 1; }
+.timeline-center { display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; z-index: 1; }
+.timeline-dot { width: 40px; height: 40px; border-radius: 50%; background: white; border: 3px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.timeline-year { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+.timeline-card { background: var(--paper-warm); border-radius: 12px; padding: 28px 32px; border: 1px solid var(--line); }
+.timeline-card h3 { font-family: var(--serif); font-size: 22px; color: var(--ink); margin-bottom: 12px; letter-spacing: -0.3px; }
+.timeline-card p { font-size: 15px; line-height: 1.8; color: var(--ink-soft); font-weight: 300; }
+
+/* ── VALUES ── */
+.values-section { padding: 120px 48px; background: var(--ink); }
+.values-inner { max-width: 1200px; margin: 0 auto; }
+.values-inner .section-eyebrow { color: var(--accent-light); }
+.values-inner .section-header h2 { color: white; }
+.values-inner .section-header p { color: rgba(255,255,255,0.55); }
+.values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: rgba(255,255,255,0.06); border-radius: 16px; overflow: hidden; }
+.value-card { background: rgba(255,255,255,0.04); padding: 48px 40px; transition: background 0.3s; }
+.value-card:hover { background: rgba(255,255,255,0.08); }
+.value-icon { font-size: 40px; margin-bottom: 20px; display: block; }
+.value-card h3 { font-family: var(--serif); font-size: 24px; color: white; margin-bottom: 14px; letter-spacing: -0.3px; }
+.value-card p { font-size: 15px; line-height: 1.8; color: rgba(255,255,255,0.5); font-weight: 300; }
+
+/* ── CTA ── */
+.cta-section { padding: 120px 48px; background: var(--paper); text-align: center; position: relative; overflow: hidden; }
+.cta-section::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(82,183,136,0.1) 0%, transparent 60%); pointer-events: none; }
+.cta-inner { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; }
+.cta-inner h2 { font-family: var(--serif); font-size: clamp(38px, 5vw, 60px); line-height: 1.1; letter-spacing: -1.5px; color: var(--ink); margin-bottom: 24px; }
+.cta-inner h2 em { font-style: italic; color: var(--accent); }
+.cta-inner p { font-size: 19px; line-height: 1.7; color: var(--ink-soft); font-weight: 300; margin-bottom: 44px; }
+.cta-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 48px; text-align: left; }
+.cta-card { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 32px; transition: all 0.2s; }
+.cta-card:hover { border-color: var(--accent); box-shadow: 0 8px 32px rgba(45,106,79,0.12); transform: translateY(-2px); }
+.cta-card-icon { font-size: 36px; margin-bottom: 16px; display: block; }
+.cta-card h3 { font-family: var(--serif); font-size: 22px; color: var(--ink); margin-bottom: 10px; }
+.cta-card p { font-size: 14px; line-height: 1.7; color: var(--ink-soft); margin-bottom: 20px; }
+.cta-card .btn { font-size: 14px; padding: 10px 20px; }
+
+/* ── FOOTER ── */
+footer { background: var(--ink); padding: 72px 48px 40px; }
+.footer-top { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 60px; padding-bottom: 48px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.footer-brand .logo { font-family: var(--serif); font-size: 22px; color: white; margin-bottom: 12px; display: block; }
+.footer-brand .logo span { color: var(--accent-light); }
+.footer-brand p { font-size: 14px; line-height: 1.75; color: rgba(255,255,255,0.45); font-weight: 300; max-width: 260px; }
+.footer-col h4 { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 20px; }
+.footer-col a { display: block; font-size: 14px; color: rgba(255,255,255,0.65); text-decoration: none; margin-bottom: 12px; transition: color 0.2s; }
+.footer-col a:hover { color: white; }
+.footer-bottom { max-width: 1200px; margin: 0 auto; padding-top: 32px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: rgba(255,255,255,0.3); }
+
+/* ── MOBILE ── */
+@media (max-width: 900px) {
+  .navbar { padding: 16px 24px; }
+  .navbar-links { display: none; }
+  .hero { padding: 100px 24px 60px; }
+  .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+  .hero-right { display: none; }
+  .stats-inner { grid-template-columns: 1fr 1fr; }
+  .stat-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .stat-item:nth-child(3), .stat-item:nth-child(4) { border-bottom: none; }
+  .story-grid { grid-template-columns: 1fr; gap: 48px; }
+  .story-left { position: static; }
+  .how-steps { grid-template-columns: 1fr; }
+  .how-step:first-child { border-radius: 15px 15px 0 0; }
+  .how-step:last-child { border-radius: 0 0 15px 15px; }
+  .how-detail { grid-template-columns: 1fr; }
+  .timeline::before { left: 20px; top: 0; }
+  .timeline-item { display: flex !important; flex-direction: row !important; gap: 16px; margin-bottom: 40px; align-items: flex-start; grid-template-columns: unset !important; }
+  .timeline-item:nth-child(even) .timeline-content:first-child { order: unset; text-align: left; }
+  .timeline-item:nth-child(even) .timeline-content:last-child { order: unset; }
+  .timeline-empty { display: none; }
+  .timeline-content { padding: 0; flex: 1; }
+  .timeline-center { flex-direction: column; align-items: center; flex-shrink: 0; width: 40px; padding-top: 0; }
+  .timeline-year { display: none; }
+  .timeline-dot { width: 36px; height: 36px; font-size: 14px; }
+  .values-grid { grid-template-columns: 1fr; }
+  .cta-cards { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr; gap: 32px; }
+  .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
+  .story-section, .how-section, .journey-section, .values-section, .cta-section { padding: 80px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR — How It Works 在 Our Story 前面 -->
+<nav class="navbar">
+  <a class="navbar-logo" href="/">Insight<span>a</span></a>
+  <div class="navbar-links">
+    <a href="#how">How It Works</a>
+    <a href="#story">Our Story</a>
+    <a href="#journey">Journey</a>
+    <a href="#contact">Contact</a>
+    <a href="/login" style="color: var(--ink-soft)">Login</a>
+    <a href="/register" class="nav-cta btn">Get Started →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grain"></div>
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-eyebrow">Now in Early Access</div>
+      <h1 class="hero-title">
+        Research that works<br>
+        for <em>everyone</em><br>
+        in the room.
+      </h1>
+      <p class="hero-subtitle">
+        Insighta is a two-sided platform that connects researchers who need real insights with participants who deserve real rewards — so great research actually gets done.
+      </p>
+      <div class="hero-actions">
+        <a href="/register" class="btn btn-primary">Start for free →</a>
+        <a href="#how" class="btn btn-outline">How it works</a>
+        <a href="https://docs.google.com/document/d/1ghKrghm0yIe5YtuDWodHbYxynEw_899f2YKMImSjrDI/edit" target="_blank" class="guide-link">📖 Getting Started Guide</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-card-stack">
+        <div class="hero-card hero-card-back">
+          <div class="card-label">Survey Match</div>
+          <div class="card-title">Sleep Patterns in College Students</div>
+          <div class="card-tags"><span class="tag">Psychology</span><span class="tag">18–24</span></div>
+        </div>
+        <div class="hero-card hero-card-main">
+          <div class="card-label">📊 Active Survey</div>
+          <div class="card-title">How Social Media Affects Decision Making</div>
+          <div class="card-progress-bar"><div class="card-progress-fill"></div></div>
+          <div class="card-meta"><span>78 / 100 responses</span><span>~4 min</span></div>
+          <div class="card-tags"><span class="tag">Behavioral Science</span><span class="tag">College</span><span class="tag">Anonymous</span></div>
+        </div>
+        <div class="hero-card hero-card-side">
+          <div class="card-reward">💸 $8 reward</div>
+          <div class="card-title">New match for you!</div>
+          <div class="card-tags"><span class="tag">Marketing</span><span class="tag">Grad Students</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item"><div class="stat-number">Early Access</div><div class="stat-label">Researchers & Publishers</div></div>
+    <div class="stat-item"><div class="stat-number">Growing</div><div class="stat-label">Participant Community</div></div>
+    <div class="stat-item"><div class="stat-number">Live Now</div><div class="stat-label">Real Surveys & Studies</div></div>
+    <div class="stat-item"><div class="stat-number">User-Driven</div><div class="stat-label">Built With Our Community</div></div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS — 现在在 Our Story 前面 -->
+<section class="how-section" id="how">
+  <div class="how-inner">
+    <div class="section-header">
+      <span class="section-eyebrow">How It Works</span>
+      <h2>Simple for everyone.<br>Powerful where it counts.</h2>
+      <p>Whether you're collecting data or sharing your perspective, Insighta makes the process seamless, fair, and actually worth your time.</p>
+      <div class="divider"></div>
+    </div>
+    <div class="how-tabs">
+      <button class="how-tab active" onclick="switchTab('publishers', this)">For Researchers</button>
+      <button class="how-tab" onclick="switchTab('fillers', this)">For Participants</button>
+    </div>
+    <div class="how-content active" id="tab-publishers">
+      <div class="how-steps">
+        <div class="how-step"><span class="step-tag">Step 1</span><div class="step-number">01</div><span class="step-icon">✏️</span><h3>Build Your Survey</h3><p>Create your survey using our streamlined editor. Add question types, branching logic, and set completion time estimates so participants know what they're signing up for.</p></div>
+        <div class="how-step"><span class="step-tag">Step 2</span><div class="step-number">02</div><span class="step-icon">🎯</span><h3>Define Your Audience</h3><p>Specify who you need — age, education, field of study, interests, or other demographic criteria. The more specific, the higher quality your responses will be.</p></div>
+        <div class="how-step"><span class="step-tag">Step 3</span><div class="step-number">03</div><span class="step-icon">⚡</span><h3>We Find the Right People</h3><p>Our smart matching system surfaces your survey to participants who fit your criteria — not just anyone who happens to be online. Quality over quantity, every time.</p></div>
+        <div class="how-step"><span class="step-tag">Step 4</span><div class="step-number">04</div><span class="step-icon">📈</span><h3>Analyze in Real Time</h3><p>Watch responses come in on your live dashboard. View completion rates, demographic breakdowns, and export your data in the format you need for analysis.</p></div>
+      </div>
+      <div class="how-detail">
+        <div>
+          <h3>Research that respects your timeline — and your participants.</h3>
+          <p>We know what it's like to run a study under time pressure. Insighta is designed so that from survey creation to data export, you spend more time thinking about your findings and less time chasing responses.</p>
+          <ul class="benefit-list">
+            <li>Reach verified, pre-screened participants who match your target profile</li>
+            <li>Set incentive amounts that reflect the value of your participants' time</li>
+            <li>Get notified as responses come in — no more refreshing Google Forms</li>
+            <li>Export clean, structured data ready for SPSS, R, or Excel</li>
+            <li>Optional: connect with engaged participants for follow-up interviews</li>
+          </ul>
+        </div>
+        <div class="how-visual">
+          <div class="mock-survey">
+            <div class="mock-label">📊 Your Survey — Live</div>
+            <div class="mock-title">Consumer Trust in AI Recommendations</div>
+            <div class="card-progress-bar" style="margin-bottom: 10px;"><div class="card-progress-fill" style="width: 64%;"></div></div>
+            <div class="card-meta" style="font-size:13px; color: var(--ink-muted); margin-bottom: 12px;">64 of 100 target responses</div>
+            <div class="mock-pill-row"><span class="mock-pill">Business</span><span class="mock-pill">Tech</span><span class="mock-pill">Ages 20–35</span></div>
+          </div>
+          <div class="mock-survey">
+            <div class="mock-label">✅ Response Received</div>
+            <div class="mock-title">"Great study design. Easy to understand."</div>
+            <div class="mock-pill-row"><span class="mock-pill">Boston, MA</span><span class="mock-pill">Junior</span><span class="mock-pill">Marketing</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="how-content" id="tab-fillers">
+      <div class="how-steps">
+        <div class="how-step"><span class="step-tag">Step 1</span><div class="step-number">01</div><span class="step-icon">👤</span><h3>Create Your Profile</h3><p>Tell us a bit about yourself — your field of study, interests, age, and background. This is what helps us match you with surveys that are actually relevant to your experiences.</p></div>
+        <div class="how-step"><span class="step-tag">Step 2</span><div class="step-number">02</div><span class="step-icon">🔔</span><h3>Get Matched</h3><p>When a researcher needs someone like you, we'll notify you with a new opportunity. Browse available surveys, see the reward, read the topic, and decide if you want to participate.</p></div>
+        <div class="how-step"><span class="step-tag">Step 3</span><div class="step-number">03</div><span class="step-icon">📝</span><h3>Share Your Perspective</h3><p>Complete the survey on your own time, at your own pace. All surveys list estimated completion time upfront. No tricks, no bait-and-switch, no endless pages with no end in sight.</p></div>
+        <div class="how-step"><span class="step-tag">Step 4</span><div class="step-number">04</div><span class="step-icon">💸</span><h3>Earn & Explore</h3><p>Get rewarded for your time — cash, gift cards, or research credits. And for those curious about research careers, some opportunities lead to deeper involvement with real studies.</p></div>
+      </div>
+      <div class="how-detail">
+        <div>
+          <h3>Your time and your experiences have real value. We mean that.</h3>
+          <p>Most platforms treat participants as an afterthought, a means to an end. We built Insighta with participants at the center, because without you, there is no research worth doing.</p>
+          <ul class="benefit-list">
+            <li>Only see surveys that match your actual profile — no irrelevant noise</li>
+            <li>Know exactly how long a survey takes before you start</li>
+            <li>Earn real rewards: cash, gift cards, or research participation credits</li>
+            <li>Discover opportunities to join ongoing research projects and labs</li>
+            <li>Learn about the research you contributed to when results are published</li>
+          </ul>
+        </div>
+        <div class="how-visual">
+          <div class="mock-survey">
+            <div class="mock-reward">💸 $12 reward</div>
+            <div class="mock-title">Urban Mobility Habits Among Young Adults</div>
+            <div class="mock-pill-row"><span class="mock-pill">~8 min</span><span class="mock-pill">Transportation</span><span class="mock-pill">Anonymous</span></div>
+            <div class="mock-reward-row"><span class="mock-reward">Perfect match for you ✓</span><div class="mock-btn">Take survey →</div></div>
+          </div>
+          <div class="mock-survey">
+            <div class="mock-label">🔬 Research Opportunity</div>
+            <div class="mock-title">Lab seeking 5 students for follow-up interview — $30</div>
+            <div class="mock-pill-row"><span class="mock-pill">Behavioral Econ</span><span class="mock-pill">BU/Harvard</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STORY SECTION — 现在在 How It Works 后面 -->
+<section class="story-section" id="story">
+  <div class="story-inner">
+    <div class="story-grid">
+      <div class="story-left">
+        <span class="section-eyebrow">Our Story</span>
+        <h2>We built this because<br>we <em>lived</em> the problem.</h2>
+        <p class="lead">Every great research project should stand or fall on the quality of its ideas; not on whether the researcher could guilt-trip enough friends into filling out a Google Form.</p>
+        <div class="story-image-block">
+          <div class="quote">"We spent two weeks begging people to fill our survey. That's when we knew something was deeply broken."</div>
+          <div class="quote-attr">— The Insighta founding team, BU 2025</div>
+        </div>
+      </div>
+      <div class="story-right">
+        <div class="story-block">
+          <span class="story-block-num">01</span>
+          <h3>The Night Before the Deadline</h3>
+          <p>It was 11pm. The survey deadline was tomorrow. We had 23 responses out of the 100 we needed for statistical significance.</p>
+          <p>We posted in every Facebook group we could find. We texted acquaintances we hadn't spoken to since freshman orientation. We stood outside the dining hall with a laptop, we stick our poster in every bathroom door. It was embarrassing, exhausting, and — if we're being honest — completely normal. Every researcher goes through this.</p>
+          <div class="callout">That night, one of us asked: "Why isn't there a platform that just… connects researchers with people who actually want to participate?"</div>
+        </div>
+        <div class="story-block">
+          <span class="story-block-num">02</span>
+          <h3>The Other Side of the Problem</h3>
+          <p>As we started talking to more people, we discovered the flip side was just as broken. Hundreds of students were filling out random surveys for course credit or pocket money, but the process was scattered, unreliable, and often felt like their time was being wasted.</p>
+          <p>We spoke to a sophomore psychology student who had spent three hours on a research participation portal only to realize the survey she completed never properly recorded her response. We talked to a pre-med junior who had no idea that her unique experience with a chronic illness could be exactly the data a researcher across campus was desperately looking for.</p>
+          <p>The knowledge was there. The willingness was there. The connection was missing.</p>
+        </div>
+        <div class="story-block">
+          <span class="story-block-num">03</span>
+          <h3>Why We're Different</h3>
+          <p>Existing tools are built for corporations running focus groups with big budgets. They're powerful, yes, but they treat participants as commodities and researchers as just another paying customer. There's no community. No matching. No sense that both sides of the equation actually matter.</p>
+          <p>Insighta is built from the ground up for the academic and independent research ecosystem: where budgets are small, timelines are tight, and the research actually matters. We're not trying to be another survey tool. We're building the infrastructure for a generation of curious people to actually do their work.</p>
+          <div class="callout">We believe that better research leads to better decisions: in science, in policy, in business. And that starts with making research accessible to everyone who wants to do it.</div>
+        </div>
+        <div class="story-block">
+          <span class="story-block-num">04</span>
+          <h3>What We're Building Toward</h3>
+          <p>We're still early. We launched as a small team of students at Boston University, and we're building this as we go, listening closely to every researcher and every participant who uses the platform. This is not a venture-backed rocket ship chasing scale. This is a slow, careful build toward something genuinely useful.</p>
+          <p>Our dream is a world where a first-year student with a fascinating research question has the same access to real participants as a tenured professor with a full lab. Where a curious person can make $20 sharing their authentic experiences and feel like their voice contributed to something meaningful. Where research is a conversation, not a transaction.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- JOURNEY -->
+<section class="journey-section" id="journey">
+  <div class="journey-inner">
+    <div class="section-header">
+      <span class="section-eyebrow">Our Journey</span>
+      <h2>How we got here,<br>and where we're going.</h2>
+      <p>We're a small team building something we genuinely believe in. Here's the honest version of our story.</p>
+      <div class="divider"></div>
+    </div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-content"><div class="timeline-card"><h3>A Poster in a Bathroom</h3><p>It started with a survey flyer taped to a bathroom wall：weathered, half-peeling, desperate. Someone had hand-written a URL and the words "Please fill this out!!" underneath. It had clearly been there for weeks. Nobody had filled it out. Looking at that sad little poster, something clicked: this was the state of academic research recruitment in 2025. A student's months of work, reduced to a crumpled piece of paper in a toilet stall that everyone ignored.</p><p>We couldn't stop thinking about it.</p></div></div>
+        <div class="timeline-center"><div class="timeline-dot">💡</div><div class="timeline-year">The Spark</div></div>
+        <div class="timeline-empty"></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-empty"></div>
+        <div class="timeline-center"><div class="timeline-dot">🎙️</div><div class="timeline-year">Research</div></div>
+        <div class="timeline-content"><div class="timeline-card"><h3>We Interviewed Everyone We Could Find</h3><p>Before building anything, we went out and talked to people. Psychology undergraduates who needed 100 responses in two weeks. PhD candidates across fields — neuroscience, economics, public health — who had been wrestling with recruitment for months. Professors and industry researchers as well.</p><p>The story was the same everywhere. Great research, stuck. Not because the questions weren't good, but because the infrastructure to ask them simply didn't exist.</p></div></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-content"><div class="timeline-card"><h3>"That's Too Hard. Don't Do It."</h3><p>People told us this wouldn't work. Two-sided marketplaces are notoriously difficult to bootstrap — you need participants to attract researchers, and researchers to attract participants. Chicken and egg. Several people we respected told us to pick something simpler. We understood their logic. We did it anyway.</p><p>The problem was real, it was affecting people we cared about, and nobody else seemed to be solving it for the academic context specifically. That felt like reason enough to try.</p></div></div>
+        <div class="timeline-center"><div class="timeline-dot">💪</div><div class="timeline-year">Conviction</div></div>
+        <div class="timeline-empty"></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-empty"></div>
+        <div class="timeline-center"><div class="timeline-dot">🏛️</div><div class="timeline-year">BU Innovation</div></div>
+        <div class="timeline-content"><div class="timeline-card"><h3>Accepted into BU Innovation Pathway</h3><p>Our work got noticed. We were accepted into Boston University's Innovation Pathway program: a formal recognition that the problem we were solving was real and worth building toward. It was the first moment the project stopped feeling like a side experiment and started feeling like a real company. We had institutional backing, a structured roadmap, and the confidence to go all in.</p></div></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-content"><div class="timeline-card"><h3>The Platform Goes Live</h3><p>We launched Insighta — a real, working platform where researchers can post surveys and participants can find ones that match their profile and get rewarded for their time. It's not perfect. We're still iterating every week, fixing bugs, adding features, and learning from every researcher and participant who uses it. But it's live, it's real, and it's already connecting people who would never have found each other otherwise.</p></div></div>
+        <div class="timeline-center"><div class="timeline-dot">🚀</div><div class="timeline-year">Live</div></div>
+        <div class="timeline-empty"></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-empty"></div>
+        <div class="timeline-center"><div class="timeline-dot">🌍</div><div class="timeline-year">What's Next</div></div>
+        <div class="timeline-content"><div class="timeline-card"><h3>We're Just Getting Started</h3><p>No bathroom posters. No begging friends. No unanswered emails. That's the future we're building: one where the quality of your research is limited only by the quality of your ideas, not by your ability to recruit. Join us early, and help us get there.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUES -->
+<section class="values-section">
+  <div class="values-inner">
+    <div class="section-header">
+      <span class="section-eyebrow">What We Stand For</span>
+      <h2>Principles, not platitudes.</h2>
+      <p>These aren't values we put on a wall. They're the decisions we make every day about how to build this platform.</p>
+      <div class="divider" style="background: var(--accent-light);"></div>
+    </div>
+    <div class="values-grid">
+      <div class="value-card"><span class="value-icon">⚖️</span><h3>Fairness for Both Sides</h3><p>Every decision we make has to work for both researchers and participants. We refuse to optimize for one at the expense of the other. That's the foundation everything else is built on.</p></div>
+      <div class="value-card"><span class="value-icon">🔬</span><h3>Research Is a Public Good</h3><p>We believe that good research — on human behavior, health, society, technology — makes the world genuinely better. Making that research easier to do is a cause worth dedicating yourself to.</p></div>
+      <div class="value-card"><span class="value-icon">🤝</span><h3>Transparency Over Hype</h3><p>We're a small team, we're early, and we're still figuring a lot out. We'd rather be honest about that than pretend we're a fully-formed company with all the answers. Trust is built slowly.</p></div>
+      <div class="value-card"><span class="value-icon">📖</span><h3>Access Over Prestige</h3><p>The best research ideas don't only come from elite institutions. We're building tools that work for a first-generation college student with a laptop just as well as they work for a PhD student at a top research university.</p></div>
+      <div class="value-card"><span class="value-icon">🧭</span><h3>Slow and Intentional</h3><p>We're not racing toward a billion-dollar exit. We're building something that actually works, iterating based on real feedback, and resisting the pressure to grow faster than our quality can support.</p></div>
+      <div class="value-card"><span class="value-icon">💬</span><h3>Community Over Platform</h3><p>We want Insighta to feel less like a tool you use and more like a community you belong to — one where researchers and participants genuinely interact, learn from each other, and produce something neither could alone.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="contact">
+  <div class="cta-inner">
+    <span class="section-eyebrow" style="margin-bottom: 20px; display: block;">Join Insighta</span>
+    <h2>Ready to make research<br>work for <em>you</em>?</h2>
+    <p>Whether you have data to gather or time to give, there's a place for you in this. Join early and help shape what Insighta becomes.</p>
+    <div class="cta-cards">
+      <div class="cta-card">
+        <span class="cta-card-icon">📊</span>
+        <h3>I'm a Researcher</h3>
+        <p>You have questions that matter. We have the infrastructure to help you find answers — faster, cheaper, and with better data quality than you've been settling for.</p>
+        <a href="/register" class="btn btn-primary">Publish a Survey →</a>
+      </div>
+      <div class="cta-card">
+        <span class="cta-card-icon">💬</span>
+        <h3>I Want to Participate</h3>
+        <p>Your experiences and opinions are genuinely valuable. Get paid for sharing them with researchers who need your specific perspective — on your schedule, on your terms.</p>
+        <a href="/register" class="btn btn-outline">Find Surveys →</a>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: var(--ink-muted);">Have questions? Reach out at <a href="mailto:insightcom@gmail.com" style="color: var(--accent); text-decoration: none; font-weight: 500;">insightcom@gmail.com</a> — we actually read every email.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="footer">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <span class="logo">Insight<span>a</span></span>
+      <p>Bridging researchers and participants to make better research possible. Built by students, for everyone who's ever had a question worth answering.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Platform</h4>
+      <a href="#how">How It Works</a>
+      <a href="#story">Our Story</a>
+      <a href="#journey">Our Journey</a>
+      <a href="/register">Get Started</a>
+    </div>
+    <div class="footer-col">
+      <h4>Resources</h4>
+      <a href="https://docs.google.com/document/d/1ghKrghm0yIe5YtuDWodHbYxynEw_899f2YKMImSjrDI/edit" target="_blank">Getting Started Guide</a>
+      <a href="#">Help Center</a>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Use</a>
+    </div>
+    <div class="footer-col">
+      <h4>Connect</h4>
+      <a href="mailto:insightcom@gmail.com">Email Us</a>
+      <a href="https://www.instagram.com/surveybridge?igsh=MWloN3JhbG1sbndzOA%3D%3D&utm_source=qr" target="_blank">Instagram</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Insighta. All rights reserved.</span>
+    <span>Made with care at Boston University 🎓</span>
+  </div>
+</footer>
+
+<script>
+function switchTab(tab, btn) {
+  document.querySelectorAll('.how-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.how-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.story-block, .timeline-card, .value-card, .cta-card, .feature-card').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+  observer.observe(el);
+});
+</script>
+
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/static/service-worker.js')
+        .then(() => console.log('Service Worker registered'))
+        .catch(err => console.log('SW error:', err));
+    });
+  }
+</script>
+</body>
+</html>
