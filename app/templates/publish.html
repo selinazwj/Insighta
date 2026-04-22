@@ -707,41 +707,92 @@
     document.getElementById('advArrow').textContent = this.open ? '▾' : '▸';
   });
 
-  document.getElementById('publishForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    let hasError = false;
-    this.querySelectorAll('input[required], select[required], textarea[required]').forEach(el => {
-      if (!el.value.trim()) {
-        el.style.borderColor = '#ef4444';
-        el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
-        hasError = true;
-        el.addEventListener('input', function() {
-          this.style.borderColor = '';
-          this.style.boxShadow = '';
-        }, { once: true });
+  // 实时验证 — 失去焦点时变红，填了之后恢复
+function setupLiveValidation() {
+  document.querySelectorAll('input[required], select[required], textarea[required]').forEach(el => {
+    el.addEventListener('blur', function() {
+      if (!this.value.trim()) {
+        this.style.borderColor = '#ef4444';
+        this.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
       }
     });
-    if (hasError) {
-      document.querySelector('[style*="ef4444"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    const incentive = document.getElementById('incentiveInput').value;
-    const noCash = incentive === 'raffle' || incentive === 'volunteer';
-    if (!noCash) {
+    el.addEventListener('input', function() {
+      if (this.value.trim()) {
+        this.style.borderColor = '';
+        this.style.boxShadow = '';
+      }
+    });
+    el.addEventListener('change', function() {
+      if (this.value.trim()) {
+        this.style.borderColor = '';
+        this.style.boxShadow = '';
+      }
+    });
+  });
+
+  // budget 字段单独处理（不是 required 但需要验证）
+  [perPersonInput, totalBudgetInput].forEach(el => {
+    el.addEventListener('blur', function() {
+      const incentive = document.getElementById('incentiveInput').value;
+      const noCash = incentive === 'raffle' || incentive === 'volunteer';
+      if (noCash) return;
       const ppg = parseFloat(perPersonInput.value) || 0;
       const total = parseFloat(totalBudgetInput.value) || 0;
       if (!ppg && !total) {
         perPersonInput.style.borderColor = '#ef4444';
+        perPersonInput.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
         totalBudgetInput.style.borderColor = '#ef4444';
-        return;
+        totalBudgetInput.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      } else {
+        perPersonInput.style.borderColor = '';
+        perPersonInput.style.boxShadow = '';
+        totalBudgetInput.style.borderColor = '';
+        totalBudgetInput.style.boxShadow = '';
       }
-    }
-    ['target_education_min', 'target_education_max'].forEach(name => {
-      const el = this.querySelector(`select[name="${name}"]`);
-      if (el && !el.value) el.removeAttribute('name');
     });
-    this.submit();
   });
+}
+
+setupLiveValidation();
+
+document.getElementById('publishForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  let hasError = false;
+
+  this.querySelectorAll('input[required], select[required], textarea[required]').forEach(el => {
+    if (!el.value.trim()) {
+      el.style.borderColor = '#ef4444';
+      el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      hasError = true;
+    }
+  });
+
+  const incentive = document.getElementById('incentiveInput').value;
+  const noCash = incentive === 'raffle' || incentive === 'volunteer';
+  if (!noCash) {
+    const ppg = parseFloat(perPersonInput.value) || 0;
+    const total = parseFloat(totalBudgetInput.value) || 0;
+    if (!ppg && !total) {
+      perPersonInput.style.borderColor = '#ef4444';
+      perPersonInput.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      totalBudgetInput.style.borderColor = '#ef4444';
+      totalBudgetInput.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      hasError = true;
+    }
+  }
+
+  if (hasError) {
+    document.querySelector('[style*="ef4444"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  ['target_education_min', 'target_education_max'].forEach(name => {
+    const el = this.querySelector(`select[name="${name}"]`);
+    if (el && !el.value) el.removeAttribute('name');
+  });
+
+  this.submit();
+});
 </script>
 </body>
 </html>
