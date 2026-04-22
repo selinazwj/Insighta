@@ -245,7 +245,8 @@
           <label>Verification code <span class="badge-required">Required</span></label>
           <div class="code-row">
             <input type="text" name="verification_code" id="verificationCode"
-              placeholder="6-digit code" maxlength="6" autocomplete="one-time-code">
+              placeholder="6-digit code" maxlength="6" autocomplete="one-time-code"
+              oninput="autoVerifyCode(this.value)">
             <button type="button" class="btn-send-code" id="btnSendCode" onclick="sendCode()">
               Send Code
             </button>
@@ -336,6 +337,16 @@
       btn.disabled = false; btn.textContent = 'Send Code';
     }
   }
+  function autoVerifyCode(val) {
+    const hint = document.getElementById('codeHint');
+    if (val.length === 6) {
+      hint.textContent = 'Code entered. Click Create Account to continue.';
+      hint.className = 'code-hint success';
+    } else {
+      hint.textContent = '';
+      hint.className = 'code-hint';
+    }
+  }
 
   // ── Password strength ─────────────────────────────────────
   function checkPasswordStrength(val) {
@@ -358,13 +369,30 @@
 
   // ── Consent modal ─────────────────────────────────────────
   function requestConsent() {
-    const email = document.getElementById('email').value;
+    let hasError = false;
+    ['email', 'password', 'confirm', 'verificationCode'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) {
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+        hasError = true;
+        el.addEventListener('input', function() {
+          this.style.borderColor = '';
+          this.style.boxShadow = '';
+        }, { once: true });
+      } else {
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+      }
+    });
+    if (hasError) return;
     const password = document.getElementById('password').value;
     const confirm = document.getElementById('confirm').value;
-    const code = document.getElementById('verificationCode').value;
-    if (!email || !password || !confirm) { alert('Please fill in all required fields.'); return; }
-    if (password !== confirm) { alert('Passwords do not match.'); return; }
-    if (!code) { alert('Please enter the verification code sent to your email.'); return; }
+    if (password !== confirm) {
+      document.getElementById('confirm').style.borderColor = '#ef4444';
+      document.getElementById('confirm').style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      return;
+    }
     document.getElementById('consentModal').style.display = 'flex';
     document.getElementById('consentCheckbox').checked = false;
     document.getElementById('btnAgree').classList.remove('enabled');

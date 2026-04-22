@@ -151,6 +151,7 @@
 <nav class="navbar">
   <div class="navbar-left">
     <a href="/publisher" class="back-btn">← Back</a>
+    <a href="/" class="back-btn">Home</a>
     <div class="navbar-brand">Insight<span>a</span></div>
   </div>
   <a href="/profile" class="avatar-link">
@@ -298,7 +299,7 @@
           <input type="file" id="coverImageInput" name="cover_image" accept="image/*">
           <div class="file-upload-icon">🖼</div>
           <div class="file-upload-text"><strong>Click to upload</strong> or drag and drop</div>
-          <div class="file-upload-text">JPG, PNG — leave empty for default</div>
+          <div class="file-upload-text">JPG, PNG — or leave empty and we'll auto-assign a cover based on your category</div>
           <div class="file-name" id="fileName"></div>
         </div>
       </div>
@@ -708,12 +709,32 @@
 
   document.getElementById('publishForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    let hasError = false;
+    this.querySelectorAll('input[required], select[required], textarea[required]').forEach(el => {
+      if (!el.value.trim()) {
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+        hasError = true;
+        el.addEventListener('input', function() {
+          this.style.borderColor = '';
+          this.style.boxShadow = '';
+        }, { once: true });
+      }
+    });
+    if (hasError) {
+      document.querySelector('[style*="ef4444"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     const incentive = document.getElementById('incentiveInput').value;
     const noCash = incentive === 'raffle' || incentive === 'volunteer';
     if (!noCash) {
       const ppg = parseFloat(perPersonInput.value) || 0;
       const total = parseFloat(totalBudgetInput.value) || 0;
-      if (!ppg && !total) { alert('Please enter a per-person budget or total budget.'); return; }
+      if (!ppg && !total) {
+        perPersonInput.style.borderColor = '#ef4444';
+        totalBudgetInput.style.borderColor = '#ef4444';
+        return;
+      }
     }
     ['target_education_min', 'target_education_max'].forEach(name => {
       const el = this.querySelector(`select[name="${name}"]`);

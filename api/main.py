@@ -1316,6 +1316,11 @@ def connect_onboard(current_user: User = Depends(get_current_user), db: Session 
         type="account_onboarding",
     )
     return RedirectResponse(account_link.url)
+@app.get("/logout")
+def logout():
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie("user_id")
+    return response
 
 @app.get("/connect/complete", response_class=HTMLResponse)
 def connect_complete(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
