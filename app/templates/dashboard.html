@@ -124,6 +124,7 @@
 <nav class="navbar">
   <div class="navbar-left">
     <a href="/choice" class="back-btn">← Back</a>
+    <a href="/" class="back-btn">Home</a>
     <div class="navbar-brand">Insight<span>a</span></div>
   </div>
   <div class="navbar-right">
@@ -134,8 +135,10 @@
     <a href="/profile" class="avatar-link">
       <div class="avatar">{{ current_user.username[0].upper() if current_user.username else 'U' }}</div>
       <span>Profile</span>
+      
     </a>
-  </div>
+    
+    
 </nav>
 
 <div class="container">
