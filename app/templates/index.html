@@ -11,10 +11,11 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Insighta">
-<title>Insighta — Where Research Meets Reality</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+    <title>Insighta — Where Research Meets Reality</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
 <style>
 :root {
   --ink: #1a1a18;
@@ -34,7 +35,6 @@
 html { scroll-behavior: smooth; }
 body { font-family: var(--sans); background: var(--paper); color: var(--ink); overflow-x: hidden; }
 
-/* ── NAVBAR ── */
 .navbar {
   position: fixed; top: 0; left: 0; right: 0;
   padding: 18px 48px;
@@ -52,7 +52,6 @@ body { font-family: var(--sans); background: var(--paper); color: var(--ink); ov
 .nav-cta { background: var(--ink) !important; color: white !important; padding: 9px 20px; border-radius: 6px; font-size: 14px !important; font-weight: 600 !important; transition: background 0.2s !important; }
 .nav-cta:hover { background: var(--accent) !important; }
 
-/* ── HERO ── */
 .hero { min-height: 100vh; display: flex; align-items: center; padding: 120px 48px 80px; position: relative; overflow: hidden; }
 .hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 70% 40%, rgba(82,183,136,0.08) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 20% 80%, rgba(224,122,60,0.06) 0%, transparent 50%); pointer-events: none; }
 .hero-grain { position: absolute; inset: 0; opacity: 0.025; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); background-size: 200px; pointer-events: none; }
@@ -71,6 +70,7 @@ body { font-family: var(--sans); background: var(--paper); color: var(--ink); ov
 .btn-outline:hover { background: var(--paper-warm); border-color: var(--ink-soft); color: var(--ink-soft); }
 .guide-link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--ink-muted); text-decoration: none; transition: color 0.2s; }
 .guide-link:hover { color: var(--accent); }
+.guide-link i { width: 15px; height: 15px; }
 .hero-right { position: relative; }
 .hero-card-stack { position: relative; height: 460px; }
 .hero-card { position: absolute; background: white; border-radius: 16px; padding: 28px 32px; border: 1px solid var(--line); box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
@@ -78,17 +78,18 @@ body { font-family: var(--sans); background: var(--paper); color: var(--ink); ov
 @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
 .hero-card-side { width: 260px; top: 180px; right: 0; z-index: 2; animation: float 4s ease-in-out infinite 1.5s; }
 .hero-card-back { width: 280px; top: 50px; right: 20px; z-index: 1; opacity: 0.5; transform: rotate(3deg); }
-.card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.card-label i { width: 13px; height: 13px; }
 .card-title { font-family: var(--serif); font-size: 18px; color: var(--ink); margin-bottom: 14px; line-height: 1.3; }
 .card-progress-bar { height: 6px; background: var(--paper-warm); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
 .card-progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); animation: fill 3s ease-in-out infinite; }
 @keyframes fill { 0% { width: 20%; } 50% { width: 78%; } 100% { width: 20%; } }
 .card-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-muted); }
 .card-reward { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--accent-warm); background: rgba(224,122,60,0.1); padding: 5px 12px; border-radius: 100px; margin-bottom: 10px; }
+.card-reward i { width: 13px; height: 13px; }
 .card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 .tag { font-size: 11px; font-weight: 500; color: var(--ink-soft); background: var(--paper-warm); padding: 4px 10px; border-radius: 100px; border: 1px solid var(--line); }
 
-/* ── STATS BAR ── */
 .stats-bar { background: var(--ink); padding: 40px 48px; }
 .stats-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .stat-item { text-align: center; padding: 20px; border-right: 1px solid rgba(255,255,255,0.1); }
@@ -96,14 +97,12 @@ body { font-family: var(--sans); background: var(--paper); color: var(--ink); ov
 .stat-number { font-family: var(--serif); font-size: 36px; color: white; margin-bottom: 6px; }
 .stat-label { font-size: 13px; color: rgba(255,255,255,0.5); font-weight: 400; }
 
-/* ── SECTION SHARED ── */
 .section-eyebrow { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
 .section-header { text-align: center; max-width: 680px; margin: 0 auto 72px; }
 .section-header h2 { font-family: var(--serif); font-size: clamp(34px, 4vw, 52px); line-height: 1.1; letter-spacing: -1px; color: var(--ink); margin-bottom: 20px; }
 .section-header p { font-size: 18px; line-height: 1.7; color: var(--ink-soft); font-weight: 300; }
 .divider { width: 48px; height: 3px; background: var(--accent); margin: 20px auto 0; border-radius: 2px; }
 
-/* ── HOW IT WORKS ── */
 .how-section { padding: 120px 48px; background: var(--paper); }
 .how-inner { max-width: 1200px; margin: 0 auto; }
 .how-tabs { display: flex; justify-content: center; gap: 4px; background: white; border: 1px solid var(--line); border-radius: 12px; padding: 6px; max-width: 440px; margin: 0 auto 72px; }
@@ -116,7 +115,8 @@ body { font-family: var(--sans); background: var(--paper); color: var(--ink); ov
 .how-step:first-child { border-radius: 15px 0 0 15px; }
 .how-step:last-child { border-radius: 0 15px 15px 0; }
 .step-number { font-family: var(--serif); font-size: 48px; font-style: italic; color: rgba(45,106,79,0.15); line-height: 1; margin-bottom: 12px; }
-.step-icon { font-size: 32px; margin-bottom: 20px; display: block; }
+.step-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(45,106,79,0.08); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: var(--accent); }
+.step-icon i { width: 20px; height: 20px; }
 .how-step h3 { font-family: var(--serif); font-size: 20px; color: var(--ink); margin-bottom: 12px; letter-spacing: -0.3px; }
 .how-step p { font-size: 14px; line-height: 1.75; color: var(--ink-soft); font-weight: 300; }
 .how-step .step-tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); background: rgba(45,106,79,0.08); padding: 4px 10px; border-radius: 100px; margin-bottom: 16px; }
@@ -125,18 +125,20 @@ body { font-family: var(--sans); background: var(--paper); color: var(--ink); ov
 .how-detail p { font-size: 16px; line-height: 1.8; color: var(--ink-soft); font-weight: 300; margin-bottom: 20px; }
 .benefit-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
 .benefit-list li { display: flex; align-items: flex-start; gap: 12px; font-size: 15px; color: var(--ink-soft); line-height: 1.6; }
-.benefit-list li::before { content: '✓'; font-size: 13px; font-weight: 700; color: white; background: var(--accent); width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+.benefit-list li .check-icon { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; color: white; }
+.benefit-list li .check-icon i { width: 11px; height: 11px; }
 .how-visual { background: var(--paper-warm); border-radius: 12px; padding: 32px; border: 1px solid var(--line); }
 .mock-survey { background: white; border-radius: 10px; padding: 24px; border: 1px solid var(--line); margin-bottom: 12px; }
-.mock-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.mock-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.mock-label i { width: 12px; height: 12px; }
 .mock-title { font-family: var(--serif); font-size: 16px; color: var(--ink); margin-bottom: 12px; }
 .mock-pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .mock-pill { font-size: 11px; padding: 4px 10px; background: var(--paper-warm); border: 1px solid var(--line); border-radius: 100px; color: var(--ink-soft); }
 .mock-reward-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
-.mock-reward { font-size: 13px; font-weight: 600; color: var(--accent-warm); }
+.mock-reward { font-size: 13px; font-weight: 600; color: var(--accent-warm); display: flex; align-items: center; gap: 5px; }
+.mock-reward i { width: 13px; height: 13px; }
 .mock-btn { font-size: 12px; font-weight: 600; background: var(--ink); color: white; padding: 6px 14px; border-radius: 6px; cursor: pointer; }
 
-/* ── STORY SECTION ── */
 .story-section { padding: 120px 48px; background: white; }
 .story-inner { max-width: 1200px; margin: 0 auto; }
 .story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: start; }
@@ -157,7 +159,6 @@ body { font-family: var(--sans); background: var(--paper); color: var(--ink); ov
 .story-block p:last-child { margin-bottom: 0; }
 .story-block .callout { background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); padding: 16px 20px; border-radius: 0 8px 8px 0; font-size: 15px; font-style: italic; color: var(--ink-soft); margin-top: 20px; line-height: 1.7; }
 
-/* ── JOURNEY ── */
 .journey-section { padding: 120px 48px; background: white; overflow: hidden; }
 .journey-inner { max-width: 1200px; margin: 0 auto; }
 .timeline { position: relative; padding-top: 60px; }
@@ -168,13 +169,13 @@ body { font-family: var(--sans); background: var(--paper); color: var(--ink); ov
 .timeline-item:nth-child(even) .timeline-content:first-child { order: 3; text-align: right; }
 .timeline-item:nth-child(even) .timeline-content:last-child { order: 1; }
 .timeline-center { display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; z-index: 1; }
-.timeline-dot { width: 40px; height: 40px; border-radius: 50%; background: white; border: 3px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.timeline-dot { width: 40px; height: 40px; border-radius: 50%; background: white; border: 3px solid var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent); }
+.timeline-dot i { width: 18px; height: 18px; }
 .timeline-year { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
 .timeline-card { background: var(--paper-warm); border-radius: 12px; padding: 28px 32px; border: 1px solid var(--line); }
 .timeline-card h3 { font-family: var(--serif); font-size: 22px; color: var(--ink); margin-bottom: 12px; letter-spacing: -0.3px; }
 .timeline-card p { font-size: 15px; line-height: 1.8; color: var(--ink-soft); font-weight: 300; }
 
-/* ── VALUES ── */
 .values-section { padding: 120px 48px; background: var(--ink); }
 .values-inner { max-width: 1200px; margin: 0 auto; }
 .values-inner .section-eyebrow { color: var(--accent-light); }
@@ -183,11 +184,11 @@ body { font-family: var(--sans); background: var(--paper); color: var(--ink); ov
 .values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: rgba(255,255,255,0.06); border-radius: 16px; overflow: hidden; }
 .value-card { background: rgba(255,255,255,0.04); padding: 48px 40px; transition: background 0.3s; }
 .value-card:hover { background: rgba(255,255,255,0.08); }
-.value-icon { font-size: 40px; margin-bottom: 20px; display: block; }
+.value-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: var(--accent-light); }
+.value-icon i { width: 22px; height: 22px; }
 .value-card h3 { font-family: var(--serif); font-size: 24px; color: white; margin-bottom: 14px; letter-spacing: -0.3px; }
 .value-card p { font-size: 15px; line-height: 1.8; color: rgba(255,255,255,0.5); font-weight: 300; }
 
-/* ── CTA ── */
 .cta-section { padding: 120px 48px; background: var(--paper); text-align: center; position: relative; overflow: hidden; }
 .cta-section::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(82,183,136,0.1) 0%, transparent 60%); pointer-events: none; }
 .cta-inner { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; }
@@ -197,12 +198,12 @@ body { font-family: var(--sans); background: var(--paper); color: var(--ink); ov
 .cta-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 48px; text-align: left; }
 .cta-card { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 32px; transition: all 0.2s; }
 .cta-card:hover { border-color: var(--accent); box-shadow: 0 8px 32px rgba(45,106,79,0.12); transform: translateY(-2px); }
-.cta-card-icon { font-size: 36px; margin-bottom: 16px; display: block; }
+.cta-card-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(45,106,79,0.08); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: var(--accent); }
+.cta-card-icon i { width: 24px; height: 24px; }
 .cta-card h3 { font-family: var(--serif); font-size: 22px; color: var(--ink); margin-bottom: 10px; }
 .cta-card p { font-size: 14px; line-height: 1.7; color: var(--ink-soft); margin-bottom: 20px; }
 .cta-card .btn { font-size: 14px; padding: 10px 20px; }
 
-/* ── FOOTER ── */
 footer { background: var(--ink); padding: 72px 48px 40px; }
 .footer-top { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 60px; padding-bottom: 48px; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .footer-brand .logo { font-family: var(--serif); font-size: 22px; color: white; margin-bottom: 12px; display: block; }
@@ -213,7 +214,6 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
 .footer-col a:hover { color: white; }
 .footer-bottom { max-width: 1200px; margin: 0 auto; padding-top: 32px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: rgba(255,255,255,0.3); }
 
-/* ── MOBILE ── */
 @media (max-width: 900px) {
   .navbar { padding: 16px 24px; }
   .navbar-links { display: none; }
@@ -237,7 +237,7 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   .timeline-content { padding: 0; flex: 1; }
   .timeline-center { flex-direction: column; align-items: center; flex-shrink: 0; width: 40px; padding-top: 0; }
   .timeline-year { display: none; }
-  .timeline-dot { width: 36px; height: 36px; font-size: 14px; }
+  .timeline-dot { width: 36px; height: 36px; }
   .values-grid { grid-template-columns: 1fr; }
   .cta-cards { grid-template-columns: 1fr; }
   .footer-top { grid-template-columns: 1fr; gap: 32px; }
@@ -248,7 +248,6 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
 </head>
 <body>
 
-<!-- NAVBAR — How It Works 在 Our Story 前面 -->
 <nav class="navbar">
   <a class="navbar-logo" href="/">Insight<span>a</span></a>
   <div class="navbar-links">
@@ -261,7 +260,6 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   </div>
 </nav>
 
-<!-- HERO -->
 <section class="hero">
   <div class="hero-bg"></div>
   <div class="hero-grain"></div>
@@ -279,7 +277,9 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
       <div class="hero-actions">
         <a href="/register" class="btn btn-primary">Start for free →</a>
         <a href="#how" class="btn btn-outline">How it works</a>
-        <a href="https://docs.google.com/document/d/1ghKrghm0yIe5YtuDWodHbYxynEw_899f2YKMImSjrDI/edit" target="_blank" class="guide-link">📖 Getting Started Guide</a>
+        <a href="https://docs.google.com/document/d/1ghKrghm0yIe5YtuDWodHbYxynEw_899f2YKMImSjrDI/edit" target="_blank" class="guide-link">
+          <i data-lucide="book-open"></i> Getting Started Guide
+        </a>
       </div>
     </div>
     <div class="hero-right">
@@ -290,14 +290,14 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
           <div class="card-tags"><span class="tag">Psychology</span><span class="tag">18–24</span></div>
         </div>
         <div class="hero-card hero-card-main">
-          <div class="card-label">📊 Active Survey</div>
+          <div class="card-label"><i data-lucide="bar-chart-2"></i> Active Survey</div>
           <div class="card-title">How Social Media Affects Decision Making</div>
           <div class="card-progress-bar"><div class="card-progress-fill"></div></div>
           <div class="card-meta"><span>78 / 100 responses</span><span>~4 min</span></div>
           <div class="card-tags"><span class="tag">Behavioral Science</span><span class="tag">College</span><span class="tag">Anonymous</span></div>
         </div>
         <div class="hero-card hero-card-side">
-          <div class="card-reward">💸 $8 reward</div>
+          <div class="card-reward"><i data-lucide="dollar-sign"></i> $8 reward</div>
           <div class="card-title">New match for you!</div>
           <div class="card-tags"><span class="tag">Marketing</span><span class="tag">Grad Students</span></div>
         </div>
@@ -306,7 +306,6 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   </div>
 </section>
 
-<!-- STATS -->
 <div class="stats-bar">
   <div class="stats-inner">
     <div class="stat-item"><div class="stat-number">Early Access</div><div class="stat-label">Researchers & Publishers</div></div>
@@ -316,7 +315,6 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   </div>
 </div>
 
-<!-- HOW IT WORKS — 现在在 Our Story 前面 -->
 <section class="how-section" id="how">
   <div class="how-inner">
     <div class="section-header">
@@ -331,33 +329,57 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
     </div>
     <div class="how-content active" id="tab-publishers">
       <div class="how-steps">
-        <div class="how-step"><span class="step-tag">Step 1</span><div class="step-number">01</div><span class="step-icon">✏️</span><h3>Build Your Survey</h3><p>Just type one sentence describing your research goal — our AI instantly generates a complete survey with questions and answer options. Or build manually with our streamlined editor.</p></div>
-        <div class="how-step"><span class="step-tag">Step 2</span><div class="step-number">02</div><span class="step-icon">🎯</span><h3>Define Your Audience</h3><p>Specify who you need — age, education, field of study, interests, or other demographic criteria. The more specific, the higher quality your responses will be.</p></div>
-        <div class="how-step"><span class="step-tag">Step 3</span><div class="step-number">03</div><span class="step-icon">⚡</span><h3>We Find the Right People</h3><p>Our smart matching system surfaces your survey to participants who fit your criteria — not just anyone who happens to be online. Quality over quantity, every time.</p></div>
-        <div class="how-step"><span class="step-tag">Step 4</span><div class="step-number">04</div><span class="step-icon">📈</span><h3>Analyze in Real Time</h3><p>Watch responses come in on your live dashboard. View completion rates, demographic breakdowns, and export your data in the format you need for analysis.</p></div>
+        <div class="how-step">
+          <span class="step-tag">Step 1</span>
+          <div class="step-number">01</div>
+          <div class="step-icon"><i data-lucide="pencil"></i></div>
+          <h3>Build Your Survey</h3>
+          <p>Just type one sentence describing your research goal — our AI instantly generates a complete survey with questions and answer options. Or build manually with our streamlined editor.</p>
+        </div>
+        <div class="how-step">
+          <span class="step-tag">Step 2</span>
+          <div class="step-number">02</div>
+          <div class="step-icon"><i data-lucide="target"></i></div>
+          <h3>Define Your Audience</h3>
+          <p>Specify who you need — age, education, field of study, interests, or other demographic criteria. The more specific, the higher quality your responses will be.</p>
+        </div>
+        <div class="how-step">
+          <span class="step-tag">Step 3</span>
+          <div class="step-number">03</div>
+          <div class="step-icon"><i data-lucide="zap"></i></div>
+          <h3>We Find the Right People</h3>
+          <p>Our smart matching system surfaces your survey to participants who fit your criteria — not just anyone who happens to be online. Quality over quantity, every time.</p>
+        </div>
+        <div class="how-step">
+          <span class="step-tag">Step 4</span>
+          <div class="step-number">04</div>
+          <div class="step-icon"><i data-lucide="trending-up"></i></div>
+          <h3>Analyze in Real Time</h3>
+          <p>Watch responses come in on your live dashboard. View completion rates, demographic breakdowns, and export your data in the format you need for analysis.</p>
+        </div>
       </div>
       <div class="how-detail">
         <div>
           <h3>Research that respects your timeline — and your participants.</h3>
           <p>We know what it's like to run a study under time pressure. Insighta is designed so that from survey creation to data export, you spend more time thinking about your findings and less time chasing responses.</p>
           <ul class="benefit-list">
-            <li>Reach verified, pre-screened participants who match your target profile</li>
-            <li>Set incentive amounts that reflect the value of your participants' time</li>
-            <li>Get notified as responses come in — no more refreshing Google Forms</li>
-            <li>Export clean, structured data ready for SPSS, R, or Excel</li>
-            <li>Optional: connect with engaged participants for follow-up interviews</li>
+            <li><span class="check-icon"><i data-lucide="check"></i></span>Reach verified, pre-screened participants who match your target profile</li>
+            <li><span class="check-icon"><i data-lucide="check"></i></span>Set incentive amounts that reflect the value of your participants' time</li>
+            <li><span class="check-icon"><i data-lucide="check"></i></span>Get notified as responses come in — no more refreshing Google Forms</li>
+            <li><span class="check-icon"><i data-lucide="check"></i></span>Export clean, structured data ready for SPSS, R, or Excel</li>
+            <li><span class="check-icon"><i data-lucide="check"></i></span>Optional: connect with engaged participants for follow-up interviews</li>
           </ul>
         </div>
         <div class="how-visual">
           <div class="mock-survey">
-            <div class="mock-label">📊 Your Survey — Live</div>
+            <div class="mock-label"><i data-lucide="bar-chart-2"></i> Your Survey — Live</div>
             <div class="mock-title">Consumer Trust in AI Recommendations</div>
             <div class="card-progress-bar" style="margin-bottom: 10px;"><div class="card-progress-fill" style="width: 64%;"></div></div>
             <div class="card-meta" style="font-size:13px; color: var(--ink-muted); margin-bottom: 12px;">64 of 100 target responses</div>
             <div class="mock-pill-row"><span class="mock-pill">Business</span><span class="mock-pill">Tech</span><span class="mock-pill">Ages 20–35</span></div>
           </div>
           <div class="mock-survey">
-            <div class="mock-label">✅ Response Received</div>
+            <div class="mock-label"><i data-lucide="check-circle"></i> Response Received</div>
             <div class="mock-title">"Great study design. Easy to understand."</div>
             <div class="mock-pill-row"><span class="mock-pill">Boston, MA</span><span class="mock-pill">Junior</span><span class="mock-pill">Marketing</span></div>
           </div>
@@ -366,32 +388,56 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
     </div>
     <div class="how-content" id="tab-fillers">
       <div class="how-steps">
-        <div class="how-step"><span class="step-tag">Step 1</span><div class="step-number">01</div><span class="step-icon">👤</span><h3>Create Your Profile</h3><p>Tell us a bit about yourself — your field of study, interests, age, and background. This is what helps us match you with surveys that are actually relevant to your experiences.</p></div>
-        <div class="how-step"><span class="step-tag">Step 2</span><div class="step-number">02</div><span class="step-icon">🔔</span><h3>Get Matched</h3><p>When a researcher needs someone like you, we'll notify you with a new opportunity. Browse available surveys, see the reward, read the topic, and decide if you want to participate.</p></div>
-        <div class="how-step"><span class="step-tag">Step 3</span><div class="step-number">03</div><span class="step-icon">📝</span><h3>Share Your Perspective</h3><p>Complete the survey on your own time, at your own pace. All surveys list estimated completion time upfront. No tricks, no bait-and-switch, no endless pages with no end in sight.</p></div>
-        <div class="how-step"><span class="step-tag">Step 4</span><div class="step-number">04</div><span class="step-icon">💸</span><h3>Earn & Explore</h3><p>Get rewarded for your time — cash, gift cards, or research credits. And for those curious about research careers, some opportunities lead to deeper involvement with real studies.</p></div>
+        <div class="how-step">
+          <span class="step-tag">Step 1</span>
+          <div class="step-number">01</div>
+          <div class="step-icon"><i data-lucide="user"></i></div>
+          <h3>Create Your Profile</h3>
+          <p>Tell us a bit about yourself — your field of study, interests, age, and background. This is what helps us match you with surveys that are actually relevant to your experiences.</p>
+        </div>
+        <div class="how-step">
+          <span class="step-tag">Step 2</span>
+          <div class="step-number">02</div>
+          <div class="step-icon"><i data-lucide="bell"></i></div>
+          <h3>Get Matched</h3>
+          <p>When a researcher needs someone like you, we'll notify you with a new opportunity. Browse available surveys, see the reward, read the topic, and decide if you want to participate.</p>
+        </div>
+        <div class="how-step">
+          <span class="step-tag">Step 3</span>
+          <div class="step-number">03</div>
+          <div class="step-icon"><i data-lucide="file-text"></i></div>
+          <h3>Share Your Perspective</h3>
+          <p>Complete the survey on your own time, at your own pace. All surveys list estimated completion time upfront. No tricks, no bait-and-switch, no endless pages with no end in sight.</p>
+        </div>
+        <div class="how-step">
+          <span class="step-tag">Step 4</span>
+          <div class="step-number">04</div>
+          <div class="step-icon"><i data-lucide="dollar-sign"></i></div>
+          <h3>Earn & Explore</h3>
+          <p>Get rewarded for your time — cash, gift cards, or research credits. And for those curious about research careers, some opportunities lead to deeper involvement with real studies.</p>
+        </div>
       </div>
       <div class="how-detail">
         <div>
           <h3>Your time and your experiences have real value. We mean that.</h3>
           <p>Most platforms treat participants as an afterthought, a means to an end. We built Insighta with participants at the center, because without you, there is no research worth doing.</p>
           <ul class="benefit-list">
-            <li>Only see surveys that match your actual profile — no irrelevant noise</li>
-            <li>Know exactly how long a survey takes before you start</li>
-            <li>Earn real rewards: cash, gift cards, or research participation credits</li>
-            <li>Discover opportunities to join ongoing research projects and labs</li>
-            <li>Learn about the research you contributed to when results are published</li>
+            <li><span class="check-icon"><i data-lucide="check"></i></span>Only see surveys that match your actual profile — no irrelevant noise</li>
+            <li><span class="check-icon"><i data-lucide="check"></i></span>Know exactly how long a survey takes before you start</li>
+            <li><span class="check-icon"><i data-lucide="check"></i></span>Earn real rewards: cash, gift cards, or research participation credits</li>
+            <li><span class="check-icon"><i data-lucide="check"></i></span>Discover opportunities to join ongoing research projects and labs</li>
+            <li><span class="check-icon"><i data-lucide="check"></i></span>Learn about the research you contributed to when results are published</li>
           </ul>
         </div>
         <div class="how-visual">
           <div class="mock-survey">
-            <div class="mock-reward">💸 $12 reward</div>
+            <div class="mock-reward"><i data-lucide="dollar-sign"></i> $12 reward</div>
             <div class="mock-title">Urban Mobility Habits Among Young Adults</div>
             <div class="mock-pill-row"><span class="mock-pill">~8 min</span><span class="mock-pill">Transportation</span><span class="mock-pill">Anonymous</span></div>
-            <div class="mock-reward-row"><span class="mock-reward">Perfect match for you ✓</span><div class="mock-btn">Take survey →</div></div>
+            <div class="mock-reward-row"><span class="mock-reward"><i data-lucide="check"></i> Perfect match for you</span><div class="mock-btn">Take survey →</div></div>
           </div>
           <div class="mock-survey">
-            <div class="mock-label">🔬 Research Opportunity</div>
+            <div class="mock-label"><i data-lucide="microscope"></i> Research Opportunity</div>
             <div class="mock-title">Lab seeking 5 students for follow-up interview — $30</div>
             <div class="mock-pill-row"><span class="mock-pill">Behavioral Econ</span><span class="mock-pill">BU/Harvard</span></div>
           </div>
@@ -401,7 +447,6 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   </div>
 </section>
 
-<!-- STORY SECTION — 现在在 How It Works 后面 -->
 <section class="story-section" id="story">
   <div class="story-inner">
     <div class="story-grid">
@@ -447,7 +492,6 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   </div>
 </section>
 
-<!-- JOURNEY -->
 <section class="journey-section" id="journey">
   <div class="journey-inner">
     <div class="section-header">
@@ -458,40 +502,39 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
     </div>
     <div class="timeline">
       <div class="timeline-item">
-        <div class="timeline-content"><div class="timeline-card"><h3>A Poster in a Bathroom</h3><p>It started with a survey flyer taped to a bathroom wall：weathered, half-peeling, desperate. Someone had hand-written a URL and the words "Please fill this out!!" underneath. It had clearly been there for weeks. Nobody had filled it out. Looking at that sad little poster, something clicked: this was the state of academic research recruitment in 2025. A student's months of work, reduced to a crumpled piece of paper in a toilet stall that everyone ignored.</p><p>We couldn't stop thinking about it.</p></div></div>
-        <div class="timeline-center"><div class="timeline-dot">💡</div><div class="timeline-year">The Spark</div></div>
+        <div class="timeline-content"><div class="timeline-card"><h3>A Poster in a Bathroom</h3><p>It started with a survey flyer taped to a bathroom wall: weathered, half-peeling, desperate. Someone had hand-written a URL and the words "Please fill this out!!" underneath. It had clearly been there for weeks. Nobody had filled it out. Looking at that sad little poster, something clicked: this was the state of academic research recruitment in 2025. A student's months of work, reduced to a crumpled piece of paper in a toilet stall that everyone ignored.</p><p>We couldn't stop thinking about it.</p></div></div>
+        <div class="timeline-center"><div class="timeline-dot"><i data-lucide="lightbulb"></i></div><div class="timeline-year">The Spark</div></div>
         <div class="timeline-empty"></div>
       </div>
       <div class="timeline-item">
         <div class="timeline-empty"></div>
-        <div class="timeline-center"><div class="timeline-dot">🎙️</div><div class="timeline-year">Research</div></div>
+        <div class="timeline-center"><div class="timeline-dot"><i data-lucide="mic"></i></div><div class="timeline-year">Research</div></div>
         <div class="timeline-content"><div class="timeline-card"><h3>We Interviewed Everyone We Could Find</h3><p>Before building anything, we went out and talked to people. Psychology undergraduates who needed 100 responses in two weeks. PhD candidates across fields — neuroscience, economics, public health — who had been wrestling with recruitment for months. Professors and industry researchers as well.</p><p>The story was the same everywhere. Great research, stuck. Not because the questions weren't good, but because the infrastructure to ask them simply didn't exist.</p></div></div>
       </div>
       <div class="timeline-item">
         <div class="timeline-content"><div class="timeline-card"><h3>"That's Too Hard. Don't Do It."</h3><p>People told us this wouldn't work. Two-sided marketplaces are notoriously difficult to bootstrap — you need participants to attract researchers, and researchers to attract participants. Chicken and egg. Several people we respected told us to pick something simpler. We understood their logic. We did it anyway.</p><p>The problem was real, it was affecting people we cared about, and nobody else seemed to be solving it for the academic context specifically. That felt like reason enough to try.</p></div></div>
-        <div class="timeline-center"><div class="timeline-dot">💪</div><div class="timeline-year">Conviction</div></div>
+        <div class="timeline-center"><div class="timeline-dot"><i data-lucide="shield"></i></div><div class="timeline-year">Conviction</div></div>
         <div class="timeline-empty"></div>
       </div>
       <div class="timeline-item">
         <div class="timeline-empty"></div>
-        <div class="timeline-center"><div class="timeline-dot">🏛️</div><div class="timeline-year">BU Innovation</div></div>
+        <div class="timeline-center"><div class="timeline-dot"><i data-lucide="building"></i></div><div class="timeline-year">BU Innovation</div></div>
         <div class="timeline-content"><div class="timeline-card"><h3>Accepted into BU Innovation Pathway</h3><p>Our work got noticed. We were accepted into Boston University's Innovation Pathway program: a formal recognition that the problem we were solving was real and worth building toward. It was the first moment the project stopped feeling like a side experiment and started feeling like a real company. We had institutional backing, a structured roadmap, and the confidence to go all in.</p></div></div>
       </div>
       <div class="timeline-item">
         <div class="timeline-content"><div class="timeline-card"><h3>The Platform Goes Live</h3><p>We launched Insighta — a real, working platform where researchers can post surveys and participants can find ones that match their profile and get rewarded for their time. It's not perfect. We're still iterating every week, fixing bugs, adding features, and learning from every researcher and participant who uses it. But it's live, it's real, and it's already connecting people who would never have found each other otherwise.</p></div></div>
-        <div class="timeline-center"><div class="timeline-dot">🚀</div><div class="timeline-year">Live</div></div>
+        <div class="timeline-center"><div class="timeline-dot"><i data-lucide="rocket"></i></div><div class="timeline-year">Live</div></div>
         <div class="timeline-empty"></div>
       </div>
       <div class="timeline-item">
         <div class="timeline-empty"></div>
-        <div class="timeline-center"><div class="timeline-dot">🌍</div><div class="timeline-year">What's Next</div></div>
+        <div class="timeline-center"><div class="timeline-dot"><i data-lucide="globe"></i></div><div class="timeline-year">What's Next</div></div>
         <div class="timeline-content"><div class="timeline-card"><h3>We're Just Getting Started</h3><p>No bathroom posters. No begging friends. No unanswered emails. That's the future we're building: one where the quality of your research is limited only by the quality of your ideas, not by your ability to recruit. Join us early, and help us get there.</p></div></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- VALUES -->
 <section class="values-section">
   <div class="values-inner">
     <div class="section-header">
@@ -501,17 +544,16 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
       <div class="divider" style="background: var(--accent-light);"></div>
     </div>
     <div class="values-grid">
-      <div class="value-card"><span class="value-icon">⚖️</span><h3>Fairness for Both Sides</h3><p>Every decision we make has to work for both researchers and participants. We refuse to optimize for one at the expense of the other. That's the foundation everything else is built on.</p></div>
-      <div class="value-card"><span class="value-icon">🔬</span><h3>Research Is a Public Good</h3><p>We believe that good research — on human behavior, health, society, technology — makes the world genuinely better. Making that research easier to do is a cause worth dedicating yourself to.</p></div>
-      <div class="value-card"><span class="value-icon">🤝</span><h3>Transparency Over Hype</h3><p>We're a small team, we're early, and we're still figuring a lot out. We'd rather be honest about that than pretend we're a fully-formed company with all the answers. Trust is built slowly.</p></div>
-      <div class="value-card"><span class="value-icon">📖</span><h3>Access Over Prestige</h3><p>The best research ideas don't only come from elite institutions. We're building tools that work for a first-generation college student with a laptop just as well as they work for a PhD student at a top research university.</p></div>
-      <div class="value-card"><span class="value-icon">🧭</span><h3>Slow and Intentional</h3><p>We're not racing toward a billion-dollar exit. We're building something that actually works, iterating based on real feedback, and resisting the pressure to grow faster than our quality can support.</p></div>
-      <div class="value-card"><span class="value-icon">💬</span><h3>Community Over Platform</h3><p>We want Insighta to feel less like a tool you use and more like a community you belong to — one where researchers and participants genuinely interact, learn from each other, and produce something neither could alone.</p></div>
+      <div class="value-card"><div class="value-icon"><i data-lucide="scale"></i></div><h3>Fairness for Both Sides</h3><p>Every decision we make has to work for both researchers and participants. We refuse to optimize for one at the expense of the other. That's the foundation everything else is built on.</p></div>
+      <div class="value-card"><div class="value-icon"><i data-lucide="flask-conical"></i></div><h3>Research Is a Public Good</h3><p>We believe that good research — on human behavior, health, society, technology — makes the world genuinely better. Making that research easier to do is a cause worth dedicating yourself to.</p></div>
+      <div class="value-card"><div class="value-icon"><i data-lucide="handshake"></i></div><h3>Transparency Over Hype</h3><p>We're a small team, we're early, and we're still figuring a lot out. We'd rather be honest about that than pretend we're a fully-formed company with all the answers. Trust is built slowly.</p></div>
+      <div class="value-card"><div class="value-icon"><i data-lucide="book-open"></i></div><h3>Access Over Prestige</h3><p>The best research ideas don't only come from elite institutions. We're building tools that work for a first-generation college student with a laptop just as well as they work for a PhD student at a top research university.</p></div>
+      <div class="value-card"><div class="value-icon"><i data-lucide="compass"></i></div><h3>Slow and Intentional</h3><p>We're not racing toward a billion-dollar exit. We're building something that actually works, iterating based on real feedback, and resisting the pressure to grow faster than our quality can support.</p></div>
+      <div class="value-card"><div class="value-icon"><i data-lucide="users"></i></div><h3>Community Over Platform</h3><p>We want Insighta to feel less like a tool you use and more like a community you belong to — one where researchers and participants genuinely interact, learn from each other, and produce something neither could alone.</p></div>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
 <section class="cta-section" id="contact">
   <div class="cta-inner">
     <span class="section-eyebrow" style="margin-bottom: 20px; display: block;">Join Insighta</span>
@@ -519,13 +561,13 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
     <p>Whether you have data to gather or time to give, there's a place for you in this. Join early and help shape what Insighta becomes.</p>
     <div class="cta-cards">
       <div class="cta-card">
-        <span class="cta-card-icon">📊</span>
+        <div class="cta-card-icon"><i data-lucide="bar-chart-2"></i></div>
         <h3>I'm a Researcher</h3>
         <p>You have questions that matter. We have the infrastructure to help you find answers — faster, cheaper, and with better data quality than you've been settling for.</p>
         <a href="/register" class="btn btn-primary">Publish a Survey →</a>
       </div>
       <div class="cta-card">
-        <span class="cta-card-icon">💬</span>
+        <div class="cta-card-icon"><i data-lucide="message-circle"></i></div>
         <h3>I Want to Participate</h3>
         <p>Your experiences and opinions are genuinely valuable. Get paid for sharing them with researchers who need your specific perspective — on your schedule, on your terms.</p>
         <a href="/register" class="btn btn-outline">Find Surveys →</a>
@@ -535,7 +577,6 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer id="footer">
   <div class="footer-top">
     <div class="footer-brand">
@@ -564,7 +605,7 @@ footer { background: var(--ink); padding: 72px 48px 40px; }
   </div>
   <div class="footer-bottom">
     <span>© 2026 Insighta. All rights reserved.</span>
-    <span>Made with care at Boston University 🎓</span>
+    <span>Made with care at Boston University</span>
   </div>
 </footer>
 
@@ -591,8 +632,10 @@ document.querySelectorAll('.story-block, .timeline-card, .value-card, .cta-card,
   el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
   observer.observe(el);
 });
-</script>
 
+// Init Lucide icons
+lucide.createIcons();
+</script>
 
 <script>
   if ('serviceWorker' in navigator) {
