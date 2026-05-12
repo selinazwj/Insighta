@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
+      --paper: #faf9f5; --paper-warm: #f3f1ea;
+      --accent: #2d6a4f; --accent-light: #52b788; --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+    .navbar { background: rgba(250,249,245,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 14px 48px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .navbar-left { display: flex; align-items: center; gap: 16px; }
+    .back-btn { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--ink-muted); text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s; }
+    .back-btn:hover { color: var(--ink); background: var(--paper-warm); }
+    .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+    .navbar-brand span { color: var(--accent); }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    .page-header { text-align: center; margin-bottom: 48px; }
+    .page-header h1 { font-family: var(--serif); font-size: clamp(32px, 4vw, 48px); color: var(--ink); letter-spacing: -1px; margin-bottom: 10px; }
+    .page-header h1 em { font-style: italic; color: var(--accent); }
+    .page-header p { font-size: 16px; color: var(--ink-muted); font-weight: 300; }
+
+    /* Tab switcher */
+    .tab-switcher { display: flex; justify-content: center; gap: 4px; background: white; border: 1.5px solid var(--line); border-radius: 12px; padding: 5px; max-width: 380px; margin: 0 auto 48px; }
+    .tab-btn { flex: 1; padding: 10px 20px; font-family: var(--sans); font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--ink-muted); transition: all 0.2s; }
+    .tab-btn.active { background: var(--ink); color: white; }
+    .tab-btn.active.participant { background: var(--accent-warm); }
+
+    /* Progress bar */
+    .progress-bar-wrap { background: var(--paper-warm); border: 1.5px solid var(--line); border-radius: 12px; padding: 16px 24px; margin-bottom: 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .progress-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+    .progress-track { flex: 1; height: 6px; background: var(--line); border-radius: 100px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); transition: width 0.4s ease; }
+    .progress-fill.participant { background: linear-gradient(90deg, var(--accent-warm), #f4a261); }
+    .progress-count { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+    .progress-count.participant { color: var(--accent-warm); }
+
+    /* Step list */
+    .steps-list { display: flex; flex-direction: column; gap: 16px; }
+
+    .step-card { background: white; border: 1.5px solid var(--line); border-radius: 16px; overflow: hidden; transition: all 0.2s; }
+    .step-card:hover { border-color: rgba(45,106,79,0.3); box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .step-card.completed { border-color: rgba(45,106,79,0.3); background: rgba(45,106,79,0.02); }
+    .step-card.participant-card:hover { border-color: rgba(224,122,60,0.3); box-shadow: 0 4px 20px rgba(224,122,60,0.08); }
+    .step-card.participant-card.completed { border-color: rgba(224,122,60,0.3); background: rgba(224,122,60,0.02); }
+
+    .step-header { display: flex; align-items: center; gap: 16px; padding: 20px 24px; cursor: pointer; }
+    .step-number { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--ink-muted); flex-shrink: 0; transition: all 0.2s; }
+    .step-card.completed .step-number { background: var(--accent); border-color: var(--accent); color: white; }
+    .step-card.participant-card.completed .step-number { background: var(--accent-warm); border-color: var(--accent-warm); color: white; }
+    .step-info { flex: 1; }
+    .step-info h3 { font-family: var(--serif); font-size: 17px; color: var(--ink); margin-bottom: 3px; }
+    .step-info p { font-size: 13px; color: var(--ink-muted); font-weight: 300; }
+    .step-status { display: flex; align-items: center; gap: 10px; }
+    .step-done-badge { font-size: 12px; font-weight: 600; color: var(--accent); background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2); padding: 4px 10px; border-radius: 100px; }
+    .step-done-badge.participant { color: var(--accent-warm); background: rgba(224,122,60,0.08); border-color: rgba(224,122,60,0.2); }
+    .step-toggle { font-size: 18px; color: var(--ink-muted); transition: transform 0.2s; }
+    .step-card.open .step-toggle { transform: rotate(180deg); }
+
+    .step-body { display: none; border-top: 1px solid var(--line); }
+    .step-card.open .step-body { display: block; }
+
+    /* Video placeholder */
+    .video-placeholder { background: var(--ink); border-radius: 0; aspect-ratio: 16/9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: pointer; position: relative; overflow: hidden; }
+    .video-placeholder::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(45,106,79,0.3) 0%, transparent 70%); }
+    .play-btn { width: 56px; height: 56px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; transition: transform 0.2s; }
+    .play-btn:hover { transform: scale(1.1); }
+    .play-icon { width: 0; height: 0; border-style: solid; border-width: 9px 0 9px 18px; border-color: transparent transparent transparent var(--ink); margin-left: 3px; }
+    .video-label { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 300; position: relative; z-index: 1; }
+    .video-duration { font-size: 11px; color: rgba(255,255,255,0.4); position: relative; z-index: 1; }
+
+    .step-content { padding: 24px; }
+    .step-description { font-size: 14px; line-height: 1.75; color: var(--ink-soft); margin-bottom: 20px; }
+    .step-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .btn-start { padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: 8px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-start:hover { background: #245c43; transform: translateY(-1px); }
+    .btn-start.participant { background: var(--accent-warm); }
+    .btn-start.participant:hover { background: #c96a2e; }
+    .btn-mark-done { padding: 10px 20px; background: white; color: var(--ink-muted); border: 1.5px solid var(--line); border-radius: 8px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-mark-done:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
+    .btn-mark-done.marked { color: var(--accent); border-color: rgba(45,106,79,0.3); background: rgba(45,106,79,0.04); }
+    .btn-mark-done.marked.participant { color: var(--accent-warm); border-color: rgba(224,122,60,0.3); background: rgba(224,122,60,0.04); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    @media (max-width: 640px) {
+      .navbar { padding: 12px 16px; }
+      .container { padding: 32px 16px 60px; }
+      .step-info h3 { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-left">
+    <a href="/choice" class="back-btn">← Back</a>
+    <div class="navbar-brand">Insight<span>a</span></div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="page-header">
+    <h1>Get started with <em>Insighta</em></h1>
+    <p>Follow these steps to make the most of the platform.</p>
+  </div>
+
+  <!-- Tab switcher -->
+  <div class="tab-switcher">
+    <button class="tab-btn active" id="tabBtnResearcher" onclick="switchTab('researcher')">For Researchers</button>
+    <button class="tab-btn" id="tabBtnParticipant" onclick="switchTab('participant')">For Participants</button>
+  </div>
+
+  <!-- RESEARCHER TAB -->
+  <div class="tab-content active" id="tab-researcher">
+
+    <div class="progress-bar-wrap">
+      <span class="progress-label">Your progress</span>
+      <div class="progress-track"><div class="progress-fill" id="researcherProgress" style="width:0%"></div></div>
+      <span class="progress-count" id="researcherCount">0 of 5 completed</span>
+    </div>
+
+    <div class="steps-list" id="researcherSteps">
+
+      <div class="step-card" data-step="r1">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-number">1</div>
+          <div class="step-info">
+            <h3>How to create a listing</h3>
+            <p>Post your first survey with an external link (Google Forms, Qualtrics, etc.)</p>
+          </div>
+          <div class="step-status">
+            <span class="step-done-badge" style="display:none;">Done</span>
+            <span class="step-toggle">▾</span>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="video-placeholder">
+            <div class="play-btn"><div class="play-icon"></div></div>
+            <div class="video-label">How to create a listing</div>
+            <div class="video-duration">Coming soon — video in production</div>
+          </div>
+          <div class="step-content">
+            <p class="step-description">Click "New Listing" on your publisher dashboard, paste your survey link, set your target audience and budget, then publish. Your survey will be matched to relevant participants automatically.</p>
+            <div class="step-actions">
+              <a href="/publisher" class="btn-start">Go to Publisher Dashboard →</a>
+              <button class="btn-mark-done" onclick="markDone('r1', 'researcher')">Mark as done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card" data-step="r2">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-number">2</div>
+          <div class="step-info">
+            <h3>Create a survey using the built-in builder</h3>
+            <p>Design your questions directly on Insighta — no external tools needed</p>
+          </div>
+          <div class="step-status">
+            <span class="step-done-badge" style="display:none;">Done</span>
+            <span class="step-toggle">▾</span>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="video-placeholder">
+            <div class="play-btn"><div class="play-icon"></div></div>
+            <div class="video-label">Create a survey using the built-in builder</div>
+            <div class="video-duration">Coming soon — video in production</div>
+          </div>
+          <div class="step-content">
+            <p class="step-description">Select "Survey — Build in Insighta" when creating a new listing. Use our AI to generate questions from a one-sentence prompt, or build manually. Once your questions are ready, click Publish to set your audience and budget.</p>
+            <div class="step-actions">
+              <a href="/publisher" class="btn-start">Open Builder →</a>
+              <button class="btn-mark-done" onclick="markDone('r2', 'researcher')">Mark as done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card" data-step="r3">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-number">3</div>
+          <div class="step-info">
+            <h3>Set your target audience</h3>
+            <p>Filter by demographics, education, location, and more</p>
+          </div>
+          <div class="step-status">
+            <span class="step-done-badge" style="display:none;">Done</span>
+            <span class="step-toggle">▾</span>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="video-placeholder">
+            <div class="play-btn"><div class="play-icon"></div></div>
+            <div class="video-label">Set your target audience</div>
+            <div class="video-duration">Coming soon — video in production</div>
+          </div>
+          <div class="step-content">
+            <p class="step-description">On the publish page, scroll to Target Audience. Set filters like age range, education level, field of study, location, and language. Leave fields blank to allow all participants. The more specific your filters, the higher quality your responses.</p>
+            <div class="step-actions">
+              <a href="/publish" class="btn-start">Go to Publish →</a>
+              <button class="btn-mark-done" onclick="markDone('r3', 'researcher')">Mark as done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card" data-step="r4">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-number">4</div>
+          <div class="step-info">
+            <h3>Review responses and approve</h3>
+            <p>Check completed responses and approve payouts to participants</p>
+          </div>
+          <div class="step-status">
+            <span class="step-done-badge" style="display:none;">Done</span>
+            <span class="step-toggle">▾</span>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="video-placeholder">
+            <div class="play-btn"><div class="play-icon"></div></div>
+            <div class="video-label">Review responses and approve</div>
+            <div class="video-duration">Coming soon — video in production</div>
+          </div>
+          <div class="step-content">
+            <p class="step-description">When a participant completes your survey, you'll get a notification. Go to your publisher dashboard, click the bell icon to view pending responses, and approve or reject each one. Approved participants receive their reward automatically.</p>
+            <div class="step-actions">
+              <a href="/publisher" class="btn-start">View Notifications →</a>
+              <button class="btn-mark-done" onclick="markDone('r4', 'researcher')">Mark as done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card" data-step="r5">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-number">5</div>
+          <div class="step-info">
+            <h3>Read your results</h3>
+            <p>View response data and AI-generated insights for built-in surveys</p>
+          </div>
+          <div class="step-status">
+            <span class="step-done-badge" style="display:none;">Done</span>
+            <span class="step-toggle">▾</span>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="video-placeholder">
+            <div class="play-btn"><div class="play-icon"></div></div>
+            <div class="video-label">Read your results</div>
+            <div class="video-duration">Coming soon — video in production</div>
+          </div>
+          <div class="step-content">
+            <p class="step-description">For built-in surveys, click "Results" on your listing card to view response distributions, scale averages, and open-ended answers. Use the AI Analyze button to get an instant summary of key findings and patterns.</p>
+            <div class="step-actions">
+              <a href="/publisher" class="btn-start">Go to My Surveys →</a>
+              <button class="btn-mark-done" onclick="markDone('r5', 'researcher')">Mark as done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PARTICIPANT TAB -->
+  <div class="tab-content" id="tab-participant">
+
+    <div class="progress-bar-wrap">
+      <span class="progress-label">Your progress</span>
+      <div class="progress-track"><div class="progress-fill participant" id="participantProgress" style="width:0%"></div></div>
+      <span class="progress-count participant" id="participantCount">0 of 4 completed</span>
+    </div>
+
+    <div class="steps-list" id="participantSteps">
+
+      <div class="step-card participant-card" data-step="p1">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-number">1</div>
+          <div class="step-info">
+            <h3>Complete your profile</h3>
+            <p>The more you fill in, the better surveys we can match to you</p>
+          </div>
+          <div class="step-status">
+            <span class="step-done-badge participant" style="display:none;">Done</span>
+            <span class="step-toggle">▾</span>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="video-placeholder">
+            <div class="play-btn"><div class="play-icon"></div></div>
+            <div class="video-label">Complete your profile</div>
+            <div class="video-duration">Coming soon — video in production</div>
+          </div>
+          <div class="step-content">
+            <p class="step-description">Go to your profile and fill in your age range, education level, field of study, languages, and interests. Researchers filter participants by these criteria — the more complete your profile, the more surveys you'll be matched with.</p>
+            <div class="step-actions">
+              <a href="/profile" class="btn-start participant">Go to Profile →</a>
+              <button class="btn-mark-done" onclick="markDone('p1', 'participant')">Mark as done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card participant-card" data-step="p2">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-number">2</div>
+          <div class="step-info">
+            <h3>How to use your dashboard</h3>
+            <p>Find and filter surveys matched to your profile</p>
+          </div>
+          <div class="step-status">
+            <span class="step-done-badge participant" style="display:none;">Done</span>
+            <span class="step-toggle">▾</span>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="video-placeholder">
+            <div class="play-btn"><div class="play-icon"></div></div>
+            <div class="video-label">How to use your dashboard</div>
+            <div class="video-duration">Coming soon — video in production</div>
+          </div>
+          <div class="step-content">
+            <p class="step-description">Your participant dashboard shows surveys matched specifically to your profile. Use the category tabs to browse by topic — Research, Lifestyle, Academic, and more. Each card shows the reward amount, estimated time, and how many spots are left.</p>
+            <div class="step-actions">
+              <a href="/dashboard" class="btn-start participant">Go to Dashboard →</a>
+              <button class="btn-mark-done" onclick="markDone('p2', 'participant')">Mark as done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card participant-card" data-step="p3">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-number">3</div>
+          <div class="step-info">
+            <h3>Take a survey and earn</h3>
+            <p>Complete a survey and mark it done to get your reward</p>
+          </div>
+          <div class="step-status">
+            <span class="step-done-badge participant" style="display:none;">Done</span>
+            <span class="step-toggle">▾</span>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="video-placeholder">
+            <div class="play-btn"><div class="play-icon"></div></div>
+            <div class="video-label">Take a survey and earn</div>
+            <div class="video-duration">Coming soon — video in production</div>
+          </div>
+          <div class="step-content">
+            <p class="step-description">Click "Take Survey" to open the survey. Once you've finished, come back to the dashboard and click "Mark Complete". The researcher will review your response — once approved, the reward is added to your account balance.</p>
+            <div class="step-actions">
+              <a href="/dashboard" class="btn-start participant">Browse Surveys →</a>
+              <button class="btn-mark-done" onclick="markDone('p3', 'participant')">Mark as done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card participant-card" data-step="p4">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-number">4</div>
+          <div class="step-info">
+            <h3>Set up payouts and withdraw</h3>
+            <p>Connect your bank account to receive your earnings</p>
+          </div>
+          <div class="step-status">
+            <span class="step-done-badge participant" style="display:none;">Done</span>
+            <span class="step-toggle">▾</span>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="video-placeholder">
+            <div class="play-btn"><div class="play-icon"></div></div>
+            <div class="video-label">Set up payouts and withdraw</div>
+            <div class="video-duration">Coming soon — video in production</div>
+          </div>
+          <div class="step-content">
+            <p class="step-description">On your dashboard, click "Set Up Payouts" to connect your bank account via Stripe. Once connected, you can withdraw your balance anytime — minimum $1.00. If asked for a website during setup, click "Don't have a website? Add product description instead".</p>
+            <div class="step-actions">
+              <a href="/dashboard" class="btn-start participant">Go to Dashboard →</a>
+              <button class="btn-mark-done" onclick="markDone('p4', 'participant')">Mark as done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const RESEARCHER_TOTAL = 5;
+  const PARTICIPANT_TOTAL = 4;
+
+  // Load saved progress from localStorage
+  function loadProgress() {
+    return JSON.parse(localStorage.getItem('insighta_guide_progress') || '{}');
+  }
+
+  function saveProgress(progress) {
+    localStorage.setItem('insighta_guide_progress', JSON.stringify(progress));
+  }
+
+  function applyProgress() {
+    const progress = loadProgress();
+    Object.keys(progress).forEach(step => {
+      if (progress[step]) {
+        const card = document.querySelector(`[data-step="${step}"]`);
+        if (card) setCompleted(card, step.startsWith('p') ? 'participant' : 'researcher');
+      }
+    });
+    updateProgressBars();
+  }
+
+  function setCompleted(card, role) {
+    card.classList.add('completed');
+    const badge = card.querySelector('.step-done-badge');
+    const btn = card.querySelector('.btn-mark-done');
+    if (badge) badge.style.display = 'inline-flex';
+    if (btn) { btn.textContent = 'Completed'; btn.classList.add('marked'); if (role === 'participant') btn.classList.add('participant'); }
+    card.querySelector('.step-number').textContent = '✓';
+  }
+
+  function markDone(step, role) {
+    const progress = loadProgress();
+    progress[step] = true;
+    saveProgress(progress);
+    const card = document.querySelector(`[data-step="${step}"]`);
+    if (card) setCompleted(card, role);
+    updateProgressBars();
+  }
+
+  function updateProgressBars() {
+    const progress = loadProgress();
+    const rDone = ['r1','r2','r3','r4','r5'].filter(s => progress[s]).length;
+    const pDone = ['p1','p2','p3','p4'].filter(s => progress[s]).length;
+    document.getElementById('researcherProgress').style.width = `${(rDone / RESEARCHER_TOTAL) * 100}%`;
+    document.getElementById('researcherCount').textContent = `${rDone} of ${RESEARCHER_TOTAL} completed`;
+    document.getElementById('participantProgress').style.width = `${(pDone / PARTICIPANT_TOTAL) * 100}%`;
+    document.getElementById('participantCount').textContent = `${pDone} of ${PARTICIPANT_TOTAL} completed`;
+  }
+
+  function toggleStep(header) {
+    const card = header.closest('.step-card');
+    const isOpen = card.classList.contains('open');
+    document.querySelectorAll('.step-card.open').forEach(c => c.classList.remove('open'));
+    if (!isOpen) card.classList.add('open');
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.classList.remove('participant'); });
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    const btn = document.getElementById(`tabBtn${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+    btn.classList.add('active');
+    if (tab === 'participant') btn.classList.add('participant');
+  }
+
+  // Open first step by default
+  document.querySelector('#researcherSteps .step-card')?.classList.add('open');
+
+  applyProgress();
+
+  // Check URL param for tab
+  const urlTab = new URLSearchParams(window.location.search).get('tab');
+  if (urlTab === 'participant') switchTab('participant');
+</script>
+
+</body>
+</html>
