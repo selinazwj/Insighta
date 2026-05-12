@@ -23,9 +23,10 @@ from email.mime.multipart import MIMEMultipart
 
 from app.database import engine, get_db
 from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer
-
+from app.verification.routes import router as verification_router
 
 app = FastAPI()
+app.include_router(verification_router)
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory="app/templates")
