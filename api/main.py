@@ -698,6 +698,13 @@ def choice(request: Request, user_id: str = Cookie(None), db: Session = Depends(
             pass
     return templates.TemplateResponse("choice.html", {"request": request, "current_user": current_user})
 
+# ---------------------------
+# Guide page
+# ---------------------------
+
+@app.get("/guide", response_class=HTMLResponse)
+def guide_page(request: Request, current_user: User = Depends(get_current_user)):
+    return templates.TemplateResponse("guide.html", {"request": request, "current_user": current_user})
 
 # ---------------------------
 # Publisher Dashboard
