@@ -777,6 +777,7 @@ def delete_survey(
     if question_ids:
         db.query(Answer).filter(Answer.question_id.in_(question_ids)).delete(synchronize_session=False)
     db.query(Question).filter(Question.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.survey_id == survey_id).delete(synchronize_session=False)
     db.query(Response).filter(Response.survey_id == survey_id).delete(synchronize_session=False)
     db.delete(survey)
     db.commit()
