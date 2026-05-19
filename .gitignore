@@ -5,3 +5,4 @@ users.db
 *.csv
 test.db
 app/static/uploads/
+*.mov
