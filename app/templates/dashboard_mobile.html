@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
     :root {
       --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
@@ -45,7 +46,7 @@
 
     /* HOME */
     .impact-banner { margin: 16px 16px 12px; background: #EAF3DE; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
-    .impact-icon { width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .impact-icon { width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white; }
     .impact-text strong { font-size: 14px; font-weight: 600; color: #173404; display: block; margin-bottom: 2px; }
     .impact-text p { font-size: 12px; color: #27500A; line-height: 1.4; }
 
@@ -65,20 +66,20 @@
     .card-title { font-family: var(--serif); font-size: 17px; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
     .card-desc { font-size: 13px; color: var(--ink-muted); line-height: 1.5; margin-bottom: 12px; }
     .card-meta-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-    .meta-pill { font-size: 12px; color: var(--ink-muted); background: var(--paper-warm); padding: 4px 10px; border-radius: 100px; border: 0.5px solid var(--line); }
+    .meta-pill { font-size: 12px; color: var(--ink-muted); background: var(--paper-warm); padding: 4px 10px; border-radius: 100px; border: 0.5px solid var(--line); display: flex; align-items: center; gap: 4px; }
     .card-footer-row { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 0.5px solid var(--line); }
     .reward-big { font-family: var(--serif); font-size: 24px; color: var(--accent); }
     .reward-lbl { font-size: 11px; color: var(--ink-muted); margin-top: 1px; }
-    .impact-tag { font-size: 11px; color: #085041; background: #E1F5EE; padding: 4px 10px; border-radius: 100px; }
+    .impact-tag { font-size: 11px; color: #085041; background: #E1F5EE; padding: 4px 10px; border-radius: 100px; display: flex; align-items: center; gap: 4px; }
 
     .swipe-dots { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 4px 0 10px; }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line); transition: all 0.2s; }
     .dot.active { width: 16px; border-radius: 3px; background: var(--accent); }
 
     .card-actions { display: flex; gap: 10px; padding: 0 0 4px; }
-    .btn-skip { flex: 1; padding: 13px; background: white; border: 0.5px solid var(--line); border-radius: 12px; font-family: var(--sans); font-size: 14px; color: var(--ink-muted); cursor: pointer; }
-    .btn-take { flex: 2; padding: 13px; background: var(--accent); border: none; border-radius: 12px; font-family: var(--sans); font-size: 14px; font-weight: 600; color: white; cursor: pointer; }
-    .btn-mark { flex: 1; padding: 13px; background: var(--paper-warm); border: 0.5px solid var(--line); border-radius: 12px; font-family: var(--sans); font-size: 12px; color: var(--ink-soft); cursor: pointer; }
+    .btn-skip { flex: 1; padding: 13px; background: white; border: 0.5px solid var(--line); border-radius: 12px; font-family: var(--sans); font-size: 14px; color: var(--ink-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-take { flex: 2; padding: 13px; background: var(--accent); border: none; border-radius: 12px; font-family: var(--sans); font-size: 14px; font-weight: 600; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-mark { flex: 1; padding: 13px; background: var(--paper-warm); border: 0.5px solid var(--line); border-radius: 12px; font-family: var(--sans); font-size: 12px; color: var(--ink-soft); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; }
 
     .empty-wrap { text-align: center; padding: 60px 24px; }
     .empty-wrap h3 { font-family: var(--serif); font-size: 22px; color: var(--ink); margin-bottom: 8px; }
@@ -93,9 +94,9 @@
     .balance-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.65); margin-bottom: 4px; }
     .balance-amt { font-family: var(--serif); font-size: 40px; color: white; letter-spacing: -1px; margin-bottom: 2px; }
     .balance-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 16px; }
-    .btn-withdraw { width: 100%; padding: 13px; background: white; color: var(--accent); border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 700; cursor: pointer; }
+    .btn-withdraw { width: 100%; padding: 13px; background: white; color: var(--accent); border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .btn-withdraw:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-setup { width: 100%; padding: 13px; background: white; color: var(--accent); border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none; display: block; text-align: center; }
+    .btn-setup { width: 100%; padding: 13px; background: white; color: var(--accent); border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .history-box { background: white; border-radius: 16px; border: 0.5px solid var(--line); overflow: hidden; }
     .history-head { padding: 14px 16px; border-bottom: 0.5px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink-soft); }
     .history-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 0.5px solid var(--line); }
@@ -122,15 +123,15 @@
     .field-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 0.5px solid var(--line); }
     .field-row:last-child { border-bottom: none; }
     .f-label { font-size: 14px; color: var(--ink); }
-    .f-value { font-size: 14px; color: var(--ink-muted); }
+    .f-value { font-size: 14px; color: var(--ink-muted); display: flex; align-items: center; gap: 4px; }
     .f-empty { font-size: 14px; color: var(--line); }
-    .btn-logout { width: 100%; padding: 13px; background: white; color: var(--ink-muted); border: 0.5px solid var(--line); border-radius: 12px; font-family: var(--sans); font-size: 14px; cursor: pointer; text-decoration: none; display: block; text-align: center; }
+    .btn-logout { width: 100%; padding: 13px; background: white; color: var(--ink-muted); border: 0.5px solid var(--line); border-radius: 12px; font-family: var(--sans); font-size: 14px; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
 
     /* BOTTOM NAV */
     .bottom-nav { flex-shrink: 0; background: rgba(250,249,245,0.95); backdrop-filter: blur(12px); border-top: 0.5px solid var(--line); display: flex; height: var(--nav-h); padding-bottom: env(safe-area-inset-bottom); }
     .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: color 0.15s; }
     .nav-item.active { color: var(--accent); }
-    .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
   </style>
 </head>
 <body>
@@ -145,7 +146,7 @@
   <!-- HOME -->
   <div class="screen active" id="screen-home">
     <div class="impact-banner">
-      <div class="impact-icon">🌱</div>
+      <div class="impact-icon"><i data-lucide="leaf" style="width:20px;height:20px"></i></div>
       <div class="impact-text">
         <strong id="impactMsg">{{ completed_today }} completed today</strong>
         <p>Your responses help real researchers. Keep going.</p>
@@ -165,19 +166,23 @@
         <div class="balance-lbl">Available balance</div>
         <div class="balance-amt" id="balanceAmt">${{ "%.2f"|format(pending_earnings) }}</div>
         <div class="balance-sub">Total withdrawn: ${{ "%.2f"|format(total_withdrawn) }}</div>
-        <button class="btn-withdraw" id="withdrawBtn" onclick="doWithdraw()" {% if pending_earnings < 1 %}disabled{% endif %}>Withdraw to bank →</button>
+        <button class="btn-withdraw" id="withdrawBtn" onclick="doWithdraw()" {% if pending_earnings < 1 %}disabled{% endif %}>
+          <i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw to bank
+        </button>
       </div>
       {% else %}
       <div class="balance-card">
         <div class="balance-lbl">Set up payouts</div>
         <div class="balance-amt" style="font-size:20px;font-weight:600;margin-bottom:8px;">Connect your bank</div>
         <div class="balance-sub" style="margin-bottom:16px;">Required to receive your earnings</div>
-        <a href="/connect/onboard" class="btn-setup">Set Up Payouts →</a>
+        <a href="/connect/onboard" class="btn-setup">
+          <i data-lucide="link" style="width:16px;height:16px"></i> Set Up Payouts
+        </a>
       </div>
       {% endif %}
       <div class="history-box">
         <div class="history-head">Recent earnings</div>
-        <div id="earningsHistory"><div style="padding:20px;text-align:center;font-size:13px;color:var(--ink-muted);">Loading...</div></div>
+        <div id="earningsHistory"><div style="padding:20px;text-align:center;font-size:13px;color:var(--ink-muted)">Loading...</div></div>
       </div>
     </div>
   </div>
@@ -208,15 +213,17 @@
       </a>
 
       <div class="fields-box">
-        <div class="field-row"><span class="f-label">Age range</span><span class="{{ 'f-value' if current_user.age_range else 'f-empty' }}">{{ current_user.age_range or '—' }} ›</span></div>
-        <div class="field-row"><span class="f-label">Field / Major</span><span class="{{ 'f-value' if current_user.field else 'f-empty' }}">{{ current_user.field or '—' }} ›</span></div>
-        <div class="field-row"><span class="f-label">Education</span><span class="{{ 'f-value' if current_user.education_level else 'f-empty' }}">{{ current_user.education_level or '—' }} ›</span></div>
-        <div class="field-row"><span class="f-label">Student status</span><span class="{{ 'f-value' if current_user.student_status else 'f-empty' }}">{{ current_user.student_status or '—' }} ›</span></div>
-        <div class="field-row"><span class="f-label">Location</span><span class="{{ 'f-value' if current_user.state else 'f-empty' }}">{{ current_user.state or '—' }} ›</span></div>
-        <div class="field-row"><span class="f-label">Languages</span><span class="{{ 'f-value' if current_user.language else 'f-empty' }}">{{ current_user.language or '—' }} ›</span></div>
+        <div class="field-row"><span class="f-label">Age range</span><span class="{{ 'f-value' if current_user.age_range else 'f-empty' }}">{{ current_user.age_range or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
+        <div class="field-row"><span class="f-label">Field / Major</span><span class="{{ 'f-value' if current_user.field else 'f-empty' }}">{{ current_user.field or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
+        <div class="field-row"><span class="f-label">Education</span><span class="{{ 'f-value' if current_user.education_level else 'f-empty' }}">{{ current_user.education_level or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
+        <div class="field-row"><span class="f-label">Student status</span><span class="{{ 'f-value' if current_user.student_status else 'f-empty' }}">{{ current_user.student_status or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
+        <div class="field-row"><span class="f-label">Location</span><span class="{{ 'f-value' if current_user.state else 'f-empty' }}">{{ current_user.state or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
+        <div class="field-row"><span class="f-label">Languages</span><span class="{{ 'f-value' if current_user.language else 'f-empty' }}">{{ current_user.language or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
       </div>
 
-      <a href="/logout" class="btn-logout">Log out</a>
+      <a href="/logout" class="btn-logout">
+        <i data-lucide="log-out" style="width:16px;height:16px"></i> Log out
+      </a>
     </div>
   </div>
 
@@ -224,13 +231,13 @@
 
 <nav class="bottom-nav">
   <div class="nav-item active" id="nav-home" onclick="switchTab('home')">
-    <div class="nav-icon">🏠</div><span>Home</span>
+    <i data-lucide="home"></i><span>Home</span>
   </div>
   <div class="nav-item" id="nav-earnings" onclick="switchTab('earnings')">
-    <div class="nav-icon">💰</div><span>Earnings</span>
+    <i data-lucide="wallet"></i><span>Earnings</span>
   </div>
   <div class="nav-item" id="nav-profile" onclick="switchTab('profile')">
-    <div class="nav-icon">👤</div><span>Profile</span>
+    <i data-lucide="user"></i><span>Profile</span>
   </div>
 </nav>
 
@@ -239,6 +246,8 @@
   let cardIdx = 0;
   let activeSurveys = allSurveys.slice();
   let touchX0 = 0, touchY0 = 0, dragging = false;
+
+  lucide.createIcons();
 
   function switchTab(tab) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -253,16 +262,25 @@
     const wrap = document.getElementById('homeContent');
     const remaining = activeSurveys.slice(cardIdx);
     if (remaining.length === 0) {
-      wrap.innerHTML = `<div class="empty-wrap"><div style="font-size:48px;margin-bottom:16px;opacity:.4">📭</div><h3>All caught up!</h3><p>No more matched surveys right now.<br>Check back later.</p></div>`;
+      wrap.innerHTML = `<div class="empty-wrap"><div style="margin-bottom:16px;opacity:.4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div><h3>All caught up!</h3><p>No more matched surveys right now.<br>Check back later.</p></div>`;
       return;
     }
+
     const s = remaining[0], s2 = remaining[1], s3 = remaining[2];
     const isBuiltIn = !s.link || s.link === '';
+
+    const urgentPill = s.urgency === 'within_1_week'
+      ? `<div class="meta-pill" style="color:#c05621;background:rgba(192,86,33,.08);border-color:rgba(192,86,33,.2)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Urgent</div>`
+      : '';
+
     const actions = s.is_completed
-      ? `<button class="btn-skip" onclick="doModify(${s.id})">Undo complete</button>`
+      ? `<button class="btn-skip" onclick="doModify(${s.id})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Undo</button>`
       : isBuiltIn
-        ? `<button class="btn-skip" onclick="doSkip()">Skip</button><button class="btn-take" onclick="doTake(${s.id},'',true)">Take Survey →</button>`
-        : `<button class="btn-skip" onclick="doSkip()">Skip</button><button class="btn-take" onclick="doTake(${s.id},'${s.link}',false)">Take Survey →</button><button class="btn-mark" onclick="doComplete(${s.id})">Mark done</button>`;
+        ? `<button class="btn-skip" onclick="doSkip()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skip</button>
+           <button class="btn-take" onclick="doTake(${s.id},'',true)">Take Survey <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`
+        : `<button class="btn-skip" onclick="doSkip()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skip</button>
+           <button class="btn-take" onclick="doTake(${s.id},'${s.link}',false)">Take Survey <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+           <button class="btn-mark" onclick="doComplete(${s.id})">Mark done</button>`;
 
     wrap.innerHTML = `
       <div class="card-stack">
@@ -273,13 +291,13 @@
           <div class="card-title">${s.title}</div>
           <div class="card-desc">${s.desc}</div>
           <div class="card-meta-row">
-            <div class="meta-pill">⏱ ${s.time}</div>
-            <div class="meta-pill">👥 ${s.responses}</div>
-            ${s.urgency === 'within_1_week' ? '<div class="meta-pill" style="color:#c05621;background:rgba(192,86,33,.08)">🔥 Urgent</div>' : ''}
+            <div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${s.time}</div>
+            <div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ${s.responses}</div>
+            ${urgentPill}
           </div>
           <div class="card-footer-row">
             <div><div class="reward-big">${s.reward}</div><div class="reward-lbl">cash reward</div></div>
-            <div class="impact-tag">🌱 Social impact</div>
+            <div class="impact-tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2"/><path d="M12 6v6l4 2"/></svg> Social impact</div>
           </div>
         </div>
       </div>
@@ -379,10 +397,10 @@
     try {
       const res = await fetch('/api/withdraw', { method: 'POST', credentials: 'same-origin' });
       const d = await res.json();
-      if (!res.ok) { alert(d.detail || 'Withdrawal failed'); btn.disabled = false; btn.textContent = 'Withdraw to bank →'; return; }
+      if (!res.ok) { alert(d.detail || 'Withdrawal failed'); btn.disabled = false; btn.innerHTML = '<i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw to bank'; lucide.createIcons(); return; }
       alert(`✓ $${d.amount.toFixed(2)} sent to your bank!`);
       window.location.reload();
-    } catch { alert('Network error'); btn.disabled = false; btn.textContent = 'Withdraw to bank →'; }
+    } catch { alert('Network error'); btn.disabled = false; btn.innerHTML = '<i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw to bank'; lucide.createIcons(); }
   }
 
   function buildEarningsHistory() {
