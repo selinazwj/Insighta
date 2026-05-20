@@ -37,7 +37,11 @@
     }
     .topbar-logo { font-family: var(--serif); font-size: 20px; color: var(--ink); }
     .topbar-logo span { color: var(--accent); }
-    .earnings-pill { background: var(--accent); color: white; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 100px; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .researcher-note { max-width: 138px; font-size: 10px; line-height: 1.25; color: var(--ink-muted); text-align: right; text-decoration: none; }
+    .researcher-note strong { color: var(--ink-soft); font-weight: 700; }
+    .earnings-pill { background: var(--accent); color: white; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 100px; white-space: nowrap; }
+    @media (max-width: 360px) { .researcher-note { max-width: 112px; font-size: 9.5px; } .earnings-pill { font-size: 12px; padding: 6px 10px; } }
 
     /* SCREENS */
     .screens { flex: 1; overflow: hidden; position: relative; }
@@ -138,7 +142,12 @@
 
 <div class="topbar">
   <div class="topbar-logo">Insight<span>a</span></div>
-  <div class="earnings-pill" id="earningsPill">${{ "%.2f"|format(pending_earnings) }} earned</div>
+  <div class="topbar-right">
+    <a class="researcher-note" href="{{ researcher_desktop_url }}">
+      <strong>Researcher?</strong><br>Use desktop: {{ researcher_desktop_host }}
+    </a>
+    <div class="earnings-pill" id="earningsPill">${{ "%.2f"|format(pending_earnings) }} earned</div>
+  </div>
 </div>
 
 <div class="screens">

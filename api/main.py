@@ -179,6 +179,28 @@ def _clean_target(val: Optional[str]) -> str:
 def _normalize_email(value: Optional[str]) -> str:
     return (value or "").strip().lower()
 
+MOBILE_USER_AGENT_TOKENS = ("mobile", "android", "iphone", "ipad")
+
+def _is_mobile_request(request: Request) -> bool:
+    user_agent = request.headers.get("user-agent", "").lower()
+    return any(token in user_agent for token in MOBILE_USER_AGENT_TOKENS)
+
+def _participant_dashboard_url(request: Request) -> str:
+    return "/dashboard/mobile" if _is_mobile_request(request) else "/dashboard"
+
+def _should_use_participant_app(request: Request, participant_app: Optional[str] = None) -> bool:
+    return _is_mobile_request(request) or participant_app == "1"
+
+def _post_auth_url(request: Request, participant_app: Optional[str] = None, welcome: bool = False) -> str:
+    if _should_use_participant_app(request, participant_app):
+        base_url = _participant_dashboard_url(request)
+    else:
+        base_url = "/choice"
+    return f"{base_url}?welcome=1" if welcome else base_url
+
+def _mark_participant_app(response: RedirectResponse):
+    response.set_cookie("participant_app", "1", httponly=True, samesite="none", secure=True, max_age=60 * 60 * 24 * 30)
+
 def _mask_email(email: str) -> str:
     if "@" not in email:
         return email
@@ -405,7 +427,7 @@ async def google_callback(
             user.oauth_id = google_id
             db.commit()
 
-    redirect_url = "/choice?welcome=1" if is_new else "/choice"
+    redirect_url = _post_auth_url(request, request.cookies.get("participant_app"), welcome=is_new)
     resp = RedirectResponse(redirect_url, status_code=303)
     resp.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
     resp.delete_cookie("oauth_state")
@@ -498,7 +520,7 @@ async def linkedin_callback(
             user.oauth_id = linkedin_id
             db.commit()
 
-    redirect_url = "/choice?welcome=1" if is_new else "/choice"
+    redirect_url = _post_auth_url(request, request.cookies.get("participant_app"), welcome=is_new)
     resp = RedirectResponse(redirect_url, status_code=303)
     resp.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
     resp.delete_cookie("oauth_state")
@@ -517,6 +539,23 @@ def index(request: Request):
     )
 
 
+@app.get("/participant")
+def participant_app_entry(request: Request, user_id: str = Cookie(None)):
+    target_url = "/login"
+    if user_id:
+        target_url = _participant_dashboard_url(request)
+    response = RedirectResponse(target_url, status_code=302)
+    _mark_participant_app(response)
+    return response
+
+
+@app.get("/participant/login")
+def participant_login_entry():
+    response = RedirectResponse("/login", status_code=302)
+    _mark_participant_app(response)
+    return response
+
+
 # ---------------------------
 # Login
 # ---------------------------
@@ -528,6 +567,7 @@ def login_page(
     reset_success: Optional[str] = None,
     email: Optional[str] = None,
     oauth_error: Optional[str] = None,
+    participant_app: Optional[str] = Cookie(None),
 ):
     return templates.TemplateResponse("login.html", {
         "request": request,
@@ -538,6 +578,7 @@ def login_page(
         "reset_open": False,
         "login_email": _normalize_email(email or ""),
         "reset_email": _normalize_email(email or ""),
+        "participant_app": participant_app == "1" or _is_mobile_request(request),
     })
 
 @app.post("/login")
@@ -545,6 +586,7 @@ def login(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
+    participant_app: Optional[str] = Cookie(None),
     db: Session = Depends(get_db)
 ):
     normalized_email = _normalize_email(email)
@@ -556,6 +598,7 @@ def login(
             "error": f"Database error: {e}",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
+            "participant_app": _should_use_participant_app(request, participant_app),
         })
 
     if not user or not pwd_context.verify(password, user.password):
@@ -564,9 +607,10 @@ def login(
             "error": "Invalid email or password",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
+            "participant_app": _should_use_participant_app(request, participant_app),
         })
 
-    response = RedirectResponse("/choice", status_code=303)
+    response = RedirectResponse(_post_auth_url(request, participant_app), status_code=303)
     response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
     return response
 
@@ -625,15 +669,19 @@ def password_reset(
 # ---------------------------
 
 @app.get("/register", response_class=HTMLResponse)
-def show_register(request: Request):
+def show_register(request: Request, participant_app: Optional[str] = Cookie(None)):
     return templates.TemplateResponse(
         "register.html",
-        {"request": request, "error": None, "register_email": ""}
+        {
+            "request": request, "error": None, "register_email": "",
+            "participant_app": participant_app == "1" or _is_mobile_request(request),
+        }
     )
 
 @app.post("/register", response_class=HTMLResponse)
 async def do_register(
     request: Request,
+    participant_app: Optional[str] = Cookie(None),
     db: Session = Depends(get_db)
 ):
     form = await request.form()
@@ -644,7 +692,8 @@ async def do_register(
 
     def reg_error(msg):
         return templates.TemplateResponse("register.html", {
-            "request": request, "error": msg, "register_email": email
+            "request": request, "error": msg, "register_email": email,
+            "participant_app": _should_use_participant_app(request, participant_app),
         })
 
     if not email: return reg_error("Email is required.")
@@ -664,7 +713,7 @@ async def do_register(
     db.commit()
     db.refresh(user)
 
-    response = RedirectResponse("/choice?welcome=1", status_code=303)
+    response = RedirectResponse(_post_auth_url(request, participant_app, welcome=True), status_code=303)
     response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
     return response
 
@@ -691,6 +740,9 @@ def get_current_user(
 
 @app.get("/choice", response_class=HTMLResponse)
 def choice(request: Request, user_id: str = Cookie(None), db: Session = Depends(get_db)):
+    if _is_mobile_request(request):
+        return RedirectResponse(_participant_dashboard_url(request) if user_id else "/participant", status_code=302)
+
     current_user = None
     if user_id:
         try:
@@ -717,6 +769,9 @@ def publisher_dashboard(
     user_id: str = Cookie(None),
     db: Session = Depends(get_db)
 ):
+    if _is_mobile_request(request):
+        return RedirectResponse(_participant_dashboard_url(request) if user_id else "/participant", status_code=302)
+
     if not user_id:
         return RedirectResponse("/login", status_code=303)
     try:
@@ -800,9 +855,7 @@ def dashboard(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    user_agent = request.headers.get("user-agent", "").lower()
-    is_mobile = any(x in user_agent for x in ["mobile", "android", "iphone", "ipad"])
-    if is_mobile:
+    if _is_mobile_request(request):
         return RedirectResponse("/dashboard/mobile", status_code=302)
     all_published = db.query(Survey).filter(Survey.status == "published").all()
 
@@ -995,6 +1048,8 @@ def dashboard_mobile(
         "available_surveys": len(surveys_data),
         "current_user": current_user,
         "stripe_onboarding_complete": getattr(current_user, 'stripe_onboarding_complete', 'false'),
+        "researcher_desktop_url": BASE_URL,
+        "researcher_desktop_host": BASE_URL.replace("https://", "").replace("http://", ""),
     })
 # ---------------------------
 # Dashboard stats API

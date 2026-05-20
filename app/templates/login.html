@@ -46,6 +46,7 @@
 
     .error-box { background: #fff5f5; color: #c53030; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; border: 1px solid #fed7d7; }
     .success-box { background: rgba(45,106,79,0.06); color: var(--accent); padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; border: 1px solid rgba(45,106,79,0.2); }
+    .participant-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(224,122,60,0.1); border: 1px solid rgba(224,122,60,0.25); border-radius: 999px; color: var(--accent-warm); font-size: 12px; font-weight: 700; margin-bottom: 14px; }
 
     .form-group { margin-bottom: 20px; }
     .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
@@ -102,8 +103,13 @@
     <span>Insighta</span>
   </a>
   <div class="panel-body">
+    {% if participant_app %}
+    <h2>Paid research studies, made for <em>participants</em>.</h2>
+    <p>Sign in to find matched studies, complete surveys, and track your rewards from your phone.</p>
+    {% else %}
     <h2>Research that works for <em>everyone</em> in the room.</h2>
     <p>Connect with real participants, gather real insights, and do the research you've always wanted to do — without the hassle.</p>
+    {% endif %}
   </div>
   <div class="panel-footer">
     <div class="panel-quote">
@@ -117,8 +123,9 @@
   <div class="form-wrapper">
 
     <div class="form-header">
-      <h1>Welcome back.</h1>
-      <p>Sign in to your Insighta account.</p>
+      {% if participant_app %}<div class="participant-badge">Participant app</div>{% endif %}
+      <h1>{% if participant_app %}Welcome back.{% else %}Welcome back.{% endif %}</h1>
+      <p>{% if participant_app %}Sign in to continue to your participant dashboard.{% else %}Sign in to your Insighta account.{% endif %}</p>
     </div>
 
     {% if error %}

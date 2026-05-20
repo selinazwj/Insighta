@@ -179,7 +179,7 @@
   <div class="panel-steps">
     <div class="panel-step active" id="panelStep1">
       <div class="step-dot">1</div>
-      <div class="step-info"><h4>Verify Email</h4><p>Confirm your email address</p></div>
+      <div class="step-info"><h4>Verify Email</h4><p>{% if participant_app %}Start your participant account{% else %}Confirm your email address{% endif %}</p></div>
     </div>
     <div class="panel-step" id="panelStep2">
       <div class="step-dot">2</div>
@@ -205,8 +205,8 @@
       <div class="step active" id="step1">
         <div class="step-header">
           <span class="step-eyebrow">Step 1 of 2</span>
-          <h1>Verify your email.</h1>
-          <p>Enter your email and we'll send you a verification code.</p>
+          <h1>{% if participant_app %}Join as a participant.{% else %}Verify your email.{% endif %}</h1>
+          <p>{% if participant_app %}Create your participant account and start finding matched studies.{% else %}Enter your email and we'll send you a verification code.{% endif %}</p>
         </div>
 
         <div class="form-group">
