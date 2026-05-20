@@ -93,6 +93,24 @@
       .left-panel { display: none; }
       .right-panel { padding: 48px 24px; }
     }
+
+
+    {% if participant_app %}
+    :root {
+      --paper: #f7fdf2; --paper-warm: #edf8e7;
+      --accent: #58cc02; --accent-light: #8ee000; --accent-warm: #ffb020;
+      --line: #d7ebcd;
+    }
+    body { background: var(--paper); }
+    .participant-badge { background: #fff3cf; border: 2px solid #ffd36a; color: #805700; font-weight: 900; box-shadow: 0 3px 0 #e9bd4f; }
+    .form-group input { border: 2px solid var(--line); border-radius: 16px; }
+    .btn-social { border: 2px solid var(--line); border-radius: 16px; font-weight: 800; box-shadow: 0 3px 0 #d5e7cd; }
+    .btn-submit { background: var(--accent); border: 2px solid #2f8f18; border-radius: 16px; font-weight: 900; box-shadow: 0 5px 0 #2f8f18; }
+    .btn-submit:hover { background: var(--accent-light); box-shadow: 0 6px 0 #2f8f18; }
+    .divider::before, .divider::after { background: var(--line); }
+    .left-panel { background: #58cc02; }
+    {% endif %}
+
   </style>
 </head>
 <body>

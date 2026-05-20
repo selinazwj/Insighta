@@ -136,6 +136,83 @@
     .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: color 0.15s; }
     .nav-item.active { color: var(--accent); }
     .nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+
+    /* Participant app theme */
+    :root {
+      --ink: #132018; --ink-soft: #35513d; --ink-muted: #6f8574;
+      --paper: #f7fdf2; --paper-warm: #edf8e7;
+      --accent: #58cc02; --accent-deep: #2f8f18; --accent-light: #8ee000;
+      --accent-warm: #ffb020; --accent-blue: #1cb0f6;
+      --line: #d7ebcd; --card-line: #bfe7ae;
+      --nav-h: 74px;
+    }
+    .topbar {
+      background: rgba(247,253,242,0.96);
+      border-bottom: 2px solid rgba(88,204,2,0.14);
+      padding: 10px 16px;
+      padding-top: calc(10px + env(safe-area-inset-top));
+    }
+    .topbar-logo { font-family: var(--sans); font-size: 22px; font-weight: 900; letter-spacing: 0; }
+    .researcher-note strong { color: var(--accent-blue); font-weight: 900; }
+    .earnings-pill { background: var(--accent-warm); color: #3a2500; font-weight: 900; border: 2px solid #e69a00; box-shadow: 0 3px 0 #d58a00; }
+    .impact-banner { background: #e7ffd9; border: 2px solid #bcefa5; border-radius: 18px; box-shadow: 0 4px 0 #cfeec2; }
+    .impact-icon { width: 42px; height: 42px; border-radius: 14px; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.12); }
+    .impact-text strong { font-size: 15px; font-weight: 900; color: #183b11; }
+    .impact-text p { color: #3d6d31; }
+    .section-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 16px 10px 20px; }
+    .section-label { padding: 0; font-size: 12px; font-weight: 900; letter-spacing: 0; text-transform: none; color: var(--ink-soft); }
+    .view-toggle { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: #e7f7df; border: 1px solid var(--line); }
+    .view-toggle button { min-width: 54px; padding: 6px 9px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-muted); font-family: var(--sans); font-size: 11px; font-weight: 900; }
+    .view-toggle button.active { background: white; color: var(--accent-deep); box-shadow: 0 2px 0 #c8e6bd; }
+    .card-stack { height: 292px; }
+    .survey-card { border-radius: 22px; border: 2px solid var(--card-line); box-shadow: 0 6px 0 #b7dda9; }
+    .card-back-1 { transform: scale(0.96) translateY(12px); background: #e8f8de; border-color: #ccefbf; }
+    .card-back-2 { transform: scale(0.92) translateY(24px); background: #dff4d5; border-color: #d4ebc9; }
+    .card-cat { color: #0a6f2b; background: #dbffd0; padding: 5px 11px; border: 1px solid #a8e696; font-weight: 900; }
+    .card-title { font-family: var(--sans); font-size: 20px; font-weight: 900; letter-spacing: 0; line-height: 1.2; }
+    .card-desc { line-height: 1.45; }
+    .meta-pill { color: var(--ink-soft); background: #f2ffed; padding: 6px 10px; border: 1px solid var(--line); font-weight: 800; }
+    .card-footer-row { border-top: 2px dashed #d7ebcd; }
+    .reward-big { font-family: var(--sans); font-size: 28px; font-weight: 900; color: var(--accent-deep); letter-spacing: 0; }
+    .reward-lbl { font-weight: 800; }
+    .impact-tag { color: #075985; background: #dff4ff; border: 1px solid #abe5ff; font-weight: 900; padding: 6px 10px; }
+    .btn-skip, .btn-take, .btn-mark, .list-primary, .list-secondary { border-radius: 16px; font-weight: 900; transition: transform .12s ease, box-shadow .12s ease; }
+    .btn-skip:active, .btn-take:active, .btn-mark:active, .list-primary:active, .list-secondary:active, .nav-item:active { transform: translateY(3px) scale(.98); box-shadow: none; }
+    .btn-skip { border: 2px solid #d7ebcd; box-shadow: 0 4px 0 #d5e7cd; }
+    .btn-take { background: var(--accent); border: 2px solid var(--accent-deep); box-shadow: 0 5px 0 var(--accent-deep); }
+    .btn-mark { background: #fff3cf; border: 2px solid #ffd36a; color: #805700; box-shadow: 0 4px 0 #e9bd4f; }
+    .study-list { display: flex; flex-direction: column; gap: 12px; }
+    .study-row { background: white; border: 2px solid var(--card-line); border-radius: 18px; padding: 14px; box-shadow: 0 4px 0 #b7dda9; }
+    .study-row-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+    .study-row h3 { font-size: 15px; line-height: 1.25; margin: 0 0 4px; color: var(--ink); }
+    .study-row p { margin: 0; font-size: 12px; line-height: 1.4; color: var(--ink-muted); }
+    .study-reward { color: var(--accent-deep); font-weight: 900; white-space: nowrap; }
+    .study-row-meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+    .study-row-meta span { font-size: 11px; font-weight: 800; color: var(--ink-soft); background: #f2ffed; border: 1px solid var(--line); border-radius: 999px; padding: 5px 8px; }
+    .study-row-actions { display: flex; gap: 8px; }
+    .list-primary, .list-secondary { flex: 1; min-height: 40px; border: 0; font-family: var(--sans); font-size: 13px; }
+    .list-primary { background: var(--accent); color: white; border: 2px solid var(--accent-deep); box-shadow: 0 4px 0 var(--accent-deep); }
+    .list-secondary { background: white; color: var(--ink-muted); border: 2px solid var(--line); box-shadow: 0 3px 0 #d5e7cd; }
+    .balance-card { background: var(--accent-blue); border: 2px solid #0d8ccc; border-radius: 22px; box-shadow: 0 6px 0 #0d8ccc; }
+    .balance-lbl { font-weight: 900; letter-spacing: 0; text-transform: none; color: rgba(255,255,255,0.78); }
+    .balance-amt { font-family: var(--sans); font-size: 42px; font-weight: 900; letter-spacing: 0; }
+    .balance-sub { color: rgba(255,255,255,0.75); font-weight: 700; }
+    .btn-withdraw, .btn-setup { border: 2px solid #0d8ccc; border-radius: 16px; color: #0d8ccc; font-weight: 900; box-shadow: 0 4px 0 rgba(0,0,0,0.15); }
+    .history-box, .profile-head, .completeness-card, .fields-box { border: 2px solid var(--line); border-radius: 18px; box-shadow: 0 4px 0 #d5e7cd; }
+    .history-head { border-bottom: 2px solid var(--line); font-weight: 900; }
+    .avatar-circle { border-radius: 16px; background: var(--accent-warm); color: #3a2500; font-family: var(--sans); font-weight: 900; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.12); }
+    .prog-track { height: 10px; border: 1px solid var(--line); }
+    .prog-fill { background: linear-gradient(90deg, var(--accent), var(--accent-warm), var(--accent-blue)); }
+    .bottom-nav { background: rgba(255,255,255,0.96); border-top: 2px solid var(--line); }
+    .nav-item { font-weight: 900; transition: color 0.15s, transform 0.15s; }
+    .nav-item.active { color: var(--accent-deep); transform: translateY(-2px); }
+    .tap-burst { position: fixed; z-index: 999; width: 7px; height: 7px; border-radius: 50%; background: var(--accent-warm); pointer-events: none; animation: burst .45s ease-out forwards; }
+    @keyframes burst {
+      from { opacity: 1; transform: translate(0,0) scale(1); }
+      to { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(.2); }
+    }
+
   </style>
 </head>
 <body>
@@ -157,11 +234,17 @@
     <div class="impact-banner">
       <div class="impact-icon"><i data-lucide="leaf" style="width:20px;height:20px"></i></div>
       <div class="impact-text">
-        <strong id="impactMsg">{{ completed_today }} completed today</strong>
-        <p>Your responses help real researchers. Keep going.</p>
+        <strong id="impactMsg">{{ completed_today }} studies completed</strong>
+        <p>Keep your streak going and unlock better matches.</p>
       </div>
     </div>
-    <div class="section-label">Matched for you</div>
+    <div class="section-row">
+      <div class="section-label">Today's study quests</div>
+      <div class="view-toggle" aria-label="Study layout">
+        <button type="button" id="viewCardsBtn" class="active" onclick="switchView('cards')">Cards</button>
+        <button type="button" id="viewListBtn" onclick="switchView('list')">List</button>
+      </div>
+    </div>
     <div style="padding: 0 16px;" id="homeContent">
       <div class="spinner-wrap"><div class="spinner"></div><p style="font-size:14px;color:var(--ink-muted);">Loading...</p></div>
     </div>
@@ -254,6 +337,7 @@
   const allSurveys = {{ surveys | tojson | safe }};
   let cardIdx = 0;
   let activeSurveys = allSurveys.slice();
+  let viewMode = localStorage.getItem('participantViewMode') || 'cards';
   let touchX0 = 0, touchY0 = 0, dragging = false;
 
   lucide.createIcons();
@@ -266,6 +350,23 @@
   }
 
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+  function syncViewToggle() {
+    document.getElementById('viewCardsBtn')?.classList.toggle('active', viewMode === 'cards');
+    document.getElementById('viewListBtn')?.classList.toggle('active', viewMode === 'list');
+  }
+
+  function switchView(mode) {
+    viewMode = mode;
+    localStorage.setItem('participantViewMode', mode);
+    syncViewToggle();
+    renderHome();
+  }
+
+  function renderHome() {
+    if (viewMode === 'list') buildList();
+    else buildStack();
+  }
 
   function buildStack() {
     const wrap = document.getElementById('homeContent');
@@ -316,6 +417,38 @@
     initSwipe();
   }
 
+
+  function buildList() {
+    const wrap = document.getElementById('homeContent');
+    const remaining = activeSurveys.slice(cardIdx);
+    if (remaining.length === 0) {
+      wrap.innerHTML = `<div class="empty-wrap"><div style="margin-bottom:16px;opacity:.4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div><h3>All caught up!</h3><p>No more matched surveys right now.<br>Check back later.</p></div>`;
+      return;
+    }
+    wrap.innerHTML = `<div class="study-list">${remaining.map(s => {
+      const isBuiltIn = !s.link || s.link === '';
+      const safeLink = (s.link || '').replace(/'/g, "\\'");
+      const action = s.is_completed
+        ? `<button class="list-secondary" onclick="doModify(${s.id})">Undo</button>`
+        : `<button class="list-primary" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn})">Take study</button>`;
+      const done = s.is_completed ? `<span>Completed</span>` : '';
+      return `
+        <div class="study-row">
+          <div class="study-row-top">
+            <div><h3>${s.title}</h3><p>${s.desc}</p></div>
+            <div class="study-reward">${s.reward}</div>
+          </div>
+          <div class="study-row-meta">
+            <span>${cap(s.category)}</span><span>${s.time}</span><span>${s.responses}</span>${done}
+          </div>
+          <div class="study-row-actions">
+            <button class="list-secondary" onclick="doSkip()">Skip</button>
+            ${action}
+          </div>
+        </div>`;
+    }).join('')}</div>`;
+  }
+
   function dots(n) {
     return Array.from({length: Math.min(n,5)}, (_,i) =>
       `<div class="dot ${i===0?'active':''}"></div>`).join('');
@@ -328,7 +461,7 @@
     setTimeout(cb, 320);
   }
 
-  function doSkip() { flyOut('left', () => { cardIdx++; buildStack(); }); }
+  function doSkip() { flyOut('left', () => { cardIdx++; renderHome(); }); }
 
   async function doTake(id, link, isBuiltIn) {
     await fetch(`/surveys/${id}/start`, { method: 'POST', credentials: 'same-origin' }).catch(()=>{});
@@ -344,7 +477,7 @@
     if (res && res.ok) {
       const s = activeSurveys.find(x => x.id === id);
       if (s) s.is_completed = true;
-      flyOut('right', () => { cardIdx++; buildStack(); updateStats(); });
+      flyOut('right', () => { cardIdx++; renderHome(); updateStats(); });
     }
   }
 
@@ -353,7 +486,7 @@
     if (res && res.ok) {
       const s = activeSurveys.find(x => x.id === id);
       if (s) s.is_completed = false;
-      buildStack();
+      renderHome();
     }
   }
 
@@ -378,7 +511,7 @@
       const dx = e.changedTouches[0].clientX - touchX0;
       card.style.transition = '';
       if (dragging && Math.abs(dx) > 80) {
-        flyOut(dx < 0 ? 'left' : 'right', () => { cardIdx++; buildStack(); });
+        flyOut(dx < 0 ? 'left' : 'right', () => { cardIdx++; renderHome(); });
       } else {
         card.style.transform = '';
       }
@@ -392,7 +525,7 @@
       .then(d => {
         const e = parseFloat(d.total_earned).toFixed(2);
         document.getElementById('earningsPill').textContent = `$${e} earned`;
-        document.getElementById('impactMsg').textContent = `${d.completed_today} completed today`;
+        document.getElementById('impactMsg').textContent = `${d.completed_today} studies completed`;
         const ba = document.getElementById('balanceAmt');
         if (ba) ba.textContent = `$${e}`;
         const wb = document.getElementById('withdrawBtn');
@@ -423,8 +556,31 @@
       </div>`).join('');
   }
 
-  buildStack();
+  syncViewToggle();
+  renderHome();
   updateStats();
+
+  document.addEventListener('click', e => {
+    const el = e.target.closest('button, .nav-item, .completeness-card, .btn-setup, .btn-logout');
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    for (let i = 0; i < 8; i++) {
+      const bit = document.createElement('span');
+      bit.className = 'tap-burst';
+      const angle = (Math.PI * 2 * i) / 8;
+      const dist = 18 + Math.random() * 10;
+      bit.style.left = `${cx}px`;
+      bit.style.top = `${cy}px`;
+      bit.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
+      bit.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
+      bit.style.background = i % 3 === 0 ? 'var(--accent-blue)' : i % 3 === 1 ? 'var(--accent-warm)' : 'var(--accent)';
+      document.body.appendChild(bit);
+      setTimeout(() => bit.remove(), 500);
+    }
+  });
+
   buildEarningsHistory();
 </script>
 </body>
