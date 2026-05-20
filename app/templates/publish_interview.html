@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publish Interview — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <meta name="theme-color" content="#faf9f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
+      --paper: #faf9f5; --paper-warm: #f3f1ea;
+      --accent: #2d6a4f; --accent-light: #52b788; --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+    .navbar { background: rgba(250,249,245,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 14px 48px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .navbar-left { display: flex; align-items: center; gap: 20px; }
+    .back-btn { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--ink-muted); text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s; }
+    .back-btn:hover { color: var(--ink); background: var(--paper-warm); border-color: var(--ink-muted); }
+    .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+    .navbar-brand span { color: var(--accent); }
+    .avatar-link { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink-soft); font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: 8px; transition: all 0.2s; }
+    .avatar-link:hover { background: var(--paper-warm); }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+
+    .container { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    .page-header { margin-bottom: 40px; }
+    .type-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(45,106,79,0.08); border: 1.5px solid rgba(45,106,79,0.2); color: var(--accent); padding: 8px 18px; border-radius: 100px; font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+    .page-header h1 { font-family: var(--serif); font-size: clamp(28px, 4vw, 40px); color: var(--ink); letter-spacing: -1px; margin-bottom: 8px; }
+    .page-header h1 em { font-style: italic; color: var(--accent); }
+    .page-header p { font-size: 16px; color: var(--ink-muted); font-weight: 300; }
+
+    .form-section { background: white; border: 1.5px solid var(--line); border-radius: 16px; padding: 32px; margin-bottom: 20px; }
+    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .section-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(45,106,79,0.1); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .section-header h2 { font-family: var(--serif); font-size: 20px; color: var(--ink); letter-spacing: -0.3px; }
+    .section-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
+
+    .info-box { background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; font-size: 14px; color: var(--ink-soft); margin-bottom: 24px; line-height: 1.6; }
+    .info-box strong { display: block; color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 7px; }
+    .label-desc { font-size: 12px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; color: var(--ink); background: white; transition: all 0.2s; }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
+    .form-group input::placeholder, .form-group textarea::placeholder { color: #c4c2bc; font-weight: 300; }
+    .form-group textarea { resize: vertical; min-height: 96px; line-height: 1.6; }
+    .form-group select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; color: #c4c2bc; }
+    .form-group select.has-value { color: var(--ink); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .form-row .form-group, .form-row-3 .form-group { margin-bottom: 0; }
+
+    .format-pills { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .format-pill { padding: 10px 20px; border: 1.5px solid var(--line); border-radius: 100px; font-size: 13px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: all 0.15s; user-select: none; }
+    .format-pill:hover { border-color: var(--accent-light); color: var(--ink); }
+    .format-pill.selected { border-color: var(--accent); background: var(--accent); color: white; }
+
+    .incentive-pills { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .incentive-pill { padding: 9px 18px; border: 1.5px solid var(--line); border-radius: 100px; font-size: 13px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: all 0.15s; user-select: none; }
+    .incentive-pill:hover { border-color: var(--accent-light); color: var(--ink); }
+    .incentive-pill.selected { border-color: var(--accent); background: rgba(45,106,79,0.08); color: var(--accent); }
+
+    .urgency-pills { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .urgency-pill { padding: 9px 18px; border: 1.5px solid var(--line); border-radius: 100px; font-size: 13px; font-weight: 500; color: var(--ink-muted); cursor: pointer; transition: all 0.15s; user-select: none; }
+    .urgency-pill:hover { border-color: var(--accent-light); color: var(--ink); }
+    .urgency-pill.selected { border-color: var(--accent); background: var(--accent); color: white; }
+    .urgency-pill.urgent.selected { border-color: #c05621; background: #c05621; }
+
+    .commission-box { display: none; margin-top: 16px; background: white; border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .commission-row { padding: 14px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .commission-row:last-child { border-bottom: none; background: rgba(45,106,79,0.04); }
+    .commission-row .clabel { font-size: 13px; color: var(--ink-muted); }
+    .commission-row .cvalue { font-weight: 600; color: var(--ink); }
+    .commission-row .cvalue.green { color: var(--accent); }
+    .commission-row .cvalue.orange { color: var(--accent-warm); }
+    .commission-row .cvalue.total { font-family: var(--serif); font-size: 22px; color: var(--accent); }
+
+    .raffle-box { display: none; margin-top: 16px; background: rgba(224,122,60,0.06); border: 1.5px solid rgba(224,122,60,0.2); border-radius: 12px; padding: 16px 20px; font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+    .raffle-box strong { color: var(--accent-warm); display: block; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+
+    .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; font-size: 13px; color: var(--ink-soft); }
+    .checkbox-item:hover { border-color: var(--accent-light); background: rgba(45,106,79,0.03); }
+    .checkbox-item input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
+    .checkbox-item.checked { border-color: var(--accent); background: rgba(45,106,79,0.06); color: var(--ink); }
+
+    .filter-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); padding: 12px 0 8px; border-top: 1px solid var(--line); margin-top: 8px; }
+    .filter-group-label:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+
+    details > summary { list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+    .advanced-toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink-soft); cursor: pointer; padding: 12px 0; user-select: none; }
+    .advanced-toggle:hover { color: var(--ink); }
+    .advanced-body { padding-top: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+    .submit-section { background: white; border: 1.5px solid var(--line); border-radius: 16px; padding: 28px 32px; display: flex; gap: 12px; align-items: center; justify-content: flex-end; }
+    .btn-cancel { padding: 12px 24px; background: transparent; color: var(--ink-muted); border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-cancel:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
+    .btn-publish { padding: 12px 28px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+    .btn-publish:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.3); }
+
+    @media (max-width: 640px) {
+      .navbar { padding: 12px 16px; }
+      .navbar-brand { display: none; }
+      .container { padding: 32px 16px 60px; }
+      .form-section { padding: 24px 20px; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .checkbox-group { grid-template-columns: 1fr; }
+      .submit-section { flex-direction: column-reverse; }
+      .btn-cancel, .btn-publish { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-left">
+    <a href="/publisher" class="back-btn">← Back</a>
+    <div class="navbar-brand">Insight<span>a</span></div>
+  </div>
+  <a href="/profile" class="avatar-link">
+    <div class="avatar">{{ current_user.username[0].upper() if current_user.username else 'U' }}</div>
+    <span>Profile</span>
+  </a>
+</nav>
+
+<div class="container">
+
+  <div class="page-header">
+    <div class="type-badge">🎙️ Interview Study</div>
+    <h1>Post an <em>Interview</em></h1>
+    <p>Find the right participants for 1-on-1 or group conversations.</p>
+  </div>
+
+  <form id="interviewForm" method="POST" action="/publish_interview">
+
+    <input type="hidden" name="task_type" value="interview">
+
+    <!-- BASIC INFO -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-icon">✏️</div>
+        <div><h2>Basic Information</h2><p>What your interview is about</p></div>
+      </div>
+      <div class="form-group">
+        <label>Study Title *</label>
+        <input type="text" name="title" placeholder="e.g., User Experience Research — Mobile Banking App" required>
+      </div>
+      <div class="form-group">
+        <label>Description *</label>
+        <div class="label-desc">Explain what the interview is about and what participants can expect</div>
+        <textarea name="description" placeholder="We're conducting 30-minute interviews to understand how students manage their finances day-to-day..." required style="min-height: 120px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Category *</label>
+        <select name="category" required style="max-width: 300px;">
+          <option value="" disabled selected>Select a category</option>
+          <option value="research">Research</option>
+          <option value="life">Lifestyle</option>
+          <option value="clubs">Clubs & Events</option>
+          <option value="market">Market Research</option>
+          <option value="academic">Academic</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- INTERVIEW DETAILS -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-icon">🎙️</div>
+        <div><h2>Interview Details</h2><p>Format, duration, and scheduling</p></div>
+      </div>
+
+      <div class="form-group">
+        <label>Interview Format</label>
+        <div class="label-desc">How will the session be conducted?</div>
+        <div class="format-pills">
+          <div class="format-pill selected" data-value="video" onclick="selectFormat(this)">📹 Video call</div>
+          <div class="format-pill" data-value="phone" onclick="selectFormat(this)">📞 Phone call</div>
+          <div class="format-pill" data-value="in_person" onclick="selectFormat(this)">🤝 In person</div>
+        </div>
+        <input type="hidden" name="interview_format" id="formatInput" value="video">
+      </div>
+
+      <div class="form-row" style="margin-bottom: 20px;">
+        <div class="form-group">
+          <label>Session Duration *</label>
+          <select name="estimated_time" required>
+            <option value="" disabled selected>How long per session?</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">60 minutes</option>
+            <option value="90">90 minutes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Participants Needed *</label>
+          <input type="number" name="target_responses" placeholder="e.g. 10" min="1" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Scheduling Link</label>
+        <div class="label-desc">Calendly, Doodle, or any booking link — participants use this to book their slot</div>
+        <input type="url" name="scheduling_link" placeholder="https://calendly.com/your-link">
+      </div>
+
+      <div class="form-group">
+        <label>Availability / Time Windows</label>
+        <div class="label-desc">Describe when you're available so participants can plan ahead</div>
+        <textarea name="availability_notes" placeholder="Available weekdays 9am–5pm EST, Saturdays 10am–2pm. Sessions can be booked anytime in the next 3 weeks." style="min-height: 80px;"></textarea>
+      </div>
+
+      <div class="form-group" id="locationRow" style="display:none;">
+        <label>Location</label>
+        <div class="label-desc">Where will the in-person session take place?</div>
+        <input type="text" name="interview_location" placeholder="e.g. Questrom School of Business, Room 315, Boston, MA">
+      </div>
+    </div>
+
+    <!-- COMPENSATION & TIMELINE -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-icon">💰</div>
+        <div><h2>Compensation & Timeline</h2><p>How you'll reward participants and when you need them</p></div>
+      </div>
+
+      <div class="form-group">
+        <label>Incentive Type</label>
+        <div class="incentive-pills">
+          <div class="incentive-pill selected" data-value="cash" onclick="selectIncentive(this)">💵 Cash</div>
+          <div class="incentive-pill" data-value="gift_card" onclick="selectIncentive(this)">🎁 Gift card</div>
+          <div class="incentive-pill" data-value="raffle" onclick="selectIncentive(this)">🎰 Raffle</div>
+          <div class="incentive-pill" data-value="volunteer" onclick="selectIncentive(this)">🤝 Volunteer</div>
+        </div>
+        <input type="hidden" name="incentive_type" id="incentiveInput" value="cash">
+      </div>
+
+      <div class="raffle-box" id="raffleBox">
+        <strong>No payment required</strong>
+        For raffle and volunteer studies, participants are not paid per session. Describe the incentive in your study description.
+      </div>
+
+      <div id="budgetSection">
+        <div class="info-box" style="margin-top: 20px;">
+          <strong>Per-session compensation</strong>
+          Platform fee: 15% (under $15/session), 20% ($15–24), 25% ($25+).
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Per Session ($)</label>
+            <div class="label-desc">What you pay per completed session</div>
+            <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 25.00" step="0.50" min="0.01">
+          </div>
+          <div class="form-group">
+            <label>Total Budget ($)</label>
+            <div class="label-desc">Auto-calculated from above</div>
+            <input type="number" id="totalBudgetInput" name="total_budget" placeholder="Auto" step="1" min="1">
+          </div>
+        </div>
+
+        <div class="commission-box" id="commissionBox">
+          <div class="commission-row"><span class="clabel">Per session (you pay)</span><span class="cvalue" id="dispPerPerson">—</span></div>
+          <div class="commission-row"><span class="clabel">Platform fee (<span id="dispFeeRate">—</span>)</span><span class="cvalue orange" id="dispFee">—</span></div>
+          <div class="commission-row"><span class="clabel">Participant receives</span><span class="cvalue green" id="dispReward">—</span></div>
+          <div class="commission-row"><span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span><span class="cvalue total" id="dispTotal">—</span></div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 24px;">
+        <label>Recruitment Timeline</label>
+        <div class="urgency-pills">
+          <div class="urgency-pill selected" data-value="flexible" onclick="selectUrgency(this)">No deadline</div>
+          <div class="urgency-pill" data-value="within_1_month" onclick="selectUrgency(this)">Within 1 month</div>
+          <div class="urgency-pill urgent" data-value="within_1_week" onclick="selectUrgency(this)">🔥 Within 1 week</div>
+        </div>
+        <input type="hidden" name="urgency_level" id="urgencyInput" value="flexible">
+      </div>
+
+      <div class="form-group" style="margin-top: 8px;">
+        <label>Specific Deadline <span style="font-weight:300; color: var(--ink-muted);">(Optional)</span></label>
+        <input type="date" name="deadline_date" style="max-width: 240px; margin-top: 8px;">
+      </div>
+    </div>
+
+    <!-- TARGET PARTICIPANTS -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-icon">🎯</div>
+        <div><h2>Target Participants</h2><p>Leave any field blank to allow all participants</p></div>
+      </div>
+
+      <div class="filter-group-label">Demographics</div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group">
+          <label>Age Range</label>
+          <select name="target_age_range">
+            <option value="all" selected>All ages</option>
+            <option value="18-24">18–24</option>
+            <option value="25-34">25–34</option>
+            <option value="35-44">35–44</option>
+            <option value="45+">45+</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Language</label>
+          <select name="target_language">
+            <option value="all" selected>All languages</option>
+            <option>Arabic</option><option>English</option><option>French</option>
+            <option>German</option><option>Hindi</option><option>Japanese</option>
+            <option>Korean</option><option>Mandarin Chinese</option><option>Spanish</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group">
+          <label>International / Domestic</label>
+          <select name="target_international_domestic">
+            <option value="all" selected>All</option>
+            <option value="Domestic">Domestic students</option>
+            <option value="International">International students</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Location (State)</label>
+          <select name="target_state">
+            <option value="all" selected>All states</option>
+            <option>Alabama</option><option>Alaska</option><option>Arizona</option>
+            <option>Arkansas</option><option>California</option><option>Colorado</option>
+            <option>Connecticut</option><option>Delaware</option><option>Florida</option>
+            <option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+            <option>Illinois</option><option>Indiana</option><option>Iowa</option>
+            <option>Kansas</option><option>Kentucky</option><option>Louisiana</option>
+            <option>Maine</option><option>Maryland</option><option>Massachusetts</option>
+            <option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+            <option>Missouri</option><option>Montana</option><option>Nebraska</option>
+            <option>Nevada</option><option>New Hampshire</option><option>New Jersey</option>
+            <option>New Mexico</option><option>New York</option><option>North Carolina</option>
+            <option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option>
+            <option>South Carolina</option><option>South Dakota</option><option>Tennessee</option>
+            <option>Texas</option><option>Utah</option><option>Vermont</option>
+            <option>Virginia</option><option>Washington</option><option>West Virginia</option>
+            <option>Wisconsin</option><option>Wyoming</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-group-label">Academic Background</div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group">
+          <label>Student Status</label>
+          <select name="target_student_status">
+            <option value="all" selected>All</option>
+            <option value="undergrad">Undergraduate</option>
+            <option value="grad">Graduate / PhD</option>
+            <option value="non-student">Non-student</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Year in School</label>
+          <select name="target_year_in_school">
+            <option value="all" selected>All years</option>
+            <option value="Freshman">Freshman</option>
+            <option value="Sophomore">Sophomore</option>
+            <option value="Junior">Junior</option>
+            <option value="Senior">Senior</option>
+            <option value="Graduate Year 1">Graduate Year 1</option>
+            <option value="Graduate Year 2+">Graduate Year 2+</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group">
+          <label>Field / Major</label>
+          <select name="target_field">
+            <option value="all" selected>All fields</option>
+            <option value="Computer Science & Engineering">CS & Engineering</option>
+            <option value="Business & Economics">Business & Economics</option>
+            <option value="Medicine & Healthcare">Medicine & Healthcare</option>
+            <option value="Natural Sciences">Natural Sciences</option>
+            <option value="Social Sciences">Social Sciences</option>
+            <option value="Arts & Humanities">Arts & Humanities</option>
+            <option value="Education">Education</option>
+            <option value="Law">Law</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Employment Status</label>
+          <select name="target_status">
+            <option value="all" selected>All</option>
+            <option value="student">Student</option>
+            <option value="working">Working</option>
+            <option value="freelancer">Freelancer</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-group-label">Participant Experience <span style="font-weight:300; text-transform:none; letter-spacing:0;">(select all that apply)</span></div>
+      <div class="label-desc" style="margin-bottom: 10px;">Participants only need to match one selected tag</div>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="startup_experience" onchange="updateCheckbox(this)"> 🚀 Startup / product experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="club_leadership" onchange="updateCheckbox(this)"> 🎓 Club / org leadership</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="mental_health_experience" onchange="updateCheckbox(this)"> 🧠 Mental health experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="chronic_illness" onchange="updateCheckbox(this)"> 🏥 Chronic illness experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="heavy_social_media" onchange="updateCheckbox(this)"> 📱 Heavy social media user</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="prior_research" onchange="updateCheckbox(this)"> 🔬 Prior research participation</label>
+      </div>
+
+      <details style="margin-top: 24px;">
+        <summary class="advanced-toggle"><span id="advArrow">▸</span> Advanced targeting</summary>
+        <div class="advanced-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ethnicity</label>
+              <select name="target_ethnicity"><option value="all" selected>All</option><option>White</option><option>Black or African American</option><option>Hispanic or Latino</option><option>Asian</option><option>Middle Eastern or North African</option><option>Native American or Pacific Islander</option><option>Two or more races</option><option>Other</option></select>
+            </div>
+            <div class="form-group">
+              <label>Sexual Orientation</label>
+              <select name="target_sexual_orientation"><option value="all" selected>All</option><option>Straight / Heterosexual</option><option>Gay or Lesbian</option><option>Bisexual</option><option>Other</option></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Mental health diagnosis</label><select name="target_mental_health_diagnosis"><option value="all" selected>All</option><option>Yes</option><option>No</option></select></div>
+            <div class="form-group"><label>Physical health diagnosis</label><select name="target_physical_health_diagnosis"><option value="all" selected>All</option><option>Yes</option><option>No</option></select></div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="submit-section">
+      <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
+      <button type="submit" class="btn-publish" id="submitBtn">Publish →</button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+  // ── Format pills ─────────────────────────────────────────
+  function selectFormat(el) {
+    document.querySelectorAll('.format-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    const val = el.dataset.value;
+    document.getElementById('formatInput').value = val;
+    document.getElementById('locationRow').style.display = val === 'in_person' ? 'block' : 'none';
+  }
+
+  // ── Incentive → show/hide budget ─────────────────────────
+  function selectIncentive(el) {
+    document.querySelectorAll('.incentive-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    const val = el.dataset.value;
+    document.getElementById('incentiveInput').value = val;
+    const noCash = val === 'raffle' || val === 'volunteer';
+    document.getElementById('budgetSection').style.display = noCash ? 'none' : 'block';
+    document.getElementById('raffleBox').style.display = noCash ? 'block' : 'none';
+    document.getElementById('submitBtn').textContent = noCash ? 'Publish →' : 'Publish →';
+  }
+
+  // ── Commission calculator ─────────────────────────────────
+  const perPersonInput = document.getElementById('perPersonInput');
+  const totalBudgetInput = document.getElementById('totalBudgetInput');
+
+  function getRate(ppg) { return ppg >= 25 ? 0.25 : ppg >= 15 ? 0.20 : 0.15; }
+
+  function updateCommission() {
+    const target = parseInt(document.querySelector('input[name="target_responses"]').value) || 0;
+    let ppg = parseFloat(perPersonInput.value) || 0;
+    let total = parseFloat(totalBudgetInput.value) || 0;
+    if (!ppg && !total) { document.getElementById('commissionBox').style.display = 'none'; return; }
+    if (ppg && target && !totalBudgetInput.matches(':focus')) { total = ppg * target; totalBudgetInput.value = total.toFixed(2); }
+    else if (total && target && !perPersonInput.matches(':focus')) { ppg = total / target; perPersonInput.value = ppg.toFixed(2); }
+    if (!ppg || !target) { document.getElementById('commissionBox').style.display = 'none'; return; }
+    const rate = getRate(ppg);
+    document.getElementById('dispPerPerson').textContent = `$${ppg.toFixed(2)}`;
+    document.getElementById('dispFeeRate').textContent = `${Math.round(rate * 100)}%`;
+    document.getElementById('dispFee').textContent = `-$${(ppg * rate).toFixed(2)}`;
+    document.getElementById('dispReward').textContent = `$${(ppg * (1 - rate)).toFixed(2)}`;
+    document.getElementById('dispTotal').textContent = `$${(ppg * target).toFixed(2)}`;
+    document.getElementById('commissionBox').style.display = 'block';
+  }
+
+  perPersonInput.addEventListener('input', updateCommission);
+  totalBudgetInput.addEventListener('input', updateCommission);
+  document.querySelector('input[name="target_responses"]').addEventListener('input', updateCommission);
+
+  // ── Urgency ───────────────────────────────────────────────
+  function selectUrgency(el) {
+    document.querySelectorAll('.urgency-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('urgencyInput').value = el.dataset.value;
+  }
+
+  // ── Checkbox ──────────────────────────────────────────────
+  function updateCheckbox(input) {
+    input.closest('.checkbox-item').classList.toggle('checked', input.checked);
+  }
+
+  // ── Select color fix ──────────────────────────────────────
+  document.querySelectorAll('select').forEach(s => {
+    const update = () => s.classList.toggle('has-value', !!s.value && s.value !== '');
+    s.addEventListener('change', update); update();
+  });
+
+  // ── Advanced toggle ───────────────────────────────────────
+  document.querySelector('details').addEventListener('toggle', function() {
+    document.getElementById('advArrow').textContent = this.open ? '▾' : '▸';
+  });
+</script>
+</body>
+</html>

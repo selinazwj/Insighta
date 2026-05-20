@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+users.db
+.env
+*.csv
+test.db
+app/static/uploads/
+*.mov

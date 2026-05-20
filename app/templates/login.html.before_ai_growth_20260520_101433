@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <meta name="theme-color" content="#faf9f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
+      --paper: #faf9f5; --paper-warm: #f3f1ea;
+      --accent: #2d6a4f; --accent-light: #52b788; --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); background: var(--paper); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
+
+    .left-panel { background: var(--accent); padding: 60px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+    .left-panel::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.06); bottom: -150px; right: -150px; }
+    .left-panel::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -80px; left: -80px; }
+    .panel-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; position: relative; z-index: 1; }
+    .panel-logo img { height: 36px; filter: brightness(0) invert(1); }
+    .panel-logo span { font-family: var(--serif); font-size: 22px; color: white; letter-spacing: -0.3px; }
+    .panel-body { position: relative; z-index: 1; }
+    .panel-body h2 { font-family: var(--serif); font-size: clamp(32px, 3vw, 44px); color: white; line-height: 1.15; letter-spacing: -1px; margin-bottom: 20px; }
+    .panel-body h2 em { font-style: italic; opacity: 0.75; }
+    .panel-body p { font-size: 16px; color: rgba(255,255,255,0.65); line-height: 1.75; font-weight: 300; max-width: 340px; }
+    .panel-footer { position: relative; z-index: 1; }
+    .panel-quote { border-left: 3px solid rgba(255,255,255,0.3); padding-left: 20px; }
+    .panel-quote p { font-family: var(--serif); font-size: 17px; font-style: italic; color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 10px; }
+    .panel-quote span { font-size: 13px; color: rgba(255,255,255,0.45); }
+
+    .right-panel { display: flex; align-items: center; justify-content: center; padding: 60px 40px; }
+    .form-wrapper { width: 100%; max-width: 380px; }
+
+    .form-header { margin-bottom: 40px; }
+    .form-header h1 { font-family: var(--serif); font-size: 34px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
+    .form-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; }
+
+    .error-box { background: #fff5f5; color: #c53030; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; border: 1px solid #fed7d7; }
+    .success-box { background: rgba(45,106,79,0.06); color: var(--accent); padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; border: 1px solid rgba(45,106,79,0.2); }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
+    .form-group input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; color: var(--ink); background: white; transition: all 0.2s; }
+    .form-group input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
+    .form-group input::placeholder { color: #c4c2bc; font-weight: 300; }
+
+    .code-row { display: flex; gap: 10px; align-items: flex-end; }
+    .code-row input { flex: 1; letter-spacing: 4px; font-size: 18px; font-weight: 600; text-align: center; }
+    .btn-send-code { padding: 12px 16px; background: white; color: var(--accent); border: 1.5px solid rgba(45,106,79,0.4); border-radius: 10px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; }
+    .btn-send-code:hover { background: rgba(45,106,79,0.06); }
+    .btn-send-code:disabled { opacity: 0.5; cursor: not-allowed; }
+    .code-hint { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
+    .code-hint.success { color: var(--accent); }
+    .code-hint.error { color: #c53030; }
+
+    .btn-submit { width: 100%; padding: 13px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+    .btn-submit:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
+
+    .forgot-link { display: block; text-align: right; font-size: 13px; color: var(--ink-muted); margin-top: -12px; margin-bottom: 20px; cursor: pointer; }
+    .forgot-link:hover { color: var(--accent); }
+
+    .form-footer { text-align: center; margin-top: 24px; font-size: 14px; color: var(--ink-muted); }
+    .form-footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .form-footer a:hover { text-decoration: underline; }
+
+    /* Social login */
+    .social-btns { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+    .btn-social { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 11px 16px; border: 1.5px solid var(--line); border-radius: 10px; background: white; font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; text-decoration: none; transition: all 0.18s; }
+    .btn-social:hover { border-color: #b0ada5; background: var(--paper-warm); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .btn-social svg { flex-shrink: 0; }
+    .divider { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+    .divider span { font-size: 12px; color: var(--ink-muted); white-space: nowrap; font-weight: 500; }
+
+    /* Reset panel */
+    .reset-panel { display: none; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--line); }
+    .reset-panel.open { display: block; }
+    .reset-panel h3 { font-family: var(--serif); font-size: 22px; color: var(--ink); margin-bottom: 6px; }
+    .reset-panel p { font-size: 14px; color: var(--ink-muted); margin-bottom: 24px; font-weight: 300; }
+
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+      .right-panel { padding: 48px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="left-panel">
+  <a href="/" class="panel-logo">
+    <img src="/static/favicon.png" alt="Insighta">
+    <span>Insighta</span>
+  </a>
+  <div class="panel-body">
+    <h2>Research that works for <em>everyone</em> in the room.</h2>
+    <p>Connect with real participants, gather real insights, and do the research you've always wanted to do — without the hassle.</p>
+  </div>
+  <div class="panel-footer">
+    <div class="panel-quote">
+      <p>"We spent two weeks begging people to fill our survey. That's when we knew something was deeply broken."</p>
+      <span>— The Insighta founding team, BU 2025</span>
+    </div>
+  </div>
+</div>
+
+<div class="right-panel">
+  <div class="form-wrapper">
+
+    <div class="form-header">
+      <h1>Welcome back.</h1>
+      <p>Sign in to your Insighta account.</p>
+    </div>
+
+    {% if error %}
+    <div class="error-box">{{ error }}</div>
+    {% endif %}
+
+    {% if success %}
+    <div class="success-box">{{ success }}</div>
+    {% endif %}
+
+    <!-- SOCIAL LOGIN -->
+    <div class="social-btns">
+      <a href="/auth/google" class="btn-social">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.64 9.2045c0-.6382-.0573-1.2518-.1636-1.8409H9v3.4814h4.8436c-.2086 1.125-.8427 2.0782-1.7959 2.7164v2.2581h2.9087c1.7018-1.5668 2.6836-3.874 2.6836-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.4673-.8059 5.9564-2.1805l-2.9087-2.2581c-.8059.54-1.8368.8591-3.0477.8591-2.3441 0-4.3282-1.5831-5.036-3.7105H.9574v2.3318C2.4382 15.9832 5.4818 18 9 18z" fill="#34A853"/>
+          <path d="M3.964 10.71C3.7841 10.17 3.6818 9.5945 3.6818 9s.1023-1.17.2823-1.71V4.9582H.9574C.3477 6.1732 0 7.5477 0 9s.3477 2.8268.9573 4.0418L3.964 10.71z" fill="#FBBC05"/>
+          <path d="M9 3.5795c1.3214 0 2.5077.4541 3.4405 1.346l2.5813-2.5814C13.4632.8918 11.4259 0 9 0 5.4818 0 2.4382 2.0168.9574 4.9582L3.964 7.29C4.6718 5.1627 6.6559 3.5795 9 3.5795z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </a>
+      <a href="/auth/linkedin" class="btn-social">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="18" height="18" rx="3" fill="#0A66C2"/>
+          <path d="M4.5 7H6.5V13.5H4.5V7ZM5.5 6.1C4.84 6.1 4.3 5.56 4.3 4.9C4.3 4.24 4.84 3.7 5.5 3.7C6.16 3.7 6.7 4.24 6.7 4.9C6.7 5.56 6.16 6.1 5.5 6.1Z" fill="white"/>
+          <path d="M8 7H9.9V7.9H9.92C10.2 7.36 10.9 6.8 11.95 6.8C13.97 6.8 14.35 8.1 14.35 9.83V13.5H12.35V10.23C12.35 9.5 12.33 8.57 11.33 8.57C10.32 8.57 10.17 9.36 10.17 10.18V13.5H8.17V7H8Z" fill="white"/>
+        </svg>
+        Continue with LinkedIn
+      </a>
+    </div>
+
+    <div class="divider"><span>or sign in with email</span></div>
+
+    <!-- LOGIN FORM -->
+    <form method="POST" action="/login">
+      <div class="form-group">
+        <label>Email address</label>
+        <input type="email" name="email" required placeholder="you@example.com"
+          value="{{ login_email or '' }}">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" required placeholder="••••••••">
+      </div>
+      <span class="forgot-link" onclick="toggleReset()">Forgot password?</span>
+      <button type="submit" class="btn-submit">Sign In →</button>
+    </form>
+
+    <p class="form-footer">Don't have an account? <a href="/register">Create one free</a></p>
+
+    <!-- PASSWORD RESET PANEL -->
+    <div class="reset-panel {% if reset_open %}open{% endif %}" id="resetPanel">
+      <h3>Reset password</h3>
+      <p>Enter your email, get a verification code, and set a new password.</p>
+
+      {% if reset_error %}
+      <div class="error-box">{{ reset_error }}</div>
+      {% endif %}
+
+      {% if reset_success %}
+      <div class="success-box">{{ reset_success }}</div>
+      {% endif %}
+
+      <form method="POST" action="/password-reset">
+        <div class="form-group">
+          <label>Email address</label>
+          <input type="email" name="email" required placeholder="you@example.com"
+            value="{{ reset_email or '' }}">
+        </div>
+
+        <div class="form-group">
+          <label>Verification code</label>
+          <div class="code-row">
+            <input type="text" name="verification_code" placeholder="6-digit code"
+              maxlength="6" autocomplete="one-time-code" style="letter-spacing:4px;font-size:18px;font-weight:600;text-align:center;">
+            <button type="button" class="btn-send-code" id="btnResetCode" onclick="sendResetCode()">
+              Send Code
+            </button>
+          </div>
+          <div class="code-hint" id="resetCodeHint"></div>
+        </div>
+
+        <div class="form-group">
+          <label>New password</label>
+          <input type="password" name="new_password" required placeholder="••••••••" minlength="6">
+        </div>
+        <div class="form-group">
+          <label>Confirm new password</label>
+          <input type="password" name="confirm_password" required placeholder="••••••••">
+        </div>
+
+        <button type="submit" class="btn-submit">Reset Password →</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function toggleReset() {
+    const panel = document.getElementById('resetPanel');
+    panel.classList.toggle('open');
+  }
+
+  async function sendResetCode() {
+    const emailInput = document.querySelector('#resetPanel input[name="email"]');
+    const btn = document.getElementById('btnResetCode');
+    const hint = document.getElementById('resetCodeHint');
+    const email = emailInput ? emailInput.value.trim() : '';
+
+    if (!email) { hint.textContent = 'Please enter your email first.'; hint.className = 'code-hint error'; return; }
+
+    btn.disabled = true; btn.textContent = 'Sending...';
+    hint.textContent = ''; hint.className = 'code-hint';
+
+    try {
+      const fd = new FormData();
+      fd.append('email', email); fd.append('purpose', 'reset_password');
+      const res = await fetch('/auth/send-code', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.ok) {
+        hint.textContent = data.message; hint.className = 'code-hint success';
+        let secs = 60;
+        const interval = setInterval(() => {
+          secs--;
+          btn.textContent = `Resend (${secs}s)`;
+          if (secs <= 0) { clearInterval(interval); btn.disabled = false; btn.textContent = 'Resend Code'; }
+        }, 1000);
+      } else {
+        hint.textContent = data.message; hint.className = 'code-hint error';
+        btn.disabled = false; btn.textContent = 'Send Code';
+      }
+    } catch {
+      hint.textContent = 'Network error. Please try again.'; hint.className = 'code-hint error';
+      btn.disabled = false; btn.textContent = 'Send Code';
+    }
+  }
+
+  // Auto open reset panel if server says so
+  {% if reset_open %}
+  document.getElementById('resetPanel').classList.add('open');
+  {% endif %}
+</script>
+
+</body>
+</html>

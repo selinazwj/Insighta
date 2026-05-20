@@ -1,0 +1,65 @@
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.modal-content {
+    background: white;
+    width: 380px;
+    padding: 30px;
+    border-radius: 18px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    animation: pop 0.2s ease-out;
+}
+
+@keyframes pop {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.close {
+    float: right;
+    font-size: 28px;
+    cursor: pointer;
+    color: #333;
+}
+
+.form-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+}
+
+input {
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4A90E2, #157AFF);
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    margin-top: 10px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #157AFF, #4A90E2);
+}
+
+.switch-text {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+}

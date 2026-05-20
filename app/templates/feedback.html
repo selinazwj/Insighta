@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <meta name="theme-color" content="#faf9f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18;
+      --ink-soft: #4a4a44;
+      --ink-muted: #8a8a82;
+      --paper: #faf9f5;
+      --paper-warm: #f3f1ea;
+      --accent: #2d6a4f;
+      --accent-light: #52b788;
+      --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    /* ── LEFT PANEL ── */
+    .left-panel {
+      background: var(--ink);
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: rgba(45,106,79,0.15);
+      bottom: -150px; right: -150px;
+    }
+
+    .panel-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-logo img {
+      height: 36px;
+      width: auto;
+      filter: brightness(0) invert(1);
+    }
+
+    .panel-logo span {
+      font-family: var(--serif);
+      font-size: 22px;
+      color: white;
+    }
+
+    .panel-body {
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-body h2 {
+      font-family: var(--serif);
+      font-size: 36px;
+      color: white;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+
+    .panel-body h2 em {
+      font-style: italic;
+      color: var(--accent-light);
+    }
+
+    .panel-body p {
+      font-size: 15px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.75;
+      font-weight: 300;
+      max-width: 340px;
+    }
+
+    .credit-box {
+      background: rgba(45,106,79,0.2);
+      border: 1px solid rgba(82,183,136,0.3);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-top: 28px;
+    }
+
+    .credit-box .label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent-light);
+      margin-bottom: 8px;
+    }
+
+    .credit-box p {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.6;
+      max-width: none;
+    }
+
+    .panel-footer {
+      position: relative;
+      z-index: 1;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .back-link:hover { color: white; }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      padding: 60px 48px;
+      overflow-y: auto;
+    }
+
+    .form-wrapper {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* SUCCESS */
+    .success-banner {
+      background: rgba(45,106,79,0.08);
+      border: 1.5px solid rgba(45,106,79,0.2);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .success-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .success-banner h3 {
+      font-family: var(--serif);
+      font-size: 18px;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .success-banner p {
+      font-size: 14px;
+      color: var(--ink-soft);
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    .form-header {
+      margin-bottom: 36px;
+    }
+
+    .form-header h1 {
+      font-family: var(--serif);
+      font-size: 32px;
+      color: var(--ink);
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .form-header p {
+      font-size: 15px;
+      color: var(--ink-muted);
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    /* CATEGORY PILLS */
+    .category-pills {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .category-pill {
+      padding: 12px 16px;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+      user-select: none;
+    }
+
+    .category-pill:hover {
+      border-color: var(--accent-light);
+      color: var(--ink);
+    }
+
+    .category-pill.selected {
+      border-color: var(--accent);
+      background: rgba(45,106,79,0.08);
+      color: var(--accent);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--ink);
+      background: white;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,106,79,0.08);
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+      color: #c4c2bc;
+      font-weight: 300;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 140px;
+      line-height: 1.6;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 13px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-submit:hover {
+      background: #245c43;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(45,106,79,0.25);
+    }
+
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+      .right-panel { padding: 40px 24px; }
+      .category-pills { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LEFT PANEL -->
+<div class="left-panel">
+  <a href="/choice" class="panel-logo">
+    <img src="/static/favicon.png" alt="Insighta">
+    <span>Insighta</span>
+  </a>
+
+  <div class="panel-body">
+    <h2>Help us build something <em>better.</em></h2>
+    <p>Your feedback directly shapes how Insighta evolves. Every bug report, feature idea, and honest opinion makes the platform better for everyone.</p>
+    <div class="credit-box">
+      <div class="label">💰 Earn Cash Credit</div>
+      <p>Submit quality feedback and our team will review it. If your feedback is valuable, we'll add cash credit directly to your account — no strings attached.</p>
+    </div>
+  </div>
+
+  <div class="panel-footer">
+    <a href="/choice" class="back-link">← Back to dashboard</a>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <div class="form-wrapper">
+
+    {% if request.query_params.get('success') == '1' %}
+    <div class="success-banner">
+      <div class="success-icon">🎉</div>
+      <div>
+        <h3>Feedback received!</h3>
+        <p>Thank you! Our team will review your submission. If it qualifies for a credit, we'll add it to your account within a few days.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="form-header">
+      <h1>Share your feedback</h1>
+      <p>Tell us what's working, what's broken, or what you wish existed.</p>
+    </div>
+
+    <form method="POST" action="/feedback">
+      <input type="hidden" name="category" id="categoryInput" value="general">
+
+      <div style="margin-bottom: 20px;">
+        <label style="display:block; font-size:13px; font-weight:600; color: var(--ink-soft); margin-bottom: 10px;">Category</label>
+        <div class="category-pills">
+          <div class="category-pill" data-value="bug" onclick="selectCategory(this)">🐛 Bug Report</div>
+          <div class="category-pill" data-value="feature_request" onclick="selectCategory(this)">✨ Feature Request</div>
+          <div class="category-pill" data-value="ux" onclick="selectCategory(this)">🎨 UX / Design</div>
+          <div class="category-pill selected" data-value="general" onclick="selectCategory(this)">💬 General Feedback</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" name="title" placeholder="Brief summary of your feedback" required>
+      </div>
+
+      <div class="form-group">
+        <label>Details</label>
+        <textarea name="content" placeholder="Describe in as much detail as possible. For bugs, include steps to reproduce. For features, explain the problem you're trying to solve." required></textarea>
+      </div>
+
+      <button type="submit" class="btn-submit">Submit Feedback →</button>
+    </form>
+
+  </div>
+</div>
+
+<script>
+  function selectCategory(el) {
+    document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('categoryInput').value = el.dataset.value;
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Surveys</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="apple-touch-icon" href="/static/favicon.png">
+    <meta name="theme-color" content="#050E1F">
+</head>
+<body>
+    <h1>📋 My Surveys</h1>
+
+    {% if surveys %}
+        <ul>
+        {% for survey in surveys %}
+            <li>
+                <strong>{{ survey.title }}</strong>
+
+                <!-- View link (filler can also take) -->
+                <a href="/survey/{{ survey.id }}">View</a>
+
+                <!-- 删除 -->
+                <form action="/publisher/delete-survey/{{ survey.id }}" method="post" style="display:inline;">
+                    <button type="submit">🗑 Delete</button>
+                </form>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>You haven't created any surveys yet.</p>
+    {% endif %}
+
+    <a href="/publisher/dashboard">⬅ Back to Dashboard</a>
+</body>
+</html>
