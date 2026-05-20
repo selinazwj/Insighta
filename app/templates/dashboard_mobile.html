@@ -177,11 +177,12 @@
     .reward-big { font-family: var(--sans); font-size: 28px; font-weight: 900; color: var(--accent-deep); letter-spacing: 0; }
     .reward-lbl { font-weight: 800; }
     .impact-tag { color: #075985; background: #dff4ff; border: 1px solid #abe5ff; font-weight: 900; padding: 6px 10px; }
-    .btn-skip, .btn-take, .btn-mark, .list-primary, .list-secondary { border-radius: 16px; font-weight: 900; transition: transform .12s ease, box-shadow .12s ease; }
-    .btn-skip:active, .btn-take:active, .btn-mark:active, .list-primary:active, .list-secondary:active, .nav-item:active { transform: translateY(3px) scale(.98); box-shadow: none; }
+    .btn-skip, .btn-take, .btn-mark, .btn-back-card, .list-primary, .list-secondary { border-radius: 16px; font-weight: 900; transition: transform .12s ease, box-shadow .12s ease; }
+    .btn-skip:active, .btn-take:active, .btn-mark:active, .btn-back-card:active, .list-primary:active, .list-secondary:active, .nav-item:active { transform: translateY(3px) scale(.98); box-shadow: none; }
     .btn-skip { border: 2px solid #d7ebcd; box-shadow: 0 4px 0 #d5e7cd; }
     .btn-take { background: var(--accent); border: 2px solid var(--accent-deep); box-shadow: 0 5px 0 var(--accent-deep); }
     .btn-mark { background: #fff3cf; border: 2px solid #ffd36a; color: #805700; box-shadow: 0 4px 0 #e9bd4f; }
+    .btn-back-card { flex: .9; padding: 13px; background: #dff4ff; color: #075985; border: 2px solid #abe5ff; box-shadow: 0 4px 0 #93d9f5; font-family: var(--sans); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
     .study-list { display: flex; flex-direction: column; gap: 12px; }
     .study-row { background: white; border: 2px solid var(--card-line); border-radius: 18px; padding: 14px; box-shadow: 0 4px 0 #b7dda9; }
     .study-row-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
@@ -337,6 +338,7 @@
   const allSurveys = {{ surveys | tojson | safe }};
   let cardIdx = 0;
   let activeSurveys = allSurveys.slice();
+  let cardHistory = [];
   let viewMode = localStorage.getItem('participantViewMode') || 'cards';
   let touchX0 = 0, touchY0 = 0, dragging = false;
 
@@ -372,7 +374,8 @@
     const wrap = document.getElementById('homeContent');
     const remaining = activeSurveys.slice(cardIdx);
     if (remaining.length === 0) {
-      wrap.innerHTML = `<div class="empty-wrap"><div style="margin-bottom:16px;opacity:.4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div><h3>All caught up!</h3><p>No more matched surveys right now.<br>Check back later.</p></div>`;
+      const backBtn = cardHistory.length ? `<div class="card-actions" style="padding-top:14px"><button class="btn-back-card" onclick="goBackCard()">Back to last</button></div>` : '';
+      wrap.innerHTML = `<div class="empty-wrap"><div style="margin-bottom:16px;opacity:.4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div><h3>All caught up!</h3><p>No more matched surveys right now.<br>Check back later.</p>${backBtn}</div>`;
       return;
     }
 
@@ -381,6 +384,10 @@
 
     const urgentPill = s.urgency === 'within_1_week'
       ? `<div class="meta-pill" style="color:#c05621;background:rgba(192,86,33,.08);border-color:rgba(192,86,33,.2)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Urgent</div>`
+      : '';
+
+    const backAction = cardHistory.length
+      ? `<button class="btn-back-card" onclick="goBackCard()">Back</button>`
       : '';
 
     const actions = s.is_completed
@@ -412,20 +419,38 @@
         </div>
       </div>
       <div class="swipe-dots">${dots(remaining.length)}</div>
-      <div class="card-actions">${actions}</div>
+      <div class="card-actions">${backAction}${actions}</div>
     `;
     initSwipe();
   }
 
 
+  function goBackCard() {
+    if (!cardHistory.length) return;
+    cardIdx = cardHistory.pop();
+    renderHome();
+  }
+
+  function advanceFromCurrent(dir = 'left', afterAdvance) {
+    const previousIdx = cardIdx;
+    flyOut(dir, () => {
+      cardHistory.push(previousIdx);
+      cardIdx = Math.min(previousIdx + 1, activeSurveys.length);
+      renderHome();
+      if (afterAdvance) afterAdvance();
+    });
+  }
+
   function buildList() {
     const wrap = document.getElementById('homeContent');
     const remaining = activeSurveys.slice(cardIdx);
     if (remaining.length === 0) {
-      wrap.innerHTML = `<div class="empty-wrap"><div style="margin-bottom:16px;opacity:.4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div><h3>All caught up!</h3><p>No more matched surveys right now.<br>Check back later.</p></div>`;
+      const backBtn = cardHistory.length ? `<div class="card-actions" style="padding-top:14px"><button class="btn-back-card" onclick="goBackCard()">Back to last</button></div>` : '';
+      wrap.innerHTML = `<div class="empty-wrap"><div style="margin-bottom:16px;opacity:.4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div><h3>All caught up!</h3><p>No more matched surveys right now.<br>Check back later.</p>${backBtn}</div>`;
       return;
     }
-    wrap.innerHTML = `<div class="study-list">${remaining.map(s => {
+    const backRow = cardHistory.length ? `<button class="list-secondary" onclick="goBackCard()">Back to last</button>` : '';
+    wrap.innerHTML = `<div class="study-list">${backRow}${remaining.map(s => {
       const isBuiltIn = !s.link || s.link === '';
       const safeLink = (s.link || '').replace(/'/g, "\\'");
       const action = s.is_completed
@@ -461,7 +486,7 @@
     setTimeout(cb, 320);
   }
 
-  function doSkip() { flyOut('left', () => { cardIdx++; renderHome(); }); }
+  function doSkip() { advanceFromCurrent('left'); }
 
   async function doTake(id, link, isBuiltIn) {
     await fetch(`/surveys/${id}/start`, { method: 'POST', credentials: 'same-origin' }).catch(()=>{});
@@ -477,7 +502,7 @@
     if (res && res.ok) {
       const s = activeSurveys.find(x => x.id === id);
       if (s) s.is_completed = true;
-      flyOut('right', () => { cardIdx++; renderHome(); updateStats(); });
+      advanceFromCurrent('right', updateStats);
     }
   }
 
@@ -511,7 +536,7 @@
       const dx = e.changedTouches[0].clientX - touchX0;
       card.style.transition = '';
       if (dragging && Math.abs(dx) > 80) {
-        flyOut(dx < 0 ? 'left' : 'right', () => { cardIdx++; renderHome(); });
+        advanceFromCurrent(dx < 0 ? 'left' : 'right');
       } else {
         card.style.transform = '';
       }
