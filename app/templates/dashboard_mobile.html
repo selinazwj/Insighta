@@ -214,6 +214,32 @@
       to { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(.2); }
     }
 
+    .card-stack { height: clamp(236px, 42vh, 282px); }
+    .survey-card { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+    .card-cat { flex-shrink: 0; margin-bottom: 8px; }
+    .card-title { flex-shrink: 0; font-size: clamp(17px, 5vw, 20px); margin-bottom: 6px; }
+    .card-desc {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .card-meta-row { flex-shrink: 0; gap: 6px; margin-bottom: 10px; }
+    .meta-pill { padding: 5px 8px; font-size: 11px; }
+    .card-footer-row { margin-top: auto; flex-shrink: 0; padding-top: 10px; }
+    .reward-big { font-size: clamp(22px, 7vw, 28px); }
+    .impact-tag { padding: 5px 8px; }
+    .card-actions { flex-shrink: 0; }
+    @media (max-height: 720px) {
+      .impact-banner { margin-top: 10px; margin-bottom: 8px; padding: 10px 12px; }
+      .impact-icon { width: 36px; height: 36px; }
+      .card-stack { height: 224px; }
+      .survey-card { padding: 16px; }
+      .card-desc { -webkit-line-clamp: 2; }
+      .card-actions button { padding: 11px 8px; }
+    }
+
   </style>
 </head>
 <body>
@@ -443,14 +469,13 @@
 
   function buildList() {
     const wrap = document.getElementById('homeContent');
-    const remaining = activeSurveys.slice(cardIdx);
+    const remaining = activeSurveys;
     if (remaining.length === 0) {
       const backBtn = cardHistory.length ? `<div class="card-actions" style="padding-top:14px"><button class="btn-back-card" onclick="goBackCard()">Back to last</button></div>` : '';
       wrap.innerHTML = `<div class="empty-wrap"><div style="margin-bottom:16px;opacity:.4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div><h3>All caught up!</h3><p>No more matched surveys right now.<br>Check back later.</p>${backBtn}</div>`;
       return;
     }
-    const backRow = cardHistory.length ? `<button class="list-secondary" onclick="goBackCard()">Back to last</button>` : '';
-    wrap.innerHTML = `<div class="study-list">${backRow}${remaining.map(s => {
+    wrap.innerHTML = `<div class="study-list">${remaining.map(s => {
       const isBuiltIn = !s.link || s.link === '';
       const safeLink = (s.link || '').replace(/'/g, "\\'");
       const action = s.is_completed
