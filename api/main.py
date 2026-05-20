@@ -800,6 +800,10 @@ def dashboard(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    user_agent = request.headers.get("user-agent", "").lower()
+    is_mobile = any(x in user_agent for x in ["mobile", "android", "iphone", "ipad"])
+    if is_mobile:
+        return RedirectResponse("/dashboard/mobile", status_code=302)
     all_published = db.query(Survey).filter(Survey.status == "published").all()
 
     user_edu_min = _education_rank(current_user.education_level, fallback=0)
@@ -898,8 +902,100 @@ def dashboard(
             "stripe_onboarding_complete": getattr(current_user, 'stripe_onboarding_complete', 'false'),
         }
     )
+# ---------------------------
+# mobile dashboard (simplified for mobile users)
+# ---------------------------
+@app.get("/dashboard/mobile", response_class=HTMLResponse)
+def dashboard_mobile(
+    request: Request,
+    timezone_offset: int = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    all_published = db.query(Survey).filter(Survey.status == "published").all()
 
+    user_edu_min = _education_rank(current_user.education_level, fallback=0)
+    user_edu_max = _education_rank(current_user.education_level, fallback=999)
 
+    def survey_matches(s: Survey) -> bool:
+        if not _field_matches(s.target_age_range, current_user.age_range): return False
+        if s.target_education_min is not None:
+            if user_edu_min < s.target_education_min: return False
+        if s.target_education_max is not None:
+            if user_edu_max > s.target_education_max: return False
+        if not _field_matches(s.target_field, current_user.field): return False
+        if not _field_matches(s.target_status, current_user.status): return False
+        if not _field_matches(s.target_state, current_user.state): return False
+        if not _language_matches(s.target_language, current_user.language): return False
+        if not _field_matches(s.target_ethnicity, current_user.ethnicity): return False
+        if not _field_matches(s.target_sexual_orientation, current_user.sexual_orientation): return False
+        if not _field_matches(s.target_mental_health_diagnosis, current_user.mental_health_diagnosis): return False
+        if not _field_matches(s.target_physical_health_diagnosis, current_user.physical_health_diagnosis): return False
+        if not _field_matches(s.target_sport_type, current_user.sport_type): return False
+        if not _field_matches(s.target_sport_frequency, current_user.sport_frequency): return False
+        if not _field_matches(s.target_smoking, current_user.smoking): return False
+        if not _field_matches(s.target_cannabis_use, current_user.cannabis_use): return False
+        if not _field_matches(getattr(s, 'target_student_status', None), getattr(current_user, 'student_status', None)): return False
+        if not _field_matches(getattr(s, 'target_year_in_school', None), getattr(current_user, 'year_in_school', None)): return False
+        if not _field_matches(getattr(s, 'target_international_domestic', None), getattr(current_user, 'international_domestic', None)): return False
+        if not _tags_match(getattr(s, 'target_experience_tags', None), getattr(current_user, 'experience_tags', None)): return False
+        if not _participation_format_matches(getattr(s, 'target_participation_format', None), getattr(current_user, 'participation_format', None)): return False
+        if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
+        return True
+
+    matched = [s for s in all_published if survey_matches(s)]
+    matched.sort(key=lambda s: (
+        -URGENCY_RANK.get(getattr(s, 'urgency_level', None) or 'flexible', 1),
+        -(s.published_at.timestamp() if s.published_at else 0)
+    ))
+
+    category_images = {
+        "research": "/static/psych.jpg", "life": "/static/campus_life.jpg",
+        "clubs": "/static/fb.jpg", "market": "/static/habit.png",
+        "academic": "/static/r2.jpg", "other": "/static/food.jpeg"
+    }
+
+    surveys_data = []
+    for s in matched:
+        completed_cnt = db.query(Response).filter(
+            Response.survey_id == s.id, Response.status == "completed"
+        ).count()
+        user_response = db.query(Response).filter(
+            Response.survey_id == s.id, Response.participant_id == current_user.id
+        ).first()
+        is_completed = user_response and user_response.status == "completed"
+        form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
+        surveys_data.append({
+            "id": s.id, "title": s.title, "desc": s.description,
+            "link": form_link,
+            "type": _normalize_task_type(getattr(s, "task_type", None)),
+            "category": s.category, "time": f"{s.estimated_time} min",
+            "reward": f"${s.reward_amount:.2f}",
+            "responses": f"{completed_cnt}/{s.target_responses}",
+            "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
+            "is_completed": is_completed,
+            "urgency": getattr(s, 'urgency_level', None) or 'flexible',
+            "incentive_type": getattr(s, 'incentive_type', None),
+        })
+
+    pending_earnings = getattr(current_user, 'pending_earnings', 0.0) or 0.0
+    total_withdrawn = getattr(current_user, 'total_withdrawn', 0.0) or 0.0
+
+    completed_today = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed",
+    ).count()
+
+    return templates.TemplateResponse("dashboard_mobile.html", {
+        "request": request,
+        "surveys": surveys_data,
+        "completed_today": completed_today,
+        "pending_earnings": pending_earnings,
+        "total_withdrawn": total_withdrawn,
+        "available_surveys": len(surveys_data),
+        "current_user": current_user,
+        "stripe_onboarding_complete": getattr(current_user, 'stripe_onboarding_complete', 'false'),
+    })
 # ---------------------------
 # Dashboard stats API
 # ---------------------------
