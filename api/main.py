@@ -708,6 +708,8 @@ async def do_register(
     password = form.get("password") or ""
     confirm = form.get("confirm") or ""
     verification_code = form.get("verification_code") or ""
+    # ive grabbed the occupation user picked on step 3
+    occupation = (form.get("occupation") or "").strip()
 
     def reg_error(msg):
         return templates.TemplateResponse("register.html", {
@@ -727,6 +729,7 @@ async def do_register(
     user = User(
         email=email,
         password=pwd_context.hash(password),
+        occupation=occupation if occupation else None,
     )
     db.add(user)
     db.commit()

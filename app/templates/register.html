@@ -258,8 +258,46 @@
           <input type="password" name="confirm" id="confirm" required placeholder="••••••••">
         </div>
 
-        <button type="button" class="btn-next" onclick="requestConsent()">Create Account →</button>
+        <button type="button" class="btn-next" onclick="goToStep3()">Continue →</button>
         <button type="button" class="btn-back" onclick="backToStep1()">← Back</button>
+      </div>
+
+      <!-- STEP 3: Occupation (ive added this for verification feature) -->
+      <div class="step" id="step3">
+        <div class="step-header">
+          <span class="step-eyebrow">Step 3 of 3</span>
+          <h1>What do you do?</h1>
+          <p>This helps us match you with relevant surveys. You can change it later.</p>
+        </div>
+
+        <div class="form-group">
+          <label>Your occupation <span class="badge-required">Required</span></label>
+          <select name="occupation" id="occupation" required>
+            <option value="">Select one</option>
+            <optgroup label="Licensed professionals">
+              <option value="physician">Physician / Doctor</option>
+              <option value="nurse">Nurse</option>
+              <option value="lawyer">Lawyer</option>
+              <option value="therapist">Therapist / Psychologist</option>
+              <option value="engineer">Licensed Engineer</option>
+            </optgroup>
+            <optgroup label="Professionals & students">
+              <option value="student">Student</option>
+              <option value="teacher">Teacher / Educator</option>
+              <option value="it_professional">IT / Software Professional</option>
+              <option value="researcher">Researcher / Academic</option>
+              <option value="marketer">Marketer / Designer</option>
+              <option value="business">Business / Finance</option>
+            </optgroup>
+            <optgroup label="General">
+              <option value="general_public">General Public</option>
+              <option value="other">Other</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <button type="button" class="btn-next" onclick="requestConsent()">Create Account →</button>
+        <button type="button" class="btn-back" onclick="backToStep2()">← Back</button>
       </div>
 
     </form>
@@ -329,6 +367,25 @@
       hint.className = 'code-hint';
     }
   }
+
+  // ive added these for the new occupation step
+  function goToStep3() {
+    // first make sure password is filled and valid
+    const pw = document.getElementById('password').value;
+    const cf = document.getElementById('confirm').value;
+    if (!pw || pw !== cf) {
+      alert('Please set a password and make sure both fields match.');
+      return;
+    }
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step3').classList.add('active');
+  }
+
+  function backToStep2() {
+    document.getElementById('step3').classList.remove('active');
+    document.getElementById('step2').classList.add('active');
+  }
+
 
   // ── Step navigation ───────────────────────────────────────
   function goToStep2() {
