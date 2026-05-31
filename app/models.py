@@ -31,6 +31,12 @@ class User(Base):
     smoking = Column(String, nullable=True)
     cannabis_use = Column(String, nullable=True)
     language = Column(String, nullable=True)
+    # ive added these for the verification feature (Phase 1)
+    occupation = Column(String, nullable=True)
+    verification_status = Column(String, default="unverified")
+    verified_at = Column(DateTime, nullable=True)
+    verified_tier = Column(String, nullable=True)
+
 
     # Student segmentation
     student_status = Column(String, nullable=True)
@@ -81,6 +87,12 @@ class Survey(Base):
     target_sport_frequency = Column(String, nullable=True)
     target_smoking = Column(String, nullable=True)
     target_cannabis_use = Column(String, nullable=True)
+    
+    # ive added these so researchers pick who can fill their survey
+    required_occupation = Column(String, nullable=True)
+    required_verification_tier = Column(String, default="tier_3")
+    
+    
 
     # Extended targeting fields
     target_student_status = Column(String, nullable=True)
