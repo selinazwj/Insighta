@@ -24,9 +24,13 @@ from email.mime.multipart import MIMEMultipart
 from app.database import engine, get_db
 from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer
 from app.verification.routes import router as verification_router
+from app.ai_growth.routes import router as ai_growth_router
+from app.ai_growth.security import is_safe_internal_next
+from app.ai_growth.jump import mark_latest_jump_completed_for_response
 
 app = FastAPI()
 app.include_router(verification_router)
+app.include_router(ai_growth_router)
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory="app/templates")
@@ -197,6 +201,16 @@ def _post_auth_url(request: Request, participant_app: Optional[str] = None, welc
     else:
         base_url = "/choice"
     return f"{base_url}?welcome=1" if welcome else base_url
+
+def _post_auth_url_with_next(
+    request: Request,
+    participant_app: Optional[str] = None,
+    next_url: Optional[str] = None,
+    welcome: bool = False
+) -> str:
+    if is_safe_internal_next(next_url):
+        return next_url
+    return _post_auth_url(request, participant_app, welcome=welcome)
 
 def _mark_participant_app(response: RedirectResponse):
     response.set_cookie("participant_app", "1", httponly=True, samesite="none", secure=True, max_age=60 * 60 * 24 * 30)
@@ -567,6 +581,7 @@ def login_page(
     reset_success: Optional[str] = None,
     email: Optional[str] = None,
     oauth_error: Optional[str] = None,
+    next: Optional[str] = None,
     participant_app: Optional[str] = Cookie(None),
 ):
     return templates.TemplateResponse("login.html", {
@@ -578,7 +593,8 @@ def login_page(
         "reset_open": False,
         "login_email": _normalize_email(email or ""),
         "reset_email": _normalize_email(email or ""),
-        "participant_app": participant_app == "1" or _is_mobile_request(request),
+        "login_next": next if is_safe_internal_next(next) else "",
+        "participant_app": _is_mobile_request(request),
     })
 
 @app.post("/login")
@@ -586,6 +602,7 @@ def login(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
+    next: Optional[str] = Form(None),
     participant_app: Optional[str] = Cookie(None),
     db: Session = Depends(get_db)
 ):
@@ -598,7 +615,8 @@ def login(
             "error": f"Database error: {e}",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
-            "participant_app": _should_use_participant_app(request, participant_app),
+            "login_next": next if is_safe_internal_next(next) else "",
+            "participant_app": _is_mobile_request(request),
         })
 
     if not user or not pwd_context.verify(password, user.password):
@@ -607,10 +625,11 @@ def login(
             "error": "Invalid email or password",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
-            "participant_app": _should_use_participant_app(request, participant_app),
+            "login_next": next if is_safe_internal_next(next) else "",
+            "participant_app": _is_mobile_request(request),
         })
 
-    response = RedirectResponse(_post_auth_url(request, participant_app), status_code=303)
+    response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next), status_code=303)
     response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
     return response
 
@@ -2501,6 +2520,7 @@ async def submit_answers(
             )
 
     db.commit()
+    mark_latest_jump_completed_for_response(db, r)
     return JSONResponse({"message": "submitted successfully"})
 
 

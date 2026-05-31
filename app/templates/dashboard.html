@@ -117,6 +117,8 @@
       .card-image { width: 100%; height: 160px; }
       .container { padding: 32px 16px; }
     }
+    .ai-match-hint { margin-top: 10px; padding: 8px 10px; border-radius: 14px; background: rgba(45,106,79,.07); border: 1px solid rgba(45,106,79,.16); color: var(--ink-muted); font-size: 12px; line-height: 1.4; }
+    .ai-match-hint strong { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -376,16 +378,16 @@
         </button>`;
       } else if (isInterview) {
         actions = `
-          <button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}',false)">Book Interview →</button>
+          <button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}',false)">Start & Jump →</button>
           <button class="action-btn" onclick="completeSurvey(event,${s.id})">Mark Booked</button>`;
       } else if (isBuiltIn) {
         // Built-in survey — go to /surveys/{id}/take
         actions = `
-          <button class="action-btn primary" onclick="startSurvey(event,${s.id},'',true)">Take Survey →</button>`;
+          <button class="action-btn primary" onclick="startSurvey(event,${s.id},'',true)">Start & Jump →</button>`;
       } else {
         // External link survey
         actions = `
-          <button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}',false)">Take Survey →</button>
+          <button class="action-btn primary" onclick="startSurvey(event,${s.id},'${s.link}',false)">Start & Jump →</button>
           <button class="action-btn" onclick="completeSurvey(event,${s.id})">Mark Complete</button>`;
       }
 
@@ -402,6 +404,7 @@
                 </div>
               </div>
               <p>${s.desc}</p>
+              <div class="ai-match-hint" id="ai-hint-${s.id}">AI recommendation is loading...</div>
             </div>
             <div class="card-footer">
               <div class="card-meta">
@@ -413,18 +416,46 @@
           </div>
         </div>`;
     }).join('');
+    hydrateAiCards(container);
   }
 
-  // Start survey — built-in goes to /take, external opens new tab
+  async function hydrateAiCards(container) {
+    const hintEls = container.querySelectorAll('.ai-match-hint[id^="ai-hint-"]');
+    hintEls.forEach(async (el) => {
+      const id = el.id.replace('ai-hint-', '');
+      try {
+        await fetch('/api/activity/impression', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ survey_id: Number(id), source: 'dashboard' })
+        });
+        const res = await fetch(`/api/surveys/${id}/prediction/me`, { credentials: 'same-origin' });
+        if (!res.ok) { el.textContent = 'AI recommendation unavailable'; return; }
+        const data = await res.json();
+        const pct = Math.round((data.completion_probability || 0) * 100);
+        const reason = (data.top_reasons || [])[0] || 'Profile and task signals matched';
+        el.innerHTML = `<strong>AI ${pct}% completion fit</strong> · ${reason}`;
+      } catch {
+        el.textContent = 'AI recommendation unavailable';
+      }
+    });
+  }
+
+  // Start task through Insighta jump gateway so Response and JumpEvent are tracked.
   async function startSurvey(e, id, link, isBuiltIn) {
     e.preventDefault(); e.stopPropagation();
     try {
-      const res = await fetch(`/surveys/${id}/start`, { method: 'POST', credentials: 'same-origin' });
+      const res = await fetch(`/api/surveys/${id}/jump/start?source=dashboard`, {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
       if (!res.ok) { alert(await res.text()); return; }
-      if (isBuiltIn) {
-        window.location.href = `/surveys/${id}/take`;
+      const data = await res.json();
+      if (data.destination_type === 'external' || data.destination_type === 'interview') {
+        window.open(data.redirect_url, '_blank', 'noopener');
       } else {
-        window.open(link, '_blank');
+        window.location.href = data.redirect_url;
       }
     } catch { alert('Network error'); }
   }
@@ -480,14 +511,14 @@
           if (actionsEl) {
             if (isInterview) {
               actionsEl.innerHTML = `
-                <button class="action-btn primary" onclick="startSurvey(event,${id},'${survey.link}',false)">Book Interview →</button>
+                <button class="action-btn primary" onclick="startSurvey(event,${id},'${survey.link}',false)">Start & Jump →</button>
                 <button class="action-btn" onclick="completeSurvey(event,${id})">Mark Booked</button>`;
             } else if (isBuiltIn) {
               actionsEl.innerHTML = `
-                <button class="action-btn primary" onclick="startSurvey(event,${id},'',true)">Take Survey →</button>`;
+                <button class="action-btn primary" onclick="startSurvey(event,${id},'',true)">Start & Jump →</button>`;
             } else {
               actionsEl.innerHTML = `
-                <button class="action-btn primary" onclick="startSurvey(event,${id},'${survey.link}',false)">Take Survey →</button>
+                <button class="action-btn primary" onclick="startSurvey(event,${id},'${survey.link}',false)">Start & Jump →</button>
                 <button class="action-btn" onclick="completeSurvey(event,${id})">Mark Complete</button>`;
             }
           }

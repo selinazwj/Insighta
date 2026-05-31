@@ -189,6 +189,7 @@
 
     <!-- LOGIN FORM -->
     <form method="POST" action="/login">
+      <input type="hidden" name="next" value="{{ login_next or '' }}">
       <div class="form-group">
         <label>Email address</label>
         <input type="email" name="email" required placeholder="you@example.com"

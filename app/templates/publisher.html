@@ -131,6 +131,12 @@
       .card-top { flex-direction: column; gap: 8px; }
       .card-actions { gap: 6px; }
     }
+    .ai-forecast-card { margin: 14px 0 16px; padding: 14px 16px; border-radius: 18px; background: rgba(45,106,79,.06); border: 1px solid rgba(45,106,79,.16); }
+    .ai-forecast-title { font-weight: 800; color: var(--ink); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .ai-forecast-body { color: var(--ink-muted); font-size: 13px; line-height: 1.55; }
+    .ai-forecast-body strong { color: var(--accent); }
+    .ai-forecast-actions { margin-top: 10px; display:flex; gap:8px; flex-wrap:wrap; }
+    .ai-small-btn { border: 1px solid rgba(45,106,79,.24); background: #fff; border-radius: 999px; padding: 7px 11px; font-size: 12px; font-weight: 700; cursor: pointer; color: var(--accent); }
   </style>
 </head>
 <body>
@@ -258,6 +264,14 @@
           <div class="progress-bar"><div class="progress-fill" data-pct="{{ pct }}"></div></div>
           <div class="progress-text">{{ completed }} / {{ target }}</div>
         </div>
+        <div class="ai-forecast-card" data-survey-id="{{ s.id }}">
+          <div class="ai-forecast-title">AI Completion Forecast</div>
+          <div class="ai-forecast-body">Loading candidate completion forecast...</div>
+          <div class="ai-forecast-actions">
+            <button type="button" class="ai-small-btn" onclick="refreshForecast({{ s.id }})">Recompute</button>
+            <button type="button" class="ai-small-btn" onclick="showTopRespondents({{ s.id }})">Top candidates</button>
+          </div>
+        </div>
         <div class="card-actions">
           {% if s.status == "draft" %}
             <a href="/publish?{% if s.form_url == '__builtin__' %}builtin=1&{% endif %}survey_id={{ s.id }}&title={{ s.title | urlencode }}&desc={{ s.description | urlencode }}" class="btn btn-primary">Publish</a>
@@ -333,6 +347,14 @@
           <div class="progress-bar"><div class="progress-fill" data-pct="{{ pct }}" style="background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div>
           <div class="progress-text">{{ completed }} / {{ target }} slots</div>
         </div>
+        <div class="ai-forecast-card" data-survey-id="{{ s.id }}">
+          <div class="ai-forecast-title">AI Completion Forecast</div>
+          <div class="ai-forecast-body">Loading candidate completion forecast...</div>
+          <div class="ai-forecast-actions">
+            <button type="button" class="ai-small-btn" onclick="refreshForecast({{ s.id }})">Recompute</button>
+            <button type="button" class="ai-small-btn" onclick="showTopRespondents({{ s.id }})">Top candidates</button>
+          </div>
+        </div>
         <div class="card-actions">
          {% if s.status == "draft" %}
          <a href="/publish?survey_id={{ s.id }}&title={{ s.title | urlencode }}&desc={{ s.description | urlencode }}" class="btn btn-primary">Publish</a>
@@ -397,6 +419,47 @@
   }
   function handleBackdropClick(e) { if (e.target === document.getElementById('newListingModal')) closeModal(); }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  async function renderForecastCard(card, force=false) {
+    const id = card.dataset.surveyId;
+    const body = card.querySelector('.ai-forecast-body');
+    body.textContent = 'Loading candidate completion forecast...';
+    try {
+      const res = await fetch(`/api/surveys/${id}/prediction/summary${force ? '?force=true' : ''}`, { credentials: 'same-origin' });
+      if (!res.ok) { body.textContent = 'AI forecast unavailable.'; return; }
+      const data = await res.json();
+      const pct = Math.round((data.completion_probability || 0) * 100);
+      const top = data.segment_label || 'General respondents';
+      const risk = (data.risk_reasons || [])[0] || 'No major risk detected';
+      const action = data.recommended_action || 'Keep current settings.';
+      body.innerHTML = `<strong>${pct}% expected completion</strong> · ${data.candidate_count || 0} candidates · Top group: <strong>${top}</strong><br>Risk: ${risk}<br>Suggested action: ${action}`;
+    } catch {
+      body.textContent = 'AI forecast unavailable.';
+    }
+  }
+
+  function loadAiForecasts() {
+    document.querySelectorAll('.ai-forecast-card').forEach(card => renderForecastCard(card));
+  }
+
+  function refreshForecast(id) {
+    const card = document.querySelector(`.ai-forecast-card[data-survey-id="${id}"]`);
+    if (card) renderForecastCard(card, true);
+  }
+
+  async function showTopRespondents(id) {
+    try {
+      const res = await fetch(`/api/surveys/${id}/prediction/respondents?limit=8`, { credentials: 'same-origin' });
+      if (!res.ok) { alert(await res.text()); return; }
+      const data = await res.json();
+      const lines = (data.respondents || []).map((r, i) => `${i+1}. ${Math.round((r.completion_probability || 0)*100)}% · ${r.segment_label || 'Respondent'} · ${(r.top_reasons || [])[0] || ''}`);
+      alert(lines.join('\n') || 'No candidate predictions yet.');
+    } catch {
+      alert('AI candidate list unavailable.');
+    }
+  }
+
+  loadAiForecasts();
 
   // Notifications
   let allNotifs = [];
