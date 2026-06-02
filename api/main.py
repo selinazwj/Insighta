@@ -27,6 +27,7 @@ from app.verification.routes import router as verification_router
 from app.ai_growth.routes import router as ai_growth_router
 from app.ai_growth.security import is_safe_internal_next
 from app.ai_growth.jump import mark_latest_jump_completed_for_response
+from app.ai_growth.prediction import recommend_surveys_for_user
 
 app = FastAPI()
 app.include_router(verification_router)
@@ -908,13 +909,21 @@ def dashboard(
         return True
 
     matched = [s for s in all_published if survey_matches(s)]
-    matched.sort(key=lambda s: (
-        -URGENCY_RANK.get(getattr(s, 'urgency_level', None) or 'flexible', 1),
-        -(s.published_at.timestamp() if s.published_at else 0)
-    ))
+
+    # LLM-only recommendation ranking: Claude provides completion_probability.
+    # Urgency/date are no longer used as the recommendation score.
+    recommendation_map = recommend_surveys_for_user(db, matched, current_user, use_cache=True)
+    matched.sort(
+        key=lambda s: (
+            float(recommendation_map.get(s.id, {}).get("completion_probability") or 0.0),
+            s.published_at.timestamp() if s.published_at else 0,
+        ),
+        reverse=True,
+    )
 
     surveys_data = []
     for s in matched:
+        llm_rec = recommendation_map.get(s.id, {})
         completed_cnt = db.query(Response).filter(
             Response.survey_id == s.id, Response.status == "completed"
         ).count()
@@ -943,6 +952,13 @@ def dashboard(
             "is_completed": is_completed,
             "urgency": getattr(s, 'urgency_level', None) or 'flexible',
             "incentive_type": getattr(s, 'incentive_type', None),
+            "completion_probability": llm_rec.get("completion_probability"),
+            "ai_confidence": llm_rec.get("confidence"),
+            "why_recommended": (llm_rec.get("top_reasons") or [])[:3],
+            "risk_reasons": (llm_rec.get("risk_reasons") or [])[:3],
+            "recommended_action": llm_rec.get("recommended_action"),
+            "ranking_note": llm_rec.get("ranking_note"),
+            "model_version": llm_rec.get("model_version"),
         })
 
     if timezone_offset is not None:
@@ -1016,10 +1032,17 @@ def dashboard_mobile(
         return True
 
     matched = [s for s in all_published if survey_matches(s)]
-    matched.sort(key=lambda s: (
-        -URGENCY_RANK.get(getattr(s, 'urgency_level', None) or 'flexible', 1),
-        -(s.published_at.timestamp() if s.published_at else 0)
-    ))
+
+    # LLM-only recommendation ranking for mobile: Claude provides completion_probability.
+    # Urgency/date are no longer used as the recommendation score.
+    recommendation_map = recommend_surveys_for_user(db, matched, current_user, use_cache=True)
+    matched.sort(
+        key=lambda s: (
+            float(recommendation_map.get(s.id, {}).get("completion_probability") or 0.0),
+            s.published_at.timestamp() if s.published_at else 0,
+        ),
+        reverse=True,
+    )
 
     category_images = {
         "research": "/static/psych.jpg", "life": "/static/campus_life.jpg",
@@ -1029,6 +1052,7 @@ def dashboard_mobile(
 
     surveys_data = []
     for s in matched:
+        llm_rec = recommendation_map.get(s.id, {})
         completed_cnt = db.query(Response).filter(
             Response.survey_id == s.id, Response.status == "completed"
         ).count()
@@ -1048,6 +1072,13 @@ def dashboard_mobile(
             "is_completed": is_completed,
             "urgency": getattr(s, 'urgency_level', None) or 'flexible',
             "incentive_type": getattr(s, 'incentive_type', None),
+            "completion_probability": llm_rec.get("completion_probability"),
+            "ai_confidence": llm_rec.get("confidence"),
+            "why_recommended": (llm_rec.get("top_reasons") or [])[:3],
+            "risk_reasons": (llm_rec.get("risk_reasons") or [])[:3],
+            "recommended_action": llm_rec.get("recommended_action"),
+            "ranking_note": llm_rec.get("ranking_note"),
+            "model_version": llm_rec.get("model_version"),
         })
 
     pending_earnings = getattr(current_user, 'pending_earnings', 0.0) or 0.0
