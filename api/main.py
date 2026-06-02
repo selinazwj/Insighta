@@ -206,11 +206,26 @@ def _post_auth_url_with_next(
     request: Request,
     participant_app: Optional[str] = None,
     next_url: Optional[str] = None,
+    role: Optional[str] = None,
     welcome: bool = False
 ) -> str:
     if is_safe_internal_next(next_url):
         return next_url
+    normalized_role = (role or "").strip().lower()
+    if normalized_role == "participant":
+        return _participant_dashboard_url(request)
+    if normalized_role == "researcher":
+        return "/publisher"
     return _post_auth_url(request, participant_app, welcome=welcome)
+
+def _index_login_error(request: Request, message: str) -> HTMLResponse:
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "show": "signin",
+        "error": None,
+        "login_error": message,
+        "register_error": None,
+    })
 
 def _mark_participant_app(response: RedirectResponse):
     response.set_cookie("participant_app", "1", httponly=True, samesite="none", secure=True, max_age=60 * 60 * 24 * 30)
@@ -600,16 +615,21 @@ def login_page(
 @app.post("/login")
 def login(
     request: Request,
-    email: str = Form(...),
+    email: Optional[str] = Form(None),
     password: str = Form(...),
     next: Optional[str] = Form(None),
+    role: Optional[str] = Form(None),
+    source: Optional[str] = Form(None),
     participant_app: Optional[str] = Cookie(None),
     db: Session = Depends(get_db)
 ):
-    normalized_email = _normalize_email(email)
+    normalized_email = _normalize_email(email or "")
+    from_index = source == "index"
     try:
         user = db.query(User).filter(User.email == normalized_email).first()
     except Exception as e:
+        if from_index:
+            return _index_login_error(request, f"Database error: {e}")
         return templates.TemplateResponse("login.html", {
             "request": request,
             "error": f"Database error: {e}",
@@ -620,6 +640,8 @@ def login(
         })
 
     if not user or not pwd_context.verify(password, user.password):
+        if from_index:
+            return _index_login_error(request, "Invalid email or password")
         return templates.TemplateResponse("login.html", {
             "request": request,
             "error": "Invalid email or password",
@@ -629,8 +651,12 @@ def login(
             "participant_app": _is_mobile_request(request),
         })
 
-    response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next), status_code=303)
+    response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next, role), status_code=303)
     response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
+    if (role or "").strip().lower() == "participant":
+        _mark_participant_app(response)
+    elif (role or "").strip().lower() == "researcher":
+        response.delete_cookie("participant_app", samesite="none", secure=True)
     return response
 
 

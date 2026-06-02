@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insighta — Earnings</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --lime:#d9ed92;--lime2:#b5e48c;--lime3:#99d98c;
+      --em:#76c893;--teal:#34a0a4;--teal2:#168aad;
+      --ocean:#1a759f;--baltic:#1e6091;--yale:#184e77;
+      --ink:#12324a;--ink2:#2f5f6d;--ink3:#5f8390;
+      --paper:#f6fbec;--paper2:#eaf7d6;--paper3:#dff5ef;
+      --line:#cbe8b4;--line2:#99d98c;
+      --sans:'DM Sans',system-ui,sans-serif;
+      --sidebar-w:220px;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+    body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh;display:flex;}
+
+    /* ── SIDEBAR (shared) ── */
+    .sidebar{width:var(--sidebar-w);flex-shrink:0;background:#fff;border-right:2px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+    .sidebar-top{padding:20px 20px 16px;border-bottom:2px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
+    .sidebar-logo{font-size:18px;font-weight:900;color:var(--ink);}
+    .sidebar-logo span{color:var(--teal);}
+    .earnings-pill{background:var(--lime);color:var(--yale);font-size:12px;font-weight:900;padding:5px 11px;border-radius:20px;border:2px solid var(--lime2);box-shadow:0 3px 0 var(--lime3);white-space:nowrap;}
+    .sidebar-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:14px;font-weight:700;color:var(--ink3);cursor:pointer;text-decoration:none;transition:all .15s;border:2px solid transparent;}
+    .nav-item:hover{background:var(--paper2);color:var(--ink2);}
+    .nav-item.active{background:var(--paper2);color:var(--yale);border-color:var(--line);box-shadow:0 3px 0 var(--line2);}
+    .nav-item svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+    .sidebar-bottom{padding:14px 10px;border-top:2px solid var(--line);}
+    .user-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;cursor:pointer;text-decoration:none;transition:background .15s;}
+    .user-row:hover{background:var(--paper2);}
+    .avatar{width:34px;height:34px;border-radius:10px;background:var(--lime);color:var(--yale);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;border:2px solid var(--lime2);box-shadow:0 2px 0 var(--lime3);flex-shrink:0;}
+    .user-name{font-size:13px;font-weight:700;color:var(--ink);}
+    .user-sub{font-size:11px;color:var(--ink3);margin-top:1px;}
+
+    /* ── MAIN ── */
+    .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+    .topbar{background:rgba(246,251,236,0.9);backdrop-filter:blur(16px);border-bottom:2px solid var(--line);padding:0 32px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-title{font-size:17px;font-weight:900;color:var(--ink);}
+    .content{flex:1;padding:28px 32px;max-width:860px;}
+
+    /* balance card */
+    .balance-card{background:var(--teal2);border:2px solid var(--yale);border-radius:20px;padding:28px 28px 24px;margin-bottom:20px;box-shadow:0 6px 0 var(--yale);position:relative;overflow:hidden;}
+    .balance-card::before{content:'';position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06);}
+    .balance-lbl{font-size:11px;font-weight:900;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+    .balance-amt{font-size:52px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1;margin-bottom:4px;}
+    .balance-sub{font-size:13px;color:rgba(255,255,255,.6);font-weight:700;margin-bottom:22px;}
+    .withdraw-btn{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--yale);border:2px solid rgba(255,255,255,.4);border-radius:12px;padding:11px 22px;font-family:var(--sans);font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 var(--yale);transition:transform .1s,box-shadow .1s;}
+    .withdraw-btn:hover{transform:translateY(2px);box-shadow:0 2px 0 var(--yale);}
+    .withdraw-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:0 4px 0 var(--yale);}
+    .withdraw-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
+    .setup-btn{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--yale);border:2px solid rgba(255,255,255,.4);border-radius:12px;padding:11px 22px;font-family:var(--sans);font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 var(--yale);text-decoration:none;}
+
+    /* stat row */
+    .stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;}
+    .stat-card{background:#fff;border:2px solid var(--line2);border-radius:14px;padding:16px 18px;box-shadow:0 4px 0 var(--em);}
+    .stat-n{font-size:26px;font-weight:900;color:var(--yale);letter-spacing:-0.5px;}
+    .stat-l{font-size:12px;font-weight:700;color:var(--ink3);margin-top:3px;}
+
+    /* history */
+    .history-box{background:#fff;border:2px solid var(--line2);border-radius:18px;overflow:hidden;box-shadow:0 4px 0 var(--em);}
+    .history-head{padding:16px 20px;border-bottom:2px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
+    .history-head-title{font-size:14px;font-weight:900;color:var(--ink);}
+    .history-head-sub{font-size:12px;color:var(--ink3);font-weight:700;}
+    .history-row{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1.5px solid var(--line);}
+    .history-row:last-child{border-bottom:none;}
+    .h-left{}
+    .h-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+    .h-date{font-size:12px;color:var(--ink3);font-weight:500;}
+    .h-right{text-align:right;}
+    .h-amt{font-size:15px;font-weight:900;color:var(--teal2);}
+    .h-amt.pending{color:var(--ink3);}
+    .h-status{font-size:11px;font-weight:700;margin-top:2px;}
+    .h-status.pending{color:var(--ink3);}
+    .h-status.paid{color:var(--teal);}
+    .empty-history{padding:40px;text-align:center;font-size:14px;color:var(--ink3);font-weight:700;}
+
+    ::-webkit-scrollbar{width:4px;}
+    ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <div class="sidebar-logo">Insight<span>a</span></div>
+    <div class="earnings-pill">${{ "%.2f"|format(pending_earnings) }}</div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/dashboard" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </a>
+    <a href="/my-studies" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      My studies
+    </a>
+    <a href="/earnings" class="nav-item active">
+      <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Earnings
+    </a>
+    <a href="/profile" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <a href="/profile" class="user-row">
+      <div class="avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
+      <div>
+        <div class="user-name">{{ current_user.username or 'Your profile' }}</div>
+        <div class="user-sub">{{ current_user.email }}</div>
+      </div>
+    </a>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Earnings</div>
+  </div>
+  <div class="content">
+
+    <div class="balance-card">
+      <div class="balance-lbl">Available balance</div>
+      <div class="balance-amt">${{ "%.2f"|format(pending_earnings) }}</div>
+      <div class="balance-sub">Total withdrawn: ${{ "%.2f"|format(total_withdrawn) }}</div>
+      {% if stripe_onboarding_complete == 'true' %}
+      <button class="withdraw-btn" id="withdrawBtn" onclick="doWithdraw()" {% if pending_earnings < 1 %}disabled{% endif %}>
+        <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        Withdraw to bank
+      </button>
+      {% else %}
+      <a href="/connect/onboard" class="setup-btn">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Set up payouts
+      </a>
+      {% endif %}
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-n">${{ "%.2f"|format(pending_earnings + total_withdrawn) }}</div>
+        <div class="stat-l">Total earned</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-n">{{ surveys | selectattr('is_completed') | list | length }}</div>
+        <div class="stat-l">Studies completed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-n">${{ "%.2f"|format(total_withdrawn) }}</div>
+        <div class="stat-l">Total withdrawn</div>
+      </div>
+    </div>
+
+    <div class="history-box">
+      <div class="history-head">
+        <div class="history-head-title">Transaction history</div>
+        <div class="history-head-sub">Pending approval from researchers</div>
+      </div>
+      {% set done = surveys | selectattr('is_completed') | list %}
+      {% if done %}
+        {% for s in done %}
+        <div class="history-row">
+          <div class="h-left">
+            <div class="h-title">{{ s.title }}</div>
+            <div class="h-date">Completed · Pending approval</div>
+          </div>
+          <div class="h-right">
+            <div class="h-amt pending">{{ s.reward }}</div>
+            <div class="h-status pending">Pending</div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-history">No completed studies yet — earnings appear here once you complete a study.</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script>
+  async function doWithdraw() {
+    const btn = document.getElementById('withdrawBtn');
+    btn.disabled = true; btn.textContent = 'Processing…';
+    try {
+      const res = await fetch('/api/withdraw', { method:'POST', credentials:'same-origin' });
+      const d   = await res.json();
+      if (!res.ok) { alert(d.detail || 'Withdrawal failed'); btn.disabled = false; btn.textContent = 'Withdraw to bank'; return; }
+      alert('✓ $' + d.amount.toFixed(2) + ' sent to your bank!');
+      window.location.reload();
+    } catch { alert('Network error'); btn.disabled = false; btn.textContent = 'Withdraw to bank'; }
+  }
+</script>
+</body>
+</html>

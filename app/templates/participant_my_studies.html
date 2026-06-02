@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insighta — My Studies</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --lime:#d9ed92;--lime2:#b5e48c;--lime3:#99d98c;
+      --em:#76c893;--teal:#34a0a4;--teal2:#168aad;
+      --ocean:#1a759f;--baltic:#1e6091;--yale:#184e77;
+      --ink:#12324a;--ink2:#2f5f6d;--ink3:#5f8390;
+      --paper:#f6fbec;--paper2:#eaf7d6;--paper3:#dff5ef;
+      --line:#cbe8b4;--line2:#99d98c;
+      --sans:'DM Sans',system-ui,sans-serif;
+      --sidebar-w:220px;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+    body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh;display:flex;}
+
+    /* ── SIDEBAR ── */
+    .sidebar{width:var(--sidebar-w);flex-shrink:0;background:#fff;border-right:2px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+    .sidebar-top{padding:20px 20px 16px;border-bottom:2px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
+    .sidebar-logo{font-size:18px;font-weight:900;color:var(--ink);}
+    .sidebar-logo span{color:var(--teal);}
+    .earnings-pill{background:var(--lime);color:var(--yale);font-size:12px;font-weight:900;padding:5px 11px;border-radius:20px;border:2px solid var(--lime2);box-shadow:0 3px 0 var(--lime3);white-space:nowrap;}
+    .sidebar-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:14px;font-weight:700;color:var(--ink3);cursor:pointer;text-decoration:none;transition:all .15s;border:2px solid transparent;}
+    .nav-item:hover{background:var(--paper2);color:var(--ink2);}
+    .nav-item.active{background:var(--paper2);color:var(--yale);border-color:var(--line);box-shadow:0 3px 0 var(--line2);}
+    .nav-item svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+    .sidebar-bottom{padding:14px 10px;border-top:2px solid var(--line);}
+    .user-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;cursor:pointer;text-decoration:none;transition:background .15s;}
+    .user-row:hover{background:var(--paper2);}
+    .avatar{width:34px;height:34px;border-radius:10px;background:var(--lime);color:var(--yale);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;border:2px solid var(--lime2);box-shadow:0 2px 0 var(--lime3);flex-shrink:0;}
+    .user-name{font-size:13px;font-weight:700;color:var(--ink);}
+    .user-sub{font-size:11px;color:var(--ink3);margin-top:1px;}
+
+    /* ── MAIN ── */
+    .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+    .topbar{background:rgba(246,251,236,0.9);backdrop-filter:blur(16px);border-bottom:2px solid var(--line);padding:0 32px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-title{font-size:17px;font-weight:900;color:var(--ink);}
+    .content{flex:1;padding:28px 32px;max-width:900px;}
+
+    /* ── SUMMARY ROW ── */
+    .summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+    .summary-card{background:#fff;border:2px solid var(--line2);border-radius:14px;padding:16px 18px;box-shadow:0 4px 0 var(--em);display:flex;align-items:center;gap:14px;}
+    .summary-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 0 rgba(0,0,0,.12);}
+    .summary-icon svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;}
+    .summary-num{font-size:26px;font-weight:900;color:var(--yale);letter-spacing:-0.5px;line-height:1;}
+    .summary-lbl{font-size:12px;font-weight:700;color:var(--ink3);margin-top:3px;}
+
+    /* ── TABS ── */
+    .tabs{display:flex;gap:4px;margin-bottom:20px;background:#fff;border:2px solid var(--line);border-radius:14px;padding:4px;box-shadow:0 3px 0 var(--line2);}
+    .tab{flex:1;padding:9px 12px;border-radius:10px;font-size:13px;font-weight:900;color:var(--ink3);cursor:pointer;border:2px solid transparent;text-align:center;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
+    .tab:hover{background:var(--paper2);color:var(--ink2);}
+    .tab.active{background:var(--teal);color:#fff;border-color:var(--yale);box-shadow:0 3px 0 var(--yale);}
+    .tab-badge{font-size:11px;font-weight:900;background:rgba(255,255,255,.25);padding:1px 7px;border-radius:10px;}
+    .tab:not(.active) .tab-badge{background:var(--paper2);color:var(--ink3);}
+
+    /* ── STUDY ROWS ── */
+    .study-list{display:flex;flex-direction:column;gap:10px;}
+
+    .study-row{background:#fff;border:2px solid var(--line2);border-radius:16px;padding:18px 20px;box-shadow:0 4px 0 var(--em);transition:transform .12s;}
+    .study-row:hover{transform:translateY(-1px);}
+    .study-row.completed{border-color:var(--line);box-shadow:0 3px 0 var(--line2);}
+    .study-row.skipped{border-color:var(--line);background:var(--paper);box-shadow:0 3px 0 var(--line2);opacity:.7;}
+
+    .row-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;}
+    .row-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 0 rgba(0,0,0,.1);}
+    .row-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;}
+    .row-info{flex:1;min-width:0;}
+    .row-title{font-size:15px;font-weight:900;color:var(--ink);margin-bottom:3px;line-height:1.3;}
+    .row-desc{font-size:12px;color:var(--ink3);font-weight:500;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .row-right{text-align:right;flex-shrink:0;}
+    .row-reward{font-size:20px;font-weight:900;color:var(--teal2);white-space:nowrap;}
+    .row-reward.pending{color:var(--ink3);}
+    .row-reward.paid{color:var(--teal);}
+
+    .row-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .meta-pill{font-size:11px;font-weight:800;color:var(--ink2);background:var(--paper2);border:1.5px solid var(--line);padding:4px 9px;border-radius:20px;display:flex;align-items:center;gap:4px;}
+    .meta-pill svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;}
+
+    .status-pill{font-size:11px;font-weight:900;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;}
+    .status-pill svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5;}
+    .status-pill.done{background:var(--paper3);color:var(--teal);border:1.5px solid var(--t100,#9FE1CB);}
+    .status-pill.pending{background:#fff3e0;color:#b35c00;border:1.5px solid #f0c080;}
+    .status-pill.paid{background:var(--paper2);color:var(--yale);border:1.5px solid var(--lime2);}
+    .status-pill.skipped{background:var(--paper);color:var(--ink3);border:1.5px solid var(--line);}
+
+    .row-actions{margin-left:auto;display:flex;gap:7px;flex-shrink:0;}
+    .btn-sm{padding:7px 14px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:900;cursor:pointer;border:2px solid;transition:transform .1s,box-shadow .1s;display:flex;align-items:center;gap:5px;}
+    .btn-sm svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;}
+    .btn-sm.primary{background:var(--teal);color:#fff;border-color:var(--yale);box-shadow:0 3px 0 var(--yale);}
+    .btn-sm.primary:hover{transform:translateY(1px);box-shadow:0 2px 0 var(--yale);}
+    .btn-sm.ghost{background:#fff;color:var(--ink3);border-color:var(--line);box-shadow:0 3px 0 var(--line2);}
+    .btn-sm.ghost:hover{transform:translateY(1px);box-shadow:0 2px 0 var(--line2);}
+
+    /* empty */
+    .empty{text-align:center;padding:64px 24px;}
+    .empty-icon{width:56px;height:56px;border-radius:18px;background:var(--paper2);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 4px 0 var(--line2);}
+    .empty-icon svg{width:26px;height:26px;stroke:var(--teal);fill:none;stroke-width:1.75;}
+    .empty h3{font-size:18px;font-weight:900;color:var(--ink);margin-bottom:6px;}
+    .empty p{font-size:13px;color:var(--ink3);font-weight:500;line-height:1.6;margin-bottom:20px;}
+    .btn-go{display:inline-flex;align-items:center;gap:7px;background:var(--teal);color:#fff;border:2px solid var(--yale);border-radius:12px;padding:10px 22px;font-family:var(--sans);font-size:13px;font-weight:900;text-decoration:none;box-shadow:0 4px 0 var(--yale);}
+
+    ::-webkit-scrollbar{width:4px;}
+    ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <div class="sidebar-logo">Insight<span>a</span></div>
+    <div class="earnings-pill">${{ "%.2f"|format(pending_earnings) }}</div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/dashboard" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </a>
+    <a href="/my-studies" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      My studies
+    </a>
+    <a href="/earnings" class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Earnings
+    </a>
+    <a href="/profile" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <a href="/profile" class="user-row">
+      <div class="avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
+      <div>
+        <div class="user-name">{{ current_user.username or 'Your profile' }}</div>
+        <div class="user-sub">{{ current_user.email }}</div>
+      </div>
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">My studies</div>
+  </div>
+  <div class="content">
+
+    <!-- summary -->
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="summary-icon" style="background:var(--teal);">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div>
+          <div class="summary-num" id="countCompleted">0</div>
+          <div class="summary-lbl">Completed</div>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon" style="background:var(--ocean);">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <div class="summary-num" id="countInProgress">0</div>
+          <div class="summary-lbl">In progress</div>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-icon" style="background:var(--ink3);">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </div>
+        <div>
+          <div class="summary-num" id="countSkipped">0</div>
+          <div class="summary-lbl">Skipped</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- tabs -->
+    <div class="tabs">
+      <div class="tab active" id="tab-all"       onclick="switchTab('all')">All <span class="tab-badge" id="badge-all">0</span></div>
+      <div class="tab"        id="tab-completed" onclick="switchTab('completed')">Completed <span class="tab-badge" id="badge-completed">0</span></div>
+      <div class="tab"        id="tab-inprogress" onclick="switchTab('inprogress')">In progress <span class="tab-badge" id="badge-inprogress">0</span></div>
+      <div class="tab"        id="tab-skipped"   onclick="switchTab('skipped')">Skipped <span class="tab-badge" id="badge-skipped">0</span></div>
+    </div>
+
+    <div class="study-list" id="studyList"></div>
+
+  </div>
+</div>
+
+<script>
+  const surveys = {{ surveys | tojson | safe }};
+  let activeTab = 'all';
+
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+  function classify(s) {
+    if (s.is_completed) return 'completed';
+    if (s.is_started)   return 'inprogress';
+    if (s.is_skipped)   return 'skipped';
+    return 'inprogress';
+  }
+
+  function statusPill(s) {
+    const c = classify(s);
+    if (c === 'completed') return `<div class="status-pill done"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Completed</div>`;
+    if (c === 'inprogress') return `<div class="status-pill pending"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>In progress</div>`;
+    return `<div class="status-pill skipped"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Skipped</div>`;
+  }
+
+  function rewardPill(s) {
+    if (s.is_completed) return `<div class="row-reward pending">${s.reward}</div><div style="font-size:11px;font-weight:700;color:var(--ink3);margin-top:2px;">Pending approval</div>`;
+    return `<div class="row-reward">${s.reward}</div>`;
+  }
+
+  function rowActions(s) {
+    const c = classify(s);
+    const isBuiltIn = !s.link || s.link === '';
+    const safeLink  = (s.link || '').replace(/'/g, "\\'");
+    if (c === 'completed') {
+      return `<div class="row-actions">
+        <button class="btn-sm ghost" onclick="doUndo(${s.id})">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Undo
+        </button>
+      </div>`;
+    }
+    if (c === 'skipped') {
+      return `<div class="row-actions">
+        <button class="btn-sm primary" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn})">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Take study
+        </button>
+      </div>`;
+    }
+    return `<div class="row-actions">
+      <button class="btn-sm primary" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn})">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Continue
+      </button>
+      <button class="btn-sm ghost" onclick="doMarkDone(${s.id})">Mark done</button>
+    </div>`;
+  }
+
+  function rowIconBg(s) {
+    const c = classify(s);
+    if (c === 'completed') return 'var(--teal)';
+    if (c === 'skipped')   return 'var(--ink3)';
+    return 'var(--ocean)';
+  }
+
+  function iconSvg(s) {
+    const c = classify(s);
+    if (c === 'completed') return '<svg viewBox="0 0 24 24" width="18" height="18" stroke="#fff" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+    if (c === 'skipped')   return '<svg viewBox="0 0 24 24" width="18" height="18" stroke="#fff" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    return '<svg viewBox="0 0 24 24" width="18" height="18" stroke="#fff" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+  }
+
+  function render() {
+    const el = document.getElementById('studyList');
+
+    const filtered = surveys.filter(s => {
+      if (activeTab === 'all') return true;
+      return classify(s) === activeTab;
+    });
+
+    if (filtered.length === 0) {
+      const msgs = {
+        all:        { h: 'No studies yet', p: 'Head to Home to find matched studies and start contributing.' },
+        completed:  { h: 'No completed studies yet', p: 'Complete a study and it\'ll show up here with your reward.' },
+        inprogress: { h: 'Nothing in progress', p: 'Take a study from the Home tab to get started.' },
+        skipped:    { h: 'Nothing skipped', p: 'Studies you skip will appear here so you can revisit them.' },
+      };
+      const m = msgs[activeTab];
+      el.innerHTML = `<div class="empty">
+        <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <h3>${m.h}</h3><p>${m.p}</p>
+        ${activeTab !== 'completed' ? '<a href="/dashboard" class="btn-go">Go to Home <svg width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>' : ''}
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = filtered.map(s => `
+      <div class="study-row ${classify(s)}" id="row-${s.id}">
+        <div class="row-top">
+          <div class="row-icon" style="background:${rowIconBg(s)};">${iconSvg(s)}</div>
+          <div class="row-info">
+            <div class="row-title">${s.title}</div>
+            <div class="row-desc">${s.desc}</div>
+          </div>
+          <div class="row-right">${rewardPill(s)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="meta-pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${s.time}</div>
+          <div class="meta-pill">${cap(s.category)}</div>
+          ${statusPill(s)}
+          ${rowActions(s)}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function updateCounts() {
+    const completed  = surveys.filter(s => classify(s) === 'completed').length;
+    const inprogress = surveys.filter(s => classify(s) === 'inprogress').length;
+    const skipped    = surveys.filter(s => classify(s) === 'skipped').length;
+    const all        = surveys.length;
+
+    document.getElementById('countCompleted').textContent  = completed;
+    document.getElementById('countInProgress').textContent = inprogress;
+    document.getElementById('countSkipped').textContent    = skipped;
+
+    document.getElementById('badge-all').textContent        = all;
+    document.getElementById('badge-completed').textContent  = completed;
+    document.getElementById('badge-inprogress').textContent = inprogress;
+    document.getElementById('badge-skipped').textContent    = skipped;
+  }
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    render();
+  }
+
+  async function doTake(id, link, isBuiltIn) {
+    await fetch(`/surveys/${id}/start`, { method:'POST', credentials:'same-origin' }).catch(()=>{});
+    if (isBuiltIn) { window.location.href = `/surveys/${id}/take`; }
+    else {
+      window.open(link, '_blank');
+      setTimeout(() => {
+        if (confirm('Did you finish? Mark as complete?')) doMarkDone(id);
+      }, 1500);
+    }
+  }
+
+  async function doMarkDone(id) {
+    const res = await fetch(`/surveys/${id}/complete`, { method:'POST', credentials:'same-origin' }).catch(()=>null);
+    if (res && res.ok) {
+      const s = surveys.find(x => x.id === id);
+      if (s) s.is_completed = true;
+      updateCounts(); render();
+    }
+  }
+
+  async function doUndo(id) {
+    const res = await fetch(`/surveys/${id}/modify`, { method:'POST', credentials:'same-origin' }).catch(()=>null);
+    if (res && res.ok) {
+      const s = surveys.find(x => x.id === id);
+      if (s) s.is_completed = false;
+      updateCounts(); render();
+    }
+  }
+
+  updateCounts();
+  render();
+</script>
+</body>
+</html>

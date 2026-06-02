@@ -435,7 +435,7 @@
       <div class="cta-badge">For researchers</div>
       <h3 class="cta-h">Find participants.<br><strong>Do better research.</strong></h3>
       <p class="cta-p">Stop begging your group chat. Publish your study in minutes and reach participants who actually fit your criteria — with real incentives to show up.</p>
-      <a href="#" class="cta-btn" onclick="openModal('signup'); return false;">
+      <a href="#" class="cta-btn" onclick="openModal('signup', 'researcher'); return false;">
         Start as researcher
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
@@ -444,7 +444,7 @@
       <div class="cta-badge">For participants</div>
       <h3 class="cta-h">Contribute.<br><strong>Get paid for real.</strong></h3>
       <p class="cta-p">Your voice matters to real researchers. Get matched to studies that fit who you are, show up on your schedule, and earn money doing it.</p>
-      <a href="#" class="cta-btn" onclick="openModal('signup'); return false;">
+      <a href="#" class="cta-btn" onclick="openModal('signup', 'participant'); return false;">
         Join as participant
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
@@ -531,9 +531,10 @@
         {% endif %}
         <form method="POST" action="/login">
           <input type="hidden" name="role" id="login-role" value="researcher">
+          <input type="hidden" name="source" value="index">
           <div class="form-field">
             <label class="form-label">Email</label>
-            <input class="form-input" type="email" name="username" placeholder="you@university.edu" required autocomplete="email">
+            <input class="form-input" type="email" name="email" placeholder="you@university.edu" required autocomplete="email">
           </div>
           <div class="form-field">
             <label class="form-label">Password</label>
@@ -551,9 +552,10 @@
 <script>
   let role = 'researcher';
 
-  function openModal(intent) {
+  function openModal(intent, selectedRole = role) {
     document.getElementById('modalBg').classList.add('open');
     document.body.style.overflow = 'hidden';
+    pickRole(selectedRole);
     if (intent === 'signin') {
       document.getElementById('role-step').style.display = 'none';
       switchTab('signin');
