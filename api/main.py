@@ -1524,6 +1524,25 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
         raise HTTPException(400, "Please complete Stripe onboarding first")
     pending = getattr(current_user, 'pending_earnings', 0.0) or 0.0
     if pending < 1.0: raise HTTPException(400, "Minimum withdrawal is $1.00")
+    # ive added the verification gate here (Phase 1 placeholder)
+    # if any pending response is for a tier 1 or tier 2 survey, user must be verified first
+    pending_responses = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.payout_status == "pending"
+    ).all()
+
+    needs_verification = False
+    for r in pending_responses:
+        survey = db.query(Survey).filter(Survey.id == r.survey_id).first()
+        if survey and survey.required_verification_tier in ("tier_1", "tier_2"):
+            needs_verification = True
+            break
+
+    if needs_verification and current_user.verification_status != "verified":
+        raise HTTPException(
+            status_code=403,
+            detail="Verification required before withdrawal. Please visit /verify to verify yourself."
+        )
     try:
         transfer = stripe.Transfer.create(amount=int(pending * 100), currency="usd", destination=current_user.stripe_account_id, description=f"Insighta payout for user {current_user.id}")
         for r in db.query(Response).filter(Response.participant_id == current_user.id, Response.payout_status == "pending").all():
@@ -1818,6 +1837,33 @@ async def submit_feedback(request: Request, current_user: User = Depends(get_cur
     db.add(Feedback(user_id=current_user.id, category=form.get("category", "general"), title=form.get("title", ""), content=form.get("content", ""), status="pending"))
     db.commit()
     return RedirectResponse("/feedback?success=1", status_code=303)
+
+# ---------------------------
+# Verification (Phase 1 placeholder)
+# ---------------------------
+
+@app.get("/verify", response_class=HTMLResponse)
+def verify_page(request: Request, current_user: User = Depends(get_current_user)):
+    # ive made this the entry point for the verification flow
+    return templates.TemplateResponse("verify.html", {
+        "request": request,
+        "current_user": current_user,
+    })
+
+
+@app.post("/verify")
+async def submit_verification(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # PLACEHOLDER for Phase 1 — just marks user as verified without a real check
+    # Phase 2 will plug in real adapters (ID upload, OTP, QnA, etc.)
+    current_user.verification_status = "verified"
+    current_user.verified_tier = "tier_3"
+    current_user.verified_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse("/?verified=1", status_code=303)
 
 
 # ---------------------------

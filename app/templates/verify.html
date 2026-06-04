@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Verify yourself · Insighta</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    .verify-box {
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 40px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      font-family: Arial, sans-serif;
+    }
+    .verify-box h1 { color: #185FA5; margin-bottom: 10px; }
+    .verify-box .placeholder-note {
+      background: #FAEEDA;
+      border-left: 4px solid #854F0B;
+      padding: 12px 16px;
+      margin: 20px 0;
+      color: #412402;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .verify-box .reward-row {
+      background: #EAF3DE;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: center;
+      color: #173404;
+      font-weight: 600;
+    }
+    .verify-box button {
+      background: #185FA5;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 16px;
+    }
+    .verify-box button:hover { background: #124479; }
+    .verify-box .back-link {
+      display: inline-block;
+      margin-top: 12px;
+      color: #666;
+      font-size: 14px;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="verify-box">
+    <h1>Verify yourself</h1>
+    <p>You filled out a survey that needs verified participants. Verify yourself to unlock your payout.</p>
+
+    <div class="reward-row">
+      Your pending earnings: <strong>${{ "%.2f"|format(current_user.pending_earnings or 0) }}</strong>
+    </div>
+
+    <div class="placeholder-note">
+      <strong>Phase 1 placeholder:</strong> in the full version this page will ask for an ID photo,
+      a short QnA round, or an OTP based on the survey tier. For now, clicking the button below
+      just marks you as verified.
+    </div>
+
+    <form method="POST" action="/verify">
+      <button type="submit">Mark me as verified →</button>
+    </form>
+
+    <a class="back-link" href="/">← Back to home</a>
+  </div>
+</body>
+</html>
