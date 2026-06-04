@@ -594,8 +594,8 @@
     el.style.display = msg ? 'block' : 'none';
   }
 
-  // ── Publish button ─────────────────────────────────────
-async function finishAndPublish() {
+  // ── Publish → full publish flow (audience, budget)
+  async function finishAndPublish() {
     const title = document.getElementById('infoTitle').value.trim();
     if (!title) {
         alert('Please add a survey title before publishing.');
@@ -607,18 +607,15 @@ async function finishAndPublish() {
         return;
     }
     await saveInfo();
-
-    // 直接发布（survey 已存在，直接调用 publish 接口）
-    try {
-        const res = await fetch(`/surveys/${SURVEY_ID}/publish`, {
-            method: 'POST',
-            credentials: 'same-origin'
-        });
-        window.location.href = '/publisher';
-    } catch(e) {
-        alert('Failed to publish. Please try again.');
-    }
-}
+    const desc = (document.getElementById('infoDescription').value || '').trim();
+    const params = new URLSearchParams({
+      builtin: '1',
+      survey_id: String(SURVEY_ID),
+      title,
+      desc,
+    });
+    window.location.href = `/publish?${params.toString()}`;
+  }
   // ── Helpers ────────────────────────────────────────────
   function escHtml(str) {
     return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

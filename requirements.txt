@@ -11,3 +11,6 @@ psycopg2-binary
 anthropic
 stripe
 httpx
+openpyxl
+scikit-learn
+numpy

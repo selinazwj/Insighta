@@ -105,6 +105,23 @@
     .raffle-box { display: none; margin-top: 16px; background: rgba(224,122,60,0.06); border: 1.5px solid rgba(224,122,60,0.2); border-radius: 12px; padding: 16px 20px; font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
     .raffle-box strong { color: var(--accent-warm); display: block; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
 
+    .auto-filter-intro { font-size: 13px; color: var(--ink-muted); line-height: 1.55; margin-bottom: 16px; }
+    .auto-filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .auto-filter-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; }
+    .auto-filter-toggle input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+    .auto-filter-score { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--ink-soft); }
+    .auto-filter-score.is-disabled { color: var(--ink-muted); }
+    .auto-filter-score input {
+      width: 76px; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 9px;
+      font-family: var(--sans); font-size: 14px; font-weight: 600; text-align: center;
+    }
+    .auto-filter-score input:disabled { background: #f5f4f0; cursor: not-allowed; }
+    .auto-filter-tips { margin-top: 14px; padding: 14px 16px; border-radius: 10px; background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); font-size: 13px; color: var(--ink-soft); line-height: 1.65; }
+    .auto-filter-tips strong { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+    .auto-filter-tips ul { margin: 8px 0 0 18px; padding: 0; }
+    .auto-filter-tips li { margin-bottom: 4px; }
+    .auto-filter-tips .rec { font-weight: 600; color: var(--ink); }
+
     .file-upload-area { border: 1.5px dashed var(--line); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
     .file-upload-area:hover { border-color: var(--accent); background: rgba(45,106,79,0.02); }
     .file-upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
@@ -390,6 +407,39 @@
       </div>
     </div>
 
+    <!-- QUALITY AUTO FILTER -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-icon">✓</div>
+        <div><h2>Quality Auto filter</h2><p>Auto-approve responses that pass your quality score threshold</p></div>
+      </div>
+      <p class="auto-filter-intro">On Results or Quality: scores at or above your threshold are approved; below are rejected.</p>
+      <div class="auto-filter-row">
+        <label class="auto-filter-toggle">
+          <input type="checkbox" name="quality_auto_filter_enabled" value="1" id="publishAutoFilterEnabled"
+            {% if existing_survey and existing_survey.quality_auto_filter_enabled %}checked{% endif %}
+            onchange="togglePublishAutoFilter()">
+          <span>Enable Auto filter</span>
+        </label>
+        <div class="auto-filter-score {% if not (existing_survey and existing_survey.quality_auto_filter_enabled) %}is-disabled{% endif %}" id="publishAutoFilterScoreWrap">
+          <span>Scores ≥</span>
+          <input type="number" name="quality_auto_filter_min_score" id="publishAutoFilterMinScore" min="0" max="100" step="1"
+            value="{{ (existing_survey.quality_auto_filter_min_score if existing_survey and existing_survey.quality_auto_filter_min_score is not none else 80) | int }}"
+            {% if not (existing_survey and existing_survey.quality_auto_filter_enabled) %}disabled{% endif %}
+            aria-label="Minimum quality score">
+          <span>approved; below that, rejected</span>
+        </div>
+      </div>
+      <div class="auto-filter-tips">
+        <strong>Recommended thresholds</strong>
+        <ul>
+          <li><span class="rec">80 (recommended)</span> — balanced default; strong responses auto-approved, borderline cases stay for manual review.</li>
+          <li><span class="rec">70</span> — more permissive when you need higher volume and can spot-check later.</li>
+          <li><span class="rec">85–90</span> — stricter for paid studies or when fraud / low-effort answers are a concern.</li>
+        </ul>
+      </div>
+    </div>
+
     <!-- TARGET AUDIENCE -->
     <div class="form-section">
       <div class="section-header">
@@ -595,6 +645,14 @@
 </div>
 
 <script>
+  function togglePublishAutoFilter() {
+    const enabled = document.getElementById('publishAutoFilterEnabled').checked;
+    const scoreInput = document.getElementById('publishAutoFilterMinScore');
+    const wrap = document.getElementById('publishAutoFilterScoreWrap');
+    if (scoreInput) scoreInput.disabled = !enabled;
+    if (wrap) wrap.classList.toggle('is-disabled', !enabled);
+  }
+
   function selectIncentive(el) {
     document.querySelectorAll('.incentive-pill').forEach(p => p.classList.remove('selected'));
     el.classList.add('selected');
@@ -707,7 +765,7 @@
     document.getElementById('advArrow').textContent = this.open ? '▾' : '▸';
   });
 
-  // 实时验证 — 失去焦点时变红，填了之后恢复
+  // Live validation: highlight invalid fields on blur, clear when fixed
 function setupLiveValidation() {
   document.querySelectorAll('input[required], select[required], textarea[required]').forEach(el => {
     el.addEventListener('blur', function() {
@@ -730,7 +788,7 @@ function setupLiveValidation() {
     });
   });
 
-  // budget 字段单独处理（不是 required 但需要验证）
+  // Budget field: optional but validated when present
   [perPersonInput, totalBudgetInput].forEach(el => {
     el.addEventListener('blur', function() {
       const incentive = document.getElementById('incentiveInput').value;

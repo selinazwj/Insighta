@@ -6,23 +6,40 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case
 from pathlib import Path
-from typing import Optional
-from datetime import datetime, timedelta, timezone
+from typing import Any, List, Optional
+from datetime import datetime, timedelta, timezone, date, time
 from urllib.parse import urlencode
+from io import BytesIO
 import random
 import re
 import shutil
 import uuid
 import os
 import secrets
+import hashlib
 import stripe
 import smtplib
 import httpx
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from app.database import engine, get_db
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer
+from app.models import Base, User, Survey, Response, Feedback, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist
+from app.quality_engine import (
+    anthropic_api_key_configured,
+    batch_anomaly_scores_for_features,
+    compute_excel_row_quality,
+    create_excel_quality_check,
+    _duration_seconds_between,
+    apply_auto_approve_checks,
+    ensure_builtin_quality_checks,
+    evaluate_builtin_response,
+    resolve_excel_row_context,
+    upsert_builtin_quality_check,
+)
 from app.verification.routes import router as verification_router
 
 app = FastAPI()
@@ -89,6 +106,36 @@ def calculate_commission(per_person_gross: float):
         rate = 0.15
     reward = round(per_person_gross * (1 - rate), 2)
     return rate, reward
+
+
+def _extract_client_meta(request: Request, current_user: User) -> dict:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    client_ip = forwarded.split(",")[0].strip() if forwarded else None
+    if not client_ip and request.client:
+        client_ip = request.client.host
+    user_agent = request.headers.get("user-agent")
+    fingerprint = request.headers.get("x-device-fingerprint")
+    if not fingerprint:
+        raw = f"{user_agent or ''}|{getattr(current_user, 'device_type', '') or ''}|{current_user.id}"
+        fingerprint = hashlib.sha256(raw.encode()).hexdigest()[:32]
+    return {
+        "client_ip": client_ip,
+        "user_agent": user_agent,
+        "device_fingerprint": fingerprint,
+    }
+
+
+def _get_quality_check_for_publisher(db: Session, check_id: int, publisher_id: int):
+    row = db.query(ResponseQualityCheck).filter(ResponseQualityCheck.id == check_id).first()
+    if not row:
+        raise HTTPException(404, "Quality check not found")
+    survey = db.query(Survey).filter(
+        Survey.id == row.survey_id,
+        Survey.publisher_id == publisher_id,
+    ).first()
+    if not survey:
+        raise HTTPException(403, "Not allowed")
+    return row, survey
 
 
 # ---------------------------
@@ -172,6 +219,54 @@ def _clean_target(val: Optional[str]) -> str:
     return '' if not val or val.strip().lower() == 'all' else val
 
 
+def _normalize_excel_header(value: Optional[str]) -> str:
+    return (value or "").strip().lower()
+
+
+def _value_as_float(value) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _json_safe_value(value):
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, time):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {k: _json_safe_value(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_value(v) for v in value]
+    return value
+
+
+def _latest_excel_quality_rows(rows: list) -> list:
+    excel_rows = [row for row in rows if row.source_type == "excel"]
+    other_rows = [row for row in rows if row.source_type != "excel"]
+    if not excel_rows:
+        return rows
+
+    def _upload_key(row):
+        ref = row.source_ref or ""
+        return ref.rsplit(":row_", 1)[0] if ":row_" in ref else ref
+
+    latest_row = max(excel_rows, key=lambda row: row.created_at or datetime.min.replace(tzinfo=timezone.utc))
+    latest_key = _upload_key(latest_row)
+    latest_excel = [row for row in excel_rows if _upload_key(row) == latest_key]
+    latest_excel.sort(key=lambda row: row.created_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+    return latest_excel + other_rows
+
+
+def _quality_row_label(index: int = 0) -> str:
+    return str(index + 1)
+
+
 # ---------------------------
 # Auth helpers
 # ---------------------------
@@ -198,8 +293,24 @@ def _post_auth_url(request: Request, participant_app: Optional[str] = None, welc
         base_url = "/choice"
     return f"{base_url}?welcome=1" if welcome else base_url
 
-def _mark_participant_app(response: RedirectResponse):
-    response.set_cookie("participant_app", "1", httponly=True, samesite="none", secure=True, max_age=60 * 60 * 24 * 30)
+def _cookie_policy(request: Optional[Request]) -> dict:
+    is_https = False
+    if request is not None:
+        forwarded_proto = (request.headers.get("x-forwarded-proto") or "").split(",")[0].strip().lower()
+        is_https = (request.url.scheme == "https") or (forwarded_proto == "https")
+
+    if is_https:
+        return {"httponly": True, "samesite": "none", "secure": True}
+    return {"httponly": True, "samesite": "lax", "secure": False}
+
+
+def _mark_participant_app(response: RedirectResponse, request: Optional[Request] = None):
+    response.set_cookie(
+        "participant_app",
+        "1",
+        max_age=60 * 60 * 24 * 30,
+        **_cookie_policy(request),
+    )
 
 def _mask_email(email: str) -> str:
     if "@" not in email:
@@ -348,7 +459,7 @@ async def send_auth_code(
 # ---------------------------
 
 @app.get("/auth/google")
-def google_login():
+def google_login(request: Request):
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(503, "Google login is not configured.")
     state = secrets.token_urlsafe(16)
@@ -362,7 +473,7 @@ def google_login():
         "prompt": "select_account",
     })
     response = RedirectResponse(f"{GOOGLE_AUTH_URL}?{params}", status_code=302)
-    response.set_cookie("oauth_state", state, httponly=True, samesite="none", secure=True, max_age=300)
+    response.set_cookie("oauth_state", state, max_age=300, **_cookie_policy(request))
     return response
 
 
@@ -429,8 +540,9 @@ async def google_callback(
 
     redirect_url = _post_auth_url(request, request.cookies.get("participant_app"), welcome=is_new)
     resp = RedirectResponse(redirect_url, status_code=303)
-    resp.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
-    resp.delete_cookie("oauth_state")
+    policy = _cookie_policy(request)
+    resp.set_cookie("user_id", str(user.id), **policy)
+    resp.delete_cookie("oauth_state", samesite=policy["samesite"], secure=policy["secure"])
     return resp
 
 
@@ -439,7 +551,7 @@ async def google_callback(
 # ---------------------------
 
 @app.get("/auth/linkedin")
-def linkedin_login():
+def linkedin_login(request: Request):
     if not LINKEDIN_CLIENT_ID:
         raise HTTPException(503, "LinkedIn login is not configured.")
     state = secrets.token_urlsafe(16)
@@ -451,7 +563,7 @@ def linkedin_login():
         "scope": "openid profile email",
     })
     response = RedirectResponse(f"{LINKEDIN_AUTH_URL}?{params}", status_code=302)
-    response.set_cookie("oauth_state", state, httponly=True, samesite="none", secure=True, max_age=300)
+    response.set_cookie("oauth_state", state, max_age=300, **_cookie_policy(request))
     return response
 
 
@@ -522,8 +634,9 @@ async def linkedin_callback(
 
     redirect_url = _post_auth_url(request, request.cookies.get("participant_app"), welcome=is_new)
     resp = RedirectResponse(redirect_url, status_code=303)
-    resp.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
-    resp.delete_cookie("oauth_state")
+    policy = _cookie_policy(request)
+    resp.set_cookie("user_id", str(user.id), **policy)
+    resp.delete_cookie("oauth_state", samesite=policy["samesite"], secure=policy["secure"])
     return resp
 
 
@@ -545,14 +658,14 @@ def participant_app_entry(request: Request, user_id: str = Cookie(None)):
     if user_id:
         target_url = _participant_dashboard_url(request)
     response = RedirectResponse(target_url, status_code=302)
-    _mark_participant_app(response)
+    _mark_participant_app(response, request)
     return response
 
 
 @app.get("/participant/login")
-def participant_login_entry():
+def participant_login_entry(request: Request):
     response = RedirectResponse("/login", status_code=302)
-    _mark_participant_app(response)
+    _mark_participant_app(response, request)
     return response
 
 
@@ -611,7 +724,7 @@ def login(
         })
 
     response = RedirectResponse(_post_auth_url(request, participant_app), status_code=303)
-    response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
+    response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
     return response
 
 
@@ -714,7 +827,7 @@ async def do_register(
     db.refresh(user)
 
     response = RedirectResponse(_post_auth_url(request, participant_app, welcome=True), status_code=303)
-    response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
+    response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
     return response
 
 
@@ -832,7 +945,6 @@ def delete_survey(
     if question_ids:
         db.query(Answer).filter(Answer.question_id.in_(question_ids)).delete(synchronize_session=False)
     db.query(Question).filter(Question.survey_id == survey_id).delete(synchronize_session=False)
-    db.query(Notification).filter(Notification.survey_id == survey_id).delete(synchronize_session=False)
     db.query(Response).filter(Response.survey_id == survey_id).delete(synchronize_session=False)
     db.delete(survey)
     db.commit()
@@ -1142,15 +1254,6 @@ def complete_survey(
         r.payout_status = "pending"
         current_user.pending_earnings = (getattr(current_user, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
 
-        notif = Notification(
-            publisher_id=survey.publisher_id, participant_id=current_user.id,
-            survey_id=survey_id, participant_email=current_user.email,
-            survey_title=survey.title,
-            task_type=getattr(survey, "task_type", "survey") or "survey",
-            status="pending"
-        )
-        db.add(notif)
-
         publisher = db.query(User).filter(User.id == survey.publisher_id).first()
         if publisher and publisher.email:
             send_email(
@@ -1201,69 +1304,6 @@ def modify_completed_survey(
 
 
 # ---------------------------
-# Notifications API
-# ---------------------------
-
-@app.get("/api/notifications")
-def get_notifications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    notifs = db.query(Notification).filter(
-        Notification.publisher_id == current_user.id
-    ).order_by(Notification.created_at.desc()).all()
-    return JSONResponse([{
-        "id": n.id, "participant_email": n.participant_email,
-        "survey_title": n.survey_title, "task_type": n.task_type or "survey",
-        "status": n.status,
-        "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else ""
-    } for n in notifs])
-
-@app.post("/api/notifications/{notif_id}/accept")
-def accept_notification(notif_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    n = db.query(Notification).filter(
-        Notification.id == notif_id, Notification.publisher_id == current_user.id
-    ).first()
-    if not n: raise HTTPException(404, "Notification not found")
-    n.status = "accepted"
-
-    r = db.query(Response).filter(
-        Response.survey_id == n.survey_id, Response.participant_id == n.participant_id
-    ).first()
-    if r:
-        survey = db.query(Survey).filter(Survey.id == n.survey_id).first()
-        participant = db.query(User).filter(User.id == n.participant_id).first()
-        if participant and survey:
-            participant.pending_earnings = (getattr(participant, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
-            send_email(
-                to=participant.email,
-                subject=f"[Insighta] Your response was approved! 💰",
-                body=f"""
-                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
-                  <h2 style="font-size: 22px; margin-bottom: 8px;">🎉 Response Approved!</h2>
-                  <p style="color: #8a8a82; margin-bottom: 24px;">Your response has been verified and approved.</p>
-                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
-                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Reward Added</div>
-                    <div style="font-size: 22px; font-weight: 700; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
-                  </div>
-                  <a href="https://insightaco.org/dashboard" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View Earnings →</a>
-                </div>
-                """
-            )
-    db.commit()
-    return {"message": "accepted"}
-
-@app.post("/api/notifications/{notif_id}/reject")
-def reject_notification(notif_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    n = db.query(Notification).filter(
-        Notification.id == notif_id, Notification.publisher_id == current_user.id
-    ).first()
-    if not n: raise HTTPException(404, "Notification not found")
-    n.status = "rejected"
-    db.commit()
-    return {"message": "rejected"}
-
-
-# ---------------------------
 # Publisher get pending responses
 # ---------------------------
 
@@ -1281,6 +1321,9 @@ def get_pending_responses(current_user: User = Depends(get_current_user), db: Se
     for r in pending:
         participant = db.query(User).filter(User.id == r.participant_id).first()
         survey = survey_map.get(r.survey_id)
+        quality = db.query(ResponseQualityCheck).filter(
+            ResponseQualityCheck.response_id == r.id
+        ).order_by(ResponseQualityCheck.created_at.desc()).first()
         result.append({
             "response_id": r.id, "survey_id": r.survey_id,
             "survey_title": survey.title if survey else "Unknown",
@@ -1288,6 +1331,10 @@ def get_pending_responses(current_user: User = Depends(get_current_user), db: Se
             "participant_name": participant.username or participant.email if participant else "Unknown",
             "reward": survey.reward_amount if survey else 0,
             "started_at": str(r.started_at),
+            "quality_score": quality.quality_score if quality else None,
+            "quality_label": quality.quality_label if quality else None,
+            "fraud_risk": quality.fraud_risk if quality else None,
+            "quality_reasons": quality.reasons if quality else [],
         })
     return JSONResponse(result)
 
@@ -1302,15 +1349,26 @@ def publish_page(
     survey_id: Optional[int] = None,
     title: Optional[str] = None,
     desc: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
+    existing_survey = None
+    if survey_id:
+        existing_survey = db.query(Survey).filter(
+            Survey.id == survey_id,
+            Survey.publisher_id == current_user.id,
+        ).first()
+    is_builtin = bool(builtin) or (
+        existing_survey is not None and existing_survey.form_url == "__builtin__"
+    )
     return templates.TemplateResponse("publish.html", {
         "request": request,
         "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
-        "builtin": builtin,
+        "builtin": is_builtin,
         "existing_survey_id": survey_id or 0,
-        "prefill_title": title or "",
-        "prefill_desc": desc or "",
+        "prefill_title": title or (existing_survey.title if existing_survey else ""),
+        "prefill_desc": desc or (existing_survey.description if existing_survey else ""),
+        "existing_survey": existing_survey,
         "current_user": current_user
     })
 
@@ -1410,7 +1468,7 @@ def payment_success(
             pass
     survey = db.query(Survey).filter(Survey.id == survey_id).first() if survey_id else None
 
-    # 兜底：付款成功页直接发布
+    # Fallback: mark paid and publish when landing on payment success page
     if survey and survey.payment_status != "paid":
         survey.payment_status = "paid"
         survey.status = "published"
@@ -1477,9 +1535,10 @@ def connect_onboard(current_user: User = Depends(get_current_user), db: Session 
     )
     return RedirectResponse(account_link.url)
 @app.get("/logout")
-def logout():
+def logout(request: Request):
     response = RedirectResponse("/login", status_code=303)
-    response.delete_cookie("user_id")
+    policy = _cookie_policy(request)
+    response.delete_cookie("user_id", samesite=policy["samesite"], secure=policy["secure"])
     return response
 
 @app.get("/connect/complete", response_class=HTMLResponse)
@@ -1577,7 +1636,7 @@ async def edit_survey_post(
     target_education_min = _parse_optional_int(form.get("target_education_min"))
     target_education_max = _parse_optional_int(form.get("target_education_max"))
     experience_list = form.getlist("target_experience_tags")
-    target_experience_tags = "ç,".join(experience_list) if experience_list else None
+    target_experience_tags = ",".join(experience_list) if experience_list else None
 
     survey = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
     if not survey:
@@ -1587,7 +1646,7 @@ async def edit_survey_post(
 
     current_responses = db.query(Response).filter(Response.survey_id == survey_id, Response.status == "completed").count()
 
-    # 更新所有字段
+    # Update all survey fields
     survey.title = title; survey.description = description; survey.form_url = form_url
     survey.task_type = task_type; survey.category = category
     survey.estimated_time = estimated_time; survey.reward_amount = reward_amount
@@ -1610,6 +1669,7 @@ async def edit_survey_post(
     survey.target_experience_tags = target_experience_tags
     survey.target_participation_format = _clean_target(target_participation_format)
     survey.target_device = _clean_target(target_device)
+    _apply_survey_auto_filter_settings(survey, form)
 
     if cover_image and cover_image.filename:
         uploads_dir = Path("app/static/uploads"); uploads_dir.mkdir(exist_ok=True)
@@ -1620,7 +1680,7 @@ async def edit_survey_post(
 
     db.commit()
 
-    # 如果是已发布问卷 + 有额外 responses + 需要付费
+    # Published survey with additional responses that require payment
     is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
     if survey.status == "published" and additional_needed > 0 and not is_no_pay:
         total = round(reward_amount * additional_needed, 2)
@@ -1951,6 +2011,7 @@ async def publish_survey(
         survey.target_experience_tags = target_experience_tags
         survey.target_participation_format = _clean_target(target_participation_format)
         survey.target_device = _clean_target(target_device)
+        _apply_survey_auto_filter_settings(survey, form)
         db.commit()
         db.refresh(survey)
     else:
@@ -1979,12 +2040,15 @@ async def publish_survey(
             target_device=_clean_target(target_device),
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
+        _apply_survey_auto_filter_settings(survey, form)
         db.add(survey); db.commit(); db.refresh(survey)
 
-    # 统一处理 no_pay 和 Stripe
-    if is_no_pay:
+    # Handle no-pay incentives, missing Stripe key, and Stripe checkout
+    if is_no_pay or not stripe.api_key:
         survey.status = "published"
         survey.published_at = datetime.utcnow()
+        if not stripe.api_key and not is_no_pay:
+            survey.payment_status = "paid"
         db.commit()
         return RedirectResponse("/publisher", status_code=303)
 
@@ -2028,6 +2092,12 @@ async def update_survey_info(
     survey.total_budget = body.get("total_budget", survey.total_budget)
     survey.commission_rate = body.get("commission_rate", survey.commission_rate)
     survey.target_responses = body.get("target_responses", survey.target_responses)
+    if "quality_auto_filter_enabled" in body:
+        survey.quality_auto_filter_enabled = bool(body.get("quality_auto_filter_enabled"))
+    if "quality_auto_filter_min_score" in body:
+        survey.quality_auto_filter_min_score = _parse_auto_approve_min_score(
+            body.get("quality_auto_filter_min_score", 80)
+        )
     db.commit()
     return JSONResponse({"message": "updated"})
 # ---------------------------
@@ -2379,7 +2449,10 @@ async def analyze_survey(
     ).count()
 
     import anthropic, json as _json
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        raise HTTPException(503, "AI analysis is not available right now.")
+    client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=1500,
@@ -2430,6 +2503,7 @@ async def submit_answers(
         raise HTTPException(400, "Survey not published")
 
     body = await request.json()
+    meta = _extract_client_meta(request, current_user)
 
     r = db.query(Response).filter(
         Response.survey_id == survey_id,
@@ -2439,10 +2513,17 @@ async def submit_answers(
         r = Response(
             survey_id=survey_id,
             participant_id=current_user.id,
-            status="started"
+            status="started",
+            client_ip=meta["client_ip"],
+            user_agent=meta["user_agent"],
+            device_fingerprint=meta["device_fingerprint"],
         )
         db.add(r)
         db.flush()
+    else:
+        r.client_ip = meta["client_ip"]
+        r.user_agent = meta["user_agent"]
+        r.device_fingerprint = meta["device_fingerprint"]
 
     for item in body:
         existing = db.query(Answer).filter(
@@ -2467,17 +2548,6 @@ async def submit_answers(
             getattr(current_user, 'pending_earnings', 0.0) or 0.0
         ) + survey.reward_amount
 
-        notif = Notification(
-            publisher_id=survey.publisher_id,
-            participant_id=current_user.id,
-            survey_id=survey_id,
-            participant_email=current_user.email,
-            survey_title=survey.title,
-            task_type=getattr(survey, "task_type", "survey") or "survey",
-            status="pending"
-        )
-        db.add(notif)
-
         publisher = db.query(User).filter(User.id == survey.publisher_id).first()
         if publisher and publisher.email:
             send_email(
@@ -2500,8 +2570,534 @@ async def submit_answers(
                 """
             )
 
+    quality_payload = None
+    try:
+        quality_result = evaluate_builtin_response(db, survey_id=survey_id, response_id=r.id)
+        upsert_builtin_quality_check(db, survey_id=survey_id, response_id=r.id, result=quality_result)
+        quality_payload = {
+            "score": quality_result.quality_score,
+            "label": quality_result.quality_label,
+            "fraud_risk": quality_result.fraud_risk,
+            "reasons": quality_result.reasons,
+        }
+    except Exception as exc:
+        print(f"Quality check failed for response {r.id}: {exc}")
+
     db.commit()
-    return JSONResponse({"message": "submitted successfully"})
+    body = {"message": "submitted successfully"}
+    if quality_payload:
+        body["quality"] = quality_payload
+    return JSONResponse(body)
+
+
+@app.get("/api/surveys/{survey_id}/quality-results")
+def get_survey_quality_results(
+    survey_id: int,
+    scope: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    normalized_scope = (scope or "").strip().lower()
+    if normalized_scope == "builtin":
+        ensure_builtin_quality_checks(db, survey_id)
+
+    rows = db.query(ResponseQualityCheck).filter(
+        ResponseQualityCheck.survey_id == survey_id
+    ).order_by(ResponseQualityCheck.created_at.desc()).all()
+
+    if normalized_scope == "builtin":
+        rows = [row for row in rows if row.source_type == "builtin"]
+    elif normalized_scope == "excel":
+        rows = _latest_excel_quality_rows([row for row in rows if row.source_type == "excel"])
+    else:
+        rows = _latest_excel_quality_rows(rows)
+
+    payload = []
+    for index, row in enumerate(rows):
+        participant_email = None
+        if row.response_id:
+            resp = db.query(Response).filter(Response.id == row.response_id).first()
+            if resp:
+                participant = db.query(User).filter(User.id == resp.participant_id).first()
+                participant_email = participant.email if participant else None
+        row_label = participant_email or _quality_row_label(index)
+        payload.append({
+            "id": row.id,
+            "source_type": row.source_type,
+            "source_ref": row.source_ref,
+            "row_label": row_label,
+            "response_id": row.response_id,
+            "participant_email": participant_email,
+            "quality_score": row.quality_score,
+            "quality_label": row.quality_label,
+            "fraud_risk": row.fraud_risk,
+            "rule_penalty": row.rule_penalty,
+            "anomaly_score": row.anomaly_score,
+            "semantic_risk": row.semantic_risk,
+            "triggered_rules": row.triggered_rules or [],
+            "reasons": row.reasons or [],
+            "review_status": row.review_status,
+            "reviewer_label": row.reviewer_label,
+            "llm_result_json": row.llm_result_json,
+            "notes": row.notes,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+        })
+    return JSONResponse(payload)
+
+
+@app.get("/api/quality-checks/{check_id}")
+def get_quality_check_detail(
+    check_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    row, survey = _get_quality_check_for_publisher(db, check_id, current_user.id)
+
+    participant_email = None
+    participant_name = None
+    response_meta = None
+    answers_payload = []
+    submission_history = []
+
+    if row.response_id:
+        resp = db.query(Response).filter(Response.id == row.response_id).first()
+        if resp:
+            participant = db.query(User).filter(User.id == resp.participant_id).first()
+            participant_email = participant.email if participant else None
+            participant_name = (participant.username or participant.email) if participant else None
+            response_meta = {
+                "client_ip": resp.client_ip,
+                "user_agent": resp.user_agent,
+                "device_fingerprint": resp.device_fingerprint,
+                "started_at": resp.started_at.isoformat() if resp.started_at else None,
+                "completed_at": resp.completed_at.isoformat() if resp.completed_at else None,
+            }
+            answers = db.query(Answer).filter(Answer.response_id == resp.id).all()
+            q_map = {
+                q.id: q for q in db.query(Question).filter(Question.survey_id == survey.id).all()
+            }
+            for ans in answers:
+                q = q_map.get(ans.question_id)
+                answers_payload.append({
+                    "question_id": ans.question_id,
+                    "question_text": q.question_text if q else "",
+                    "question_type": q.question_type if q else "",
+                    "answer_value": ans.answer_value,
+                })
+            if resp.participant_id:
+                history_rows = db.query(Response).filter(
+                    Response.participant_id == resp.participant_id
+                ).order_by(Response.completed_at.desc()).limit(8).all()
+                for h in history_rows:
+                    h_survey = db.query(Survey).filter(Survey.id == h.survey_id).first()
+                    submission_history.append({
+                        "response_id": h.id,
+                        "survey_id": h.survey_id,
+                        "survey_title": h_survey.title if h_survey else "",
+                        "status": h.status,
+                        "completed_at": h.completed_at.isoformat() if h.completed_at else None,
+                        "client_ip": h.client_ip,
+                    })
+
+    display_rows = db.query(ResponseQualityCheck).filter(
+        ResponseQualityCheck.survey_id == row.survey_id,
+    ).order_by(ResponseQualityCheck.created_at.desc()).all()
+    if row.source_type == "excel":
+        display_rows = _latest_excel_quality_rows(
+            [item for item in display_rows if item.source_type == "excel"]
+        )
+    else:
+        display_rows = [item for item in display_rows if item.source_type == row.source_type]
+    row_index = next((i for i, item in enumerate(display_rows) if item.id == row.id), 0)
+
+    return JSONResponse({
+        "id": row.id,
+        "survey_id": row.survey_id,
+        "survey_title": survey.title,
+        "source_type": row.source_type,
+        "source_ref": row.source_ref,
+        "row_label": _quality_row_label(row_index),
+        "response_id": row.response_id,
+        "participant_email": participant_email,
+        "participant_name": participant_name,
+        "quality_score": row.quality_score,
+        "quality_label": row.quality_label,
+        "fraud_risk": row.fraud_risk,
+        "rule_penalty": row.rule_penalty,
+        "anomaly_score": row.anomaly_score,
+        "semantic_risk": row.semantic_risk,
+        "triggered_rules": row.triggered_rules or [],
+        "reasons": row.reasons or [],
+        "llm_result_json": row.llm_result_json,
+        "review_status": row.review_status,
+        "reviewer_label": row.reviewer_label,
+        "notes": row.notes,
+        "response_meta": response_meta,
+        "answers": answers_payload,
+        "raw_response_json": row.raw_response_json,
+        "submission_history": submission_history,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+    })
+
+
+@app.post("/api/quality-checks/{check_id}/review")
+async def review_quality_check(
+    check_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    row, _survey = _get_quality_check_for_publisher(db, check_id, current_user.id)
+    body = await request.json()
+    action = (body.get("action") or "").strip().lower()
+    notes = body.get("notes")
+    reviewer_label = body.get("reviewer_label")
+
+    if action == "approve":
+        row.review_status = "approved"
+    elif action == "reject":
+        row.review_status = "rejected"
+    elif action == "pending":
+        row.review_status = "pending"
+    elif action == "needs_review":
+        row.review_status = "needs_review"
+    elif action == "mark_fraud":
+        row.review_status = "rejected"
+        row.fraud_risk = True
+        row.quality_label = "fraud_risk"
+        row.reviewer_label = reviewer_label or "fraud"
+    elif action == "mark_low_quality":
+        row.review_status = "rejected"
+        row.reviewer_label = reviewer_label or "low_quality"
+        if row.quality_label == "high":
+            row.quality_label = "low"
+    else:
+        raise HTTPException(400, "Invalid action")
+
+    if reviewer_label and action not in {"mark_fraud", "mark_low_quality"}:
+        row.reviewer_label = reviewer_label
+    if notes is not None:
+        row.notes = notes
+
+    db.commit()
+    return JSONResponse({
+        "message": "review updated",
+        "id": row.id,
+        "review_status": row.review_status,
+        "reviewer_label": row.reviewer_label,
+        "fraud_risk": row.fraud_risk,
+        "quality_label": row.quality_label,
+    })
+
+
+@app.post("/api/quality-checks/{check_id}/blacklist")
+async def blacklist_from_quality_check(
+    check_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    row, _survey = _get_quality_check_for_publisher(db, check_id, current_user.id)
+    body = await request.json()
+    block_type = (body.get("block_type") or "").strip().lower()
+    reason = body.get("reason") or "Marked from quality review"
+
+    if block_type not in {"ip", "user", "device"}:
+        raise HTTPException(400, "block_type must be ip, user, or device")
+
+    block_value = None
+    if row.response_id:
+        resp = db.query(Response).filter(Response.id == row.response_id).first()
+        if resp:
+            if block_type == "ip":
+                block_value = resp.client_ip
+            elif block_type == "user":
+                block_value = str(resp.participant_id)
+            elif block_type == "device":
+                block_value = resp.device_fingerprint
+
+    if not block_value:
+        raise HTTPException(400, "No value available to blacklist for this record")
+
+    existing = db.query(QualityBlacklist).filter(
+        QualityBlacklist.block_type == block_type,
+        QualityBlacklist.block_value == block_value,
+    ).first()
+    if not existing:
+        db.add(QualityBlacklist(
+            block_type=block_type,
+            block_value=block_value,
+            reason=reason,
+            created_by=current_user.id,
+        ))
+
+    row.fraud_risk = True
+    row.review_status = "rejected"
+    row.reviewer_label = row.reviewer_label or "blacklisted"
+    db.commit()
+    return JSONResponse({
+        "message": "blacklist updated",
+        "block_type": block_type,
+        "block_value": block_value,
+    })
+
+
+def _parse_survey_auto_filter_from_form(form) -> tuple:
+    """Read quality auto-filter defaults from publish/edit form."""
+    enabled_raw = form.get("quality_auto_filter_enabled")
+    if isinstance(enabled_raw, list):
+        enabled_raw = enabled_raw[-1] if enabled_raw else "0"
+    enabled = str(enabled_raw or "").strip().lower() in {"1", "on", "true", "yes"}
+    min_score = _parse_auto_approve_min_score(form.get("quality_auto_filter_min_score", 80))
+    return enabled, min_score
+
+
+def _apply_survey_auto_filter_settings(survey: Survey, form) -> None:
+    enabled, min_score = _parse_survey_auto_filter_from_form(form)
+    survey.quality_auto_filter_enabled = enabled
+    survey.quality_auto_filter_min_score = min_score
+
+
+def _parse_auto_approve_min_score(value: Any) -> float:
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Auto-approve score must be a number between 0 and 100.")
+    return min(100.0, max(0.0, score))
+
+
+@app.post("/api/surveys/{survey_id}/quality/auto-approve")
+async def auto_approve_quality_by_score(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    body = await request.json()
+    min_score = _parse_auto_approve_min_score(body.get("min_score", 80))
+    scope = (body.get("scope") or "excel").strip().lower()
+
+    rows = db.query(ResponseQualityCheck).filter(
+        ResponseQualityCheck.survey_id == survey_id
+    ).all()
+    if scope == "builtin":
+        rows = [row for row in rows if row.source_type == "builtin"]
+    elif scope == "excel":
+        rows = [row for row in rows if row.source_type == "excel"]
+
+    approved, rejected = apply_auto_approve_checks(rows, min_score)
+    db.commit()
+    return JSONResponse({
+        "message": "auto filter applied",
+        "approved_count": approved,
+        "rejected_count": rejected,
+        "min_score": min_score,
+        "scope": scope,
+    })
+
+
+@app.post("/api/surveys/{survey_id}/quality/import-excel")
+def import_excel_for_quality_check(
+    survey_id: int,
+    file: UploadFile = File(...),
+    auto_approve: Optional[str] = Form(None),
+    auto_approve_min_score: Optional[float] = Form(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    filename = file.filename or "upload.xlsx"
+    lower_name = filename.lower()
+    if not (lower_name.endswith(".xlsx") or lower_name.endswith(".xlsm")):
+        raise HTTPException(400, "Only .xlsx/.xlsm files are supported for now")
+
+    try:
+        from openpyxl import load_workbook
+    except Exception:
+        raise HTTPException(500, "openpyxl is required. Please install dependency first.")
+
+    content = file.file.read()
+    try:
+        workbook = load_workbook(BytesIO(content), data_only=True)
+    except Exception as exc:
+        raise HTTPException(400, f"Invalid Excel file: {exc}")
+
+    worksheet = workbook.active
+    rows = list(worksheet.iter_rows(values_only=True))
+    if len(rows) < 2:
+        raise HTTPException(400, "Excel should include a header row and at least one data row")
+    if len(rows) - 1 > 500:
+        raise HTTPException(400, "Excel has too many rows. Please upload 500 responses or fewer per file.")
+
+    raw_headers = [str(h).strip() if h is not None else "" for h in rows[0]]
+    headers = [_normalize_excel_header(h) for h in raw_headers]
+    if not any(headers):
+        raise HTTPException(400, "Header row is empty")
+
+    replaced_rows = db.query(ResponseQualityCheck).filter(
+        ResponseQualityCheck.survey_id == survey_id,
+        ResponseQualityCheck.source_type == "excel",
+    ).delete(synchronize_session=False)
+
+    questions = db.query(Question).filter(Question.survey_id == survey_id).all()
+    question_map = {q.id: q for q in questions}
+
+    header_to_qid = {}
+    for idx, header in enumerate(headers):
+        if not header:
+            continue
+        for q in questions:
+            candidates = {
+                str(q.id).strip().lower(),
+                f"q_{q.id}".lower(),
+                _normalize_excel_header(q.question_text),
+            }
+            if header in candidates:
+                header_to_qid[idx] = q.id
+                break
+
+    historical = []
+    completed = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed",
+        Response.started_at.isnot(None),
+        Response.completed_at.isnot(None),
+    ).all()
+    for item in completed:
+        sec = _duration_seconds_between(item.started_at, item.completed_at)
+        if sec:
+            historical.append(sec)
+
+    duration_columns = {"duration", "duration_seconds", "time_spent", "completion_seconds"}
+    parsed_rows = []
+
+    for row_index, row in enumerate(rows[1:], start=2):
+        if row is None:
+            continue
+        values = list(row)
+        if not any(v is not None and str(v).strip() != "" for v in values):
+            continue
+
+        answers_by_qid = {}
+        row_dict = {}
+        for idx, value in enumerate(values):
+            header_name = raw_headers[idx] if idx < len(raw_headers) else f"col_{idx+1}"
+            safe_value = _json_safe_value(value)
+            row_dict[header_name] = safe_value
+            if idx in header_to_qid:
+                answers_by_qid[header_to_qid[idx]] = safe_value
+
+        duration_seconds = None
+        for idx, header in enumerate(headers):
+            if header in duration_columns and idx < len(values):
+                duration_seconds = _value_as_float(values[idx])
+                if duration_seconds is not None:
+                    break
+
+        row_question_map, row_answers, row_features = resolve_excel_row_context(
+            row_dict=row_dict,
+            mapped_question_map=question_map,
+            mapped_answers=answers_by_qid,
+            duration_seconds=duration_seconds,
+        )
+        parsed_rows.append({
+            "row_index": row_index,
+            "row_dict": row_dict,
+            "question_map": row_question_map,
+            "answers_by_qid": row_answers,
+            "duration_seconds": duration_seconds,
+            "features": row_features,
+        })
+
+    if not parsed_rows:
+        raise HTTPException(400, "No data rows found in Excel.")
+
+    all_features = [item["features"] for item in parsed_rows]
+    batch_anomalies = batch_anomaly_scores_for_features(all_features)
+    imported = 0
+    by_label = {"high": 0, "medium": 0, "low": 0, "fraud_risk": 0}
+    llm_rows_reviewed = 0
+    llm_rows_failed = 0
+    created_checks: List[ResponseQualityCheck] = []
+    use_auto_approve = str(auto_approve or "").strip().lower() in {"1", "true", "yes", "on"}
+    auto_min_score = _parse_auto_approve_min_score(auto_approve_min_score if use_auto_approve else 100)
+
+    for index, item in enumerate(parsed_rows):
+        result = compute_excel_row_quality(
+            row_dict=item["row_dict"],
+            mapped_question_map=item["question_map"],
+            mapped_answers=item["answers_by_qid"],
+            duration_seconds=item["duration_seconds"],
+            historical_durations=historical,
+            survey_title=survey.title,
+            survey_description=survey.description,
+            survey_reward=float(survey.reward_amount or 0.0),
+            run_llm=True,
+            precomputed_anomaly=batch_anomalies[index] if index < len(batch_anomalies) else None,
+        )
+        created_checks.append(create_excel_quality_check(
+            db,
+            survey_id=survey_id,
+            source_ref=f"{filename}:row_{item['row_index']}",
+            raw_response_json=item["row_dict"],
+            result=result,
+        ))
+        if result.llm_result_json:
+            if result.llm_result_json.get("error"):
+                llm_rows_failed += 1
+            elif not result.llm_result_json.get("skipped"):
+                llm_rows_reviewed += 1
+        by_label[result.quality_label] = by_label.get(result.quality_label, 0) + 1
+        imported += 1
+
+    if imported == 0:
+        raise HTTPException(400, "No data rows found in Excel.")
+
+    auto_approved_count = 0
+    auto_rejected_count = 0
+    if use_auto_approve:
+        auto_approved_count, auto_rejected_count = apply_auto_approve_checks(created_checks, auto_min_score)
+
+    db.commit()
+    return JSONResponse({
+        "message": "excel imported and quality checks generated",
+        "survey_id": survey_id,
+        "imported_rows": imported,
+        "replaced_rows": replaced_rows,
+        "label_distribution": by_label,
+        "used_generic_columns": len(question_map) == 0,
+        "auto_approve": {
+            "enabled": use_auto_approve,
+            "min_score": auto_min_score if use_auto_approve else None,
+            "approved_count": auto_approved_count,
+            "rejected_count": auto_rejected_count,
+        },
+        "llm_summary": {
+            "rows_reviewed": llm_rows_reviewed,
+            "rows_failed": llm_rows_failed,
+            "api_key_configured": anthropic_api_key_configured(),
+        },
+    })
 
 
 

@@ -33,32 +33,140 @@
     .avatar-link:hover { background: var(--paper-warm); color: var(--ink); }
     .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
 
-    .notif-wrapper { position: relative; }
-    .notif-btn { position: relative; background: none; border: none; padding: 4px 6px; cursor: pointer; font-size: 22px; line-height: 1; transition: opacity 0.2s; }
-    .notif-btn:hover { opacity: 0.7; }
-    .notif-badge { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 100px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
-    .notif-list { overflow-y: auto; }
-    .notif-item { padding: 14px 18px; border-bottom: 1px solid var(--line); transition: background 0.15s; }
-    .notif-item:last-child { border-bottom: none; }
-    .notif-item:hover { background: var(--paper); }
-    .notif-item.accepted { border-left: 3px solid var(--accent); }
-    .notif-item.rejected { border-left: 3px solid #ef4444; }
-    .notif-type-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; margin-bottom: 6px; }
-    .notif-type-survey { background: rgba(45,106,79,0.1); color: var(--accent); }
-    .notif-type-interview { background: rgba(124,58,237,0.1); color: #7c3aed; }
-    .notif-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
-    .notif-email { font-size: 12px; color: var(--ink-muted); margin-bottom: 8px; }
-    .notif-time { font-size: 11px; color: var(--ink-muted); }
-    .notif-actions { display: flex; gap: 8px; margin-top: 10px; }
-    .notif-accept { flex: 1; padding: 6px 0; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-    .notif-accept:hover { background: #245c43; }
-    .notif-accept.active { box-shadow: 0 0 0 2px rgba(45,106,79,0.35); }
-    .notif-accept.inactive { background: #e0e0e0; color: #aaa; cursor: default; }
-    .notif-reject { flex: 1; padding: 6px 0; background: white; color: #ef4444; border: 1px solid #fecaca; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-    .notif-reject:hover { background: #fff5f5; border-color: #ef4444; }
-    .notif-reject.active { background: #fff0f0; border-color: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.25); }
-    .notif-reject.inactive { background: #e0e0e0; color: #aaa; border-color: #e0e0e0; cursor: default; }
-    .notif-empty { padding: 32px 18px; text-align: center; color: var(--ink-muted); font-size: 14px; }
+    .quality-modal-shell { background:#fff; border-radius:18px; width:900px; max-width:95vw; height:86vh; display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,0.22); overflow:hidden; }
+    .quality-toolbar { padding:16px 20px; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .quality-toolbar h3 { font-size:16px; font-weight:700; color:var(--ink); margin-right:auto; }
+    .quality-chip { display:inline-flex; align-items:center; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
+    .q-high { background: rgba(45,106,79,0.12); color: var(--accent); }
+    .q-medium { background: rgba(234,179,8,0.18); color: #854d0e; }
+    .q-low { background: rgba(239,68,68,0.16); color: #b91c1c; }
+    .q-fraud { background: rgba(124,58,237,0.16); color: #6d28d9; }
+    .quality-body { padding: 16px 20px 20px; overflow: auto; flex:1; }
+    .quality-upload-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+    .quality-file-picker {
+      display: flex; align-items: center; gap: 10px; flex: 1; min-width: 260px;
+      padding: 8px 12px; border: 1.5px dashed var(--line); border-radius: 12px; background: #faf9f5;
+    }
+    .quality-file-picker.has-file { border-style: solid; border-color: rgba(45,106,79,0.35); background: #fff; }
+    .quality-file-input { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+    .quality-file-btn {
+      padding: 8px 14px; border-radius: 9px; border: 1px solid var(--line); background: #fff;
+      font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
+      white-space: nowrap; transition: background 0.15s, border-color 0.15s;
+    }
+    .quality-file-btn:hover { background: #f3f1ea; border-color: #d8d6ce; }
+    .quality-file-name {
+      flex: 1; font-size: 13px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .quality-file-picker.has-file .quality-file-name { color: var(--ink); font-weight: 500; }
+    .quality-file-clear {
+      width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: #fff;
+      font-size: 16px; line-height: 1; color: var(--ink-muted); cursor: pointer; display: none;
+    }
+    .quality-file-clear:hover { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    .quality-file-picker.has-file .quality-file-clear { display: inline-flex; align-items: center; justify-content: center; }
+    #qualityUploadSubmit:disabled { opacity: 0.55; cursor: not-allowed; }
+    .quality-upload-block { width: 100%; margin-bottom: 14px; }
+    .quality-auto-filter {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff;
+    }
+    .quality-auto-filter-label {
+      display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer;
+    }
+    .quality-auto-filter-label input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+    .quality-auto-filter-score {
+      display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      font-size: 13px; color: var(--ink-soft); line-height: 1.4;
+    }
+    .quality-auto-filter-score.is-disabled { color: var(--ink-muted); }
+    .quality-auto-filter-score input {
+      width: 72px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px;
+      font-family: var(--sans); font-size: 13px; font-weight: 600; text-align: center;
+    }
+    .quality-auto-filter-score input:disabled { background: #f5f4f0; color: var(--ink-muted); cursor: not-allowed; }
+    .quality-auto-filter-score input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.12); }
+    .quality-auto-filter-apply {
+      padding: 8px 16px; border-radius: 9px; border: none; background: var(--accent); color: #fff;
+      font-family: var(--sans); font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .quality-auto-filter-apply:hover:not(:disabled) { background: #245c43; }
+    .quality-auto-filter-apply:disabled { opacity: 0.55; cursor: not-allowed; }
+    .quality-status { font-size:13px; color:var(--ink-muted); min-height:20px; }
+    .quality-table { width:100%; border-collapse: collapse; font-size:13px; background: #fff; border:1px solid var(--line); border-radius:12px; overflow:visible; }
+    .quality-table th, .quality-table td { border-bottom:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:top; }
+    .quality-table th { background: var(--paper-warm); font-size:12px; color:var(--ink-muted); font-weight:700; letter-spacing:0.04em; text-transform:uppercase; }
+    .quality-table tr:last-child td { border-bottom:none; }
+    .quality-empty { padding:28px; text-align:center; color:var(--ink-muted); border:1px dashed var(--line); border-radius:12px; background: rgba(250,249,245,0.6); }
+    .quality-detail-panel { margin-top:16px; border:1px solid var(--line); border-radius:12px; padding:16px; background:#faf9f5; display:none; }
+    .quality-detail-panel.open { display:block; }
+    .quality-detail-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin-bottom:12px; }
+    .quality-detail-card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:12px; }
+    .quality-detail-card strong { display:block; font-size:11px; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+    .quality-review-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .quality-review-section-label { font-size: 11px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .quality-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .quality-actions button { padding:6px 12px; border-radius:8px; border:1px solid var(--line); background:#fff; font-size:12px; font-weight:600; cursor:pointer; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s; }
+    .quality-actions button:hover:not(.selected) { background: #f5f4f0; }
+    .quality-actions button.danger { color:#b91c1c; border-color:#fecaca; }
+    .quality-actions button.danger:hover:not(.selected) { background: #fef2f2; }
+    #qualityReviewActions button.selected,
+    #qualityReviewActions button.saved { background: #2d6a4f; color: #fff; border-color: #2d6a4f; box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.22); }
+    #qualityReviewActions button.danger.selected,
+    #qualityReviewActions button.danger.saved { background: #b91c1c; color: #fff; border-color: #b91c1c; box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.18); }
+    .quality-detail-card.review-approved { border-color: #86efac; background: #ecfdf5; }
+    .quality-detail-card.review-approved strong { color: #166534; }
+    .quality-detail-card.review-rejected { border-color: #fecaca; background: #fef2f2; }
+    .quality-detail-card.review-rejected strong { color: #b91c1c; }
+    .quality-review-notes { margin-top: 14px; }
+    .quality-review-notes label { display: block; font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .quality-review-notes textarea { width: 100%; box-sizing: border-box; min-height: 72px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 13px; resize: vertical; }
+    .quality-review-notes textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.12); }
+    .quality-review-hint { margin-top: 8px; font-size: 12px; color: var(--ink-muted); }
+    .quality-review-submit { margin-top: 14px; padding: 10px 18px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .quality-review-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .quality-review-status { margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-size: 13px; display: none; }
+    .quality-review-status.success { display: block; background: #ecfdf5; color: #166534; border: 1px solid #bbf7d0; }
+    .quality-review-status.error { display: block; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .quality-review-done { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+    .quality-review-done-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .quality-review-done-actions .btn-done { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .quality-review-done-actions .btn-next { padding: 10px 18px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .quality-subtable { width:100%; border-collapse:collapse; font-size:12px; margin-top:10px; }
+    .quality-subtable th, .quality-subtable td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    .review-dropdown { position: relative; display: inline-block; min-width: 118px; }
+    .review-dropdown.is-loading { opacity: 0.65; pointer-events: none; }
+    .review-dropdown-trigger {
+      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 7px 11px; border-radius: 9px; border: 1px solid var(--line); background: #fff;
+      font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .review-dropdown-trigger:hover { background: #faf9f5; border-color: #d8d6ce; }
+    .review-dropdown.open .review-dropdown-trigger { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.12); }
+    .review-dropdown-chevron { font-size: 10px; color: var(--ink-muted); transition: transform 0.15s; }
+    .review-dropdown.open .review-dropdown-chevron { transform: rotate(180deg); }
+    .review-dropdown-menu {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 100;
+      background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 4px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.12);
+    }
+    .review-dropdown.open .review-dropdown-menu { display: block; }
+    .review-dropdown-option {
+      width: 100%; text-align: left; padding: 8px 10px; border: none; border-radius: 7px;
+      background: transparent; font-family: var(--sans); font-size: 12px; font-weight: 600;
+      color: var(--ink); cursor: pointer;
+    }
+    .review-dropdown-option:hover { background: #f3f1ea; }
+    .review-dropdown-option.is-active { background: rgba(45,106,79,0.1); color: var(--accent); }
+    .review-dropdown.status-approved .review-dropdown-trigger { border-color: #86efac; color: #166534; }
+    .review-dropdown.status-rejected .review-dropdown-trigger { border-color: #fecaca; color: #b91c1c; }
+    .review-dropdown.status-pending .review-dropdown-trigger { border-color: #fde68a; color: #854d0e; }
+    .quality-review-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:10050; align-items:center; justify-content:center; padding:24px; }
+    .quality-review-modal { background:#fff; border-radius:18px; width:760px; max-width:96vw; max-height:88vh; overflow:auto; box-shadow:0 24px 64px rgba(0,0,0,0.24); padding:24px 28px; }
+    .quality-review-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
+    .quality-review-header h4 { font-size:18px; font-weight:700; color:var(--ink); margin:0; }
 
     .container { max-width: 900px; margin: 0 auto; padding: 48px 24px; }
     .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
@@ -181,19 +289,42 @@
   </div>
 </div>
 
-<!-- NOTIFICATION MODAL -->
-<div id="notifOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;" onclick="closeNotifModal(event)">
-  <div id="notifModal" style="background:#fff; border-radius:18px; width:720px; max-width:94vw; height:90vh; display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,0.22); overflow:hidden;" onclick="event.stopPropagation()">
-    <div style="padding:20px 24px 16px; border-bottom:1px solid #e8e8e8; display:flex; align-items:center; justify-content:space-between;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:20px;">🔔</span>
-        <h3 style="font-size:17px; font-weight:700; margin:0;">Notifications</h3>
-        <span id="notifCount" style="font-size:12px; color:#888;"></span>
-      </div>
-      <button onclick="closeNotifModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#aaa; line-height:1; padding:2px 6px;">✕</button>
+<!-- QUALITY MODAL -->
+<div id="qualityOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;" onclick="closeQualityModal(event)">
+  <div class="quality-modal-shell" onclick="event.stopPropagation()">
+    <div class="quality-toolbar">
+      <h3>Quality Checks · <span id="qualitySurveyTitle">Survey</span></h3>
+      <button class="btn" type="button" onclick="refreshQualityResults()">Refresh</button>
+      <button class="btn" type="button" onclick="closeQualityModal()">Close</button>
     </div>
-    <div class="notif-list" id="notifList" style="overflow-y:auto; flex:1; padding:12px 0;">
-      <div class="notif-empty">Loading...</div>
+    <div class="quality-body">
+      <div class="quality-upload-block">
+        <form id="qualityUploadForm" class="quality-upload-row">
+          <div class="quality-file-picker" id="qualityFilePicker">
+            <input id="qualityExcelFile" class="quality-file-input" type="file" accept=".xlsx,.xlsm">
+            <button type="button" class="quality-file-btn" onclick="document.getElementById('qualityExcelFile').click()">Choose file</button>
+            <span class="quality-file-name" id="qualityFileName">No file selected (.xlsx / .xlsm)</span>
+            <button type="button" class="quality-file-clear" id="qualityFileClear" onclick="clearQualityFile()" title="Remove file" aria-label="Remove file">×</button>
+          </div>
+          <button class="btn btn-primary" type="submit" id="qualityUploadSubmit" disabled>Upload Excel & Run</button>
+        </form>
+        <div class="quality-auto-filter">
+          <label class="quality-auto-filter-label" for="qualityAutoFilterEnabled">
+            <input type="checkbox" id="qualityAutoFilterEnabled" onchange="toggleQualityAutoFilter()">
+            <span>Auto filter</span>
+          </label>
+          <div class="quality-auto-filter-score is-disabled" id="qualityAutoFilterScoreWrap">
+            <span>Scores ≥</span>
+            <input type="number" id="qualityAutoFilterMinScore" min="0" max="100" step="1" value="80" disabled aria-label="Minimum score">
+            <span>approved; below that, rejected.</span>
+          </div>
+          <button type="button" class="quality-auto-filter-apply" id="qualityAutoFilterApply" onclick="confirmQualityAutoFilter()" disabled>Apply</button>
+        </div>
+      </div>
+      <div id="qualityStatus" class="quality-status"></div>
+      <div id="qualityResultsWrap">
+        <div class="quality-empty">No quality checks yet.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -206,12 +337,6 @@
     <div class="navbar-brand">Insight<span>a</span></div>
   </div>
   <div class="navbar-right">
-    <div class="notif-wrapper">
-      <button class="notif-btn" id="notifBtn" onclick="toggleNotifPanel()">
-        🔔
-        <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
-      </button>
-    </div>
     <a href="/feedback" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(224,122,60,0.1);border:1.5px solid rgba(224,122,60,0.3);border-radius:100px;font-size:13px;font-weight:600;color:var(--accent-warm);text-decoration:none;">💬 Feedback & Earn</a>
     <a href="/profile" class="avatar-link">
       <div class="avatar">{{ current_user.username[0].upper() if current_user.username else 'U' }}</div>
@@ -276,6 +401,8 @@
           {% if s.form_url == '__builtin__' %}
           <a href="/surveys/{{ s.id }}/builder" class="btn">Builder</a>
           <a href="/surveys/{{ s.id }}/results" class="btn">Results</a>
+          {% else %}
+          <button class="btn" type="button" onclick='openQualityModal({{ s.id }}, {{ s.title | tojson }}, {{ s.quality_auto_filter_enabled | default(false) | tojson }}, {{ (s.quality_auto_filter_min_score if s.quality_auto_filter_min_score is not none else 80) | tojson }})'>Quality</button>
           {% endif %}
 
           <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
@@ -398,76 +525,365 @@
   function handleBackdropClick(e) { if (e.target === document.getElementById('newListingModal')) closeModal(); }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-  // Notifications
-  let allNotifs = [];
+  let qualitySurveyId = null;
+  let qualityRows = [];
 
-  async function loadNotifications() {
-    try {
-      const res = await fetch('/api/notifications', { credentials: 'same-origin' });
-      if (!res.ok) return;
-      allNotifs = await res.json();
-      renderNotifications();
-    } catch {}
+  function qualityBadgeClass(label) {
+    if (label === 'high') return 'q-high';
+    if (label === 'medium') return 'q-medium';
+    if (label === 'low') return 'q-low';
+    return 'q-fraud';
   }
 
-  function renderNotifications() {
-    const pending = allNotifs.filter(n => n.status === 'pending');
-    const badge = document.getElementById('notifBadge');
-    if (pending.length > 0) { badge.textContent = pending.length; badge.style.display = 'flex'; }
-    else { badge.style.display = 'none'; }
-    const count = document.getElementById('notifCount');
-    if (count) count.textContent = `${allNotifs.length} total`;
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
-    const list = document.getElementById('notifList');
-    if (allNotifs.length === 0) { list.innerHTML = '<div class="notif-empty">🎉 No notifications yet</div>'; return; }
+  function applySurveyAutoFilterPrefs(enabled, minScore) {
+    const cb = document.getElementById('qualityAutoFilterEnabled');
+    const score = document.getElementById('qualityAutoFilterMinScore');
+    if (!cb || !score) return;
+    cb.checked = !!enabled;
+    const raw = Number(minScore);
+    score.value = Number.isNaN(raw) ? 80 : Math.min(100, Math.max(0, raw));
+    toggleQualityAutoFilter();
+  }
 
-    list.innerHTML = allNotifs.map(n => {
-      const typeClass = n.task_type === 'interview' ? 'notif-type-interview' : 'notif-type-survey';
-      const typeLabel = n.task_type === 'interview' ? '🎙️ Interview' : '📋 Survey';
-      const acceptActive = n.status === 'accepted';
-      const rejectActive = n.status === 'rejected';
-      const decided = acceptActive || rejectActive;
-      const actionHtml = `<div class="notif-actions">
-        <button class="notif-accept ${acceptActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'accept')">
-          ${acceptActive ? '✓ Accepted' : '✓ Accept'}
+  function openQualityModal(surveyId, surveyTitle, autoFilterEnabled, autoFilterMinScore) {
+    qualitySurveyId = surveyId;
+    document.getElementById('qualitySurveyTitle').textContent = surveyTitle || `Survey #${surveyId}`;
+    document.getElementById('qualityStatus').textContent = '';
+    document.getElementById('qualityUploadForm').style.display = 'flex';
+    applySurveyAutoFilterPrefs(autoFilterEnabled, autoFilterMinScore);
+    document.getElementById('qualityOverlay').style.display = 'flex';
+    refreshQualityResults();
+  }
+
+  function closeQualityModal(e) {
+    if (!e || e.target === document.getElementById('qualityOverlay')) {
+      document.getElementById('qualityOverlay').style.display = 'none';
+    }
+  }
+
+  function renderQualityResultsTable() {
+    const wrap = document.getElementById('qualityResultsWrap');
+    if (!wrap) return;
+    if (!qualityRows.length) {
+      wrap.innerHTML = '<div class="quality-empty">No quality checks yet. Upload an Excel file first.</div>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table class="quality-table">
+        <thead>
+          <tr>
+            <th>Row</th>
+            <th>Score</th>
+            <th>Label</th>
+            <th>Fraud</th>
+            <th>Reasons</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${qualityRows.map(row => `
+            <tr>
+              <td>${escapeHtml(row.row_label || '-')}</td>
+              <td>${Number(row.quality_score || 0).toFixed(2)}</td>
+              <td><span class="quality-chip ${qualityBadgeClass(row.quality_label)}">${escapeHtml(row.quality_label || 'unknown')}</span></td>
+              <td>${row.fraud_risk ? 'Yes' : 'No'}</td>
+              <td>${(row.reasons || []).map(escapeHtml).join(' · ') || '-'}</td>
+              <td>${renderReviewSelect(row)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function updateQualityRowInList(checkId, patch) {
+    const idx = qualityRows.findIndex(row => row.id === checkId);
+    if (idx < 0) return;
+    qualityRows[idx] = { ...qualityRows[idx], ...patch };
+    renderQualityResultsTable();
+  }
+
+  function reviewStatusToAction(status) {
+    const normalized = String(status || 'pending').toLowerCase();
+    if (normalized === 'approved') return 'approve';
+    if (normalized === 'rejected') return 'reject';
+    return 'pending';
+  }
+
+  function reviewSelectClass(action) {
+    if (action === 'approve') return 'status-approved';
+    if (action === 'reject') return 'status-rejected';
+    return 'status-pending';
+  }
+
+  const REVIEW_OPTIONS = [
+    { value: 'approve', label: 'Approve' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'reject', label: 'Reject' },
+  ];
+
+  function reviewActionLabel(action) {
+    const hit = REVIEW_OPTIONS.find(item => item.value === action);
+    return hit ? hit.label : 'Pending';
+  }
+
+  function renderReviewSelect(row) {
+    const action = reviewStatusToAction(row.review_status);
+    const cls = reviewSelectClass(action);
+    const options = REVIEW_OPTIONS.map(item => `
+      <button type="button" class="review-dropdown-option${item.value === action ? ' is-active' : ''}"
+        data-value="${item.value}" onclick="pickReviewOption(event, ${row.id}, '${item.value}')">${item.label}</button>
+    `).join('');
+    return `
+      <div class="review-dropdown ${cls}" data-check-id="${row.id}" data-value="${action}">
+        <button type="button" class="review-dropdown-trigger" onclick="toggleReviewDropdown(event, ${row.id})">
+          <span>${escapeHtml(reviewActionLabel(action))}</span>
+          <span class="review-dropdown-chevron">▾</span>
         </button>
-        <button class="notif-reject ${rejectActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'reject')">
-          ${rejectActive ? '✕ Rejected' : '✕ Reject'}
-        </button>
+        <div class="review-dropdown-menu">${options}</div>
       </div>`;
-      return `
-        <div class="notif-item ${n.status !== 'pending' ? n.status : ''}" id="notif-${n.id}">
-          <span class="notif-type-tag ${typeClass}">${typeLabel}</span>
-          <div class="notif-title">${n.survey_title}</div>
-          <div class="notif-email">📧 ${n.participant_email}</div>
-          <div class="notif-time">${n.created_at}</div>
-          ${actionHtml}
-        </div>`;
-    }).join('');
   }
 
-  async function decideNotif(id, action) {
+  function closeAllReviewDropdowns() {
+    document.querySelectorAll('.review-dropdown.open').forEach(el => el.classList.remove('open'));
+  }
+
+  function toggleReviewDropdown(event, checkId) {
+    event.stopPropagation();
+    const root = document.querySelector(`.review-dropdown[data-check-id="${checkId}"]`);
+    if (!root || root.classList.contains('is-loading')) return;
+    const willOpen = !root.classList.contains('open');
+    closeAllReviewDropdowns();
+    if (willOpen) root.classList.add('open');
+  }
+
+  function pickReviewOption(event, checkId, action) {
+    event.stopPropagation();
+    closeAllReviewDropdowns();
+    const root = document.querySelector(`.review-dropdown[data-check-id="${checkId}"]`);
+    if (!root) return;
+    handleReviewChange(checkId, action, root);
+  }
+
+  function apiErrorMessage(data, fallback) {
+    const detail = data && data.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      return detail.map(item => item.msg || item.message || String(item)).join('; ');
+    }
+    return fallback;
+  }
+
+  async function handleReviewChange(checkId, action, rootEl) {
+    const previous = reviewStatusToAction(
+      (qualityRows.find(row => row.id === checkId) || {}).review_status
+    );
+    if (action === previous) return;
+
+    rootEl.classList.add('is-loading');
     try {
-      const res = await fetch(`/api/notifications/${id}/${action}`, { method: 'POST', credentials: 'same-origin' });
-      if (!res.ok) return;
-      const notif = allNotifs.find(n => n.id === id);
-      if (notif) notif.status = action === 'accept' ? 'accepted' : 'rejected';
-      renderNotifications();
-    } catch {}
+      const res = await fetch(`/api/quality-checks/${checkId}/review`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok) throw new Error(apiErrorMessage(data, 'Update failed'));
+      updateQualityRowInList(checkId, {
+        review_status: data.review_status,
+        quality_label: data.quality_label,
+        fraud_risk: data.fraud_risk,
+      });
+    } catch (err) {
+      rootEl.dataset.value = previous;
+      rootEl.className = `review-dropdown ${reviewSelectClass(previous)}`;
+      rootEl.querySelector('.review-dropdown-trigger span:first-child').textContent = reviewActionLabel(previous);
+      alert(err.message || 'Update failed');
+    } finally {
+      rootEl.classList.remove('is-loading');
+    }
   }
 
-  function toggleNotifPanel() {
-    document.getElementById('notifOverlay').style.display = 'flex';
-    loadNotifications();
+  document.addEventListener('click', () => closeAllReviewDropdowns());
+
+  async function refreshQualityResults() {
+    if (!qualitySurveyId) return;
+    const wrap = document.getElementById('qualityResultsWrap');
+    wrap.innerHTML = '<div class="quality-empty">Loading quality checks...</div>';
+    try {
+      const res = await fetch(
+        `/api/surveys/${qualitySurveyId}/quality-results?scope=excel&_=${Date.now()}`,
+        { credentials: 'same-origin', cache: 'no-store' }
+      );
+      if (!res.ok) throw new Error('Failed to load quality results');
+      const data = await res.json();
+      qualityRows = Array.isArray(data) ? data : [];
+      renderQualityResultsTable();
+    } catch (err) {
+      wrap.innerHTML = `<div class="quality-empty">${escapeHtml(err.message || 'Failed to load quality checks')}</div>`;
+    }
   }
 
-  function closeNotifModal(e) {
-    if (!e || e.target === document.getElementById('notifOverlay'))
-      document.getElementById('notifOverlay').style.display = 'none';
+  function updateQualityFileUI() {
+    const fileInput = document.getElementById('qualityExcelFile');
+    const picker = document.getElementById('qualityFilePicker');
+    const nameEl = document.getElementById('qualityFileName');
+    const submitBtn = document.getElementById('qualityUploadSubmit');
+    const file = fileInput.files && fileInput.files[0];
+    if (file) {
+      picker.classList.add('has-file');
+      nameEl.textContent = file.name;
+      submitBtn.disabled = false;
+    } else {
+      picker.classList.remove('has-file');
+      nameEl.textContent = 'No file selected (.xlsx / .xlsm)';
+      submitBtn.disabled = true;
+    }
   }
 
-  loadNotifications();
-  setInterval(loadNotifications, 30000);
+  function clearQualityFile() {
+    const fileInput = document.getElementById('qualityExcelFile');
+    fileInput.value = '';
+    updateQualityFileUI();
+  }
+
+  document.getElementById('qualityExcelFile').addEventListener('change', updateQualityFileUI);
+
+  function isQualityAutoFilterEnabled() {
+    return document.getElementById('qualityAutoFilterEnabled').checked;
+  }
+
+  function getQualityAutoFilterMinScore() {
+    const raw = Number(document.getElementById('qualityAutoFilterMinScore').value);
+    if (Number.isNaN(raw)) return 80;
+    return Math.min(100, Math.max(0, raw));
+  }
+
+  function autoApproveStatusMessage(score, approved, rejected) {
+    const a = approved != null ? approved : 0;
+    const r = rejected != null ? rejected : 0;
+    return `Auto filter (≥ ${score}): ${a} approved, ${r} rejected.`;
+  }
+
+  function toggleQualityAutoFilter() {
+    const enabled = isQualityAutoFilterEnabled();
+    document.getElementById('qualityAutoFilterMinScore').disabled = !enabled;
+    const wrap = document.getElementById('qualityAutoFilterScoreWrap');
+    if (wrap) wrap.classList.toggle('is-disabled', !enabled);
+    const applyBtn = document.getElementById('qualityAutoFilterApply');
+    if (applyBtn) applyBtn.disabled = !enabled;
+  }
+
+  async function reloadQualityResultsTable() {
+    if (!qualitySurveyId) return;
+    const res = await fetch(
+      `/api/surveys/${qualitySurveyId}/quality-results?scope=excel&_=${Date.now()}`,
+      { credentials: 'same-origin', cache: 'no-store' }
+    );
+    if (!res.ok) throw new Error('Failed to load quality results');
+    qualityRows = await res.json();
+    renderQualityResultsTable();
+  }
+
+  async function confirmQualityAutoFilter() {
+    if (!qualitySurveyId || !isQualityAutoFilterEnabled()) return;
+    const statusEl = document.getElementById('qualityStatus');
+    const applyBtn = document.getElementById('qualityAutoFilterApply');
+    if (applyBtn) applyBtn.disabled = true;
+    statusEl.textContent = 'Applying...';
+    try {
+      const data = await applyQualityAutoApprove('excel');
+      statusEl.textContent = autoApproveStatusMessage(
+        getQualityAutoFilterMinScore(),
+        data.approved_count,
+        data.rejected_count
+      );
+      await reloadQualityResultsTable();
+    } catch (err) {
+      statusEl.textContent = err.message || 'Auto filter failed';
+    } finally {
+      toggleQualityAutoFilter();
+    }
+  }
+
+  async function applyQualityAutoApprove(scope) {
+    if (!qualitySurveyId || !isQualityAutoFilterEnabled()) {
+      return { approved_count: 0, rejected_count: 0 };
+    }
+    const res = await fetch(`/api/surveys/${qualitySurveyId}/quality/auto-approve`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ min_score: getQualityAutoFilterMinScore(), scope: scope || 'excel' }),
+    });
+    let data = {};
+    try { data = await res.json(); } catch (_) {}
+    if (!res.ok) throw new Error(apiErrorMessage(data, 'Auto filter failed'));
+    return data;
+  }
+
+  document.getElementById('qualityUploadForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (!qualitySurveyId) return;
+    const fileInput = document.getElementById('qualityExcelFile');
+    const statusEl = document.getElementById('qualityStatus');
+    if (!fileInput.files || fileInput.files.length === 0) {
+      statusEl.textContent = 'Please choose an Excel file first.';
+      return;
+    }
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    if (isQualityAutoFilterEnabled()) {
+      formData.append('auto_approve', '1');
+      formData.append('auto_approve_min_score', String(getQualityAutoFilterMinScore()));
+    }
+    statusEl.textContent = 'Uploading and running quality checks...';
+    const submitBtn = document.getElementById('qualityUploadSubmit');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 600000);
+      const res = await fetch(`/api/surveys/${qualitySurveyId}/quality/import-excel`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      let data = {};
+      try { data = await res.json(); } catch (_) {
+        throw new Error(`Upload failed (${res.status}). Server may be busy — refresh and try again.`);
+      }
+      if (!res.ok) throw new Error(data.detail || data.message || 'Upload failed');
+      let msg = `Imported ${data.imported_rows} rows from this file.`;
+      const auto = data.auto_approve || {};
+      if (auto.enabled) {
+        msg += ` ${autoApproveStatusMessage(
+          auto.min_score ?? getQualityAutoFilterMinScore(),
+          auto.approved_count,
+          auto.rejected_count
+        )}`;
+      }
+      statusEl.textContent = msg;
+      clearQualityFile();
+      await refreshQualityResults();
+    } catch (err) {
+      statusEl.textContent = `Error: ${err.name === 'AbortError' ? 'Upload timed out. Please restart the server and try again.' : (err.message || 'Upload failed')}`;
+    } finally {
+      updateQualityFileUI();
+    }
+  });
 </script>
 
 </body>

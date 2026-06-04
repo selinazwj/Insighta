@@ -85,6 +85,88 @@
     .analysis-result { margin-top: 20px; padding: 20px 24px; background: white; border-radius: 12px; border: 1px solid var(--line); font-size: 15px; color: var(--ink-soft); line-height: 1.8; display: none; }
     .analysis-result.visible { display: block; }
     .analysis-footer { margin-top: 12px; font-size: 12px; color: var(--ink-muted); }
+    .quality-section { margin-top: 32px; background: #fff; border: 1.5px solid var(--line); border-radius: 14px; padding: 24px 28px; }
+    .quality-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .quality-header h2 { font-family: var(--serif); font-size: 22px; color: var(--ink); }
+    .quality-header p { font-size: 13px; color: var(--ink-muted); }
+    .quality-tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .quality-high { background: rgba(45,106,79,0.12); color: var(--accent); }
+    .quality-medium { background: rgba(234,179,8,0.18); color: #854d0e; }
+    .quality-low { background: rgba(239,68,68,0.16); color: #b91c1c; }
+    .quality-fraud_risk { background: rgba(124,58,237,0.16); color: #6d28d9; }
+    .quality-table { width: 100%; border-collapse: collapse; font-size: 13px; border: 1px solid var(--line); border-radius: 10px; overflow: visible; }
+    .quality-table th, .quality-table td { border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+    .quality-table th { background: var(--paper-warm); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-muted); }
+    .quality-table tr:last-child td { border-bottom: none; }
+    .quality-empty { padding: 18px; border: 1px dashed var(--line); border-radius: 10px; color: var(--ink-muted); background: rgba(250,249,245,0.7); text-align: center; }
+    .quality-detail-panel { margin-top: 16px; border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: #faf9f5; display: none; }
+    .quality-detail-panel.open { display: block; }
+    .quality-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .quality-detail-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 12px; }
+    .quality-detail-card strong { display: block; font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .quality-review-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .quality-review-section-label { font-size: 11px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .quality-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .quality-actions button { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s; }
+    .quality-actions button:hover:not(.selected) { background: #f5f4f0; }
+    .quality-actions button.danger { color: #b91c1c; border-color: #fecaca; }
+    .quality-actions button.danger:hover:not(.selected) { background: #fef2f2; }
+    #qualityReviewActions button.selected,
+    #qualityReviewActions button.saved { background: #2d6a4f; color: #fff; border-color: #2d6a4f; box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.22); }
+    #qualityReviewActions button.danger.selected,
+    #qualityReviewActions button.danger.saved { background: #b91c1c; color: #fff; border-color: #b91c1c; box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.18); }
+    .quality-detail-card.review-approved { border-color: #86efac; background: #ecfdf5; }
+    .quality-detail-card.review-approved strong { color: #166534; }
+    .quality-detail-card.review-rejected { border-color: #fecaca; background: #fef2f2; }
+    .quality-detail-card.review-rejected strong { color: #b91c1c; }
+    .quality-review-notes { margin-top: 14px; }
+    .quality-review-notes label { display: block; font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .quality-review-notes textarea { width: 100%; box-sizing: border-box; min-height: 72px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 13px; resize: vertical; }
+    .quality-review-notes textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.12); }
+    .quality-review-hint { margin-top: 8px; font-size: 12px; color: var(--ink-muted); }
+    .quality-review-submit { margin-top: 14px; padding: 10px 18px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .quality-review-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .quality-review-status { margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-size: 13px; display: none; }
+    .quality-review-status.success { display: block; background: #ecfdf5; color: #166534; border: 1px solid #bbf7d0; }
+    .quality-review-status.error { display: block; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .quality-review-done { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+    .quality-review-done-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .quality-review-done-actions .btn-done { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .quality-review-done-actions .btn-next { padding: 10px 18px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .quality-subtable { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+    .quality-subtable th, .quality-subtable td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+    .review-dropdown { position: relative; display: inline-block; min-width: 118px; }
+    .review-dropdown.is-loading { opacity: 0.65; pointer-events: none; }
+    .review-dropdown-trigger {
+      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 7px 11px; border-radius: 9px; border: 1px solid var(--line); background: #fff;
+      font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .review-dropdown-trigger:hover { background: #faf9f5; border-color: #d8d6ce; }
+    .review-dropdown.open .review-dropdown-trigger { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.12); }
+    .review-dropdown-chevron { font-size: 10px; color: var(--ink-muted); transition: transform 0.15s; }
+    .review-dropdown.open .review-dropdown-chevron { transform: rotate(180deg); }
+    .review-dropdown-menu {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 100;
+      background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 4px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.12);
+    }
+    .review-dropdown.open .review-dropdown-menu { display: block; }
+    .review-dropdown-option {
+      width: 100%; text-align: left; padding: 8px 10px; border: none; border-radius: 7px;
+      background: transparent; font-family: var(--sans); font-size: 12px; font-weight: 600;
+      color: var(--ink); cursor: pointer;
+    }
+    .review-dropdown-option:hover { background: #f3f1ea; }
+    .review-dropdown-option.is-active { background: rgba(45,106,79,0.1); color: var(--accent); }
+    .review-dropdown.status-approved .review-dropdown-trigger { border-color: #86efac; color: #166534; }
+    .review-dropdown.status-rejected .review-dropdown-trigger { border-color: #fecaca; color: #b91c1c; }
+    .review-dropdown.status-pending .review-dropdown-trigger { border-color: #fde68a; color: #854d0e; }
+    .quality-review-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 10050; align-items: center; justify-content: center; padding: 24px; }
+    .quality-review-modal { background: #fff; border-radius: 18px; width: 760px; max-width: 96vw; max-height: 88vh; overflow: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.24); padding: 24px 28px; }
+    .quality-review-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .quality-review-header h4 { font-family: var(--serif); font-size: 20px; color: var(--ink); margin: 0; }
 
     /* Loading */
     .loading-state { text-align: center; padding: 60px 20px; }
@@ -151,10 +233,25 @@
     <div class="analysis-result" id="analysisResult"></div>
   </div>
 
+  <!-- Quality -->
+  <div class="quality-section" id="qualitySection">
+    <div class="quality-header">
+      <div>
+        <h2>Quality Checks</h2>
+        <p>View response quality scores and triggered reasons.</p>
+      </div>
+      <button class="btn-analyze" style="padding:8px 16px; font-size:13px;" onclick="loadQualityResults()">Refresh</button>
+    </div>
+    <div id="qualityList">
+      <div class="quality-empty">Loading quality checks...</div>
+    </div>
+  </div>
+
 </div>
 
 <script>
   const SURVEY_ID = {{ survey_id }};
+  let qualityRows = [];
 
   // ── Load results ──────────────────────────────────────────
   async function loadResults() {
@@ -170,6 +267,168 @@
         '<div class="loading-state"><p>Failed to load results. Please refresh.</p></div>';
     }
   }
+
+  function renderQualityResultsTable() {
+    const wrap = document.getElementById('qualityList');
+    if (!wrap) return;
+    if (!qualityRows.length) {
+      wrap.innerHTML = '<div class="quality-empty">No completed responses yet. Scores appear after participants submit.</div>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table class="quality-table">
+        <thead>
+          <tr>
+            <th>Row</th>
+            <th>Score</th>
+            <th>Label</th>
+            <th>Reasons</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${qualityRows.map((row) => `
+            <tr>
+              <td>${escHtml(row.row_label || '-')}</td>
+              <td>${Number(row.quality_score || 0).toFixed(2)}</td>
+              <td><span class="quality-tag quality-${escClass(row.quality_label || 'medium')}">${escHtml(row.quality_label || '-')}</span></td>
+              <td>${(row.reasons || []).map(r => escHtml(String(r))).join(' · ') || '-'}</td>
+              <td>${renderReviewSelect(row)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function updateQualityRowInList(checkId, patch) {
+    const idx = qualityRows.findIndex(row => row.id === checkId);
+    if (idx < 0) return;
+    qualityRows[idx] = { ...qualityRows[idx], ...patch };
+    renderQualityResultsTable();
+  }
+
+  async function loadQualityResults() {
+    const wrap = document.getElementById('qualityList');
+    wrap.innerHTML = '<div class="quality-empty">Loading quality checks...</div>';
+    try {
+      const res = await fetch(
+        `/api/surveys/${SURVEY_ID}/quality-results?scope=builtin&_=${Date.now()}`,
+        { credentials: 'same-origin', cache: 'no-store' }
+      );
+      if (!res.ok) throw new Error('Failed to load quality checks');
+      const rows = await res.json();
+      qualityRows = Array.isArray(rows) ? rows : [];
+      renderQualityResultsTable();
+    } catch (e) {
+      wrap.innerHTML = `<div class="quality-empty">${escHtml(e.message || 'Failed to load quality checks.')}</div>`;
+    }
+  }
+
+  function reviewStatusToAction(status) {
+    const normalized = String(status || 'pending').toLowerCase();
+    if (normalized === 'approved') return 'approve';
+    if (normalized === 'rejected') return 'reject';
+    return 'pending';
+  }
+
+  function reviewSelectClass(action) {
+    if (action === 'approve') return 'status-approved';
+    if (action === 'reject') return 'status-rejected';
+    return 'status-pending';
+  }
+
+  const REVIEW_OPTIONS = [
+    { value: 'approve', label: 'Approve' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'reject', label: 'Reject' },
+  ];
+
+  function reviewActionLabel(action) {
+    const hit = REVIEW_OPTIONS.find(item => item.value === action);
+    return hit ? hit.label : 'Pending';
+  }
+
+  function renderReviewSelect(row) {
+    const action = reviewStatusToAction(row.review_status);
+    const cls = reviewSelectClass(action);
+    const options = REVIEW_OPTIONS.map(item => `
+      <button type="button" class="review-dropdown-option${item.value === action ? ' is-active' : ''}"
+        data-value="${item.value}" onclick="pickReviewOption(event, ${row.id}, '${item.value}')">${item.label}</button>
+    `).join('');
+    return `
+      <div class="review-dropdown ${cls}" data-check-id="${row.id}" data-value="${action}">
+        <button type="button" class="review-dropdown-trigger" onclick="toggleReviewDropdown(event, ${row.id})">
+          <span>${escHtml(reviewActionLabel(action))}</span>
+          <span class="review-dropdown-chevron">▾</span>
+        </button>
+        <div class="review-dropdown-menu">${options}</div>
+      </div>`;
+  }
+
+  function closeAllReviewDropdowns() {
+    document.querySelectorAll('.review-dropdown.open').forEach(el => el.classList.remove('open'));
+  }
+
+  function toggleReviewDropdown(event, checkId) {
+    event.stopPropagation();
+    const root = document.querySelector(`.review-dropdown[data-check-id="${checkId}"]`);
+    if (!root || root.classList.contains('is-loading')) return;
+    const willOpen = !root.classList.contains('open');
+    closeAllReviewDropdowns();
+    if (willOpen) root.classList.add('open');
+  }
+
+  function pickReviewOption(event, checkId, action) {
+    event.stopPropagation();
+    closeAllReviewDropdowns();
+    const root = document.querySelector(`.review-dropdown[data-check-id="${checkId}"]`);
+    if (!root) return;
+    handleReviewChange(checkId, action, root);
+  }
+
+  function apiErrorMessage(data, fallback) {
+    const detail = data && data.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      return detail.map(item => item.msg || item.message || String(item)).join('; ');
+    }
+    return fallback;
+  }
+
+  async function handleReviewChange(checkId, action, rootEl) {
+    const previous = reviewStatusToAction(
+      (qualityRows.find(row => row.id === checkId) || {}).review_status
+    );
+    if (action === previous) return;
+
+    rootEl.classList.add('is-loading');
+    try {
+      const res = await fetch(`/api/quality-checks/${checkId}/review`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok) throw new Error(apiErrorMessage(data, 'Update failed'));
+      updateQualityRowInList(checkId, {
+        review_status: data.review_status,
+        quality_label: data.quality_label,
+        fraud_risk: data.fraud_risk,
+      });
+    } catch (e) {
+      rootEl.dataset.value = previous;
+      rootEl.className = `review-dropdown ${reviewSelectClass(previous)}`;
+      rootEl.querySelector('.review-dropdown-trigger span:first-child').textContent = reviewActionLabel(previous);
+      alert(e.message || 'Update failed');
+    } finally {
+      rootEl.classList.remove('is-loading');
+    }
+  }
+
+  document.addEventListener('click', () => closeAllReviewDropdowns());
 
   // ── Render everything ─────────────────────────────────────
   function renderResults(data) {
@@ -315,8 +574,13 @@
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  function escClass(value) {
+    return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  }
+
   // ── Init ──────────────────────────────────────────────────
   loadResults();
+  loadQualityResults();
 </script>
 
 </body>

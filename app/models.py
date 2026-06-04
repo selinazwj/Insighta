@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, Text
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 
@@ -119,26 +119,13 @@ class Survey(Base):
     payment_status = Column(String, default="unpaid")
     stripe_payment_intent_id = Column(String, nullable=True)
 
+    # Quality auto-filter (publisher default for Results / Excel quality checks)
+    quality_auto_filter_enabled = Column(Boolean, default=False)
+    quality_auto_filter_min_score = Column(Float, default=80.0)
+
     publisher = relationship("User", back_populates="surveys")
     responses = relationship("Response", back_populates="survey")
     questions = relationship("Question", back_populates="survey")
-
-
-# ======================
-# Notification
-# ======================
-class Notification(Base):
-    __tablename__ = "notifications"
-
-    id = Column(Integer, primary_key=True, index=True)
-    publisher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    participant_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
-    participant_email = Column(String, nullable=True)
-    survey_title = Column(String, nullable=True)
-    task_type = Column(String, default="survey")
-    status = Column(String, default="pending")  # pending / accepted / rejected
-    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 # ======================
@@ -159,6 +146,10 @@ class Response(Base):
     payout_status = Column(String, default="pending")
     payout_amount = Column(Float, nullable=True)
     stripe_transfer_id = Column(String, nullable=True)
+
+    client_ip = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    device_fingerprint = Column(String, nullable=True)
 
     survey = relationship("Survey", back_populates="responses")
     participant = relationship("User", back_populates="responses")
@@ -231,14 +222,60 @@ class Answer(Base):
     response_id = Column(Integer, ForeignKey("responses.id"), nullable=False)
     question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
     answer_value = Column(JSON, nullable=False)
-    # 单选: "A"
-    # 多选: ["A", "B"]
-    # 文字: "我觉得..."
-    # 量表: 4
+    # single_choice: "A"
+    # multiple_choice: ["A", "B"]
+    # text: "I think..."
+    # scale: 4
     created_at = Column(DateTime, default=datetime.utcnow)
 
     response = relationship("Response", back_populates="answers")
     question = relationship("Question", back_populates="answers")
+
+
+# ======================
+# Response quality check
+# ======================
+class ResponseQualityCheck(Base):
+    __tablename__ = "response_quality_checks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    response_id = Column(Integer, ForeignKey("responses.id"), nullable=True, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=True, index=True)
+    source_type = Column(String, default="builtin")  # builtin | excel
+    source_ref = Column(String, nullable=True)       # e.g. filename:row_index
+
+    quality_score = Column(Float, nullable=False, default=100.0)
+    quality_label = Column(String, nullable=False, default="high")
+    fraud_risk = Column(Boolean, default=False)
+
+    rule_penalty = Column(Float, default=0.0)
+    anomaly_score = Column(Float, default=0.0)
+    semantic_risk = Column(Float, default=0.0)
+
+    triggered_rules = Column(JSON, nullable=True)
+    reasons = Column(JSON, nullable=True)
+    llm_result_json = Column(JSON, nullable=True)
+
+    review_status = Column(String, default="pending")  # pending / approved / rejected / needs_review
+    reviewer_label = Column(String, nullable=True)
+
+    raw_response_json = Column(JSON, nullable=True)
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class QualityBlacklist(Base):
+    __tablename__ = "quality_blacklist"
+
+    id = Column(Integer, primary_key=True, index=True)
+    block_type = Column(String, nullable=False)   # ip | user | device
+    block_value = Column(String, nullable=False, index=True)
+    reason = Column(String, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 
 # ======================
 # Verification
