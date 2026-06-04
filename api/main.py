@@ -1592,6 +1592,10 @@ async def edit_survey_post(
     target_cannabis_use: str = Form(None), target_student_status: str = Form(None),
     target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
     target_participation_format: str = Form(None), target_device: str = Form(None),
+    # ive added these two for the verification feature
+    required_occupation: str = Form(None),
+    required_verification_tier: str = Form("tier_3"),
+    
     cover_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -1999,6 +2003,11 @@ async def publish_survey(
             target_experience_tags=target_experience_tags,
             target_participation_format=_clean_target(target_participation_format),
             target_device=_clean_target(target_device),
+            
+            # ive set these from the new verification settings section
+            required_occupation=_clean_target(required_occupation),
+            required_verification_tier=required_verification_tier or "tier_3",
+            
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
         db.add(survey); db.commit(); db.refresh(survey)
