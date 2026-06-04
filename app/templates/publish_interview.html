@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Publish Interview — Insighta</title>
+  <title>Publish Interview - Insighta</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="apple-touch-icon" href="/static/favicon.png">
   <meta name="theme-color" content="#faf9f5">
@@ -40,10 +40,10 @@
     .page-header h1 em { font-style: italic; color: var(--accent); }
     .page-header p { font-size: 16px; color: var(--ink-muted); font-weight: 300; }
 
-    .form-section { background: white; border: 1.5px solid var(--line); border-radius: 16px; padding: 32px; margin-bottom: 20px; }
+    .form-section { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 32px; margin-bottom: 20px; }
     .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
-    .section-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(45,106,79,0.1); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-    .section-header h2 { font-family: var(--serif); font-size: 20px; color: var(--ink); letter-spacing: -0.3px; }
+    .section-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(45,106,79,0.1); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .section-header h2 { font-family: var(--sans); font-size: 17px; font-weight: 700; color: var(--ink); letter-spacing: 0; }
     .section-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
 
     .info-box { background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); padding: 14px 18px; border-radius: 0 8px 8px 0; font-size: 14px; color: var(--ink-soft); margin-bottom: 24px; line-height: 1.6; }
@@ -88,8 +88,11 @@
     .commission-row .cvalue.orange { color: var(--accent-warm); }
     .commission-row .cvalue.total { font-family: var(--serif); font-size: 22px; color: var(--accent); }
 
-    .raffle-box { display: none; margin-top: 16px; background: rgba(224,122,60,0.06); border: 1.5px solid rgba(224,122,60,0.2); border-radius: 12px; padding: 16px 20px; font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+    .raffle-box { display: none; margin-top: 16px; background: rgba(45,106,79,0.06); border: 1.5px solid rgba(45,106,79,0.2); border-radius: 12px; padding: 16px 20px; font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
     .raffle-box strong { color: var(--accent-warm); display: block; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+    .raffle-options { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .raffle-options label { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
+    .raffle-options input { width: auto; accent-color: var(--accent); }
 
     .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; font-size: 13px; color: var(--ink-soft); }
@@ -140,7 +143,7 @@
 <div class="container">
 
   <div class="page-header">
-    <div class="type-badge">🎙️ Interview Study</div>
+    <div class="type-badge">Interview study</div>
     <h1>Post an <em>Interview</em></h1>
     <p>Find the right participants for 1-on-1 or group conversations.</p>
   </div>
@@ -152,12 +155,12 @@
     <!-- BASIC INFO -->
     <div class="form-section">
       <div class="section-header">
-        <div class="section-icon">✏️</div>
+        <div class="section-icon">01</div>
         <div><h2>Basic Information</h2><p>What your interview is about</p></div>
       </div>
       <div class="form-group">
         <label>Study Title *</label>
-        <input type="text" name="title" placeholder="e.g., User Experience Research — Mobile Banking App" required>
+        <input type="text" name="title" placeholder="e.g., User Experience Research - Mobile Banking App" required>
       </div>
       <div class="form-group">
         <label>Description *</label>
@@ -181,7 +184,7 @@
     <!-- INTERVIEW DETAILS -->
     <div class="form-section">
       <div class="section-header">
-        <div class="section-icon">🎙️</div>
+        <div class="section-icon">02</div>
         <div><h2>Interview Details</h2><p>Format, duration, and scheduling</p></div>
       </div>
 
@@ -189,9 +192,9 @@
         <label>Interview Format</label>
         <div class="label-desc">How will the session be conducted?</div>
         <div class="format-pills">
-          <div class="format-pill selected" data-value="video" onclick="selectFormat(this)">📹 Video call</div>
-          <div class="format-pill" data-value="phone" onclick="selectFormat(this)">📞 Phone call</div>
-          <div class="format-pill" data-value="in_person" onclick="selectFormat(this)">🤝 In person</div>
+          <div class="format-pill selected" data-value="video" onclick="selectFormat(this)">Video call</div>
+          <div class="format-pill" data-value="phone" onclick="selectFormat(this)">Phone call</div>
+          <div class="format-pill" data-value="in_person" onclick="selectFormat(this)">In person</div>
         </div>
         <input type="hidden" name="interview_format" id="formatInput" value="video">
       </div>
@@ -216,14 +219,14 @@
 
       <div class="form-group">
         <label>Scheduling Link</label>
-        <div class="label-desc">Calendly, Doodle, or any booking link — participants use this to book their slot</div>
+        <div class="label-desc">Calendly, Doodle, or any booking link. Participants use this to book their slot.</div>
         <input type="url" name="scheduling_link" placeholder="https://calendly.com/your-link">
       </div>
 
       <div class="form-group">
         <label>Availability / Time Windows</label>
         <div class="label-desc">Describe when you're available so participants can plan ahead</div>
-        <textarea name="availability_notes" placeholder="Available weekdays 9am–5pm EST, Saturdays 10am–2pm. Sessions can be booked anytime in the next 3 weeks." style="min-height: 80px;"></textarea>
+        <textarea name="availability_notes" placeholder="Available weekdays 9am-5pm EST, Saturdays 10am-2pm. Sessions can be booked anytime in the next 3 weeks." style="min-height: 80px;"></textarea>
       </div>
 
       <div class="form-group" id="locationRow" style="display:none;">
@@ -236,41 +239,52 @@
     <!-- COMPENSATION & TIMELINE -->
     <div class="form-section">
       <div class="section-header">
-        <div class="section-icon">💰</div>
+        <div class="section-icon">03</div>
         <div><h2>Compensation & Timeline</h2><p>How you'll reward participants and when you need them</p></div>
       </div>
 
       <div class="form-group">
         <label>Incentive Type</label>
         <div class="incentive-pills">
-          <div class="incentive-pill selected" data-value="cash" onclick="selectIncentive(this)">💵 Cash</div>
-          <div class="incentive-pill" data-value="gift_card" onclick="selectIncentive(this)">🎁 Gift card</div>
-          <div class="incentive-pill" data-value="raffle" onclick="selectIncentive(this)">🎰 Raffle</div>
-          <div class="incentive-pill" data-value="volunteer" onclick="selectIncentive(this)">🤝 Volunteer</div>
+          <div class="incentive-pill selected" data-value="cash" onclick="selectIncentive(this)">Cash</div>
+          <div class="incentive-pill" data-value="gift_card" onclick="selectIncentive(this)">Gift card</div>
+          <div class="incentive-pill" data-value="raffle" onclick="selectIncentive(this)">Raffle</div>
+          <div class="incentive-pill" data-value="volunteer" onclick="selectIncentive(this)">Volunteer</div>
         </div>
         <input type="hidden" name="incentive_type" id="incentiveInput" value="cash">
       </div>
 
       <div class="raffle-box" id="raffleBox">
-        <strong>No payment required</strong>
-        For raffle and volunteer studies, participants are not paid per session. Describe the incentive in your study description.
+        <strong>Raffle reward</strong>
+        Choose the raffle reward type. Insighta will run the draw after the study closes and notify participants of the result.
+        <div class="raffle-options">
+          <label><input type="radio" name="raffle_prize_type" value="gift_card" checked> Gift card</label>
+          <label><input type="radio" name="raffle_prize_type" value="cash"> Cash</label>
+        </div>
+      </div>
+
+      <div class="raffle-box" id="volunteerBox">
+        <strong>Volunteer recruitment fee</strong>
+        Volunteer interview listings do not pay participants per session. We charge $1 per 10 target participants to cover recruitment and verification.
       </div>
 
       <div id="budgetSection">
-        <div class="info-box" style="margin-top: 20px;">
-          <strong>Per-session compensation</strong>
-          Platform fee: 15% (under $15/session), 20% ($15–24), 25% ($25+).
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Per Session ($)</label>
-            <div class="label-desc">What you pay per completed session</div>
-            <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 25.00" step="0.50" min="0.01">
+        <div id="paidBudgetFields">
+          <div class="info-box" style="margin-top: 20px;">
+            <strong>Per-session compensation</strong>
+            Platform fee: 15% under $15/session, 20% for $15-$24, 25% for $25+.
           </div>
-          <div class="form-group">
-            <label>Total Budget ($)</label>
-            <div class="label-desc">Auto-calculated from above</div>
-            <input type="number" id="totalBudgetInput" name="total_budget" placeholder="Auto" step="1" min="1">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Per Session ($)</label>
+              <div class="label-desc">What you pay per completed session</div>
+              <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 25.00" step="0.50" min="0.01">
+            </div>
+            <div class="form-group">
+              <label>Total Budget ($)</label>
+              <div class="label-desc">Auto-calculated from above</div>
+              <input type="number" id="totalBudgetInput" name="total_budget" placeholder="Auto" step="1" min="1">
+            </div>
           </div>
         </div>
 
@@ -278,6 +292,7 @@
           <div class="commission-row"><span class="clabel">Per session (you pay)</span><span class="cvalue" id="dispPerPerson">—</span></div>
           <div class="commission-row"><span class="clabel">Platform fee (<span id="dispFeeRate">—</span>)</span><span class="cvalue orange" id="dispFee">—</span></div>
           <div class="commission-row"><span class="clabel">Participant receives</span><span class="cvalue green" id="dispReward">—</span></div>
+          <div class="commission-row" id="timelineBoostRow" style="display:none;"><span class="clabel">Timeline boost</span><span class="cvalue orange" id="dispTimelineBoost">—</span></div>
           <div class="commission-row"><span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span><span class="cvalue total" id="dispTotal">—</span></div>
         </div>
       </div>
@@ -286,8 +301,8 @@
         <label>Recruitment Timeline</label>
         <div class="urgency-pills">
           <div class="urgency-pill selected" data-value="flexible" onclick="selectUrgency(this)">No deadline</div>
-          <div class="urgency-pill" data-value="within_1_month" onclick="selectUrgency(this)">Within 1 month</div>
-          <div class="urgency-pill urgent" data-value="within_1_week" onclick="selectUrgency(this)">🔥 Within 1 week</div>
+          <div class="urgency-pill" data-value="within_1_month" onclick="selectUrgency(this)">Within 1 month +5%</div>
+          <div class="urgency-pill urgent" data-value="within_1_week" onclick="selectUrgency(this)">Within 1 week +10%</div>
         </div>
         <input type="hidden" name="urgency_level" id="urgencyInput" value="flexible">
       </div>
@@ -301,155 +316,81 @@
     <!-- TARGET PARTICIPANTS -->
     <div class="form-section">
       <div class="section-header">
-        <div class="section-icon">🎯</div>
-        <div><h2>Target Participants</h2><p>Leave any field blank to allow all participants</p></div>
+        <div class="section-icon">04</div>
+        <div><h2>Target Participants</h2><p>Leave a field as all to allow all matching participants</p></div>
       </div>
 
       <div class="filter-group-label">Demographics</div>
       <div class="form-row" style="margin-bottom: 16px;">
-        <div class="form-group">
-          <label>Age Range</label>
-          <select name="target_age_range">
-            <option value="all" selected>All ages</option>
-            <option value="18-24">18–24</option>
-            <option value="25-34">25–34</option>
-            <option value="35-44">35–44</option>
-            <option value="45+">45+</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Language</label>
-          <select name="target_language">
-            <option value="all" selected>All languages</option>
-            <option>Arabic</option><option>English</option><option>French</option>
-            <option>German</option><option>Hindi</option><option>Japanese</option>
-            <option>Korean</option><option>Mandarin Chinese</option><option>Spanish</option>
-            <option>Other</option>
-          </select>
-        </div>
+        <div class="form-group"><label>Age Range</label><select name="target_age_range"><option value="all" selected>All ages</option><option value="18-24">18-24</option><option value="25-34">25-34</option><option value="35-44">35-44</option><option value="45+">45+</option></select></div>
+        <div class="form-group"><label>Current Location</label><select name="target_state"><option value="all" selected>All locations</option><option>United States</option><option>Canada</option><option>China</option><option>India</option><option>United Kingdom</option><option>Australia</option><option>Germany</option><option>France</option><option>South Korea</option><option>Japan</option><option>California</option><option>New York</option><option>Texas</option><option>Ontario</option><option>British Columbia</option><option>England</option><option>Other</option></select><div class="label-desc">Use country, province, state, or city when location matters.</div></div>
       </div>
       <div class="form-row" style="margin-bottom: 16px;">
-        <div class="form-group">
-          <label>International / Domestic</label>
-          <select name="target_international_domestic">
-            <option value="all" selected>All</option>
-            <option value="Domestic">Domestic students</option>
-            <option value="International">International students</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Location (State)</label>
-          <select name="target_state">
-            <option value="all" selected>All states</option>
-            <option>Alabama</option><option>Alaska</option><option>Arizona</option>
-            <option>Arkansas</option><option>California</option><option>Colorado</option>
-            <option>Connecticut</option><option>Delaware</option><option>Florida</option>
-            <option>Georgia</option><option>Hawaii</option><option>Idaho</option>
-            <option>Illinois</option><option>Indiana</option><option>Iowa</option>
-            <option>Kansas</option><option>Kentucky</option><option>Louisiana</option>
-            <option>Maine</option><option>Maryland</option><option>Massachusetts</option>
-            <option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
-            <option>Missouri</option><option>Montana</option><option>Nebraska</option>
-            <option>Nevada</option><option>New Hampshire</option><option>New Jersey</option>
-            <option>New Mexico</option><option>New York</option><option>North Carolina</option>
-            <option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
-            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option>
-            <option>South Carolina</option><option>South Dakota</option><option>Tennessee</option>
-            <option>Texas</option><option>Utah</option><option>Vermont</option>
-            <option>Virginia</option><option>Washington</option><option>West Virginia</option>
-            <option>Wisconsin</option><option>Wyoming</option>
-          </select>
-        </div>
+        <div class="form-group"><label>Language</label><select name="target_language"><option value="all" selected>All languages</option><option>English</option><option>Mandarin Chinese</option><option>Spanish</option><option>French</option><option>Arabic</option><option>Hindi</option><option>Bengali</option><option>Portuguese</option><option>Russian</option><option>Japanese</option><option>Korean</option><option>German</option><option>Italian</option><option>Vietnamese</option><option>Other</option></select></div>
+        <div class="form-group"><label>Race</label><select name="target_ethnicity"><option value="all" selected>All</option><option>Asian</option><option>Black or African American</option><option>Hispanic or Latino</option><option>Middle Eastern or North African</option><option>Native American or Alaska Native</option><option>Native Hawaiian or Pacific Islander</option><option>White</option><option>Two or more races</option><option>Prefer to self-describe</option><option>Prefer not to say</option></select></div>
       </div>
 
       <div class="filter-group-label">Academic Background</div>
       <div class="form-row" style="margin-bottom: 16px;">
-        <div class="form-group">
-          <label>Student Status</label>
-          <select name="target_student_status">
-            <option value="all" selected>All</option>
-            <option value="undergrad">Undergraduate</option>
-            <option value="grad">Graduate / PhD</option>
-            <option value="non-student">Non-student</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Year in School</label>
-          <select name="target_year_in_school">
-            <option value="all" selected>All years</option>
-            <option value="Freshman">Freshman</option>
-            <option value="Sophomore">Sophomore</option>
-            <option value="Junior">Junior</option>
-            <option value="Senior">Senior</option>
-            <option value="Graduate Year 1">Graduate Year 1</option>
-            <option value="Graduate Year 2+">Graduate Year 2+</option>
-          </select>
-        </div>
+        <div class="form-group"><label>Student Status</label><select name="target_student_status"><option value="all" selected>All</option><option>High school student</option><option>Undergraduate student</option><option>Graduate student</option><option>PhD student</option><option>Postdoc</option><option>Not currently a student</option></select></div>
+        <div class="form-group"><label>International / Domestic</label><select name="target_international_domestic"><option value="all" selected>All</option><option value="Domestic">Domestic</option><option value="International">International</option></select></div>
       </div>
       <div class="form-row" style="margin-bottom: 16px;">
-        <div class="form-group">
-          <label>Field / Major</label>
-          <select name="target_field">
-            <option value="all" selected>All fields</option>
-            <option value="Computer Science & Engineering">CS & Engineering</option>
-            <option value="Business & Economics">Business & Economics</option>
-            <option value="Medicine & Healthcare">Medicine & Healthcare</option>
-            <option value="Natural Sciences">Natural Sciences</option>
-            <option value="Social Sciences">Social Sciences</option>
-            <option value="Arts & Humanities">Arts & Humanities</option>
-            <option value="Education">Education</option>
-            <option value="Law">Law</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Employment Status</label>
-          <select name="target_status">
-            <option value="all" selected>All</option>
-            <option value="student">Student</option>
-            <option value="working">Working</option>
-            <option value="freelancer">Freelancer</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
+        <div class="form-group"><label>Field / Major</label><select name="target_field"><option value="all" selected>All fields</option><option>Computer Science & Engineering</option><option>Data Science / AI</option><option>Business & Economics</option><option>Psychology</option><option>Medicine & Healthcare</option><option>Public Health</option><option>Natural Sciences</option><option>Social Sciences</option><option>Arts & Humanities</option><option>Education</option><option>Law</option><option>Design / HCI</option><option>Communications / Media</option><option>Other</option></select></div>
+        <div class="form-group"><label>Current Status</label><select name="target_status"><option value="all" selected>All</option><option>Student</option><option>Employed full-time</option><option>Employed part-time</option><option>Self-employed</option><option>Intern</option><option>Researcher</option><option>Caregiver</option><option>Unemployed / between roles</option><option>Retired</option><option>Other</option></select></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Min Education</label><select name="target_education_min"><option value="">No limit</option><option value="0">Below high school</option><option value="1">High school</option><option value="2">Undergraduate</option><option value="3">Graduate</option><option value="4">PhD</option><option value="5">Postdoc</option></select></div>
+        <div class="form-group"><label>Max Education</label><select name="target_education_max"><option value="">No limit</option><option value="0">Below high school</option><option value="1">High school</option><option value="2">Undergraduate</option><option value="3">Graduate</option><option value="4">PhD</option><option value="5">Postdoc</option></select></div>
+        <div class="form-group"><label>Income Level</label><select name="target_income_level"><option value="all" selected>All income levels</option><option>Under $25,000</option><option>$25,000-$49,999</option><option>$50,000-$74,999</option><option>$75,000-$99,999</option><option>$100,000-$149,999</option><option>$150,000+</option><option>Prefer not to say</option></select></div>
       </div>
 
       <div class="filter-group-label">Participant Experience <span style="font-weight:300; text-transform:none; letter-spacing:0;">(select all that apply)</span></div>
       <div class="label-desc" style="margin-bottom: 10px;">Participants only need to match one selected tag</div>
       <div class="checkbox-group">
-        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="startup_experience" onchange="updateCheckbox(this)"> 🚀 Startup / product experience</label>
-        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="club_leadership" onchange="updateCheckbox(this)"> 🎓 Club / org leadership</label>
-        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="mental_health_experience" onchange="updateCheckbox(this)"> 🧠 Mental health experience</label>
-        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="chronic_illness" onchange="updateCheckbox(this)"> 🏥 Chronic illness experience</label>
-        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="heavy_social_media" onchange="updateCheckbox(this)"> 📱 Heavy social media user</label>
-        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="prior_research" onchange="updateCheckbox(this)"> 🔬 Prior research participation</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Startup / product experience" onchange="updateCheckbox(this)"> Startup / product experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Leadership / club experience" onchange="updateCheckbox(this)"> Leadership / club experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Healthcare experience" onchange="updateCheckbox(this)"> Healthcare experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Caregiving experience" onchange="updateCheckbox(this)"> Caregiving experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Mental health experience" onchange="updateCheckbox(this)"> Mental health experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Prior research participation" onchange="updateCheckbox(this)"> Prior research participation</label>
+      </div>
+
+      <div class="filter-group-label">Lifestyle <span style="font-weight:300; text-transform:none; letter-spacing:0;">(select all that apply)</span></div>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Commuter" onchange="updateCheckbox(this)"> Commuter</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Lives on campus" onchange="updateCheckbox(this)"> Lives on campus</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Remote worker" onchange="updateCheckbox(this)"> Remote worker</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Parent / caregiver" onchange="updateCheckbox(this)"> Parent / caregiver</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Frequent traveler" onchange="updateCheckbox(this)"> Frequent traveler</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Athlete / active lifestyle" onchange="updateCheckbox(this)"> Athlete / active lifestyle</label>
       </div>
 
       <details style="margin-top: 24px;">
-        <summary class="advanced-toggle"><span id="advArrow">▸</span> Advanced targeting</summary>
+        <summary class="advanced-toggle"><span id="advArrow">+</span> Advanced targeting</summary>
         <div class="advanced-body">
           <div class="form-row">
-            <div class="form-group">
-              <label>Ethnicity</label>
-              <select name="target_ethnicity"><option value="all" selected>All</option><option>White</option><option>Black or African American</option><option>Hispanic or Latino</option><option>Asian</option><option>Middle Eastern or North African</option><option>Native American or Pacific Islander</option><option>Two or more races</option><option>Other</option></select>
-            </div>
-            <div class="form-group">
-              <label>Sexual Orientation</label>
-              <select name="target_sexual_orientation"><option value="all" selected>All</option><option>Straight / Heterosexual</option><option>Gay or Lesbian</option><option>Bisexual</option><option>Other</option></select>
-            </div>
+            <div class="form-group"><label>Sexual Orientation</label><select name="target_sexual_orientation"><option value="all" selected>All</option><option>Straight / heterosexual</option><option>Gay or lesbian</option><option>Bisexual</option><option>Pansexual</option><option>Asexual</option><option>Queer</option><option>Questioning</option><option>Prefer to self-describe</option><option>Prefer not to say</option></select></div>
+            <div class="form-group"></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>Mental health diagnosis</label><select name="target_mental_health_diagnosis"><option value="all" selected>All</option><option>Yes</option><option>No</option></select></div>
-            <div class="form-group"><label>Physical health diagnosis</label><select name="target_physical_health_diagnosis"><option value="all" selected>All</option><option>Yes</option><option>No</option></select></div>
+            <div class="form-group"><label>Mental health diagnosis</label><select name="target_mental_health_diagnosis"><option value="all" selected>All</option><option>ADHD</option><option>Anxiety disorder</option><option>Autism spectrum disorder</option><option>Bipolar disorder</option><option>Depression</option><option>Eating disorder</option><option>OCD</option><option>PTSD / trauma-related disorder</option><option>Substance use disorder</option><option>None</option><option>Prefer not to say</option><option>Other</option></select></div>
+            <div class="form-group"><label>Physical health diagnosis</label><select name="target_physical_health_diagnosis"><option value="all" selected>All</option><option>Asthma</option><option>Autoimmune condition</option><option>Cancer history</option><option>Chronic pain</option><option>Diabetes</option><option>Heart condition</option><option>Hypertension</option><option>Migraine</option><option>Mobility impairment</option><option>Neurological condition</option><option>None</option><option>Prefer not to say</option><option>Other</option></select></div>
           </div>
         </div>
       </details>
+
+      <div class="form-group" style="margin-top: 24px;">
+        <label>Any niche requirements?</label>
+        <div class="label-desc">Add any very specific criteria we should consider during review or manual matching.</div>
+        <textarea name="target_niche_requirements" placeholder="e.g. First-generation college students in California who have used budgeting apps in the past 6 months."></textarea>
+      </div>
     </div>
 
     <!-- SUBMIT -->
     <div class="submit-section">
       <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
-      <button type="submit" class="btn-publish" id="submitBtn">Publish →</button>
+      <button type="submit" class="btn-publish" id="submitBtn">Publish</button>
     </div>
 
   </form>
@@ -471,10 +412,14 @@
     el.classList.add('selected');
     const val = el.dataset.value;
     document.getElementById('incentiveInput').value = val;
-    const noCash = val === 'raffle' || val === 'volunteer';
-    document.getElementById('budgetSection').style.display = noCash ? 'none' : 'block';
-    document.getElementById('raffleBox').style.display = noCash ? 'block' : 'none';
-    document.getElementById('submitBtn').textContent = noCash ? 'Publish →' : 'Publish →';
+    const isRaffle = val === 'raffle';
+    const isVolunteer = val === 'volunteer';
+    document.getElementById('budgetSection').style.display = isRaffle ? 'none' : 'block';
+    document.getElementById('paidBudgetFields').style.display = isVolunteer ? 'none' : 'block';
+    document.getElementById('raffleBox').style.display = isRaffle ? 'block' : 'none';
+    document.getElementById('volunteerBox').style.display = isVolunteer ? 'block' : 'none';
+    document.getElementById('submitBtn').textContent = 'Publish';
+    updateCommission();
   }
 
   // ── Commission calculator ─────────────────────────────────
@@ -482,9 +427,31 @@
   const totalBudgetInput = document.getElementById('totalBudgetInput');
 
   function getRate(ppg) { return ppg >= 25 ? 0.25 : ppg >= 15 ? 0.20 : 0.15; }
+  function getTimelineMultiplier() {
+    const urgency = document.getElementById('urgencyInput').value;
+    if (urgency === 'within_1_week') return 1.10;
+    if (urgency === 'within_1_month') return 1.05;
+    return 1;
+  }
+  function getVolunteerFee(target) { return Math.ceil(Math.max(target, 1) / 10); }
 
   function updateCommission() {
     const target = parseInt(document.querySelector('input[name="target_responses"]').value) || 0;
+    const incentive = document.getElementById('incentiveInput').value;
+    const multiplier = getTimelineMultiplier();
+    if (incentive === 'volunteer') {
+      const baseFee = getVolunteerFee(target || 1);
+      const totalPay = baseFee * multiplier;
+      document.getElementById('dispPerPerson').textContent = '$0.00';
+      document.getElementById('dispFeeRate').textContent = '$1 / 10 people';
+      document.getElementById('dispFee').textContent = `$${baseFee.toFixed(2)}`;
+      document.getElementById('dispReward').textContent = '$0.00';
+      document.getElementById('timelineBoostRow').style.display = multiplier > 1 ? 'flex' : 'none';
+      document.getElementById('dispTimelineBoost').textContent = multiplier > 1 ? `+${Math.round((multiplier - 1) * 100)}%` : '-';
+      document.getElementById('dispTotal').textContent = `$${totalPay.toFixed(2)}`;
+      document.getElementById('commissionBox').style.display = 'block';
+      return;
+    }
     let ppg = parseFloat(perPersonInput.value) || 0;
     let total = parseFloat(totalBudgetInput.value) || 0;
     if (!ppg && !total) { document.getElementById('commissionBox').style.display = 'none'; return; }
@@ -492,11 +459,14 @@
     else if (total && target && !perPersonInput.matches(':focus')) { ppg = total / target; perPersonInput.value = ppg.toFixed(2); }
     if (!ppg || !target) { document.getElementById('commissionBox').style.display = 'none'; return; }
     const rate = getRate(ppg);
+    const totalPay = ppg * target * multiplier;
     document.getElementById('dispPerPerson').textContent = `$${ppg.toFixed(2)}`;
     document.getElementById('dispFeeRate').textContent = `${Math.round(rate * 100)}%`;
     document.getElementById('dispFee').textContent = `-$${(ppg * rate).toFixed(2)}`;
     document.getElementById('dispReward').textContent = `$${(ppg * (1 - rate)).toFixed(2)}`;
-    document.getElementById('dispTotal').textContent = `$${(ppg * target).toFixed(2)}`;
+    document.getElementById('timelineBoostRow').style.display = multiplier > 1 ? 'flex' : 'none';
+    document.getElementById('dispTimelineBoost').textContent = multiplier > 1 ? `+${Math.round((multiplier - 1) * 100)}%` : '-';
+    document.getElementById('dispTotal').textContent = `$${totalPay.toFixed(2)}`;
     document.getElementById('commissionBox').style.display = 'block';
   }
 
@@ -509,6 +479,7 @@
     document.querySelectorAll('.urgency-pill').forEach(p => p.classList.remove('selected'));
     el.classList.add('selected');
     document.getElementById('urgencyInput').value = el.dataset.value;
+    updateCommission();
   }
 
   // ── Checkbox ──────────────────────────────────────────────
@@ -524,7 +495,7 @@
 
   // ── Advanced toggle ───────────────────────────────────────
   document.querySelector('details').addEventListener('toggle', function() {
-    document.getElementById('advArrow').textContent = this.open ? '▾' : '▸';
+    document.getElementById('advArrow').textContent = this.open ? '-' : '+';
   });
 </script>
 </body>

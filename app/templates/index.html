@@ -217,21 +217,12 @@
 
     .modal-divider { height: 0.5px; background: var(--line); margin: 0 0 20px; }
 
-    /* auth tabs */
-    .auth-tabs { display: flex; gap: 0; margin-bottom: 22px; border-bottom: 0.5px solid var(--line); }
-    .auth-tab { font-size: 13px; font-weight: 500; color: var(--ink3); padding: 0 0 12px; margin-right: 24px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -0.5px; transition: color .15s, border-color .15s; font-family: var(--sans); }
-    .auth-tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
-
-    .form-field { margin-bottom: 14px; }
-    .form-label { font-size: 12px; font-weight: 500; color: var(--ink2); margin-bottom: 5px; display: block; }
-    .form-input { width: 100%; height: 40px; border: 0.5px solid var(--line2); border-radius: 8px; padding: 0 12px; font-family: var(--sans); font-size: 13px; color: var(--ink); background: var(--bg2); transition: border-color .15s, background .15s; }
-    .form-input:focus { outline: none; border-color: var(--green); background: var(--bg); }
-    .form-input::placeholder { color: var(--ink4); }
     .form-submit { width: 100%; height: 42px; background: var(--green); color: #fff; border: none; border-radius: 8px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; margin-top: 4px; }
     .form-submit:hover { background: var(--green-d); }
-    .form-switch { font-size: 12px; color: var(--ink3); text-align: center; margin-top: 14px; }
-    .form-switch a { color: var(--green); font-weight: 600; text-decoration: none; }
-    .form-error { font-size: 12px; color: #a32d2d; background: #fcebeb; border: 0.5px solid #f09595; border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; }
+    .auth-choice-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .auth-choice-actions .form-submit { display: flex; align-items: center; justify-content: center; text-decoration: none; margin-top: 0; }
+    .auth-choice-actions .form-submit.secondary { background: #fff; color: var(--green); border: 1px solid var(--green-m); }
+    .auth-choice-actions .form-submit.secondary:hover { background: var(--green-l); }
 
     /* fade in */
     .reveal { opacity: 0; transform: translateY(16px); animation: ri .5s ease forwards; }
@@ -293,22 +284,22 @@
     </div>
     <div class="hero-stats">
       <div class="hero-stat">
-        <div class="hs-n">1,200+</div>
+        <div class="hs-n">100+</div>
         <div class="hs-l">Active participants</div>
         <div class="hs-s">across 12 universities</div>
       </div>
       <div class="hero-stat">
-        <div class="hs-n">$18k</div>
+        <div class="hs-n">Directly</div>
         <div class="hs-l">Paid to participants</div>
         <div class="hs-s">no fees, no delays</div>
       </div>
       <div class="hero-stat">
-        <div class="hs-n">84%</div>
+        <div class="hs-n">High</div>
         <div class="hs-l">Avg. completion rate</div>
-        <div class="hs-s">industry avg: 62%</div>
+        <div class="hs-s">Higher than industry average</div>
       </div>
       <div class="hero-stat">
-        <div class="hs-n">340+</div>
+        <div class="hs-n">Growing</div>
         <div class="hs-l">Studies completed</div>
         <div class="hs-s">BU Accelerator '26</div>
       </div>
@@ -477,7 +468,7 @@
 
     <div class="modal-body">
 
-      <!-- STEP 1: role pick — shown on signup, hidden on signin -->
+      <!-- STEP 1: role pick -->
       <div id="role-step">
         <div class="role-grid">
           <div class="role-card sel" id="card-researcher" onclick="pickRole('researcher')">
@@ -498,51 +489,9 @@
         <div class="modal-divider"></div>
       </div>
 
-      <!-- AUTH TABS -->
-      <div class="auth-tabs">
-        <button class="auth-tab active" id="tab-signup" onclick="switchTab('signup')">Create account</button>
-        <button class="auth-tab" id="tab-signin" onclick="switchTab('signin')">Sign in</button>
-      </div>
-
-      <!-- SIGNUP FORM -->
-      <div id="form-signup">
-        {% if register_error %}
-        <div class="form-error">{{ register_error }}</div>
-        {% endif %}
-        <form method="POST" action="/register">
-          <input type="hidden" name="role" id="reg-role" value="researcher">
-          <div class="form-field">
-            <label class="form-label">Email</label>
-            <input class="form-input" type="email" name="email" placeholder="you@university.edu" required autocomplete="email">
-          </div>
-          <div class="form-field">
-            <label class="form-label">Password</label>
-            <input class="form-input" type="password" name="password" placeholder="Create a password" required autocomplete="new-password">
-          </div>
-          <button type="submit" class="form-submit">Create account →</button>
-        </form>
-        <div class="form-switch">Already have an account? <a href="#" onclick="switchTab('signin'); return false;">Sign in</a></div>
-      </div>
-
-      <!-- SIGNIN FORM -->
-      <div id="form-signin" style="display:none;">
-        {% if login_error %}
-        <div class="form-error">{{ login_error }}</div>
-        {% endif %}
-        <form method="POST" action="/login">
-          <input type="hidden" name="role" id="login-role" value="researcher">
-          <input type="hidden" name="source" value="index">
-          <div class="form-field">
-            <label class="form-label">Email</label>
-            <input class="form-input" type="email" name="email" placeholder="you@university.edu" required autocomplete="email">
-          </div>
-          <div class="form-field">
-            <label class="form-label">Password</label>
-            <input class="form-input" type="password" name="password" placeholder="Your password" required autocomplete="current-password">
-          </div>
-          <button type="submit" class="form-submit">Sign in →</button>
-        </form>
-        <div class="form-switch">No account? <a href="#" onclick="switchTab('signup'); return false;">Create one</a></div>
+      <div class="auth-choice-actions">
+        <a href="/login?role=researcher" class="form-submit secondary" id="choice-login">Sign in</a>
+        <a href="/register?role=researcher" class="form-submit" id="choice-register">Create account →</a>
       </div>
 
     </div>
@@ -557,15 +506,11 @@
     document.body.style.overflow = 'hidden';
     pickRole(selectedRole);
     if (intent === 'signin') {
-      document.getElementById('role-step').style.display = 'none';
-      switchTab('signin');
-      document.getElementById('modal-title').textContent = 'Welcome back';
-      document.getElementById('modal-sub').textContent = 'Sign in to your account';
+      document.getElementById('modal-title').textContent = 'How do you want to sign in?';
+      document.getElementById('modal-sub').textContent = 'Choose your side first, then continue to the regular login page.';
     } else {
-      document.getElementById('role-step').style.display = 'block';
-      switchTab('signup');
       document.getElementById('modal-title').textContent = 'Welcome to Insighta';
-      document.getElementById('modal-sub').textContent = 'What brings you here?';
+      document.getElementById('modal-sub').textContent = 'Choose your side first, then create your account.';
     }
   }
 
@@ -582,24 +527,11 @@
 
   function pickRole(r) {
     role = r;
-    document.getElementById('reg-role').value = r;
-    document.getElementById('login-role').value = r;
+    document.getElementById('choice-login').href = `/login?role=${r}`;
+    document.getElementById('choice-register').href = `/register?role=${r}`;
     document.getElementById('card-researcher').classList.toggle('sel', r === 'researcher');
     document.getElementById('card-participant').classList.toggle('sel', r === 'participant');
   }
-
-  function switchTab(t) {
-    document.getElementById('tab-signup').classList.toggle('active', t === 'signup');
-    document.getElementById('tab-signin').classList.toggle('active', t === 'signin');
-    document.getElementById('form-signup').style.display = t === 'signup' ? 'block' : 'none';
-    document.getElementById('form-signin').style.display = t === 'signin' ? 'block' : 'none';
-  }
-
-  // Auto-open if server returned errors
-  const loginErr = '{{ login_error | default("") }}';
-  const regErr   = '{{ register_error | default("") }}';
-  if (loginErr)  { openModal('signin'); }
-  if (regErr)    { openModal('signup'); }
 </script>
 </body>
 </html>

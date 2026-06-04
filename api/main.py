@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case, inspect, text
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta, timezone
@@ -36,8 +36,53 @@ BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+def no_store_response(response):
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 Base.metadata.create_all(bind=engine)
+
+def ensure_user_profile_columns():
+    columns = {col["name"] for col in inspect(engine).get_columns("users")}
+    profile_columns = {
+        "phone_number": "VARCHAR",
+        "birth_year": "VARCHAR",
+        "birth_month": "VARCHAR",
+        "profile_description": "VARCHAR",
+        "current_country": "VARCHAR",
+        "current_province": "VARCHAR",
+        "current_city": "VARCHAR",
+        "origin_country": "VARCHAR",
+        "origin_province": "VARCHAR",
+        "origin_city": "VARCHAR",
+        "race": "VARCHAR",
+        "income_level": "VARCHAR",
+        "lifestyle_tags": "VARCHAR",
+    }
+    with engine.begin() as conn:
+        for name, column_type in profile_columns.items():
+            if name not in columns:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN {name} {column_type}"))
+
+ensure_user_profile_columns()
+
+def ensure_survey_listing_columns():
+    columns = {col["name"] for col in inspect(engine).get_columns("surveys")}
+    listing_columns = {
+        "target_income_level": "VARCHAR",
+        "target_lifestyle_tags": "VARCHAR",
+        "target_niche_requirements": "VARCHAR",
+        "raffle_prize_type": "VARCHAR",
+    }
+    with engine.begin() as conn:
+        for name, column_type in listing_columns.items():
+            if name not in columns:
+                conn.execute(text(f"ALTER TABLE surveys ADD COLUMN {name} {column_type}"))
+
+ensure_survey_listing_columns()
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
@@ -94,22 +139,69 @@ def calculate_commission(per_person_gross: float):
     reward = round(per_person_gross * (1 - rate), 2)
     return rate, reward
 
+def timeline_multiplier(urgency_level: Optional[str]) -> float:
+    urgency = (urgency_level or "flexible").strip().lower()
+    if urgency == "within_1_week":
+        return 1.10
+    if urgency == "within_1_month":
+        return 1.05
+    return 1.0
+
+def volunteer_platform_fee(target_responses: int) -> float:
+    return round(((max(int(target_responses or 0), 1) + 9) // 10) * 1.0, 2)
+
 
 # ---------------------------
 # Matching helpers
 # ---------------------------
 
 EDUCATION_RANK = {
+    "Below High School": 0,
     "High School": 1,
     "Undergraduate": 2,
     "Graduate": 3,
     "PhD": 4,
+    "Postdoc": 5,
 }
 
 def _education_rank(level: Optional[str], fallback: int) -> int:
     if not level:
         return fallback
     return EDUCATION_RANK.get(level, fallback)
+
+def _age_range_from_birth_date(birth_year: Optional[str], birth_month: Optional[str]) -> Optional[str]:
+    if not birth_year:
+        return None
+    try:
+        year = int(birth_year)
+        month = int(birth_month or "1")
+    except ValueError:
+        return None
+    today = datetime.now(timezone.utc)
+    age = today.year - year - (1 if today.month < month else 0)
+    if age < 18:
+        return None
+    if age <= 24:
+        return "18-24"
+    if age <= 34:
+        return "25-34"
+    if age <= 44:
+        return "35-44"
+    return "45+"
+
+def _value_with_other(value: Optional[str], other_value: Optional[str]) -> Optional[str]:
+    value = (value or "").strip()
+    other_value = (other_value or "").strip()
+    if value in {"Other", "Prefer to self-describe"} and other_value:
+        return f"{value}: {other_value}"
+    return value or None
+
+def _list_with_other(values: list[str], other_value: Optional[str]) -> list[str]:
+    cleaned = [v.strip() for v in values if v and v.strip()]
+    other_value = (other_value or "").strip()
+    if "Other" in cleaned and other_value:
+        cleaned.append(f"Other: {other_value}")
+    return cleaned
 
 def _is_empty(val: Optional[str]) -> bool:
     return val is None or val.strip() == "" or val.strip().lower() == "all"
@@ -120,6 +212,18 @@ def _field_matches(target: Optional[str], user_val: Optional[str]) -> bool:
     if not user_val:
         return False
     return target.strip().lower() == user_val.strip().lower()
+
+def _location_matches(target: Optional[str], user: User) -> bool:
+    if _is_empty(target):
+        return True
+    target_clean = target.strip().lower()
+    user_values = [
+        getattr(user, "state", None),
+        getattr(user, "current_country", None),
+        getattr(user, "current_province", None),
+        getattr(user, "current_city", None),
+    ]
+    return any((value or "").strip().lower() == target_clean for value in user_values)
 
 def _language_matches(target: Optional[str], user_languages: Optional[str]) -> bool:
     if _is_empty(target):
@@ -199,7 +303,7 @@ def _post_auth_url(request: Request, participant_app: Optional[str] = None, welc
     if _should_use_participant_app(request, participant_app):
         base_url = _participant_dashboard_url(request)
     else:
-        base_url = "/choice"
+        base_url = "/publisher"
     return f"{base_url}?welcome=1" if welcome else base_url
 
 def _post_auth_url_with_next(
@@ -217,15 +321,6 @@ def _post_auth_url_with_next(
     if normalized_role == "researcher":
         return "/publisher"
     return _post_auth_url(request, participant_app, welcome=welcome)
-
-def _index_login_error(request: Request, message: str) -> HTMLResponse:
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "show": "signin",
-        "error": None,
-        "login_error": message,
-        "register_error": None,
-    })
 
 def _mark_participant_app(response: RedirectResponse):
     response.set_cookie("participant_app", "1", httponly=True, samesite="none", secure=True, max_age=60 * 60 * 24 * 30)
@@ -570,7 +665,7 @@ def index(request: Request):
 
 @app.get("/participant")
 def participant_app_entry(request: Request, user_id: str = Cookie(None)):
-    target_url = "/login"
+    target_url = "/login?role=participant"
     if user_id:
         target_url = _participant_dashboard_url(request)
     response = RedirectResponse(target_url, status_code=302)
@@ -580,7 +675,7 @@ def participant_app_entry(request: Request, user_id: str = Cookie(None)):
 
 @app.get("/participant/login")
 def participant_login_entry():
-    response = RedirectResponse("/login", status_code=302)
+    response = RedirectResponse("/login?role=participant", status_code=302)
     _mark_participant_app(response)
     return response
 
@@ -597,9 +692,11 @@ def login_page(
     email: Optional[str] = None,
     oauth_error: Optional[str] = None,
     next: Optional[str] = None,
+    role: Optional[str] = None,
     participant_app: Optional[str] = Cookie(None),
 ):
-    return templates.TemplateResponse("login.html", {
+    normalized_role = role if role in {"participant", "researcher"} else ""
+    return no_store_response(templates.TemplateResponse("login.html", {
         "request": request,
         "error": oauth_error or None,
         "success": success,
@@ -609,8 +706,9 @@ def login_page(
         "login_email": _normalize_email(email or ""),
         "reset_email": _normalize_email(email or ""),
         "login_next": next if is_safe_internal_next(next) else "",
-        "participant_app": _is_mobile_request(request),
-    })
+        "login_role": normalized_role,
+        "participant_app": normalized_role == "participant" or _is_mobile_request(request),
+    }))
 
 @app.post("/login")
 def login(
@@ -619,37 +717,33 @@ def login(
     password: str = Form(...),
     next: Optional[str] = Form(None),
     role: Optional[str] = Form(None),
-    source: Optional[str] = Form(None),
     participant_app: Optional[str] = Cookie(None),
     db: Session = Depends(get_db)
 ):
     normalized_email = _normalize_email(email or "")
-    from_index = source == "index"
     try:
         user = db.query(User).filter(User.email == normalized_email).first()
     except Exception as e:
-        if from_index:
-            return _index_login_error(request, f"Database error: {e}")
-        return templates.TemplateResponse("login.html", {
+        return no_store_response(templates.TemplateResponse("login.html", {
             "request": request,
             "error": f"Database error: {e}",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
             "login_next": next if is_safe_internal_next(next) else "",
-            "participant_app": _is_mobile_request(request),
-        })
+            "login_role": role if role in {"participant", "researcher"} else "",
+            "participant_app": role == "participant" or _is_mobile_request(request),
+        }))
 
     if not user or not pwd_context.verify(password, user.password):
-        if from_index:
-            return _index_login_error(request, "Invalid email or password")
-        return templates.TemplateResponse("login.html", {
+        return no_store_response(templates.TemplateResponse("login.html", {
             "request": request,
             "error": "Invalid email or password",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
             "login_next": next if is_safe_internal_next(next) else "",
-            "participant_app": _is_mobile_request(request),
-        })
+            "login_role": role if role in {"participant", "researcher"} else "",
+            "participant_app": role == "participant" or _is_mobile_request(request),
+        }))
 
     response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next, role), status_code=303)
     response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
@@ -677,13 +771,13 @@ def password_reset(
     user = db.query(User).filter(User.email == normalized_email).first()
 
     def reset_error(msg):
-        return templates.TemplateResponse("login.html", {
+        return no_store_response(templates.TemplateResponse("login.html", {
             "request": request,
             "error": None, "success": None,
             "reset_error": msg, "reset_success": None,
             "reset_open": True,
             "login_email": "", "reset_email": normalized_email,
-        })
+        }))
 
     if not user:
         return reset_error("No account found with this email.")
@@ -699,14 +793,14 @@ def password_reset(
     user.password = pwd_context.hash(new_password)
     db.commit()
 
-    return templates.TemplateResponse("login.html", {
+    return no_store_response(templates.TemplateResponse("login.html", {
         "request": request,
         "error": None, "success": None,
         "reset_error": None,
         "reset_success": "Password updated successfully. Please sign in with your new password.",
         "reset_open": False,
         "login_email": normalized_email, "reset_email": "",
-    })
+    }))
 
 
 # ---------------------------
@@ -714,14 +808,21 @@ def password_reset(
 # ---------------------------
 
 @app.get("/register", response_class=HTMLResponse)
-def show_register(request: Request, participant_app: Optional[str] = Cookie(None)):
-    return templates.TemplateResponse(
+def show_register(
+    request: Request,
+    role: Optional[str] = None,
+    participant_app: Optional[str] = Cookie(None)
+):
+    normalized_role = role if role in {"participant", "researcher"} else ""
+    return no_store_response(templates.TemplateResponse(
         "register.html",
         {
-            "request": request, "error": None, "register_email": "",
-            "participant_app": participant_app == "1" or _is_mobile_request(request),
+            "request": request, "error": None, "register_email": "", "register_phone": "", "register_code": "",
+            "register_step": 1,
+            "register_role": normalized_role,
+            "participant_app": normalized_role == "participant" or participant_app == "1" or _is_mobile_request(request),
         }
-    )
+    ))
 
 @app.post("/register", response_class=HTMLResponse)
 async def do_register(
@@ -731,20 +832,27 @@ async def do_register(
 ):
     form = await request.form()
     email = _normalize_email(form.get("email") or "")
+    phone_number = (form.get("phone_number") or "").strip()
     password = form.get("password") or ""
     confirm = form.get("confirm") or ""
     verification_code = form.get("verification_code") or ""
+    role = (form.get("role") or "").strip().lower()
+    role = role if role in {"participant", "researcher"} else None
 
-    def reg_error(msg):
-        return templates.TemplateResponse("register.html", {
+    def reg_error(msg, step: int = 1):
+        return no_store_response(templates.TemplateResponse("register.html", {
             "request": request, "error": msg, "register_email": email,
-            "participant_app": _should_use_participant_app(request, participant_app),
-        })
+            "register_phone": phone_number,
+            "register_code": verification_code,
+            "register_step": step,
+            "register_role": role or "",
+            "participant_app": role == "participant" or _should_use_participant_app(request, participant_app),
+        }))
 
     if not email: return reg_error("Email is required.")
-    if password != confirm: return reg_error("Passwords do not match.")
+    if password != confirm: return reg_error("Passwords do not match.", step=2)
     pw_error = _validate_registration_password(password)
-    if pw_error: return reg_error(pw_error)
+    if pw_error: return reg_error(pw_error, step=2)
     if db.query(User).filter(User.email == email).first():
         return reg_error("Email already exists.")
     if not _consume_verification_code(db, email, "register", verification_code):
@@ -753,13 +861,18 @@ async def do_register(
     user = User(
         email=email,
         password=pwd_context.hash(password),
+        phone_number=phone_number or None,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    response = RedirectResponse(_post_auth_url(request, participant_app, welcome=True), status_code=303)
+    response = RedirectResponse(_post_auth_url_with_next(request, participant_app, role=role, welcome=True), status_code=303)
     response.set_cookie("user_id", str(user.id), httponly=True, samesite="none", secure=True)
+    if role == "participant":
+        _mark_participant_app(response)
+    elif role == "researcher":
+        response.delete_cookie("participant_app", samesite="none", secure=True)
     return response
 
 
@@ -786,15 +899,10 @@ def get_current_user(
 @app.get("/choice", response_class=HTMLResponse)
 def choice(request: Request, user_id: str = Cookie(None), db: Session = Depends(get_db)):
     if _is_mobile_request(request):
-        return RedirectResponse(_participant_dashboard_url(request) if user_id else "/participant", status_code=302)
-
-    current_user = None
-    if user_id:
-        try:
-            current_user = db.query(User).filter(User.id == int(user_id)).first()
-        except:
-            pass
-    return templates.TemplateResponse("choice.html", {"request": request, "current_user": current_user})
+        target_url = _participant_dashboard_url(request) if user_id else "/participant"
+    else:
+        target_url = "/publisher" if user_id else "/login?role=researcher"
+    return no_store_response(RedirectResponse(target_url, status_code=303))
 
 # ---------------------------
 # Guide page
@@ -845,7 +953,7 @@ def publisher_dashboard(
     interview_items = [s for s in all_items if _normalize_task_type(getattr(s, "task_type", None)) == "interview"]
 
     return templates.TemplateResponse(
-        "publisher.html",
+        "publish.html",
         {
             "request": request,
             "surveys": survey_items,
@@ -855,6 +963,28 @@ def publisher_dashboard(
         }
     )
 
+@app.get("/publisher/study/{survey_id}", response_class=HTMLResponse)
+def publisher_study(
+    survey_id: int, request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Not found")
+    completed_count = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed"
+    ).count()
+    return templates.TemplateResponse("publisher_study.html", {
+        "request": request,
+        "survey": survey,
+        "completed_count": completed_count,
+        "current_user": current_user,
+    })
 
 # ---------------------------
 # Delete survey
@@ -893,6 +1023,42 @@ URGENCY_RANK = {
     "flexible":       1,
 }
 
+def _participant_survey_payload(s: Survey, db: Session, current_user: User, user_response: Optional[Response] = None) -> dict:
+    completed_cnt = db.query(Response).filter(
+        Response.survey_id == s.id, Response.status == "completed"
+    ).count()
+    if user_response is None:
+        user_response = db.query(Response).filter(
+            Response.survey_id == s.id, Response.participant_id == current_user.id
+        ).first()
+
+    category_images = {
+        "research": "/static/psych.jpg", "life": "/static/campus_life.jpg",
+        "clubs": "/static/fb.jpg", "market": "/static/habit.png",
+        "academic": "/static/r2.jpg", "other": "/static/food.jpeg"
+    }
+    form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
+    response_status = user_response.status if user_response else None
+
+    return {
+        "id": s.id,
+        "title": s.title,
+        "desc": s.description,
+        "link": form_link,
+        "type": _normalize_task_type(getattr(s, "task_type", None)),
+        "category": s.category,
+        "time": f"{s.estimated_time} min",
+        "reward": f"${s.reward_amount:.2f}",
+        "responses": f"{completed_cnt}/{s.target_responses}",
+        "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
+        "is_started": response_status == "started",
+        "is_completed": response_status == "completed",
+        "is_skipped": response_status == "skipped",
+        "status": response_status,
+        "urgency": getattr(s, 'urgency_level', None) or 'flexible',
+        "incentive_type": getattr(s, 'incentive_type', None),
+    }
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
     request: Request,
@@ -901,7 +1067,9 @@ def dashboard(
     db: Session = Depends(get_db)
 ):
     if _is_mobile_request(request):
-        return RedirectResponse("/dashboard/mobile", status_code=302)
+        tab = request.query_params.get("tab")
+        mobile_url = f"/dashboard/mobile?tab={tab}" if tab in {"home", "earnings", "profile"} else "/dashboard/mobile"
+        return RedirectResponse(mobile_url, status_code=302)
     all_published = db.query(Survey).filter(Survey.status == "published").all()
 
     user_edu_min = _education_rank(current_user.education_level, fallback=0)
@@ -915,7 +1083,7 @@ def dashboard(
             if user_edu_max > s.target_education_max: return False
         if not _field_matches(s.target_field, current_user.field): return False
         if not _field_matches(s.target_status, current_user.status): return False
-        if not _field_matches(s.target_state, current_user.state): return False
+        if not _location_matches(s.target_state, current_user): return False
         if not _language_matches(s.target_language, current_user.language): return False
         if not _field_matches(s.target_ethnicity, current_user.ethnicity): return False
         if not _field_matches(s.target_sexual_orientation, current_user.sexual_orientation): return False
@@ -926,11 +1094,12 @@ def dashboard(
         if not _field_matches(s.target_smoking, current_user.smoking): return False
         if not _field_matches(s.target_cannabis_use, current_user.cannabis_use): return False
         if not _field_matches(getattr(s, 'target_student_status', None), getattr(current_user, 'student_status', None)): return False
-        if not _field_matches(getattr(s, 'target_year_in_school', None), getattr(current_user, 'year_in_school', None)): return False
         if not _field_matches(getattr(s, 'target_international_domestic', None), getattr(current_user, 'international_domestic', None)): return False
         if not _tags_match(getattr(s, 'target_experience_tags', None), getattr(current_user, 'experience_tags', None)): return False
         if not _participation_format_matches(getattr(s, 'target_participation_format', None), getattr(current_user, 'participation_format', None)): return False
         if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
+        if not _field_matches(getattr(s, 'target_income_level', None), getattr(current_user, 'income_level', None)): return False
+        if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
         return True
 
     matched = [s for s in all_published if survey_matches(s)]
@@ -941,35 +1110,10 @@ def dashboard(
 
     surveys_data = []
     for s in matched:
-        completed_cnt = db.query(Response).filter(
-            Response.survey_id == s.id, Response.status == "completed"
-        ).count()
         user_response = db.query(Response).filter(
             Response.survey_id == s.id, Response.participant_id == current_user.id
         ).first()
-        is_completed = user_response and user_response.status == "completed"
-
-        category_images = {
-            "research": "/static/psych.jpg", "life": "/static/campus_life.jpg",
-            "clubs": "/static/fb.jpg", "market": "/static/habit.png",
-            "academic": "/static/r2.jpg", "other": "/static/food.jpeg"
-        }
-
-        # Pass empty string for built-in surveys so dashboard knows to use /take
-        form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
-
-        surveys_data.append({
-            "id": s.id, "title": s.title, "desc": s.description,
-            "link": form_link,
-            "type": _normalize_task_type(getattr(s, "task_type", None)),
-            "category": s.category, "time": f"{s.estimated_time} min",
-            "reward": f"${s.reward_amount:.2f}",
-            "responses": f"{completed_cnt}/{s.target_responses}",
-            "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
-            "is_completed": is_completed,
-            "urgency": getattr(s, 'urgency_level', None) or 'flexible',
-            "incentive_type": getattr(s, 'incentive_type', None),
-        })
+        surveys_data.append(_participant_survey_payload(s, db, current_user, user_response))
 
     if timezone_offset is not None:
         user_tz = timezone(timedelta(minutes=-timezone_offset))
@@ -1000,6 +1144,57 @@ def dashboard(
             "stripe_onboarding_complete": getattr(current_user, 'stripe_onboarding_complete', 'false'),
         }
     )
+
+
+@app.get("/my-studies", response_class=HTMLResponse)
+def participant_my_studies(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    responses = db.query(Response).filter(
+        Response.participant_id == current_user.id
+    ).order_by(Response.started_at.desc()).all()
+
+    surveys_data = []
+    for response in responses:
+        survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+        if survey:
+            surveys_data.append(_participant_survey_payload(survey, db, current_user, response))
+
+    return templates.TemplateResponse("participant_my_studies.html", {
+        "request": request,
+        "current_user": current_user,
+        "surveys": surveys_data,
+        "pending_earnings": getattr(current_user, 'pending_earnings', 0.0) or 0.0,
+    })
+
+
+@app.get("/earnings", response_class=HTMLResponse)
+def participant_earnings(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    responses = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.status == "completed"
+    ).order_by(Response.completed_at.desc()).all()
+
+    surveys_data = []
+    for response in responses:
+        survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+        if survey:
+            surveys_data.append(_participant_survey_payload(survey, db, current_user, response))
+
+    return templates.TemplateResponse("participant_earnings.html", {
+        "request": request,
+        "current_user": current_user,
+        "surveys": surveys_data,
+        "pending_earnings": getattr(current_user, 'pending_earnings', 0.0) or 0.0,
+        "total_withdrawn": getattr(current_user, 'total_withdrawn', 0.0) or 0.0,
+        "stripe_onboarding_complete": getattr(current_user, 'stripe_onboarding_complete', 'false'),
+    })
 # ---------------------------
 # mobile dashboard (simplified for mobile users)
 # ---------------------------
@@ -1023,7 +1218,7 @@ def dashboard_mobile(
             if user_edu_max > s.target_education_max: return False
         if not _field_matches(s.target_field, current_user.field): return False
         if not _field_matches(s.target_status, current_user.status): return False
-        if not _field_matches(s.target_state, current_user.state): return False
+        if not _location_matches(s.target_state, current_user): return False
         if not _language_matches(s.target_language, current_user.language): return False
         if not _field_matches(s.target_ethnicity, current_user.ethnicity): return False
         if not _field_matches(s.target_sexual_orientation, current_user.sexual_orientation): return False
@@ -1034,11 +1229,12 @@ def dashboard_mobile(
         if not _field_matches(s.target_smoking, current_user.smoking): return False
         if not _field_matches(s.target_cannabis_use, current_user.cannabis_use): return False
         if not _field_matches(getattr(s, 'target_student_status', None), getattr(current_user, 'student_status', None)): return False
-        if not _field_matches(getattr(s, 'target_year_in_school', None), getattr(current_user, 'year_in_school', None)): return False
         if not _field_matches(getattr(s, 'target_international_domestic', None), getattr(current_user, 'international_domestic', None)): return False
         if not _tags_match(getattr(s, 'target_experience_tags', None), getattr(current_user, 'experience_tags', None)): return False
         if not _participation_format_matches(getattr(s, 'target_participation_format', None), getattr(current_user, 'participation_format', None)): return False
         if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
+        if not _field_matches(getattr(s, 'target_income_level', None), getattr(current_user, 'income_level', None)): return False
+        if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
         return True
 
     matched = [s for s in all_published if survey_matches(s)]
@@ -1349,7 +1545,7 @@ def publish_page(
     desc: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    return templates.TemplateResponse("publish.html", {
+    return templates.TemplateResponse("publish_external.html", {
         "request": request,
         "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
         "builtin": builtin,
@@ -1409,7 +1605,11 @@ async def publish_interview(
 ):
     form = await request.form()
     experience_list = form.getlist("target_experience_tags")
-    is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
+    lifestyle_list = form.getlist("target_lifestyle_tags")
+    target_education_min = _parse_optional_int(form.get("target_education_min"))
+    target_education_max = _parse_optional_int(form.get("target_education_max"))
+    incentive_clean = _clean_target(incentive_type) or "cash"
+    is_no_pay = incentive_clean in ("raffle", "volunteer")
     reward = 0.0 if is_no_pay else (per_person_gross or 0.0)
 
     survey = Survey(
@@ -1418,18 +1618,24 @@ async def publish_interview(
         estimated_time=estimated_time, reward_amount=reward, per_person_gross=reward,
         total_budget=round(reward * target_responses, 2), commission_rate=0.0, payment_status="paid",
         target_responses=target_responses, urgency_level=_clean_target(urgency_level),
-        incentive_type=_clean_target(incentive_type),
+        incentive_type=incentive_clean,
+        raffle_prize_type=_clean_target(form.get("raffle_prize_type")) if incentive_clean == "raffle" else None,
         target_age_range=_clean_target(form.get("target_age_range")),
+        target_education_min=target_education_min,
+        target_education_max=target_education_max,
         target_field=_clean_target(form.get("target_field")),
         target_status=_clean_target(form.get("target_status")),
         target_state=_clean_target(form.get("target_state")),
         target_language=_clean_target(form.get("target_language")),
         target_student_status=_clean_target(form.get("target_student_status")),
-        target_year_in_school=_clean_target(form.get("target_year_in_school")),
+        target_year_in_school=None,
         target_international_domestic=_clean_target(form.get("target_international_domestic")),
         target_experience_tags=",".join(experience_list) if experience_list else None,
         target_participation_format=_clean_target(form.get("target_participation_format")),
         target_device=_clean_target(form.get("target_device")),
+        target_income_level=_clean_target(form.get("target_income_level")),
+        target_lifestyle_tags=",".join(lifestyle_list) if lifestyle_list else None,
+        target_niche_requirements=_clean_target(form.get("target_niche_requirements")),
         status="draft", published_at=None, closed_at=None,
     )
     db.add(survey); db.commit()
@@ -1695,30 +1901,91 @@ async def edit_survey_post(
 # ---------------------------
 
 @app.get("/profile", response_class=HTMLResponse)
-def profile_get(request: Request, current_user: User = Depends(get_current_user)):
-    prev_url = request.headers.get("referer", "/choice")
+def profile_get(
+    request: Request,
+    participant_app: Optional[str] = Cookie(None),
+    current_user: User = Depends(get_current_user)
+):
+    if _should_use_participant_app(request, participant_app):
+        return templates.TemplateResponse("participant_profile.html", {
+            "request": request,
+            "current_user": current_user,
+            "pending_earnings": getattr(current_user, 'pending_earnings', 0.0) or 0.0,
+        })
+    prev_url = request.headers.get("referer", "/publisher")
+    return templates.TemplateResponse("profile.html", {"request": request, "user": current_user, "prev_url": prev_url})
+
+@app.get("/profile/edit", response_class=HTMLResponse)
+def profile_edit_get(request: Request, current_user: User = Depends(get_current_user)):
+    prev_url = request.headers.get("referer", "/profile")
     return templates.TemplateResponse("profile.html", {"request": request, "user": current_user, "prev_url": prev_url})
 
 @app.post("/profile")
-async def profile_post(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def profile_post(
+    request: Request,
+    participant_app: Optional[str] = Cookie(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     form = await request.form()
-    language_list = form.getlist("language"); experience_list = form.getlist("experience_tags")
-    current_user.username = form.get("username"); current_user.email = form.get("email") or ""
-    current_user.age_range = form.get("age_range"); current_user.education_level = form.get("education_level")
-    current_user.field = form.get("field"); current_user.status = form.get("status")
-    current_user.state = form.get("state"); current_user.ethnicity = form.get("ethnicity")
-    current_user.mental_health_diagnosis = form.get("mental_health_diagnosis")
-    current_user.physical_health_diagnosis = form.get("physical_health_diagnosis")
+    language_list = _list_with_other(form.getlist("language"), form.get("language_other"))
+    experience_list = _list_with_other(form.getlist("experience_tags"), form.get("experience_tags_other"))
+    lifestyle_list = _list_with_other(form.getlist("lifestyle_tags"), form.get("lifestyle_tags_other"))
+
+    current_user.username = form.get("username")
+    current_user.email = form.get("email") or ""
+    if "phone_number" in form:
+        current_user.phone_number = (form.get("phone_number") or "").strip() or None
+
+    birth_year = form.get("birth_year")
+    birth_month = form.get("birth_month")
+    derived_age_range = _age_range_from_birth_date(birth_year, birth_month)
+    current_user.birth_year = birth_year or None
+    current_user.birth_month = birth_month or None
+    current_user.age_range = derived_age_range or form.get("age_range")
+    current_user.profile_description = form.get("profile_description")
+
+    current_user.education_level = form.get("education_level")
+    current_user.field = _value_with_other(form.get("field"), form.get("field_other"))
+    current_user.status = _value_with_other(form.get("status"), form.get("status_other"))
+
+    current_user.current_country = form.get("current_country")
+    current_user.current_province = form.get("current_province")
+    current_user.current_city = form.get("current_city")
+    current_user.origin_country = form.get("origin_country")
+    current_user.origin_province = form.get("origin_province")
+    current_user.origin_city = form.get("origin_city")
+    current_user.state = form.get("state") or form.get("current_province") or form.get("current_country")
+
+    current_user.race = _value_with_other(form.get("race"), form.get("race_other"))
+    current_user.ethnicity = form.get("ethnicity") or current_user.race
+    current_user.mental_health_diagnosis = _value_with_other(
+        form.get("mental_health_diagnosis"),
+        form.get("mental_health_diagnosis_other"),
+    )
+    current_user.physical_health_diagnosis = _value_with_other(
+        form.get("physical_health_diagnosis"),
+        form.get("physical_health_diagnosis_other"),
+    )
     current_user.sexual_orientation = form.get("sexual_orientation")
     current_user.sport_type = form.get("sport_type"); current_user.sport_frequency = form.get("sport_frequency")
     current_user.smoking = form.get("smoking"); current_user.cannabis_use = form.get("cannabis_use")
     current_user.language = ",".join(language_list) if language_list else None
-    current_user.student_status = form.get("student_status"); current_user.year_in_school = form.get("year_in_school")
+    current_user.student_status = _value_with_other(form.get("student_status"), form.get("student_status_other"))
+    current_user.year_in_school = _value_with_other(form.get("year_in_school"), form.get("year_in_school_other"))
     current_user.international_domestic = form.get("international_domestic")
     current_user.experience_tags = ",".join(experience_list) if experience_list else None
-    current_user.participation_format = form.get("participation_format"); current_user.device_type = form.get("device_type")
+    current_user.income_level = form.get("income_level")
+    current_user.lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
+    current_user.participation_format = _value_with_other(form.get("participation_format"), form.get("participation_format_other"))
+    current_user.device_type = _value_with_other(form.get("device_type"), form.get("device_type_other"))
     db.commit()
-    return RedirectResponse("/choice", status_code=303)
+    return_to = form.get("return_to")
+    if return_to and is_safe_internal_next(return_to):
+        return RedirectResponse(return_to, status_code=303)
+    if _should_use_participant_app(request, participant_app):
+        return RedirectResponse("/profile", status_code=303)
+    return RedirectResponse("/publisher", status_code=303)
 
 
 # ---------------------------
@@ -1926,6 +2193,7 @@ async def publish_survey(
     target_cannabis_use: str = Form(None), target_student_status: str = Form(None),
     target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
     target_participation_format: str = Form(None), target_device: str = Form(None),
+    target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
     cover_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -1934,19 +2202,30 @@ async def publish_survey(
     target_education_max = _parse_optional_int(form.get("target_education_max"))
     experience_list = form.getlist("target_experience_tags")
     target_experience_tags = ",".join(experience_list) if experience_list else None
+    lifestyle_list = form.getlist("target_lifestyle_tags")
+    target_lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
+    target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
     existing_survey_id = int(form.get("existing_survey_id") or 0)
 
     is_builtin = (form_url == "__builtin__")
-    is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
+    incentive_clean = _clean_target(incentive_type) or "cash"
+    raffle_clean = _clean_target(raffle_prize_type)
+    is_raffle = incentive_clean == "raffle"
+    is_volunteer = incentive_clean == "volunteer"
+    is_no_pay = is_raffle
 
-    if is_no_pay:
+    if is_raffle:
         ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
+    elif is_volunteer:
+        ppg = 0.0; rate = 0.0; reward = 0.0
+        total = volunteer_platform_fee(target_responses)
     else:
         if per_person_gross: ppg = float(per_person_gross)
         elif total_budget: ppg = float(total_budget) / int(target_responses)
         else: ppg = 5.0
         rate, reward = calculate_commission(ppg)
         total = round(ppg * int(target_responses), 2)
+    total = round(total * timeline_multiplier(urgency_level), 2)
 
     image_url = None
     if cover_image and cover_image.filename:
@@ -1974,7 +2253,8 @@ async def publish_survey(
         survey.payment_status = "unpaid" if not is_no_pay else "paid"
         survey.target_responses = target_responses
         survey.urgency_level = _clean_target(urgency_level)
-        survey.incentive_type = _clean_target(incentive_type)
+        survey.incentive_type = incentive_clean
+        survey.raffle_prize_type = raffle_clean if is_raffle else None
         survey.target_age_range = _clean_target(target_age_range)
         survey.target_education_min = target_education_min
         survey.target_education_max = target_education_max
@@ -1991,11 +2271,14 @@ async def publish_survey(
         survey.target_smoking = _clean_target(target_smoking)
         survey.target_cannabis_use = _clean_target(target_cannabis_use)
         survey.target_student_status = _clean_target(target_student_status)
-        survey.target_year_in_school = _clean_target(target_year_in_school)
+        survey.target_year_in_school = None
         survey.target_international_domestic = _clean_target(target_international_domestic)
         survey.target_experience_tags = target_experience_tags
         survey.target_participation_format = _clean_target(target_participation_format)
         survey.target_device = _clean_target(target_device)
+        survey.target_income_level = _clean_target(target_income_level)
+        survey.target_lifestyle_tags = target_lifestyle_tags
+        survey.target_niche_requirements = target_niche_requirements
         db.commit()
         db.refresh(survey)
     else:
@@ -2005,7 +2288,8 @@ async def publish_survey(
             reward_amount=reward, per_person_gross=ppg, total_budget=total, commission_rate=rate,
             payment_status="unpaid" if not is_no_pay else "paid",
             target_responses=target_responses, urgency_level=_clean_target(urgency_level),
-            incentive_type=_clean_target(incentive_type), target_age_range=_clean_target(target_age_range),
+            incentive_type=incentive_clean, raffle_prize_type=raffle_clean if is_raffle else None,
+            target_age_range=_clean_target(target_age_range),
             target_education_min=target_education_min, target_education_max=target_education_max,
             target_field=_clean_target(target_field), target_status=_clean_target(target_status),
             target_state=_clean_target(target_state), target_language=_clean_target(target_language),
@@ -2017,11 +2301,14 @@ async def publish_survey(
             target_sport_frequency=_clean_target(target_sport_frequency),
             target_smoking=_clean_target(target_smoking), target_cannabis_use=_clean_target(target_cannabis_use),
             target_student_status=_clean_target(target_student_status),
-            target_year_in_school=_clean_target(target_year_in_school),
+            target_year_in_school=None,
             target_international_domestic=_clean_target(target_international_domestic),
             target_experience_tags=target_experience_tags,
             target_participation_format=_clean_target(target_participation_format),
             target_device=_clean_target(target_device),
+            target_income_level=_clean_target(target_income_level),
+            target_lifestyle_tags=target_lifestyle_tags,
+            target_niche_requirements=target_niche_requirements,
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
         db.add(survey); db.commit(); db.refresh(survey)
@@ -2034,9 +2321,13 @@ async def publish_survey(
         return RedirectResponse("/publisher", status_code=303)
 
     success_url = f"https://insightaco.org/payment/success?survey_id={survey.id}"
+    if is_volunteer:
+        stripe_description = f"Volunteer recruitment fee: ${volunteer_platform_fee(target_responses):.2f} per 10 participants"
+    else:
+        stripe_description = f"{survey.target_responses} responses x ${reward:.2f} per person"
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
-        line_items=[{"price_data": {"currency": "usd", "product_data": {"name": f"Survey: {survey.title}", "description": f"{survey.target_responses} responses × ${reward:.2f} per person"}, "unit_amount": int(round(total * 100))}, "quantity": 1}],
+        line_items=[{"price_data": {"currency": "usd", "product_data": {"name": f"Survey: {survey.title}", "description": stripe_description}, "unit_amount": int(round(total * 100))}, "quantity": 1}],
         mode="payment",
         success_url=success_url,
         cancel_url="https://insightaco.org/publisher",

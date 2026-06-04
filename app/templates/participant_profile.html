@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Insighta — Profile</title>
+  <title>Insighta - Profile</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,15 +14,13 @@
       --em:#76c893;--teal:#34a0a4;--teal2:#168aad;
       --ocean:#1a759f;--baltic:#1e6091;--yale:#184e77;
       --ink:#12324a;--ink2:#2f5f6d;--ink3:#5f8390;
-      --paper:#f6fbec;--paper2:#eaf7d6;--paper3:#dff5ef;
-      --line:#cbe8b4;--line2:#99d98c;
+      --paper:#fcfff5;--paper2:#f4fbdf;--paper3:#eefbf7;
+      --line:#d9efc8;--line2:#b8e9ad;
       --sans:'DM Sans',system-ui,sans-serif;
       --sidebar-w:220px;
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
     body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh;display:flex;}
-
-    /* sidebar */
     .sidebar{width:var(--sidebar-w);flex-shrink:0;background:#fff;border-right:2px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
     .sidebar-top{padding:20px 20px 16px;border-bottom:2px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
     .sidebar-logo{font-size:18px;font-weight:900;color:var(--ink);}
@@ -34,66 +32,112 @@
     .nav-item.active{background:var(--paper2);color:var(--yale);border-color:var(--line);box-shadow:0 3px 0 var(--line2);}
     .nav-item svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
     .sidebar-bottom{padding:14px 10px;border-top:2px solid var(--line);}
-    .user-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;cursor:pointer;text-decoration:none;transition:background .15s;}
+    .user-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;text-decoration:none;transition:background .15s;}
     .user-row:hover{background:var(--paper2);}
-    .avatar{width:34px;height:34px;border-radius:10px;background:var(--lime);color:var(--yale);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;border:2px solid var(--lime2);box-shadow:0 2px 0 var(--lime3);flex-shrink:0;}
+    .avatar,.profile-avatar{background:var(--lime);color:var(--yale);display:flex;align-items:center;justify-content:center;font-weight:900;border:2px solid var(--lime2);box-shadow:0 3px 0 var(--lime3);flex-shrink:0;}
+    .avatar{width:34px;height:34px;border-radius:10px;font-size:14px;}
     .user-name{font-size:13px;font-weight:700;color:var(--ink);}
     .user-sub{font-size:11px;color:var(--ink3);margin-top:1px;}
-
     .main{flex:1;min-width:0;display:flex;flex-direction:column;}
-    .topbar{background:rgba(246,251,236,0.9);backdrop-filter:blur(16px);border-bottom:2px solid var(--line);padding:0 32px;height:58px;display:flex;align-items:center;position:sticky;top:0;z-index:50;}
+    .topbar{background:rgba(252,255,245,0.94);backdrop-filter:blur(16px);border-bottom:2px solid var(--line);padding:0 32px;height:58px;display:flex;align-items:center;position:sticky;top:0;z-index:50;}
     .topbar-title{font-size:17px;font-weight:900;color:var(--ink);}
-    .content{flex:1;padding:28px 32px;max-width:760px;}
-
-    /* profile hero */
-    .profile-hero{background:#fff;border:2px solid var(--line2);border-radius:20px;padding:24px 24px 20px;margin-bottom:20px;box-shadow:0 5px 0 var(--em);display:flex;align-items:center;gap:20px;}
-    .profile-avatar{width:64px;height:64px;border-radius:18px;background:var(--lime);color:var(--yale);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;border:2px solid var(--lime2);box-shadow:0 4px 0 var(--lime3);flex-shrink:0;}
-    .profile-hero-info{}
-    .profile-name{font-size:20px;font-weight:900;color:var(--ink);margin-bottom:2px;}
-    .profile-email{font-size:13px;color:var(--ink3);font-weight:700;margin-bottom:10px;}
-    .profile-hero-right{margin-left:auto;text-align:right;}
-
-    /* completeness */
+    .content{flex:1;padding:28px 32px 40px;max-width:980px;width:100%;}
+    .profile-hero{background:#fff;border:2px solid var(--line2);border-radius:20px;padding:22px 24px;margin-bottom:20px;box-shadow:0 5px 0 var(--em);display:flex;align-items:center;gap:18px;}
+    .profile-avatar{width:64px;height:64px;border-radius:18px;font-size:28px;}
+    .profile-name{font-size:21px;font-weight:900;color:var(--ink);margin-bottom:2px;}
+    .profile-email{font-size:13px;color:var(--ink3);font-weight:700;}
+    .profile-note{margin-top:10px;font-size:13px;color:var(--ink2);font-weight:700;line-height:1.45;max-width:620px;}
     .completeness{background:var(--paper2);border:2px solid var(--line2);border-radius:16px;padding:18px 20px;margin-bottom:20px;box-shadow:0 4px 0 var(--em);}
-    .comp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .comp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px;}
     .comp-title{font-size:14px;font-weight:900;color:var(--ink);}
-    .comp-pct{font-size:22px;font-weight:900;color:var(--teal2);}
-    .comp-track{height:10px;background:#fff;border:2px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:8px;}
-    .comp-fill{height:100%;background:var(--teal);border-radius:4px;transition:width .5s ease;}
-    .comp-hint{font-size:12px;color:var(--ink3);font-weight:700;}
-
-    /* sections */
-    .profile-section{background:#fff;border:2px solid var(--line2);border-radius:16px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 0 var(--em);}
-    .section-header{padding:14px 20px;border-bottom:2px solid var(--line);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
-    .section-header:hover{background:var(--paper2);}
-    .sh-left{display:flex;align-items:center;gap:10px;}
+    .comp-pct{font-size:24px;font-weight:900;color:var(--teal2);}
+    .comp-track{height:11px;background:#fff;border:2px solid var(--line);border-radius:7px;overflow:hidden;}
+    .comp-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--lime3));border-radius:5px;transition:width .5s ease;}
+    .comp-hint{font-size:12px;color:var(--ink3);font-weight:700;margin-top:3px;}
+    .profile-form{display:flex;flex-direction:column;gap:16px;}
+    .profile-section{background:#fff;border:2px solid var(--line2);border-radius:16px;overflow:hidden;box-shadow:0 4px 0 var(--em);}
+    .section-header{padding:14px 20px;border-bottom:2px solid var(--line);display:flex;align-items:center;gap:10px;background:#fff;}
     .sh-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
     .sh-icon svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;}
     .sh-title{font-size:14px;font-weight:900;color:var(--ink);}
-    .sh-count{font-size:11px;color:var(--ink3);font-weight:700;background:var(--paper2);border:1.5px solid var(--line);padding:2px 8px;border-radius:20px;}
-    .sh-chevron{width:16px;height:16px;stroke:var(--ink3);fill:none;stroke-width:2;transition:transform .2s;}
-    .sh-chevron.open{transform:rotate(180deg);}
-    .section-body{padding:16px 20px;display:none;}
-    .section-body.open{display:block;}
-    .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-    .field-item{display:flex;flex-direction:column;gap:4px;}
-    .field-label{font-size:11px;font-weight:900;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;}
-    .field-value{font-size:13px;font-weight:700;color:var(--ink);}
-    .field-empty{font-size:13px;font-weight:700;color:var(--line2);}
-    .edit-link{font-size:12px;font-weight:900;color:var(--teal2);text-decoration:none;margin-top:14px;display:inline-flex;align-items:center;gap:4px;}
-    .edit-link svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;}
-    .edit-link:hover{color:var(--yale);}
-
-    /* logout */
+    .section-body{padding:18px 20px 20px;}
+    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+    .form-grid.three{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .form-group{display:flex;flex-direction:column;gap:7px;min-width:0;}
+    .form-group.full{grid-column:1/-1;}
+    .form-label{font-size:11px;font-weight:900;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;}
+    .form-input,.form-select,.form-textarea{width:100%;border:2px solid var(--line);background:var(--paper);color:var(--ink);border-radius:12px;font-family:var(--sans);font-size:14px;font-weight:700;outline:none;transition:all .15s;}
+    .form-input,.form-select{height:44px;padding:0 13px;}
+    .form-textarea{min-height:104px;resize:vertical;padding:12px 13px;line-height:1.45;}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--teal);box-shadow:0 0 0 4px rgba(52,160,164,.12);background:#fff;}
+    .helper{font-size:12px;color:var(--ink3);font-weight:700;line-height:1.45;}
+    .other-input{display:none;}
+    .other-input.is-visible{display:flex;}
+    .chip-grid{display:flex;flex-wrap:wrap;gap:8px;}
+    .chip{position:relative;display:inline-flex;align-items:center;}
+    .chip input{position:absolute;opacity:0;pointer-events:none;}
+    .chip span{display:inline-flex;align-items:center;min-height:36px;padding:8px 12px;border-radius:999px;border:2px solid var(--line);background:var(--paper);color:var(--ink2);font-size:13px;font-weight:900;cursor:pointer;transition:all .15s;line-height:1.2;}
+    .chip input:checked + span{background:var(--lime);border-color:var(--lime2);color:var(--yale);box-shadow:0 3px 0 var(--lime3);transform:translateY(-1px);}
+    .save-bar{position:sticky;bottom:16px;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border:2px solid var(--line2);border-radius:16px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:14px;box-shadow:0 5px 0 var(--em);}
+    .save-copy{font-size:12px;color:var(--ink3);font-weight:800;line-height:1.35;}
+    .save-btn{border:0;border-radius:13px;background:var(--teal2);color:#fff;font-family:var(--sans);font-weight:900;font-size:14px;padding:13px 20px;cursor:pointer;box-shadow:0 4px 0 var(--yale);transition:all .15s;white-space:nowrap;}
+    .save-btn:hover{transform:translateY(-1px);background:var(--ocean);}
     .logout-btn{display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px;background:#fff;border:2px solid var(--line);border-radius:12px;font-family:var(--sans);font-size:13px;font-weight:700;color:var(--ink3);cursor:pointer;text-decoration:none;transition:all .15s;box-shadow:0 3px 0 var(--line2);}
     .logout-btn:hover{border-color:var(--line2);color:var(--ink);}
     .logout-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
-
-    ::-webkit-scrollbar{width:4px;}
-    ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
+    @media(max-width:760px){
+      body{display:block;padding-bottom:80px;}
+      .sidebar{display:none;}
+      .topbar{height:56px;padding:0 18px;}
+      .content{padding:18px 14px 28px;}
+      .profile-hero{align-items:flex-start;padding:18px;border-radius:18px;}
+      .profile-avatar{width:54px;height:54px;font-size:23px;border-radius:16px;}
+      .form-grid,.form-grid.three{grid-template-columns:1fr;}
+      .section-body{padding:16px 14px 18px;}
+      .save-bar{left:12px;right:12px;bottom:12px;align-items:center;}
+      .save-copy{display:none;}
+      .save-btn{width:100%;}
+    }
   </style>
 </head>
 <body>
+{% set languages = (current_user.language or '').split(',') %}
+{% set experiences = (current_user.experience_tags or '').split(',') %}
+{% set lifestyles = (current_user.lifestyle_tags or '').split(',') %}
+{% set field_other = current_user.field.split(':', 1)[1].strip() if current_user.field and current_user.field.startswith('Other:') else '' %}
+{% set status_other = current_user.status.split(':', 1)[1].strip() if current_user.status and current_user.status.startswith('Other:') else '' %}
+{% set race_other = current_user.race.split(':', 1)[1].strip() if current_user.race and current_user.race.startswith('Prefer to self-describe:') else '' %}
+{% set language_other = current_user.language.split('Other:', 1)[1].split(',')[0].strip() if current_user.language and 'Other:' in current_user.language else '' %}
+{% set experience_other = current_user.experience_tags.split('Other:', 1)[1].split(',')[0].strip() if current_user.experience_tags and 'Other:' in current_user.experience_tags else '' %}
+{% set lifestyle_other = current_user.lifestyle_tags.split('Other:', 1)[1].split(',')[0].strip() if current_user.lifestyle_tags and 'Other:' in current_user.lifestyle_tags else '' %}
+{% set mental_other = current_user.mental_health_diagnosis.split(':', 1)[1].strip() if current_user.mental_health_diagnosis and current_user.mental_health_diagnosis.startswith('Other:') else '' %}
+{% set physical_other = current_user.physical_health_diagnosis.split(':', 1)[1].strip() if current_user.physical_health_diagnosis and current_user.physical_health_diagnosis.startswith('Other:') else '' %}
+
+<datalist id="country-options">
+  {% for option in ['United States','Canada','China','India','United Kingdom','Australia','Germany','France','Spain','Italy','Japan','South Korea','Singapore','Mexico','Brazil','Argentina','Chile','Colombia','Nigeria','South Africa','Egypt','Turkey','Saudi Arabia','United Arab Emirates','Vietnam','Thailand','Indonesia','Philippines','Malaysia','Pakistan','Bangladesh','Other'] %}
+    <option value="{{ option }}"></option>
+  {% endfor %}
+</datalist>
+<datalist id="province-options">
+  {% for option in ['Alabama','Alaska','Arizona','California','Colorado','Connecticut','Florida','Georgia','Illinois','Massachusetts','Michigan','New Jersey','New York','North Carolina','Ohio','Pennsylvania','Texas','Virginia','Washington','Washington DC','Ontario','Quebec','British Columbia','Alberta','Beijing','Shanghai','Guangdong','Jiangsu','Zhejiang','Sichuan','Hong Kong','Taiwan','England','Scotland','New South Wales','Victoria','Other'] %}
+    <option value="{{ option }}"></option>
+  {% endfor %}
+</datalist>
+<datalist id="city-options">
+  {% for option in ['New York','Los Angeles','San Francisco','San Jose','Seattle','Boston','Chicago','Austin','Dallas','Houston','Atlanta','Washington DC','Philadelphia','Toronto','Vancouver','Montreal','Beijing','Shanghai','Shenzhen','Guangzhou','Hangzhou','Nanjing','Chengdu','Hong Kong','Taipei','London','Paris','Berlin','Sydney','Melbourne','Singapore','Tokyo','Seoul','Other'] %}
+    <option value="{{ option }}"></option>
+  {% endfor %}
+</datalist>
+<datalist id="mental-diagnosis-options">
+  {% for option in ['None','ADHD','Anxiety disorder','Depression','Bipolar disorder','PTSD','OCD','Autism spectrum disorder','Eating disorder','Panic disorder','Social anxiety disorder','Specific phobia','Borderline personality disorder','Schizophrenia spectrum disorder','Substance use disorder','Sleep disorder','Prefer not to say','Other'] %}
+    <option value="{{ option }}"></option>
+  {% endfor %}
+</datalist>
+<datalist id="physical-diagnosis-options">
+  {% for option in ['None','Asthma','Diabetes type 1','Diabetes type 2','Hypertension','Heart disease','Chronic pain','Migraine','Arthritis','Autoimmune condition','Thyroid condition','PCOS','Endometriosis','IBS','Crohn disease / ulcerative colitis','Allergies','Eczema','Epilepsy','Cancer history','Long COVID','Mobility impairment','Hearing impairment','Vision impairment','Prefer not to say','Other'] %}
+    <option value="{{ option }}"></option>
+  {% endfor %}
+</datalist>
 
 <aside class="sidebar">
   <div class="sidebar-top">
@@ -101,49 +145,32 @@
     <div class="earnings-pill">${{ "%.2f"|format(pending_earnings) }}</div>
   </div>
   <nav class="sidebar-nav">
-    <a href="/dashboard" class="nav-item">
-      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Home
-    </a>
-    <a href="/my-studies" class="nav-item">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      My studies
-    </a>
-    <a href="/earnings" class="nav-item">
-      <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-      Earnings
-    </a>
-    <a href="/profile" class="nav-item active">
-      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Profile
-    </a>
+    <a href="/dashboard" class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</a>
+    <a href="/my-studies" class="nav-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>My studies</a>
+    <a href="/earnings" class="nav-item"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Earnings</a>
+    <a href="/profile" class="nav-item active"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
   </nav>
   <div class="sidebar-bottom">
     <a href="/profile" class="user-row">
       <div class="avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
-      <div>
-        <div class="user-name">{{ current_user.username or 'Your profile' }}</div>
-        <div class="user-sub">{{ current_user.email }}</div>
-      </div>
+      <div><div class="user-name">{{ current_user.username or 'Your profile' }}</div><div class="user-sub">{{ current_user.email }}</div></div>
     </a>
   </div>
 </aside>
 
 <div class="main">
-  <div class="topbar">
-    <div class="topbar-title">Profile</div>
-  </div>
+  <div class="topbar"><div class="topbar-title">Profile</div></div>
   <div class="content">
-
     <div class="profile-hero">
       <div class="profile-avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
-      <div class="profile-hero-info">
+      <div>
         <div class="profile-name">{{ current_user.username or 'Your profile' }}</div>
         <div class="profile-email">{{ current_user.email }}</div>
+        <div class="profile-note">Add more detail about yourself so researchers can match you with better studies.</div>
       </div>
     </div>
 
-    {% set pf = [current_user.age_range, current_user.education_level, current_user.field, current_user.status, current_user.state, current_user.language, current_user.ethnicity, current_user.student_status, current_user.year_in_school, current_user.international_domestic, current_user.participation_format, current_user.device_type, current_user.experience_tags, current_user.sexual_orientation, current_user.mental_health_diagnosis, current_user.physical_health_diagnosis, current_user.sport_type, current_user.smoking] %}
+    {% set pf = [current_user.username, current_user.phone_number, current_user.birth_year, current_user.birth_month, current_user.profile_description, current_user.education_level, current_user.field, current_user.status, current_user.current_country, current_user.current_province, current_user.current_city, current_user.language, current_user.race, current_user.student_status, current_user.year_in_school, current_user.international_domestic, current_user.experience_tags, current_user.participation_format, current_user.device_type, current_user.income_level, current_user.lifestyle_tags] %}
     {% set filled = pf | select | list | length %}
     {% set total = pf | length %}
     {% set pct = (filled * 100 // total) %}
@@ -151,119 +178,260 @@
     <div class="completeness">
       <div class="comp-top">
         <div>
-          <div class="comp-title">Profile completeness</div>
-          <div style="font-size:12px;color:var(--ink3);font-weight:700;margin-top:2px;">{{ total - filled }} fields missing — a complete profile improves your match quality</div>
+          <div class="comp-title">Profile progress</div>
+          <div class="comp-hint">{{ total - filled }} fields left - better detail means better matching</div>
         </div>
         <div class="comp-pct">{{ pct }}%</div>
       </div>
       <div class="comp-track"><div class="comp-fill" style="width:{{ pct }}%"></div></div>
     </div>
 
-    <!-- DEMOGRAPHICS -->
-    <div class="profile-section">
-      <div class="section-header" onclick="toggleSection('demo')">
-        <div class="sh-left">
-          <div class="sh-icon" style="background:var(--teal);">
-            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    <form class="profile-form" method="POST" action="/profile">
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--teal);"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div class="sh-title">About you</div>
+        </div>
+        <div class="section-body">
+          <div class="form-grid">
+            <label class="form-group"><span class="form-label">Display name</span><input class="form-input" name="username" value="{{ current_user.username or '' }}"></label>
+            <label class="form-group"><span class="form-label">Email</span><input class="form-input" type="email" name="email" value="{{ current_user.email or '' }}"></label>
+            <label class="form-group"><span class="form-label">Phone number</span><input class="form-input" type="tel" name="phone_number" value="{{ current_user.phone_number or '' }}" placeholder="+1 555 123 4567"></label>
+            <label class="form-group"><span class="form-label">Born year</span><input class="form-input" type="number" min="1900" max="2010" name="birth_year" value="{{ current_user.birth_year or '' }}" placeholder="2002"></label>
+            <label class="form-group">
+              <span class="form-label">Born month</span>
+              <select class="form-select" name="birth_month">
+                <option value="">Select month</option>
+                {% for month in ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
+                  <option value="{{ loop.index }}" {% if current_user.birth_month|string == loop.index|string %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group full"><span class="form-label">Description</span><textarea class="form-textarea" name="profile_description" placeholder="Share details that help us match you with relevant research, such as interests, background, communities, or routines.">{{ current_user.profile_description or '' }}</textarea></label>
           </div>
-          <div class="sh-title">Demographics</div>
-          <div class="sh-count">{{ [current_user.age_range, current_user.education_level, current_user.field, current_user.state, current_user.ethnicity] | select | list | length }}/5 filled</div>
         </div>
-        <svg class="sh-chevron" id="chevron-demo" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="section-body" id="body-demo">
-        <div class="field-grid">
-          <div class="field-item"><div class="field-label">Age range</div><div class="{{ 'field-value' if current_user.age_range else 'field-empty' }}">{{ current_user.age_range or '— not set' }}</div></div>
-          <div class="field-item"><div class="field-label">Education</div><div class="{{ 'field-value' if current_user.education_level else 'field-empty' }}">{{ current_user.education_level or '— not set' }}</div></div>
-          <div class="field-item"><div class="field-label">Field / Major</div><div class="{{ 'field-value' if current_user.field else 'field-empty' }}">{{ current_user.field or '— not set' }}</div></div>
-          <div class="field-item"><div class="field-label">Location</div><div class="{{ 'field-value' if current_user.state else 'field-empty' }}">{{ current_user.state or '— not set' }}</div></div>
-          <div class="field-item"><div class="field-label">Ethnicity</div><div class="{{ 'field-value' if current_user.ethnicity else 'field-empty' }}">{{ current_user.ethnicity or '— not set' }}</div></div>
-          <div class="field-item"><div class="field-label">Language</div><div class="{{ 'field-value' if current_user.language else 'field-empty' }}">{{ current_user.language or '— not set' }}</div></div>
-        </div>
-        <a href="/profile/edit" class="edit-link">Edit demographics <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-      </div>
-    </div>
+      </section>
 
-    <!-- STUDENT STATUS -->
-    <div class="profile-section">
-      <div class="section-header" onclick="toggleSection('student')">
-        <div class="sh-left">
-          <div class="sh-icon" style="background:var(--ocean);">
-            <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--ocean);"><svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
+          <div class="sh-title">Academic & status</div>
+        </div>
+        <div class="section-body">
+          <div class="form-grid">
+            <label class="form-group">
+              <span class="form-label">Education level</span>
+              <select class="form-select" name="education_level">
+                {% for option in ['Below High School','High School','Undergraduate','Graduate','PhD','Postdoc'] %}
+                  <option value="{{ option }}" {% if current_user.education_level == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Field / major</span>
+              <select class="form-select" name="field" data-other-source data-other-target="field-other">
+                <option value="">Select</option>
+                {% for option in ['Computer Science & Engineering','Data Science / AI','Business & Economics','Marketing / Design','Medicine & Healthcare','Psychology / Neuroscience','Natural Sciences','Social Sciences','Education','Law / Public Policy','Arts & Humanities','Communications / Media','Architecture / Design','Other'] %}
+                  <option value="{{ option }}" {% if current_user.field == option or (option == 'Other' and field_other) %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group other-input" id="field-other"><span class="form-label">Your field / major</span><input class="form-input" name="field_other" value="{{ field_other }}" placeholder="Type your field"></label>
+            <label class="form-group">
+              <span class="form-label">Current status</span>
+              <select class="form-select" name="status" data-other-source data-other-target="status-other">
+                <option value="">Select</option>
+                {% for option in ['High school student','Undergraduate student','Graduate student','PhD student','Postdoc','Full-time employed','Part-time employed','Self-employed / Freelancer','Unemployed','Homemaker / Caregiver','Retired','Other'] %}
+                  <option value="{{ option }}" {% if current_user.status == option or (option == 'Other' and status_other) %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group other-input" id="status-other"><span class="form-label">Your current status</span><input class="form-input" name="status_other" value="{{ status_other }}" placeholder="Type your status"></label>
+            <label class="form-group">
+              <span class="form-label">Race</span>
+              <select class="form-select" name="race" data-other-source data-other-value="Prefer to self-describe" data-other-target="race-other">
+                <option value="">Select</option>
+                {% for option in ['Asian','Black or African American','Hispanic or Latino','Middle Eastern or North African','Native American or Alaska Native','Native Hawaiian or Pacific Islander','White','Multiracial','Prefer to self-describe','Prefer not to say'] %}
+                  <option value="{{ option }}" {% if current_user.race == option or current_user.ethnicity == option or (option == 'Prefer to self-describe' and race_other) %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group other-input" id="race-other"><span class="form-label">Self describe race</span><input class="form-input" name="race_other" value="{{ race_other }}" placeholder="Type your description"></label>
+            <label class="form-group">
+              <span class="form-label">Student status</span>
+              <select class="form-select" name="student_status">
+                <option value="">Select</option>
+                {% for option in ['Not a student','Current student','Recent graduate','Returning student','Prospective student'] %}
+                  <option value="{{ option }}" {% if current_user.student_status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Year in school</span>
+              <select class="form-select" name="year_in_school">
+                <option value="">Select</option>
+                {% for option in ['Below HS','High school','Freshman','Sophomore','Junior','Senior',"Master's",'PhD','Postdoc','Not applicable'] %}
+                  <option value="{{ option }}" {% if current_user.year_in_school == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">International / domestic</span>
+              <select class="form-select" name="international_domestic">
+                <option value="">Select</option>
+                {% for option in ['Domestic','International','Exchange / visiting','Not applicable'] %}
+                  <option value="{{ option }}" {% if current_user.international_domestic == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Income level</span>
+              <select class="form-select" name="income_level">
+                <option value="">Select</option>
+                {% for option in ['Under $25k','$25k-$49k','$50k-$74k','$75k-$99k','$100k-$149k','$150k+','Prefer not to say'] %}
+                  <option value="{{ option }}" {% if current_user.income_level == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
           </div>
-          <div class="sh-title">Student status</div>
-          <div class="sh-count">{{ [current_user.student_status, current_user.year_in_school, current_user.international_domestic] | select | list | length }}/3 filled</div>
         </div>
-        <svg class="sh-chevron" id="chevron-student" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="section-body" id="body-student">
-        <div class="field-grid">
-          <div class="field-item"><div class="field-label">Student status</div><div class="{{ 'field-value' if current_user.student_status else 'field-empty' }}">{{ current_user.student_status or '— not set' }}</div></div>
-          <div class="field-item"><div class="field-label">Year in school</div><div class="{{ 'field-value' if current_user.year_in_school else 'field-empty' }}">{{ current_user.year_in_school or '— not set' }}</div></div>
-          <div class="field-item"><div class="field-label">International / Domestic</div><div class="{{ 'field-value' if current_user.international_domestic else 'field-empty' }}">{{ current_user.international_domestic or '— not set' }}</div></div>
-        </div>
-        <a href="/profile/edit" class="edit-link">Edit student info <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-      </div>
-    </div>
+      </section>
 
-    <!-- EXPERIENCES -->
-    <div class="profile-section">
-      <div class="section-header" onclick="toggleSection('exp')">
-        <div class="sh-left">
-          <div class="sh-icon" style="background:var(--yale);">
-            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--teal2);"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div class="sh-title">Location</div>
+        </div>
+        <div class="section-body">
+          <div class="form-grid three">
+            <label class="form-group"><span class="form-label">Country you live in now</span><input class="form-input" list="country-options" name="current_country" value="{{ current_user.current_country or '' }}" placeholder="Search country"></label>
+            <label class="form-group"><span class="form-label">Province / state now</span><input class="form-input" list="province-options" name="current_province" value="{{ current_user.current_province or current_user.state or '' }}" placeholder="Search province / state"></label>
+            <label class="form-group"><span class="form-label">City now</span><input class="form-input" list="city-options" name="current_city" value="{{ current_user.current_city or '' }}" placeholder="Search city"></label>
+            <label class="form-group"><span class="form-label">Country you are from</span><input class="form-input" list="country-options" name="origin_country" value="{{ current_user.origin_country or '' }}" placeholder="Search country"></label>
+            <label class="form-group"><span class="form-label">Province / state from</span><input class="form-input" list="province-options" name="origin_province" value="{{ current_user.origin_province or '' }}" placeholder="Search province / state"></label>
+            <label class="form-group"><span class="form-label">City from</span><input class="form-input" list="city-options" name="origin_city" value="{{ current_user.origin_city or '' }}" placeholder="Search city"></label>
           </div>
-          <div class="sh-title">Experiences & health</div>
-          <div class="sh-count">{{ [current_user.experience_tags, current_user.mental_health_diagnosis, current_user.physical_health_diagnosis] | select | list | length }}/3 filled</div>
+          <div class="helper" style="margin-top:10px;">Use the second row only if where you are from is different from where you live now.</div>
         </div>
-        <svg class="sh-chevron" id="chevron-exp" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="section-body" id="body-exp">
-        <div class="field-grid">
-          <div class="field-item"><div class="field-label">Experience tags</div><div class="{{ 'field-value' if current_user.experience_tags else 'field-empty' }}">{{ current_user.experience_tags or '— not set' }}</div></div>
-          <div class="field-item"><div class="field-label">Mental health</div><div class="{{ 'field-value' if current_user.mental_health_diagnosis else 'field-empty' }}">{{ current_user.mental_health_diagnosis or '— not set' }}</div></div>
-          <div class="field-item"><div class="field-label">Physical health</div><div class="{{ 'field-value' if current_user.physical_health_diagnosis else 'field-empty' }}">{{ current_user.physical_health_diagnosis or '— not set' }}</div></div>
-        </div>
-        <a href="/profile/edit" class="edit-link">Edit experiences <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-      </div>
-    </div>
+      </section>
 
-    <!-- PREFERENCES -->
-    <div class="profile-section" style="margin-bottom:20px;">
-      <div class="section-header" onclick="toggleSection('pref')">
-        <div class="sh-left">
-          <div class="sh-icon" style="background:var(--em);">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--yale);"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg></div>
+          <div class="sh-title">Languages</div>
+        </div>
+        <div class="section-body">
+          <div class="chip-grid">
+            {% for option in ['English','Spanish','Mandarin Chinese','Cantonese','French','Arabic','Hindi','Bengali','Portuguese','Russian','Japanese','Korean','German','Italian','Vietnamese','Tagalog','Urdu','Turkish','Persian','Other'] %}
+              <label class="chip"><input type="checkbox" name="language" value="{{ option }}" {% if option in languages %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="language-other"{% endif %}><span>{{ option }}</span></label>
+            {% endfor %}
           </div>
-          <div class="sh-title">Preferences</div>
-          <div class="sh-count">{{ [current_user.participation_format, current_user.device_type] | select | list | length }}/2 filled</div>
+          <label class="form-group other-input" id="language-other" style="margin-top:12px;"><span class="form-label">Other language</span><input class="form-input" name="language_other" value="{{ language_other }}" placeholder="Type another language"></label>
         </div>
-        <svg class="sh-chevron" id="chevron-pref" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="section-body" id="body-pref">
-        <div class="field-grid">
-          <div class="field-item"><div class="field-label">Participation format</div><div class="{{ 'field-value' if current_user.participation_format else 'field-empty' }}">{{ current_user.participation_format or '— not set' }}</div></div>
-          <div class="field-item"><div class="field-label">Device type</div><div class="{{ 'field-value' if current_user.device_type else 'field-empty' }}">{{ current_user.device_type or '— not set' }}</div></div>
-        </div>
-        <a href="/profile/edit" class="edit-link">Edit preferences <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-      </div>
-    </div>
+      </section>
 
-    <a href="/logout" class="logout-btn">
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--baltic);"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div class="sh-title">Experience</div>
+        </div>
+        <div class="section-body">
+          <div class="chip-grid">
+            {% for option in ['First-generation student','International student','Transfer student','Working student','Caregiver','Chronic illness','Disability','Neurodivergent','Mental health experience','Physical health experience','Financial aid','Study abroad','Research participant','Online learning','Campus housing','Commuter','Athlete / fitness','Creator / social media','Gaming','Travel','Food / dining','Sustainability','Other'] %}
+              <label class="chip"><input type="checkbox" name="experience_tags" value="{{ option }}" {% if option in experiences %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="experience-other"{% endif %}><span>{{ option }}</span></label>
+            {% endfor %}
+          </div>
+          <label class="form-group other-input" id="experience-other" style="margin-top:12px;"><span class="form-label">Other experience</span><input class="form-input" name="experience_tags_other" value="{{ experience_other }}" placeholder="Type another experience"></label>
+          <div class="form-grid" style="margin-top:16px;">
+            <label class="form-group"><span class="form-label">Mental health diagnosis</span><input class="form-input" list="mental-diagnosis-options" name="mental_health_diagnosis" value="{{ 'Other' if mental_other else (current_user.mental_health_diagnosis or '') }}" placeholder="Search or type" data-other-source data-other-target="mental-other"></label>
+            <label class="form-group"><span class="form-label">Physical health diagnosis</span><input class="form-input" list="physical-diagnosis-options" name="physical_health_diagnosis" value="{{ 'Other' if physical_other else (current_user.physical_health_diagnosis or '') }}" placeholder="Search or type" data-other-source data-other-target="physical-other"></label>
+            <label class="form-group other-input" id="mental-other"><span class="form-label">Other mental health diagnosis</span><input class="form-input" name="mental_health_diagnosis_other" value="{{ mental_other }}" placeholder="Type diagnosis"></label>
+            <label class="form-group other-input" id="physical-other"><span class="form-label">Other physical diagnosis</span><input class="form-input" name="physical_health_diagnosis_other" value="{{ physical_other }}" placeholder="Type diagnosis"></label>
+          </div>
+        </div>
+      </section>
+
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--em);"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></div>
+          <div class="sh-title">Survey preferences & lifestyle</div>
+        </div>
+        <div class="section-body">
+          <div class="form-grid">
+            <label class="form-group">
+              <span class="form-label">Participation format</span>
+              <select class="form-select" name="participation_format">
+                <option value="">Select</option>
+                {% for option in ['Online surveys','Phone interview','Video interview','In-person study','Product test','Diary study','Any format'] %}
+                  <option value="{{ option }}" {% if current_user.participation_format == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Primary device for taking surveys</span>
+              <select class="form-select" name="device_type">
+                <option value="">Select</option>
+                {% for option in ['Phone','Tablet','Laptop','Desktop','Shared public device'] %}
+                  <option value="{{ option }}" {% if current_user.device_type == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Smoking</span>
+              <select class="form-select" name="smoking">
+                <option value="">Select</option>
+                {% for option in ['No','Yes','Former smoker','Prefer not to say'] %}
+                  <option value="{{ option }}" {% if current_user.smoking == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Cannabis use</span>
+              <select class="form-select" name="cannabis_use">
+                <option value="">Select</option>
+                {% for option in ['No','Yes','Occasionally','Prefer not to say'] %}
+                  <option value="{{ option }}" {% if current_user.cannabis_use == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+          <div class="form-group full" style="margin-top:16px;">
+            <span class="form-label">Lifestyle</span>
+            <div class="chip-grid">
+              {% for option in ['Exercise regularly','Team sports','Outdoor activities','Cooking / foodie','Coffee / tea','Gaming','Streaming','Social media creator','Frequent traveler','Public transit','Drives regularly','Pet owner','Parent / guardian','Vegetarian / vegan','Budget conscious','Early adopter','Night owl','Morning person','Other'] %}
+                <label class="chip"><input type="checkbox" name="lifestyle_tags" value="{{ option }}" {% if option in lifestyles %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="lifestyle-other"{% endif %}><span>{{ option }}</span></label>
+              {% endfor %}
+            </div>
+            <label class="form-group other-input" id="lifestyle-other" style="margin-top:12px;"><span class="form-label">Other lifestyle</span><input class="form-input" name="lifestyle_tags_other" value="{{ lifestyle_other }}" placeholder="Type another lifestyle"></label>
+          </div>
+        </div>
+      </section>
+
+      <div class="save-bar">
+        <div class="save-copy">Changes stay on this Profile tab and help improve participant matching.</div>
+        <button class="save-btn" type="submit">Save profile</button>
+      </div>
+    </form>
+
+    <a href="/logout" class="logout-btn" style="margin-top:16px;">
       <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Log out
     </a>
-
   </div>
 </div>
-
 <script>
-  function toggleSection(id) {
-    const body    = document.getElementById('body-' + id);
-    const chevron = document.getElementById('chevron-' + id);
-    const open    = body.classList.toggle('open');
-    chevron.classList.toggle('open', open);
+  function syncOtherInputs() {
+    document.querySelectorAll('[data-other-source]').forEach((source) => {
+      const target = document.getElementById(source.dataset.otherTarget);
+      if (!target) return;
+      const otherValue = source.dataset.otherValue || 'Other';
+      const isVisible = source.type === 'checkbox' ? source.checked : source.value === otherValue;
+      target.classList.toggle('is-visible', isVisible);
+    });
   }
+  document.addEventListener('input', syncOtherInputs);
+  document.addEventListener('change', syncOtherInputs);
+  syncOtherInputs();
 </script>
 </body>
 </html>

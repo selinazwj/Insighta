@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ survey.title }} — Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green:#3b7c4f; --green-d:#2a5c39; --green-l:#e8f2eb; --green-m:#c2deca;
+      --ink:#1a1a18; --ink2:#4a4a44; --ink3:#8a8a82; --ink4:#b8b8b0;
+      --bg:#ffffff; --bg2:#fafaf8; --bg3:#f5f3ee;
+      --line:#eeece6; --line2:#e0ddd6;
+      --serif:'DM Serif Display',Georgia,serif;
+      --sans:'DM Sans',system-ui,sans-serif;
+      --sidebar:220px;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:var(--sans);background:var(--bg2);color:var(--ink);min-height:100vh;display:flex;-webkit-font-smoothing:antialiased;}
+
+    /* ── SIDEBAR (same as publisher.html) ── */
+    .sidebar{width:var(--sidebar);flex-shrink:0;background:var(--bg);border-right:0.5px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+    .sidebar-logo{padding:20px 20px 18px;border-bottom:0.5px solid var(--line);font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.2px;text-decoration:none;display:block;}
+    .sidebar-logo span{color:var(--green);}
+    .sidebar-nav{flex:1;padding:10px;display:flex;flex-direction:column;gap:1px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;font-size:13px;font-weight:500;color:var(--ink3);text-decoration:none;cursor:pointer;border:none;background:none;font-family:var(--sans);width:100%;text-align:left;transition:background .12s,color .12s;}
+    .nav-item:hover{background:var(--bg3);color:var(--ink2);}
+    .nav-item.active{background:var(--green-l);color:var(--green);font-weight:600;}
+    .nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+    .nav-divider{height:0.5px;background:var(--line);margin:6px 10px;}
+    .sidebar-user{padding:14px 10px;border-top:0.5px solid var(--line);}
+    .user-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:7px;text-decoration:none;transition:background .12s;}
+    .user-row:hover{background:var(--bg3);}
+    .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+    .user-name{font-size:13px;font-weight:500;color:var(--ink);}
+    .user-email{font-size:11px;color:var(--ink3);margin-top:1px;}
+
+    /* ── MAIN ── */
+    .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+
+    .topbar{height:56px;padding:0 32px;background:rgba(255,255,255,0.92);backdrop-filter:blur(16px);border-bottom:0.5px solid var(--line);display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;}
+    .back-btn{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink3);text-decoration:none;font-weight:500;transition:color .12s;}
+    .back-btn:hover{color:var(--ink);}
+    .back-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
+    .topbar-sep{width:0.5px;height:16px;background:var(--line);}
+    .topbar-title{font-size:15px;font-weight:600;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .status-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;flex-shrink:0;}
+    .pill-published{background:var(--green-l);color:var(--green);}
+    .pill-draft{background:#fef3c7;color:#92400e;}
+    .pill-closed{background:var(--bg3);color:var(--ink3);}
+
+    .content{padding:28px 32px;flex:1;max-width:800px;}
+
+    /* ── PROGRESS HERO ── */
+    .progress-hero{background:var(--bg);border:0.5px solid var(--line);border-radius:12px;padding:24px 28px;margin-bottom:24px;}
+    .ph-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;}
+    .ph-left{}
+    .ph-numbers{font-size:36px;font-weight:300;color:var(--green);letter-spacing:-1px;line-height:1;margin-bottom:4px;}
+    .ph-label{font-size:13px;color:var(--ink3);font-weight:500;}
+    .ph-right{text-align:right;}
+    .ph-pct{font-size:28px;font-weight:300;color:var(--ink);letter-spacing:-1px;}
+    .ph-pct-label{font-size:11px;color:var(--ink3);}
+    .prog-track{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+    .prog-fill{height:100%;border-radius:3px;background:var(--green);transition:width .4s ease;}
+
+    /* ── TABS ── */
+    .tabs{display:flex;gap:0;border-bottom:0.5px solid var(--line);margin-bottom:24px;}
+    .tab{font-size:13px;font-weight:500;color:var(--ink3);padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;transition:color .12s,border-color .12s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--sans);}
+    .tab:hover{color:var(--ink2);}
+    .tab.active{color:var(--green);border-bottom-color:var(--green);font-weight:600;}
+
+    /* ── OVERVIEW TAB ── */
+    .ov-section{margin-bottom:24px;}
+    .ov-section-title{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;}
+    .ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .ov-item{background:var(--bg);border:0.5px solid var(--line);border-radius:8px;padding:12px 14px;}
+    .ov-label{font-size:11px;color:var(--ink3);margin-bottom:3px;}
+    .ov-value{font-size:13px;font-weight:500;color:var(--ink);}
+    .ov-value.empty{color:var(--ink4);}
+    .ov-value a{color:var(--green);text-decoration:none;}
+    .ov-value a:hover{text-decoration:underline;}
+
+    /* ── ACTIONS TAB ── */
+    .action-group{background:var(--bg);border:0.5px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+    .action-group-head{padding:12px 16px;border-bottom:0.5px solid var(--line);font-size:12px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;}
+    .action-row{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--line);}
+    .action-row:last-child{border-bottom:none;}
+    .action-label{font-size:13px;font-weight:500;color:var(--ink);}
+    .action-desc{font-size:12px;color:var(--ink3);margin-top:1px;}
+    .action-btn{font-size:12px;font-weight:600;padding:7px 16px;border-radius:7px;cursor:pointer;border:0.5px solid var(--line);background:var(--bg);color:var(--ink2);font-family:var(--sans);text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .12s;white-space:nowrap;}
+    .action-btn:hover{background:var(--bg3);border-color:var(--ink4);}
+    .action-btn.primary{background:var(--green);color:#fff;border-color:var(--green);}
+    .action-btn.primary:hover{background:var(--green-d);border-color:var(--green-d);}
+    .action-btn.danger{color:#ef4444;border-color:#fecaca;}
+    .action-btn.danger:hover{background:#fff5f5;border-color:#ef4444;}
+    .action-btn.disabled{opacity:.35;cursor:not-allowed;pointer-events:none;}
+    .action-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;}
+
+    /* ── AI TAB ── */
+    .ai-box{background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px 22px;}
+    .ai-loading{font-size:13px;color:var(--ink3);}
+    .ai-result{}
+    .ai-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+    .ai-stat{background:var(--bg3);border-radius:7px;padding:12px 14px;}
+    .ai-stat-n{font-size:20px;font-weight:300;color:var(--green);letter-spacing:-0.5px;margin-bottom:2px;}
+    .ai-stat-l{font-size:11px;color:var(--ink3);}
+    .ai-insight{font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:16px;padding:14px;background:var(--bg2);border-radius:7px;border:0.5px solid var(--line);}
+    .ai-insight strong{color:var(--ink);font-weight:600;}
+    .ai-actions{display:flex;gap:8px;}
+    .ai-btn{font-size:12px;font-weight:500;padding:7px 14px;border-radius:7px;cursor:pointer;border:0.5px solid var(--line);background:var(--bg);color:var(--ink2);font-family:var(--sans);transition:all .12s;}
+    .ai-btn:hover{background:var(--bg3);}
+
+    ::-webkit-scrollbar{width:4px;}
+    ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <a href="/publisher" class="sidebar-logo">Insight<span>a</span></a>
+  <nav class="sidebar-nav">
+    <a href="/publisher" class="nav-item active">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      My listings
+    </a>
+    <a href="/publisher" class="nav-item" onclick="sessionStorage.setItem('openNewListing','1')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      New listing
+    </a>
+    <div class="nav-divider"></div>
+    <a href="/publisher" class="nav-item" onclick="sessionStorage.setItem('openNotif','1')">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notifications
+    </a>
+    <a href="/guide" class="nav-item">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Tutorial
+    </a>
+    <a href="/feedback" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Share feedback
+    </a>
+  </nav>
+  <div class="sidebar-user">
+    <a href="/profile" class="user-row">
+      <div class="user-avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
+      <div>
+        <div class="user-name">{{ current_user.username or 'Your profile' }}</div>
+        <div class="user-email">{{ current_user.email }}</div>
+      </div>
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <a href="/publisher" class="back-btn">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      My listings
+    </a>
+    <div class="topbar-sep"></div>
+    <div class="topbar-title">{{ survey.title }}</div>
+    <span class="status-pill pill-{{ survey.status }}">{{ survey.status | capitalize }}</span>
+  </div>
+
+  <div class="content">
+
+    <!-- PROGRESS HERO -->
+    {% set completed = completed_count %}
+    {% set target    = survey.target_responses or 0 %}
+    {% set pct       = (completed * 100 // target) if target > 0 else 0 %}
+    <div class="progress-hero">
+      <div class="ph-top">
+        <div>
+          <div class="ph-numbers">{{ completed }}<span style="font-size:20px;color:var(--ink3);"> / {{ target }}</span></div>
+          <div class="ph-label">responses collected</div>
+        </div>
+        <div class="ph-right">
+          <div class="ph-pct">{{ pct }}%</div>
+          <div class="ph-pct-label">complete</div>
+        </div>
+      </div>
+      <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%;"></div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" id="tab-overview" onclick="switchTab('overview')">Overview</button>
+      <button class="tab" id="tab-actions"  onclick="switchTab('actions')">Actions</button>
+      <button class="tab" id="tab-ai"       onclick="switchTab('ai')">AI Forecast</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="panel-overview">
+      <div class="ov-section">
+        <div class="ov-section-title">Study details</div>
+        <div class="ov-grid">
+          <div class="ov-item"><div class="ov-label">Type</div><div class="ov-value">{{ 'Interview' if survey.task_type == 'interview' else 'Survey' }}</div></div>
+          <div class="ov-item"><div class="ov-label">Category</div><div class="ov-value">{{ survey.category | capitalize }}</div></div>
+          <div class="ov-item"><div class="ov-label">Estimated time</div><div class="ov-value">{{ survey.estimated_time }} min</div></div>
+          <div class="ov-item"><div class="ov-label">Reward per person</div><div class="ov-value">${{ survey.reward_amount }}</div></div>
+          <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">Description</div><div class="ov-value">{{ survey.description or '—' }}</div></div>
+          {% if survey.form_url and survey.form_url != '__builtin__' %}
+          <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">Survey link</div><div class="ov-value"><a href="{{ survey.form_url }}" target="_blank">{{ survey.form_url[:60] }}{% if survey.form_url|length > 60 %}…{% endif %}</a></div></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="ov-section">
+        <div class="ov-section-title">Target criteria</div>
+        <div class="ov-grid">
+          {% set criteria = [
+            ('Age range', survey.target_age_range),
+            ('Field', survey.target_field),
+            ('Education', none),
+            ('Status', survey.target_status),
+            ('Location', survey.target_state),
+            ('Language', survey.target_language),
+            ('Ethnicity', survey.target_ethnicity),
+            ('Student status', survey.target_student_status),
+            ('Year in school', survey.target_year_in_school),
+            ('International / Domestic', survey.target_international_domestic),
+            ('Experience tags', survey.target_experience_tags),
+            ('Format', survey.target_participation_format),
+            ('Device', survey.target_device),
+          ] %}
+          {% for label, val in criteria %}
+          {% if val %}
+          <div class="ov-item"><div class="ov-label">{{ label }}</div><div class="ov-value">{{ val }}</div></div>
+          {% endif %}
+          {% endfor %}
+          {% if not criteria | selectattr(1) | list %}
+          <div class="ov-item" style="grid-column:span 2;"><div class="ov-value empty">No criteria set — open to all participants.</div></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="ov-section">
+        <div class="ov-section-title">Dates</div>
+        <div class="ov-grid">
+          <div class="ov-item"><div class="ov-label">Published</div><div class="ov-value {% if not survey.published_at %}empty{% endif %}">{{ survey.published_at.strftime('%b %d, %Y') if survey.published_at else '—' }}</div></div>
+          <div class="ov-item"><div class="ov-label">Closed</div><div class="ov-value {% if not survey.closed_at %}empty{% endif %}">{{ survey.closed_at.strftime('%b %d, %Y') if survey.closed_at else '—' }}</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div id="panel-actions" style="display:none;">
+
+      <div class="action-group">
+        <div class="action-group-head">Status</div>
+
+        {% if survey.status == 'draft' %}
+        <div class="action-row">
+          <div><div class="action-label">Publish</div><div class="action-desc">Make this study visible to participants.</div></div>
+          <a href="/publish?{% if survey.form_url == '__builtin__' %}builtin=1&{% endif %}survey_id={{ survey.id }}&title={{ survey.title | urlencode }}&desc={{ survey.description | urlencode }}" class="action-btn primary">
+            <svg viewBox="0 0 24 24"><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Publish
+          </a>
+        </div>
+        {% elif survey.status == 'published' %}
+        <div class="action-row">
+          <div><div class="action-label">Close</div><div class="action-desc">Stop accepting new responses.</div></div>
+          <form method="post" action="/surveys/{{ survey.id }}/close" style="margin:0;">
+            <button type="submit" class="action-btn">Close</button>
+          </form>
+        </div>
+        {% elif survey.status == 'closed' %}
+        <div class="action-row">
+          <div><div class="action-label">Reopen</div><div class="action-desc">Resume collecting responses.</div></div>
+          <form method="post" action="/surveys/{{ survey.id }}/reopen" style="margin:0;">
+            <button type="submit" class="action-btn primary">Reopen</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="action-group">
+        <div class="action-group-head">Edit</div>
+        <div class="action-row">
+          <div><div class="action-label">Edit settings</div><div class="action-desc">Update title, criteria, reward, and more.</div></div>
+          <a href="/publisher/edit/{{ survey.id }}" class="action-btn">Edit</a>
+        </div>
+        {% if survey.form_url == '__builtin__' %}
+        <div class="action-row">
+          <div><div class="action-label">Question builder</div><div class="action-desc">Add, edit, or reorder survey questions.</div></div>
+          <a href="/surveys/{{ survey.id }}/builder" class="action-btn">Open builder</a>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if survey.form_url == '__builtin__' %}
+      <div class="action-group">
+        <div class="action-group-head">Data</div>
+        <div class="action-row">
+          <div><div class="action-label">View results</div><div class="action-desc">See response breakdowns and AI analysis.</div></div>
+          <a href="/surveys/{{ survey.id }}/results" class="action-btn">Results</a>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="action-group">
+        <div class="action-group-head">Danger zone</div>
+        <div class="action-row">
+          <div><div class="action-label">Delete listing</div><div class="action-desc">Permanently remove this study and all responses.</div></div>
+          <form method="post" action="/publisher/delete/{{ survey.id }}"
+            onsubmit="return confirm('Delete this listing? This cannot be undone.')" style="margin:0;">
+            <button type="submit" class="action-btn danger">Delete</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- AI FORECAST -->
+    <div id="panel-ai" style="display:none;">
+      <div class="ai-box" id="ai-box">
+        <div class="ai-loading" id="ai-loading">Loading forecast...</div>
+        <div class="ai-result" id="ai-result" style="display:none;">
+          <div class="ai-stat-row" id="ai-stats"></div>
+          <div class="ai-insight" id="ai-insight"></div>
+          <div class="ai-actions">
+            <button class="ai-btn" onclick="loadForecast(true)">Recompute</button>
+            <button class="ai-btn" onclick="showTopCandidates()">Top candidates</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const SURVEY_ID = {{ survey.id }};
+
+  function switchTab(tab) {
+    ['overview','actions','ai'].forEach(t => {
+      document.getElementById('panel-' + t).style.display = t === tab ? 'block' : 'none';
+      document.getElementById('tab-'   + t).classList.toggle('active', t === tab);
+    });
+    if (tab === 'ai') loadForecast(false);
+    localStorage.setItem('studyTab_' + SURVEY_ID, tab);
+  }
+
+  // restore last tab
+  const saved = localStorage.getItem('studyTab_' + SURVEY_ID);
+  if (saved && saved !== 'overview') switchTab(saved);
+
+  async function loadForecast(force) {
+    const loading = document.getElementById('ai-loading');
+    const result  = document.getElementById('ai-result');
+    loading.style.display = 'block'; result.style.display = 'none';
+    try {
+      const res = await fetch(`/api/surveys/${SURVEY_ID}/prediction/summary${force ? '?force=true' : ''}`, { credentials: 'same-origin' });
+      if (!res.ok) { loading.textContent = 'Forecast unavailable.'; return; }
+      const d = await res.json();
+      const pct  = Math.round((d.completion_probability || 0) * 100);
+      const cand = d.candidate_count || 0;
+      const seg  = d.segment_label || 'General';
+      const risk = (d.risk_reasons || [])[0] || 'No major risk detected.';
+      const sugg = d.recommended_action || 'Current settings look good.';
+
+      document.getElementById('ai-stats').innerHTML = `
+        <div class="ai-stat"><div class="ai-stat-n">${pct}%</div><div class="ai-stat-l">Expected completion</div></div>
+        <div class="ai-stat"><div class="ai-stat-n">${cand}</div><div class="ai-stat-l">Candidates</div></div>
+        <div class="ai-stat"><div class="ai-stat-n" style="font-size:14px;letter-spacing:0;">${seg}</div><div class="ai-stat-l">Top segment</div></div>
+      `;
+      document.getElementById('ai-insight').innerHTML = `<strong>Risk:</strong> ${risk}<br><strong>Suggestion:</strong> ${sugg}`;
+      loading.style.display = 'none'; result.style.display = 'block';
+    } catch {
+      loading.textContent = 'Forecast unavailable.';
+    }
+  }
+
+  async function showTopCandidates() {
+    try {
+      const res = await fetch(`/api/surveys/${SURVEY_ID}/prediction/respondents?limit=8`, { credentials: 'same-origin' });
+      if (!res.ok) { alert('Unavailable.'); return; }
+      const d = await res.json();
+      const lines = (d.respondents || []).map((r,i) =>
+        `${i+1}. ${Math.round((r.completion_probability||0)*100)}% · ${r.segment_label||'Respondent'} · ${(r.top_reasons||[])[0]||''}`
+      );
+      alert(lines.join('\n') || 'No candidate predictions yet.');
+    } catch { alert('Unavailable.'); }
+  }
+</script>
+</body>
+</html>

@@ -6,53 +6,53 @@
   <title>Login — Insighta</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="apple-touch-icon" href="/static/favicon.png">
-  <meta name="theme-color" content="#faf9f5">
+  <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
-      --paper: #faf9f5; --paper-warm: #f3f1ea;
-      --accent: #2d6a4f; --accent-light: #52b788; --accent-warm: #e07a3c;
-      --line: #e0ddd3;
+      --green: #3b7c4f; --green-d: #2a5c39; --green-l: #e8f2eb; --green-m: #c2deca;
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82; --ink4: #b8b8b0;
+      --paper: #ffffff; --paper-warm: #fafaf8; --paper-soft: #f5f3ee;
+      --accent: var(--green); --accent-light: var(--green-m); --accent-warm: var(--green);
+      --line: #eeece6; --line2: #e0ddd6;
       --serif: 'DM Serif Display', Georgia, serif;
       --sans: 'DM Sans', system-ui, sans-serif;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: var(--sans); background: var(--paper); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
+    body { font-family: var(--sans); background: var(--paper); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; color: var(--ink); -webkit-font-smoothing: antialiased; }
 
-    .left-panel { background: var(--accent); padding: 60px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
-    .left-panel::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.06); bottom: -150px; right: -150px; }
-    .left-panel::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -80px; left: -80px; }
+    .left-panel { background: var(--paper-warm); border-right: 0.5px solid var(--line); padding: 60px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+    .left-panel::before, .left-panel::after { display: none; }
     .panel-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; position: relative; z-index: 1; }
-    .panel-logo img { height: 36px; filter: brightness(0) invert(1); }
-    .panel-logo span { font-family: var(--serif); font-size: 22px; color: white; letter-spacing: -0.3px; }
+    .panel-logo img { height: 30px; }
+    .panel-logo span { font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -0.2px; }
     .panel-body { position: relative; z-index: 1; }
-    .panel-body h2 { font-family: var(--serif); font-size: clamp(32px, 3vw, 44px); color: white; line-height: 1.15; letter-spacing: -1px; margin-bottom: 20px; }
-    .panel-body h2 em { font-style: italic; opacity: 0.75; }
-    .panel-body p { font-size: 16px; color: rgba(255,255,255,0.65); line-height: 1.75; font-weight: 300; max-width: 340px; }
+    .panel-body h2 { font-family: var(--sans); font-size: clamp(36px, 4vw, 56px); font-weight: 300; color: var(--ink); line-height: 1.08; letter-spacing: -2px; margin-bottom: 20px; max-width: 560px; }
+    .panel-body h2 em { font-style: normal; font-weight: 700; color: var(--ink); }
+    .panel-body p { font-size: 16px; color: var(--ink-muted); line-height: 1.7; font-weight: 400; max-width: 440px; }
     .panel-footer { position: relative; z-index: 1; }
-    .panel-quote { border-left: 3px solid rgba(255,255,255,0.3); padding-left: 20px; }
-    .panel-quote p { font-family: var(--serif); font-size: 17px; font-style: italic; color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 10px; }
-    .panel-quote span { font-size: 13px; color: rgba(255,255,255,0.45); }
+    .panel-quote { background: var(--paper); border: 0.5px solid var(--line); border-radius: 10px; padding: 24px; max-width: 440px; }
+    .panel-quote p { font-family: var(--serif); font-size: 17px; font-style: italic; color: var(--ink); line-height: 1.6; margin-bottom: 10px; }
+    .panel-quote span { font-size: 12px; color: var(--ink-muted); }
 
     .right-panel { display: flex; align-items: center; justify-content: center; padding: 60px 40px; }
     .form-wrapper { width: 100%; max-width: 380px; }
 
-    .form-header { margin-bottom: 40px; }
-    .form-header h1 { font-family: var(--serif); font-size: 34px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
-    .form-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; }
+    .form-header { margin-bottom: 34px; }
+    .form-header h1 { font-family: var(--sans); font-size: 32px; font-weight: 300; color: var(--ink); letter-spacing: -0.8px; margin-bottom: 8px; }
+    .form-header p { font-size: 14px; color: var(--ink-muted); font-weight: 400; line-height: 1.7; }
 
     .error-box { background: #fff5f5; color: #c53030; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; border: 1px solid #fed7d7; }
     .success-box { background: rgba(45,106,79,0.06); color: var(--accent); padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; border: 1px solid rgba(45,106,79,0.2); }
-    .participant-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(224,122,60,0.1); border: 1px solid rgba(224,122,60,0.25); border-radius: 999px; color: var(--accent-warm); font-size: 12px; font-weight: 700; margin-bottom: 14px; }
+    .role-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--green-l); border: 0.5px solid var(--green-m); border-radius: 20px; color: var(--green); font-size: 11px; font-weight: 600; margin-bottom: 16px; }
 
     .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
-    .form-group input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; color: var(--ink); background: white; transition: all 0.2s; }
-    .form-group input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
-    .form-group input::placeholder { color: #c4c2bc; font-weight: 300; }
+    .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--ink-soft); margin-bottom: 6px; }
+    .form-group input { width: 100%; height: 42px; padding: 0 12px; border: 0.5px solid var(--line2); border-radius: 8px; font-family: var(--sans); font-size: 13px; color: var(--ink); background: var(--paper-warm); transition: border-color .15s, background .15s; }
+    .form-group input:focus { outline: none; border-color: var(--green); background: var(--paper); box-shadow: none; }
+    .form-group input::placeholder { color: var(--ink4); font-weight: 400; }
 
     .code-row { display: flex; gap: 10px; align-items: flex-end; }
     .code-row input { flex: 1; letter-spacing: 4px; font-size: 18px; font-weight: 600; text-align: center; }
@@ -63,20 +63,20 @@
     .code-hint.success { color: var(--accent); }
     .code-hint.error { color: #c53030; }
 
-    .btn-submit { width: 100%; padding: 13px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
-    .btn-submit:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
+    .btn-submit { width: 100%; height: 42px; background: var(--green); color: white; border: none; border-radius: 20px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; margin-top: 4px; }
+    .btn-submit:hover { background: var(--green-d); transform: none; box-shadow: none; }
 
     .forgot-link { display: block; text-align: right; font-size: 13px; color: var(--ink-muted); margin-top: -12px; margin-bottom: 20px; cursor: pointer; }
     .forgot-link:hover { color: var(--accent); }
 
     .form-footer { text-align: center; margin-top: 24px; font-size: 14px; color: var(--ink-muted); }
-    .form-footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .form-footer a { color: var(--green); font-weight: 600; text-decoration: none; }
     .form-footer a:hover { text-decoration: underline; }
 
     /* Social login */
     .social-btns { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-    .btn-social { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 11px 16px; border: 1.5px solid var(--line); border-radius: 10px; background: white; font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; text-decoration: none; transition: all 0.18s; }
-    .btn-social:hover { border-color: #b0ada5; background: var(--paper-warm); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .btn-social { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 42px; padding: 0 16px; border: 0.5px solid var(--line2); border-radius: 8px; background: var(--paper); font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; text-decoration: none; transition: border-color .15s, background .15s; }
+    .btn-social:hover { border-color: var(--green-m); background: var(--green-l); transform: none; box-shadow: none; }
     .btn-social svg { flex-shrink: 0; }
     .divider { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
     .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
@@ -85,7 +85,7 @@
     /* Reset panel */
     .reset-panel { display: none; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--line); }
     .reset-panel.open { display: block; }
-    .reset-panel h3 { font-family: var(--serif); font-size: 22px; color: var(--ink); margin-bottom: 6px; }
+    .reset-panel h3 { font-family: var(--sans); font-size: 22px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
     .reset-panel p { font-size: 14px; color: var(--ink-muted); margin-bottom: 24px; font-weight: 300; }
 
     @media (max-width: 768px) {
@@ -97,28 +97,27 @@
 
     {% if participant_app %}
     :root {
-      --lime-cream: #d9ed92ff;
-      --light-green: #b5e48cff;
-      --light-green-2: #99d98cff;
+      --lime-cream: #eef8c8ff;
+      --light-green: #d8f1bdff;
+      --light-green-2: #b8e9adff;
       --emerald: #76c893ff;
       --ocean-mist: #52b69aff;
       --tropical-teal: #34a0a4ff;
-      --bondi-blue: #168aadff;
       --cerulean: #1a759fff;
       --baltic-blue: #1e6091ff;
       --yale-blue: #184e77ff;
-      --paper: #f6fbec; --paper-warm: #eaf7d6;
-      --accent: var(--tropical-teal); --accent-light: var(--emerald); --accent-warm: var(--lime-cream);
-      --line: #cbe8b4;
+      --paper: #ffffff; --paper-warm: #fafaf8;
+      --accent: var(--green); --accent-light: var(--green-m); --accent-warm: var(--green);
+      --line: #eeece6;
     }
     body { background: var(--paper); }
-    .participant-badge { background: var(--lime-cream); border: 2px solid var(--light-green-2); color: var(--yale-blue); font-weight: 900; box-shadow: 0 3px 0 var(--light-green); }
-    .form-group input { border: 2px solid var(--line); border-radius: 16px; }
-    .btn-social { border: 2px solid var(--line); border-radius: 16px; font-weight: 800; box-shadow: 0 3px 0 #cbe8b4; }
-    .btn-submit { background: var(--accent); border: 2px solid var(--yale-blue); border-radius: 16px; font-weight: 900; box-shadow: 0 5px 0 var(--yale-blue); }
-    .btn-submit:hover { background: var(--bondi-blue); box-shadow: 0 6px 0 var(--yale-blue); }
+    .role-badge { background: var(--green-l); border: 0.5px solid var(--green-m); color: var(--green); box-shadow: none; }
+    .form-group input { border: 0.5px solid var(--line2); border-radius: 8px; }
+    .btn-social { border: 0.5px solid var(--line2); border-radius: 8px; font-weight: 500; box-shadow: none; }
+    .btn-submit { background: var(--green); border: none; border-radius: 20px; font-weight: 600; box-shadow: none; }
+    .btn-submit:hover { background: var(--green-d); box-shadow: none; }
     .divider::before, .divider::after { background: var(--line); }
-    .left-panel { background: var(--bondi-blue); }
+    .left-panel { background: var(--paper-warm); }
     {% endif %}
 
   </style>
@@ -132,8 +131,8 @@
   </a>
   <div class="panel-body">
     {% if participant_app %}
-    <h2>Paid research studies, made for <em>participants</em>.</h2>
-    <p>Sign in to find matched studies, complete surveys, and track your rewards from your phone.</p>
+    <h2>Your study quests are waiting.</h2>
+    <p>Sign in to find matched studies, keep your progress, and track rewards in your participant space.</p>
     {% else %}
     <h2>Research that works for <em>everyone</em> in the room.</h2>
     <p>Connect with real participants, gather real insights, and do the research you've always wanted to do — without the hassle.</p>
@@ -151,9 +150,9 @@
   <div class="form-wrapper">
 
     <div class="form-header">
-      {% if participant_app %}<div class="participant-badge">Participant app</div>{% endif %}
+      {% if participant_app %}<div class="role-badge">Participant login</div>{% elif login_role == "researcher" %}<div class="role-badge">Researcher login</div>{% endif %}
       <h1>{% if participant_app %}Welcome back.{% else %}Welcome back.{% endif %}</h1>
-      <p>{% if participant_app %}Sign in to continue to your participant dashboard.{% else %}Sign in to your Insighta account.{% endif %}</p>
+      <p>{% if participant_app %}Continue to your participant dashboard.{% elif login_role == "researcher" %}Continue to your researcher workspace.{% else %}Sign in to your Insighta account.{% endif %}</p>
     </div>
 
     {% if error %}
@@ -190,6 +189,7 @@
     <!-- LOGIN FORM -->
     <form method="POST" action="/login">
       <input type="hidden" name="next" value="{{ login_next or '' }}">
+      <input type="hidden" name="role" value="{{ login_role or '' }}">
       <div class="form-group">
         <label>Email address</label>
         <input type="email" name="email" required placeholder="you@example.com"
@@ -203,7 +203,7 @@
       <button type="submit" class="btn-submit">Sign In →</button>
     </form>
 
-    <p class="form-footer">Don't have an account? <a href="/register">Create one free</a></p>
+    <p class="form-footer">Don't have an account? <a href="/register{% if login_role %}?role={{ login_role }}{% endif %}">Create one free</a></p>
 
     <!-- PASSWORD RESET PANEL -->
     <div class="reset-panel {% if reset_open %}open{% endif %}" id="resetPanel">

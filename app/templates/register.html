@@ -6,40 +6,40 @@
   <title>Register — Insighta</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="apple-touch-icon" href="/static/favicon.png">
-  <meta name="theme-color" content="#faf9f5">
+  <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
-      --paper: #faf9f5; --paper-warm: #f3f1ea;
-      --accent: #2d6a4f; --accent-light: #52b788;
-      --line: #e0ddd3;
+      --green: #3b7c4f; --green-d: #2a5c39; --green-l: #e8f2eb; --green-m: #c2deca;
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82; --ink4: #b8b8b0;
+      --paper: #ffffff; --paper-warm: #fafaf8; --paper-soft: #f5f3ee;
+      --accent: var(--green); --accent-light: var(--green-m);
+      --line: #eeece6; --line2: #e0ddd6;
       --serif: 'DM Serif Display', Georgia, serif;
       --sans: 'DM Sans', system-ui, sans-serif;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: var(--sans); background: var(--paper); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
+    body { font-family: var(--sans); background: var(--paper); min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; color: var(--ink); -webkit-font-smoothing: antialiased; }
 
-    .left-panel { background: var(--accent); padding: 60px; display: flex; flex-direction: column; justify-content: space-between; position: sticky; top: 0; height: 100vh; overflow: hidden; }
-    .left-panel::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.06); bottom: -150px; right: -150px; }
-    .left-panel::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -80px; left: -80px; }
+    .left-panel { background: var(--paper-warm); border-right: 0.5px solid var(--line); padding: 60px; display: flex; flex-direction: column; justify-content: space-between; position: sticky; top: 0; height: 100vh; overflow: hidden; }
+    .left-panel::before, .left-panel::after { display: none; }
     .panel-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; position: relative; z-index: 1; }
-    .panel-logo img { height: 36px; filter: brightness(0) invert(1); }
-    .panel-logo span { font-family: var(--serif); font-size: 22px; color: white; letter-spacing: -0.3px; }
+    .panel-logo img { height: 30px; }
+    .panel-logo span { font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -0.2px; }
     .panel-steps { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 24px; }
     .panel-step { display: flex; align-items: flex-start; gap: 16px; opacity: 0.4; transition: opacity 0.3s; }
     .panel-step.active { opacity: 1; }
     .panel-step.done { opacity: 0.65; }
-    .step-dot { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; transition: all 0.3s; }
-    .panel-step.active .step-dot { background: white; color: var(--accent); border-color: white; }
-    .panel-step.done .step-dot { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.5); }
-    .step-info h4 { font-size: 15px; font-weight: 600; color: white; margin-bottom: 2px; }
-    .step-info p { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 300; }
+    .step-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--paper-soft); border: 0.5px solid var(--line2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--ink-muted); flex-shrink: 0; transition: all 0.3s; }
+    .panel-step.active .step-dot { background: var(--green); color: white; border-color: var(--green); }
+    .panel-step.done .step-dot { background: var(--green-l); color: var(--green); border-color: var(--green-m); }
+    .step-info h4 { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+    .step-info p { font-size: 12px; color: var(--ink-muted); font-weight: 400; }
     .panel-footer { position: relative; z-index: 1; }
-    .panel-footer p { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.6; font-weight: 300; }
-    .panel-footer a { color: rgba(255,255,255,0.8); font-weight: 600; text-decoration: none; }
+    .panel-footer p { font-size: 13px; color: var(--ink-muted); line-height: 1.6; font-weight: 400; }
+    .panel-footer a { color: var(--green); font-weight: 600; text-decoration: none; }
     .panel-footer a:hover { text-decoration: underline; }
 
     .right-panel { padding: 60px 48px; overflow-y: auto; }
@@ -48,9 +48,10 @@
     .step { display: none; }
     .step.active { display: block; }
     .step-header { margin-bottom: 36px; }
-    .step-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; display: block; }
-    .step-header h1 { font-family: var(--serif); font-size: 32px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
-    .step-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; line-height: 1.6; }
+    .step-eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--green); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .step-eyebrow::before { content: ''; display: inline-block; width: 18px; height: 1.5px; background: var(--green); }
+    .step-header h1 { font-family: var(--sans); font-size: 36px; font-weight: 300; color: var(--ink); letter-spacing: -1px; margin-bottom: 10px; line-height: 1.15; }
+    .step-header p { font-size: 14px; color: var(--ink-muted); font-weight: 400; line-height: 1.7; }
 
     .error-box { background: #fff5f5; color: #c53030; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; border: 1px solid #fed7d7; }
 
@@ -60,43 +61,45 @@
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .form-row .form-group { margin-bottom: 0; }
 
-    .badge-required { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); background: rgba(45,106,79,0.08); border: 1px solid rgba(45,106,79,0.2); padding: 2px 7px; border-radius: 100px; }
+    .badge-required { font-size: 10px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--green); background: var(--green-l); border: 0.5px solid var(--green-m); padding: 2px 7px; border-radius: 100px; }
 
-    input[type="email"], input[type="password"], input[type="text"] {
-      width: 100%; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px;
-      font-family: var(--sans); font-size: 15px; color: var(--ink); background: white; transition: all 0.2s; appearance: none;
+    input[type="email"], input[type="password"], input[type="text"], input[type="tel"] {
+      width: 100%; height: 42px; padding: 0 12px; border: 0.5px solid var(--line2); border-radius: 8px;
+      font-family: var(--sans); font-size: 13px; color: var(--ink); background: var(--paper-warm); transition: border-color .15s, background .15s; appearance: none;
     }
-    input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
-    input::placeholder { color: #c4c2bc; font-weight: 300; }
+    input:focus { outline: none; border-color: var(--green); background: var(--paper); box-shadow: none; }
+    input::placeholder { color: var(--ink4); font-weight: 400; }
 
     .code-row { display: flex; gap: 10px; align-items: flex-end; }
     .code-row input { flex: 1; letter-spacing: 4px; font-size: 18px; font-weight: 600; text-align: center; }
-    .btn-send-code { padding: 12px 18px; background: white; color: var(--accent); border: 1.5px solid rgba(45,106,79,0.4); border-radius: 10px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; }
-    .btn-send-code:hover { background: rgba(45,106,79,0.06); }
+    .btn-send-code { height: 42px; padding: 0 16px; background: white; color: var(--green); border: 0.5px solid var(--green-m); border-radius: 8px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s; flex-shrink: 0; }
+    .btn-send-code:hover { background: var(--green-l); }
     .btn-send-code:disabled { opacity: 0.5; cursor: not-allowed; }
     .code-hint { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
     .code-hint.success { color: var(--accent); }
     .code-hint.error { color: #c53030; }
+    .field-note { font-size: 12px; color: var(--ink-muted); line-height: 1.5; margin-top: 7px; }
+    .field-note strong { color: var(--green); font-weight: 700; }
 
     .pw-strength { margin-top: 8px; }
     .pw-bar { height: 4px; border-radius: 100px; background: var(--line); overflow: hidden; margin-bottom: 4px; }
     .pw-bar-fill { height: 100%; border-radius: 100px; transition: width 0.3s, background 0.3s; width: 0%; }
     .pw-hint { font-size: 12px; color: var(--ink-muted); }
 
-    .btn-next, .btn-submit { width: 100%; padding: 13px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
-    .btn-next:hover, .btn-submit:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
-    .btn-back { width: 100%; padding: 13px; background: transparent; color: var(--ink-muted); border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
-    .btn-back:hover { background: var(--paper-warm); border-color: var(--ink-muted); }
+    .btn-next, .btn-submit { width: 100%; height: 42px; background: var(--green); color: white; border: none; border-radius: 20px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; margin-top: 8px; }
+    .btn-next:hover, .btn-submit:hover { background: var(--green-d); transform: none; box-shadow: none; }
+    .btn-back { width: 100%; height: 42px; background: transparent; color: var(--ink-muted); border: 0.5px solid var(--line2); border-radius: 20px; font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; transition: background .15s; margin-top: 8px; }
+    .btn-back:hover { background: var(--paper-warm); border-color: var(--green-m); }
     .form-footer { text-align: center; margin-top: 20px; font-size: 14px; color: var(--ink-muted); }
-    .form-footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .form-footer a { color: var(--green); font-weight: 600; text-decoration: none; }
     .form-footer a:hover { text-decoration: underline; }
 
     /* MODAL */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(26,26,24,0.5); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; animation: fadeIn 0.25s ease; }
     .modal { background: var(--paper); border: 1.5px solid var(--line); border-radius: 20px; width: 100%; max-width: 520px; max-height: 88vh; display: flex; flex-direction: column; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .modal-header { padding: 28px 28px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
-    .modal-header h2 { font-family: var(--serif); font-size: 22px; color: var(--ink); letter-spacing: -0.3px; margin-bottom: 6px; }
-    .modal-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; line-height: 1.5; }
+    .modal-header h2 { font-family: var(--sans); font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -0.3px; margin-bottom: 6px; }
+    .modal-header p { font-size: 13px; color: var(--ink-muted); font-weight: 400; line-height: 1.5; }
     .modal-body { padding: 20px 28px; overflow-y: auto; flex: 1; }
     .privacy-section { margin-bottom: 18px; }
     .privacy-section:last-child { margin-bottom: 0; }
@@ -109,7 +112,7 @@
     .consent-text { font-size: 13px; color: var(--ink-soft); line-height: 1.5; font-weight: 400; }
     .btn-agree { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; opacity: 0.4; pointer-events: none; }
     .btn-agree.enabled { opacity: 1; pointer-events: auto; }
-    .btn-agree.enabled:hover { background: #245c43; box-shadow: 0 4px 14px rgba(45,106,79,0.3); }
+    .btn-agree.enabled:hover { background: var(--green-d); box-shadow: none; }
     .btn-decline { width: 100%; padding: 9px; background: transparent; color: var(--ink-muted); border: none; font-family: var(--sans); font-size: 13px; cursor: pointer; margin-top: 6px; transition: color 0.2s; text-align: center; }
     .btn-decline:hover { color: var(--ink); }
 
@@ -122,6 +125,25 @@
       .right-panel { padding: 40px 24px; }
       .form-row { grid-template-columns: 1fr; }
     }
+
+    {% if participant_app %}
+    :root {
+      --ink: #12324a; --ink-soft: #2f5f6d; --ink-muted: #6b8790;
+      --paper: #ffffff; --paper-warm: #fafaf8;
+      --accent: var(--green); --accent-light: var(--green-m);
+      --line: #eeece6;
+    }
+    body { background: var(--paper); }
+    .left-panel { background: var(--paper-warm); }
+    .panel-step.active .step-dot { color: white; }
+    .badge-required { color: var(--green); background: var(--green-l); border-color: var(--green-m); }
+    input[type="email"], input[type="password"], input[type="text"], input[type="tel"] { border: 0.5px solid var(--line2); border-radius: 8px; }
+    input:focus { border-color: var(--green); box-shadow: none; }
+    .btn-next, .btn-submit, .btn-agree { background: var(--green); border: none; border-radius: 20px; font-weight: 600; box-shadow: none; }
+    .btn-next:hover, .btn-submit:hover, .btn-agree.enabled:hover { background: var(--green-d); box-shadow: none; }
+    .btn-back { border: 0.5px solid var(--line2); border-radius: 20px; background: #fff; }
+    .consent-check-area { background: var(--paper-warm); }
+    {% endif %}
   </style>
 </head>
 <body>
@@ -136,7 +158,7 @@
     <div class="modal-body">
       <div class="privacy-section">
         <h4>What we collect</h4>
-        <p>We collect your email address, password (encrypted), and the profile information you choose to share — such as age range, field of study, and behavioral preferences. All profile fields are optional.</p>
+        <p>We collect your email address and encrypted password to create your account. After registration, you can add optional profile details such as background, location, education, and study preferences from your Profile page.</p>
       </div>
       <div class="privacy-divider"></div>
       <div class="privacy-section">
@@ -177,17 +199,17 @@
     <span>Insighta</span>
   </a>
   <div class="panel-steps">
-    <div class="panel-step active" id="panelStep1">
+    <div class="panel-step {% if register_step|default(1) == 1 %}active{% else %}done{% endif %}" id="panelStep1">
       <div class="step-dot">1</div>
-      <div class="step-info"><h4>Verify Email</h4><p>{% if participant_app %}Start your participant account{% else %}Confirm your email address{% endif %}</p></div>
+      <div class="step-info"><h4>Verify Email</h4><p>{% if participant_app %}Start your participant space{% else %}Confirm your email address{% endif %}</p></div>
     </div>
-    <div class="panel-step" id="panelStep2">
+    <div class="panel-step {% if register_step|default(1) == 2 %}active{% endif %}" id="panelStep2">
       <div class="step-dot">2</div>
       <div class="step-info"><h4>Create Password</h4><p>Secure your account</p></div>
     </div>
   </div>
   <div class="panel-footer">
-    <p>Already have an account? <a href="/login">Sign in →</a></p>
+    <p>Already have an account? <a href="/login{% if register_role %}?role={{ register_role }}{% endif %}">Sign in →</a></p>
   </div>
 </div>
 
@@ -200,22 +222,31 @@
     {% endif %}
 
     <form method="POST" action="/register" id="registerForm">
+      <input type="hidden" name="role" value="{{ register_role or '' }}">
 
       <!-- STEP 1: Email + Verification -->
-      <div class="step active" id="step1">
+      <div class="step {% if register_step|default(1) == 1 %}active{% endif %}" id="step1">
         <div class="step-header">
           <span class="step-eyebrow">Step 1 of 2</span>
-          <h1>{% if participant_app %}Join as a participant.{% else %}Verify your email.{% endif %}</h1>
-          <p>{% if participant_app %}Create your participant account and start finding matched studies.{% else %}Enter your email and we'll send you a verification code.{% endif %}</p>
+          <h1>{% if participant_app %}Join the participant side.{% else %}Verify your email.{% endif %}</h1>
+          <p>{% if participant_app %}Create your account with basic information only. You can complete your detailed participant profile after signing in.{% else %}Enter your email and we'll send you a verification code. Detailed profile fields can be completed later.{% endif %}</p>
         </div>
 
         <div class="form-group">
           <label>Email address <span class="badge-required">Required</span></label>
           <input type="email" name="email" id="email" required placeholder="you@example.com"
             value="{{ register_email or '' }}" onblur="checkEmailExists(this.value)">
+          <div class="field-note"><strong>Recommended:</strong> use a school or work email when possible. It helps us verify your identity faster.</div>
           <div id="emailExistsHint" style="display:none; margin-top:6px; font-size:13px; color:#c53030; background:#fff5f5; border:1px solid #fed7d7; border-radius:8px; padding:8px 12px;">
             This email is already registered. <a href="/login" style="color:#c53030; font-weight:700; text-decoration:underline;">Sign in instead →</a>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label>Phone number <span class="badge-required">Optional</span></label>
+          <input type="tel" name="phone_number" id="phoneNumber" placeholder="+1 555 123 4567"
+            value="{{ register_phone or '' }}" autocomplete="tel">
+          <div class="field-note">Optional, but useful if we need another way to verify your account.</div>
         </div>
 
         <div class="form-group">
@@ -223,7 +254,7 @@
           <div class="code-row">
             <input type="text" name="verification_code" id="verificationCode"
               placeholder="6-digit code" maxlength="6" autocomplete="one-time-code"
-              oninput="autoVerifyCode(this.value)">
+              value="{{ register_code or '' }}" oninput="autoVerifyCode(this.value)">
             <button type="button" class="btn-send-code" id="btnSendCode" onclick="sendCode()">
               Send Code
             </button>
@@ -232,15 +263,15 @@
         </div>
 
         <button type="button" class="btn-next" onclick="goToStep2()">Continue →</button>
-        <p class="form-footer">Already have an account? <a href="/login">Sign in</a></p>
+        <p class="form-footer">Already have an account? <a href="/login{% if register_role %}?role={{ register_role }}{% endif %}">Sign in</a></p>
       </div>
 
       <!-- STEP 2: Password -->
-      <div class="step" id="step2">
+      <div class="step {% if register_step|default(1) == 2 %}active{% endif %}" id="step2">
         <div class="step-header">
           <span class="step-eyebrow">Step 2 of 2</span>
           <h1>Create a password.</h1>
-          <p>Choose a strong password to secure your account.</p>
+          <p>Choose a strong password. We will ask for your profile details after you enter the app.</p>
         </div>
 
         <div class="form-group">
@@ -391,7 +422,7 @@
     if (score <= 2) { fill.style.background = '#ef4444'; hint.textContent = 'Weak — add uppercase, numbers, special chars'; hint.style.color = '#ef4444'; }
     else if (score <= 3) { fill.style.background = '#f59e0b'; hint.textContent = 'Fair — getting better'; hint.style.color = '#f59e0b'; }
     else if (score === 4) { fill.style.background = '#3b82f6'; hint.textContent = 'Good — almost there'; hint.style.color = '#3b82f6'; }
-    else { fill.style.background = '#2d6a4f'; hint.textContent = 'Strong'; hint.style.color = '#2d6a4f'; }
+    else { fill.style.background = '#3b7c4f'; hint.textContent = 'Strong'; hint.style.color = '#3b7c4f'; }
   }
 
   // ── Consent modal ─────────────────────────────────────────
@@ -437,10 +468,18 @@
     document.getElementById('consentModal').style.display = 'none';
   }
 
-  // If server returns error, show step 1
+  // If server returns an error, keep the user on the relevant step.
   {% if error %}
+  {% if register_step|default(1) == 2 %}
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.add('active');
+  document.getElementById('panelStep1').classList.remove('active');
+  document.getElementById('panelStep1').classList.add('done');
+  document.getElementById('panelStep2').classList.add('active');
+  {% else %}
   document.getElementById('step1').classList.add('active');
   document.getElementById('step2').classList.remove('active');
+  {% endif %}
   {% endif %}
 </script>
 

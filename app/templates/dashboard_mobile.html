@@ -130,6 +130,27 @@
     .f-value { font-size: 14px; color: var(--ink-muted); display: flex; align-items: center; gap: 4px; }
     .f-empty { font-size: 14px; color: var(--line); }
     .btn-logout { width: 100%; padding: 13px; background: white; color: var(--ink-muted); border: 0.5px solid var(--line); border-radius: 12px; font-family: var(--sans); font-size: 14px; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .profile-form { display: flex; flex-direction: column; gap: 12px; }
+    .profile-section { background: white; border: 2px solid var(--line); border-radius: 18px; box-shadow: 0 4px 0 #d9efc8; overflow: hidden; }
+    .profile-section summary { list-style: none; padding: 14px 16px; font-size: 14px; font-weight: 900; color: var(--ink); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+    .profile-section summary::-webkit-details-marker { display: none; }
+    .profile-section summary::after { content: '+'; color: var(--accent-blue); font-size: 18px; line-height: 1; }
+    .profile-section[open] summary::after { content: '-'; }
+    .profile-fields { border-top: 1px solid var(--line); padding: 14px; display: grid; gap: 12px; }
+    .profile-field { display: flex; flex-direction: column; gap: 6px; }
+    .profile-field label, .profile-label { font-size: 11px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); }
+    .profile-field input, .profile-field select, .profile-field textarea { width: 100%; border: 2px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 14px; font-weight: 700; outline: none; }
+    .profile-field input, .profile-field select { height: 42px; padding: 0 12px; }
+    .profile-field textarea { min-height: 96px; padding: 11px 12px; resize: vertical; line-height: 1.45; }
+    .profile-field input:focus, .profile-field select:focus, .profile-field textarea:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 4px rgba(22,138,173,.12); background: white; }
+    .other-input { display: none; }
+    .other-input.is-visible { display: flex; }
+    .chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .profile-chip { position: relative; display: inline-flex; }
+    .profile-chip input { position: absolute; opacity: 0; pointer-events: none; }
+    .profile-chip span { min-height: 34px; display: inline-flex; align-items: center; padding: 8px 11px; border-radius: 999px; border: 2px solid var(--line); background: var(--paper); color: var(--ink-soft); font-size: 12px; font-weight: 900; line-height: 1.2; }
+    .profile-chip input:checked + span { background: var(--lime-cream); border-color: var(--light-green); color: var(--yale-blue); box-shadow: 0 3px 0 var(--light-green-2); }
+    .profile-save { position: sticky; bottom: calc(var(--nav-h) + 10px); z-index: 20; width: 100%; border: 0; border-radius: 14px; background: var(--accent-blue); color: white; font-family: var(--sans); font-size: 15px; font-weight: 900; padding: 14px; box-shadow: 0 4px 0 var(--yale-blue); }
 
     /* BOTTOM NAV */
     .bottom-nav { flex-shrink: 0; background: rgba(250,249,245,0.95); backdrop-filter: blur(12px); border-top: 0.5px solid var(--line); display: flex; height: var(--nav-h); padding-bottom: env(safe-area-inset-bottom); }
@@ -140,9 +161,9 @@
 
     /* Participant app theme */
     :root {
-      --lime-cream: #d9ed92ff;
-      --light-green: #b5e48cff;
-      --light-green-2: #99d98cff;
+      --lime-cream: #eef8c8ff;
+      --light-green: #d8f1bdff;
+      --light-green-2: #b8e9adff;
       --emerald: #76c893ff;
       --ocean-mist: #52b69aff;
       --tropical-teal: #34a0a4ff;
@@ -151,14 +172,14 @@
       --baltic-blue: #1e6091ff;
       --yale-blue: #184e77ff;
       --ink: #12324a; --ink-soft: #2f5f6d; --ink-muted: #5f8390;
-      --paper: #f6fbec; --paper-warm: #eaf7d6;
+      --paper: #fcfff5; --paper-warm: #f4fbdf;
       --accent: var(--tropical-teal); --accent-deep: var(--yale-blue); --accent-light: var(--emerald);
       --accent-warm: var(--lime-cream); --accent-blue: var(--cerulean);
-      --line: #cbe8b4; --card-line: var(--light-green-2);
+      --line: #d9efc8; --card-line: var(--light-green-2);
       --nav-h: 74px;
     }
     .topbar {
-      background: rgba(246,251,236,0.96);
+      background: rgba(252,255,245,0.96);
       border-bottom: 2px solid rgba(82,182,154,0.2);
       padding: 10px 16px;
       padding-top: calc(10px + env(safe-area-inset-top));
@@ -172,27 +193,27 @@
     .impact-text p { color: var(--baltic-blue); }
     .section-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 16px 10px 20px; }
     .section-label { padding: 0; font-size: 12px; font-weight: 900; letter-spacing: 0; text-transform: none; color: var(--ink-soft); }
-    .view-toggle { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: #eaf7d6; border: 1px solid var(--line); }
+    .view-toggle { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: #f4fbdf; border: 1px solid var(--line); }
     .view-toggle button { min-width: 54px; padding: 6px 9px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-muted); font-family: var(--sans); font-size: 11px; font-weight: 900; }
     .view-toggle button.active { background: white; color: var(--bondi-blue); box-shadow: 0 2px 0 var(--light-green); }
     .card-stack { height: 292px; }
     .survey-card { border-radius: 22px; border: 2px solid var(--card-line); box-shadow: 0 6px 0 var(--emerald); }
-    .card-back-1 { transform: scale(0.96) translateY(12px); background: #edf9db; border-color: var(--light-green); }
-    .card-back-2 { transform: scale(0.92) translateY(24px); background: #e4f5d0; border-color: #cbe8b4; }
+    .card-back-1 { transform: scale(0.96) translateY(12px); background: #f7fce8; border-color: var(--light-green); }
+    .card-back-2 { transform: scale(0.92) translateY(24px); background: #f1fadf; border-color: #d9efc8; }
     .card-cat { color: var(--yale-blue); background: var(--lime-cream); padding: 5px 11px; border: 1px solid var(--light-green-2); font-weight: 900; }
     .card-title { font-family: var(--sans); font-size: 20px; font-weight: 900; letter-spacing: 0; line-height: 1.2; }
     .card-desc { line-height: 1.45; }
-    .meta-pill { color: var(--ink-soft); background: #f0f8df; padding: 6px 10px; border: 1px solid var(--line); font-weight: 800; }
+    .meta-pill { color: var(--ink-soft); background: #f8fce9; padding: 6px 10px; border: 1px solid var(--line); font-weight: 800; }
     .card-footer-row { border-top: 2px dashed #d7ebcd; }
     .reward-big { font-family: var(--sans); font-size: 28px; font-weight: 900; color: var(--bondi-blue); letter-spacing: 0; }
     .reward-lbl { font-weight: 800; }
-    .impact-tag { color: var(--yale-blue); background: #dff5ef; border: 1px solid var(--ocean-mist); font-weight: 900; padding: 6px 10px; }
+    .impact-tag { color: var(--yale-blue); background: #eefbf7; border: 1px solid var(--ocean-mist); font-weight: 900; padding: 6px 10px; }
     .btn-skip, .btn-take, .btn-mark, .btn-back-card, .list-primary, .list-secondary { border-radius: 16px; font-weight: 900; transition: transform .12s ease, box-shadow .12s ease; }
     .btn-skip:active, .btn-take:active, .btn-mark:active, .btn-back-card:active, .list-primary:active, .list-secondary:active, .nav-item:active { transform: translateY(3px) scale(.98); box-shadow: none; }
-    .btn-skip { border: 2px solid var(--line); box-shadow: 0 4px 0 #cbe8b4; }
+    .btn-skip { border: 2px solid var(--line); box-shadow: 0 4px 0 #d9efc8; }
     .btn-take { background: var(--accent); border: 2px solid var(--accent-deep); box-shadow: 0 5px 0 var(--accent-deep); }
     .btn-mark { background: var(--lime-cream); border: 2px solid var(--light-green-2); color: var(--yale-blue); box-shadow: 0 4px 0 var(--light-green); }
-    .btn-back-card { flex: .9; padding: 13px; background: #dff5ef; color: var(--yale-blue); border: 2px solid var(--ocean-mist); box-shadow: 0 4px 0 #9ed8c6; font-family: var(--sans); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .btn-back-card { flex: .9; padding: 13px; background: #eefbf7; color: var(--yale-blue); border: 2px solid var(--ocean-mist); box-shadow: 0 4px 0 #b8dfd1; font-family: var(--sans); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
     .study-list { display: flex; flex-direction: column; gap: 12px; }
     .study-row { background: white; border: 2px solid var(--card-line); border-radius: 18px; padding: 14px; box-shadow: 0 4px 0 var(--emerald); }
     .study-row-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
@@ -204,13 +225,13 @@
     .study-row-actions { display: flex; gap: 8px; }
     .list-primary, .list-secondary { flex: 1; min-height: 40px; border: 0; font-family: var(--sans); font-size: 13px; }
     .list-primary { background: var(--accent); color: white; border: 2px solid var(--accent-deep); box-shadow: 0 4px 0 var(--accent-deep); }
-    .list-secondary { background: white; color: var(--ink-muted); border: 2px solid var(--line); box-shadow: 0 3px 0 #cbe8b4; }
+    .list-secondary { background: white; color: var(--ink-muted); border: 2px solid var(--line); box-shadow: 0 3px 0 #d9efc8; }
     .balance-card { background: var(--bondi-blue); border: 2px solid var(--yale-blue); border-radius: 22px; box-shadow: 0 6px 0 var(--yale-blue); }
     .balance-lbl { font-weight: 900; letter-spacing: 0; text-transform: none; color: rgba(255,255,255,0.78); }
     .balance-amt { font-family: var(--sans); font-size: 42px; font-weight: 900; letter-spacing: 0; }
     .balance-sub { color: rgba(255,255,255,0.75); font-weight: 700; }
     .btn-withdraw, .btn-setup { border: 2px solid var(--yale-blue); border-radius: 16px; color: var(--yale-blue); font-weight: 900; box-shadow: 0 4px 0 rgba(0,0,0,0.15); }
-    .history-box, .profile-head, .completeness-card, .fields-box { border: 2px solid var(--line); border-radius: 18px; box-shadow: 0 4px 0 #cbe8b4; }
+    .history-box, .profile-head, .completeness-card, .fields-box { border: 2px solid var(--line); border-radius: 18px; box-shadow: 0 4px 0 #d9efc8; }
     .history-head { border-bottom: 2px solid var(--line); font-weight: 900; }
     .avatar-circle { border-radius: 16px; background: var(--lime-cream); color: var(--yale-blue); font-family: var(--sans); font-weight: 900; box-shadow: inset 0 -4px 0 rgba(24,78,119,0.14); }
     .prog-track { height: 10px; border: 1px solid var(--line); }
@@ -339,6 +360,22 @@
   <!-- PROFILE -->
   <div class="screen" id="screen-profile">
     <div class="profile-wrap">
+      {% set languages = (current_user.language or '').split(',') %}
+      {% set experiences = (current_user.experience_tags or '').split(',') %}
+      {% set lifestyles = (current_user.lifestyle_tags or '').split(',') %}
+      {% set field_other = current_user.field.split(':', 1)[1].strip() if current_user.field and current_user.field.startswith('Other:') else '' %}
+      {% set status_other = current_user.status.split(':', 1)[1].strip() if current_user.status and current_user.status.startswith('Other:') else '' %}
+      {% set race_other = current_user.race.split(':', 1)[1].strip() if current_user.race and current_user.race.startswith('Prefer to self-describe:') else '' %}
+      {% set language_other = current_user.language.split('Other:', 1)[1].split(',')[0].strip() if current_user.language and 'Other:' in current_user.language else '' %}
+      {% set experience_other = current_user.experience_tags.split('Other:', 1)[1].split(',')[0].strip() if current_user.experience_tags and 'Other:' in current_user.experience_tags else '' %}
+      {% set lifestyle_other = current_user.lifestyle_tags.split('Other:', 1)[1].split(',')[0].strip() if current_user.lifestyle_tags and 'Other:' in current_user.lifestyle_tags else '' %}
+      {% set mental_other = current_user.mental_health_diagnosis.split(':', 1)[1].strip() if current_user.mental_health_diagnosis and current_user.mental_health_diagnosis.startswith('Other:') else '' %}
+      {% set physical_other = current_user.physical_health_diagnosis.split(':', 1)[1].strip() if current_user.physical_health_diagnosis and current_user.physical_health_diagnosis.startswith('Other:') else '' %}
+      <datalist id="country-options-mobile">{% for option in ['United States','Canada','China','India','United Kingdom','Australia','Germany','France','Spain','Italy','Japan','South Korea','Singapore','Mexico','Brazil','Argentina','Chile','Colombia','Nigeria','South Africa','Egypt','Turkey','Saudi Arabia','United Arab Emirates','Vietnam','Thailand','Indonesia','Philippines','Malaysia','Pakistan','Bangladesh','Other'] %}<option value="{{ option }}"></option>{% endfor %}</datalist>
+      <datalist id="province-options-mobile">{% for option in ['Alabama','Alaska','Arizona','California','Colorado','Connecticut','Florida','Georgia','Illinois','Massachusetts','Michigan','New Jersey','New York','North Carolina','Ohio','Pennsylvania','Texas','Virginia','Washington','Washington DC','Ontario','Quebec','British Columbia','Alberta','Beijing','Shanghai','Guangdong','Jiangsu','Zhejiang','Sichuan','Hong Kong','Taiwan','England','Scotland','New South Wales','Victoria','Other'] %}<option value="{{ option }}"></option>{% endfor %}</datalist>
+      <datalist id="city-options-mobile">{% for option in ['New York','Los Angeles','San Francisco','San Jose','Seattle','Boston','Chicago','Austin','Dallas','Houston','Atlanta','Washington DC','Philadelphia','Toronto','Vancouver','Montreal','Beijing','Shanghai','Shenzhen','Guangzhou','Hangzhou','Nanjing','Chengdu','Hong Kong','Taipei','London','Paris','Berlin','Sydney','Melbourne','Singapore','Tokyo','Seoul','Other'] %}<option value="{{ option }}"></option>{% endfor %}</datalist>
+      <datalist id="mental-diagnosis-options-mobile">{% for option in ['None','ADHD','Anxiety disorder','Depression','Bipolar disorder','PTSD','OCD','Autism spectrum disorder','Eating disorder','Panic disorder','Social anxiety disorder','Specific phobia','Borderline personality disorder','Schizophrenia spectrum disorder','Substance use disorder','Sleep disorder','Prefer not to say','Other'] %}<option value="{{ option }}"></option>{% endfor %}</datalist>
+      <datalist id="physical-diagnosis-options-mobile">{% for option in ['None','Asthma','Diabetes type 1','Diabetes type 2','Hypertension','Heart disease','Chronic pain','Migraine','Arthritis','Autoimmune condition','Thyroid condition','PCOS','Endometriosis','IBS','Crohn disease / ulcerative colitis','Allergies','Eczema','Epilepsy','Cancer history','Long COVID','Mobility impairment','Hearing impairment','Vision impairment','Prefer not to say','Other'] %}<option value="{{ option }}"></option>{% endfor %}</datalist>
       <div class="profile-head">
         <div class="avatar-circle">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
         <div>
@@ -347,28 +384,94 @@
         </div>
       </div>
 
-      {% set pf = [current_user.age_range, current_user.education_level, current_user.field, current_user.status, current_user.state, current_user.language, current_user.ethnicity, current_user.student_status, current_user.year_in_school, current_user.international_domestic, current_user.participation_format, current_user.device_type, current_user.experience_tags, current_user.sexual_orientation, current_user.mental_health_diagnosis, current_user.physical_health_diagnosis, current_user.sport_type, current_user.smoking] %}
+      {% set pf = [current_user.username, current_user.phone_number, current_user.birth_year, current_user.birth_month, current_user.profile_description, current_user.education_level, current_user.field, current_user.status, current_user.current_country, current_user.current_province, current_user.current_city, current_user.language, current_user.race, current_user.student_status, current_user.year_in_school, current_user.international_domestic, current_user.experience_tags, current_user.participation_format, current_user.device_type, current_user.income_level, current_user.lifestyle_tags] %}
       {% set filled = pf | select | list | length %}
       {% set total = pf | length %}
       {% set pct = (filled * 100 // total) %}
 
-      <a href="/profile" class="completeness-card">
+      <div class="completeness-card">
         <div class="c-top">
-          <span class="c-label">Profile completeness</span>
+          <span class="c-label">Profile progress</span>
           <span class="c-pct">{{ pct }}%</span>
         </div>
         <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%"></div></div>
-        <div class="c-hint">{{ total - filled }} fields missing — tap to complete →</div>
-      </a>
-
-      <div class="fields-box">
-        <div class="field-row"><span class="f-label">Age range</span><span class="{{ 'f-value' if current_user.age_range else 'f-empty' }}">{{ current_user.age_range or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
-        <div class="field-row"><span class="f-label">Field / Major</span><span class="{{ 'f-value' if current_user.field else 'f-empty' }}">{{ current_user.field or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
-        <div class="field-row"><span class="f-label">Education</span><span class="{{ 'f-value' if current_user.education_level else 'f-empty' }}">{{ current_user.education_level or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
-        <div class="field-row"><span class="f-label">Student status</span><span class="{{ 'f-value' if current_user.student_status else 'f-empty' }}">{{ current_user.student_status or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
-        <div class="field-row"><span class="f-label">Location</span><span class="{{ 'f-value' if current_user.state else 'f-empty' }}">{{ current_user.state or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
-        <div class="field-row"><span class="f-label">Languages</span><span class="{{ 'f-value' if current_user.language else 'f-empty' }}">{{ current_user.language or '—' }} <i data-lucide="chevron-right" style="width:14px;height:14px"></i></span></div>
+        <div class="c-hint">{{ total - filled }} fields left - better detail means better matching</div>
       </div>
+
+      <form class="profile-form" method="POST" action="/profile">
+        <input type="hidden" name="return_to" value="/dashboard/mobile?tab=profile">
+        <details class="profile-section" open>
+          <summary>About you</summary>
+          <div class="profile-fields">
+            <div class="profile-field"><label>Display name</label><input name="username" value="{{ current_user.username or '' }}"></div>
+            <div class="profile-field"><label>Email</label><input type="email" name="email" value="{{ current_user.email or '' }}"></div>
+            <div class="profile-field"><label>Phone number</label><input type="tel" name="phone_number" value="{{ current_user.phone_number or '' }}" placeholder="+1 555 123 4567"></div>
+            <div class="profile-field"><label>Born year</label><input type="number" min="1900" max="2010" name="birth_year" value="{{ current_user.birth_year or '' }}" placeholder="2002"></div>
+            <div class="profile-field"><label>Born month</label><select name="birth_month"><option value="">Select month</option>{% for month in ['January','February','March','April','May','June','July','August','September','October','November','December'] %}<option value="{{ loop.index }}" {% if current_user.birth_month|string == loop.index|string %}selected{% endif %}>{{ month }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Description</label><textarea name="profile_description" placeholder="Share details that help us match you with relevant studies.">{{ current_user.profile_description or '' }}</textarea></div>
+          </div>
+        </details>
+
+        <details class="profile-section">
+          <summary>Academic & status</summary>
+          <div class="profile-fields">
+            <div class="profile-field"><label>Education level</label><select name="education_level">{% for option in ['Below High School','High School','Undergraduate','Graduate','PhD','Postdoc'] %}<option value="{{ option }}" {% if current_user.education_level == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Field / major</label><select name="field" data-other-source data-other-target="mobile-field-other"><option value="">Select</option>{% for option in ['Computer Science & Engineering','Data Science / AI','Business & Economics','Marketing / Design','Medicine & Healthcare','Psychology / Neuroscience','Natural Sciences','Social Sciences','Education','Law / Public Policy','Arts & Humanities','Communications / Media','Architecture / Design','Other'] %}<option value="{{ option }}" {% if current_user.field == option or (option == 'Other' and field_other) %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field other-input" id="mobile-field-other"><label>Your field / major</label><input name="field_other" value="{{ field_other }}" placeholder="Type your field"></div>
+            <div class="profile-field"><label>Current status</label><select name="status" data-other-source data-other-target="mobile-status-other"><option value="">Select</option>{% for option in ['High school student','Undergraduate student','Graduate student','PhD student','Postdoc','Full-time employed','Part-time employed','Self-employed / Freelancer','Unemployed','Homemaker / Caregiver','Retired','Other'] %}<option value="{{ option }}" {% if current_user.status == option or (option == 'Other' and status_other) %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field other-input" id="mobile-status-other"><label>Your current status</label><input name="status_other" value="{{ status_other }}" placeholder="Type your status"></div>
+            <div class="profile-field"><label>Race</label><select name="race" data-other-source data-other-value="Prefer to self-describe" data-other-target="mobile-race-other"><option value="">Select</option>{% for option in ['Asian','Black or African American','Hispanic or Latino','Middle Eastern or North African','Native American or Alaska Native','Native Hawaiian or Pacific Islander','White','Multiracial','Prefer to self-describe','Prefer not to say'] %}<option value="{{ option }}" {% if current_user.race == option or current_user.ethnicity == option or (option == 'Prefer to self-describe' and race_other) %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field other-input" id="mobile-race-other"><label>Self describe race</label><input name="race_other" value="{{ race_other }}" placeholder="Type your description"></div>
+            <div class="profile-field"><label>Student status</label><select name="student_status"><option value="">Select</option>{% for option in ['Not a student','Current student','Recent graduate','Returning student','Prospective student'] %}<option value="{{ option }}" {% if current_user.student_status == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Year in school</label><select name="year_in_school"><option value="">Select</option>{% for option in ['Below HS','High school','Freshman','Sophomore','Junior','Senior',"Master's",'PhD','Postdoc','Not applicable'] %}<option value="{{ option }}" {% if current_user.year_in_school == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>International / domestic</label><select name="international_domestic"><option value="">Select</option>{% for option in ['Domestic','International','Exchange / visiting','Not applicable'] %}<option value="{{ option }}" {% if current_user.international_domestic == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Income level</label><select name="income_level"><option value="">Select</option>{% for option in ['Under $25k','$25k-$49k','$50k-$74k','$75k-$99k','$100k-$149k','$150k+','Prefer not to say'] %}<option value="{{ option }}" {% if current_user.income_level == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+          </div>
+        </details>
+
+        <details class="profile-section">
+          <summary>Location</summary>
+          <div class="profile-fields">
+            <div class="profile-field"><label>Country you live in now</label><input list="country-options-mobile" name="current_country" value="{{ current_user.current_country or '' }}" placeholder="Search country"></div>
+            <div class="profile-field"><label>Province / state now</label><input list="province-options-mobile" name="current_province" value="{{ current_user.current_province or current_user.state or '' }}" placeholder="Search province / state"></div>
+            <div class="profile-field"><label>City now</label><input list="city-options-mobile" name="current_city" value="{{ current_user.current_city or '' }}" placeholder="Search city"></div>
+            <div class="profile-field"><label>Country you are from</label><input list="country-options-mobile" name="origin_country" value="{{ current_user.origin_country or '' }}" placeholder="Search country"></div>
+            <div class="profile-field"><label>Province / state from</label><input list="province-options-mobile" name="origin_province" value="{{ current_user.origin_province or '' }}" placeholder="Search province / state"></div>
+            <div class="profile-field"><label>City from</label><input list="city-options-mobile" name="origin_city" value="{{ current_user.origin_city or '' }}" placeholder="Search city"></div>
+          </div>
+        </details>
+
+        <details class="profile-section">
+          <summary>Languages</summary>
+          <div class="profile-fields"><div class="chip-list">{% for option in ['English','Spanish','Mandarin Chinese','Cantonese','French','Arabic','Hindi','Bengali','Portuguese','Russian','Japanese','Korean','German','Italian','Vietnamese','Tagalog','Urdu','Turkish','Persian','Other'] %}<label class="profile-chip"><input type="checkbox" name="language" value="{{ option }}" {% if option in languages %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="mobile-language-other"{% endif %}><span>{{ option }}</span></label>{% endfor %}</div><div class="profile-field other-input" id="mobile-language-other"><label>Other language</label><input name="language_other" value="{{ language_other }}" placeholder="Type another language"></div></div>
+        </details>
+
+        <details class="profile-section">
+          <summary>Experience</summary>
+          <div class="profile-fields">
+            <div class="chip-list">{% for option in ['First-generation student','International student','Transfer student','Working student','Caregiver','Chronic illness','Disability','Neurodivergent','Mental health experience','Physical health experience','Financial aid','Study abroad','Research participant','Online learning','Campus housing','Commuter','Athlete / fitness','Creator / social media','Gaming','Travel','Food / dining','Sustainability','Other'] %}<label class="profile-chip"><input type="checkbox" name="experience_tags" value="{{ option }}" {% if option in experiences %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="mobile-experience-other"{% endif %}><span>{{ option }}</span></label>{% endfor %}</div>
+            <div class="profile-field other-input" id="mobile-experience-other"><label>Other experience</label><input name="experience_tags_other" value="{{ experience_other }}" placeholder="Type another experience"></div>
+            <div class="profile-field"><label>Mental health diagnosis</label><input list="mental-diagnosis-options-mobile" name="mental_health_diagnosis" value="{{ 'Other' if mental_other else (current_user.mental_health_diagnosis or '') }}" placeholder="Search or type" data-other-source data-other-target="mobile-mental-other"></div>
+            <div class="profile-field other-input" id="mobile-mental-other"><label>Other mental health diagnosis</label><input name="mental_health_diagnosis_other" value="{{ mental_other }}" placeholder="Type diagnosis"></div>
+            <div class="profile-field"><label>Physical health diagnosis</label><input list="physical-diagnosis-options-mobile" name="physical_health_diagnosis" value="{{ 'Other' if physical_other else (current_user.physical_health_diagnosis or '') }}" placeholder="Search or type" data-other-source data-other-target="mobile-physical-other"></div>
+            <div class="profile-field other-input" id="mobile-physical-other"><label>Other physical diagnosis</label><input name="physical_health_diagnosis_other" value="{{ physical_other }}" placeholder="Type diagnosis"></div>
+          </div>
+        </details>
+
+        <details class="profile-section">
+          <summary>Preferences & lifestyle</summary>
+          <div class="profile-fields">
+            <div class="profile-field"><label>Participation format</label><select name="participation_format"><option value="">Select</option>{% for option in ['Online surveys','Phone interview','Video interview','In-person study','Product test','Diary study','Any format'] %}<option value="{{ option }}" {% if current_user.participation_format == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Primary device for taking surveys</label><select name="device_type"><option value="">Select</option>{% for option in ['Phone','Tablet','Laptop','Desktop','Shared public device'] %}<option value="{{ option }}" {% if current_user.device_type == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Smoking</label><select name="smoking"><option value="">Select</option>{% for option in ['No','Yes','Former smoker','Prefer not to say'] %}<option value="{{ option }}" {% if current_user.smoking == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Cannabis use</label><select name="cannabis_use"><option value="">Select</option>{% for option in ['No','Yes','Occasionally','Prefer not to say'] %}<option value="{{ option }}" {% if current_user.cannabis_use == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div><div class="profile-label" style="margin-bottom:8px;">Lifestyle</div><div class="chip-list">{% for option in ['Exercise regularly','Team sports','Outdoor activities','Cooking / foodie','Coffee / tea','Gaming','Streaming','Social media creator','Frequent traveler','Public transit','Drives regularly','Pet owner','Parent / guardian','Vegetarian / vegan','Budget conscious','Early adopter','Night owl','Morning person','Other'] %}<label class="profile-chip"><input type="checkbox" name="lifestyle_tags" value="{{ option }}" {% if option in lifestyles %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="mobile-lifestyle-other"{% endif %}><span>{{ option }}</span></label>{% endfor %}</div></div>
+            <div class="profile-field other-input" id="mobile-lifestyle-other"><label>Other lifestyle</label><input name="lifestyle_tags_other" value="{{ lifestyle_other }}" placeholder="Type another lifestyle"></div>
+          </div>
+        </details>
+
+        <button class="profile-save" type="submit">Save profile</button>
+      </form>
 
       <a href="/logout" class="btn-logout">
         <i data-lucide="log-out" style="width:16px;height:16px"></i> Log out
@@ -405,6 +508,16 @@
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('screen-' + tab).classList.add('active');
     document.getElementById('nav-' + tab).classList.add('active');
+  }
+
+  function syncOtherInputs() {
+    document.querySelectorAll('[data-other-source]').forEach(source => {
+      const target = document.getElementById(source.dataset.otherTarget);
+      if (!target) return;
+      const otherValue = source.dataset.otherValue || 'Other';
+      const isVisible = source.type === 'checkbox' ? source.checked : source.value === otherValue;
+      target.classList.toggle('is-visible', isVisible);
+    });
   }
 
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
@@ -639,9 +752,14 @@
   syncViewToggle();
   renderHome();
   updateStats();
+  syncOtherInputs();
+  const initialTab = new URLSearchParams(window.location.search).get('tab');
+  if (['home', 'earnings', 'profile'].includes(initialTab)) switchTab(initialTab);
+  document.addEventListener('input', syncOtherInputs);
+  document.addEventListener('change', syncOtherInputs);
 
   document.addEventListener('click', e => {
-    const el = e.target.closest('button, .nav-item, .completeness-card, .btn-setup, .btn-logout');
+    const el = e.target.closest('button, .nav-item, .completeness-card, .btn-setup, .btn-logout, .profile-chip');
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
