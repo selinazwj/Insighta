@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from app.database import engine, get_db
-from app.models import Base, User, Survey, Response, Feedback, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist
+from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist
 from app.quality_engine import (
     anthropic_api_key_configured,
     batch_anomaly_scores_for_features,
@@ -1123,6 +1123,7 @@ def delete_survey(
     if question_ids:
         db.query(Answer).filter(Answer.question_id.in_(question_ids)).delete(synchronize_session=False)
     db.query(Question).filter(Question.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.survey_id == survey_id).delete(synchronize_session=False)
     db.query(Response).filter(Response.survey_id == survey_id).delete(synchronize_session=False)
     db.delete(survey)
     db.commit()
@@ -1578,6 +1579,95 @@ def modify_completed_survey(
         return {"message": "Response modified"}
 
     return JSONResponse({"detail": "Response not found or not completed"}, status_code=404)
+
+
+# ---------------------------
+# Notifications API
+# ---------------------------
+
+@app.get("/api/notifications")
+def get_notifications(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    notifs = db.query(Notification).filter(
+        Notification.publisher_id == current_user.id
+    ).order_by(Notification.created_at.desc()).all()
+    return JSONResponse([{
+        "id": n.id,
+        "participant_email": n.participant_email,
+        "survey_title": n.survey_title,
+        "task_type": n.task_type or "survey",
+        "status": n.status,
+        "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else "",
+    } for n in notifs])
+
+
+@app.post("/api/notifications/{notif_id}/accept")
+def accept_notification(
+    notif_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    notif = db.query(Notification).filter(
+        Notification.id == notif_id,
+        Notification.publisher_id == current_user.id,
+    ).first()
+    if not notif:
+        raise HTTPException(404, "Notification not found")
+    notif.status = "accepted"
+
+    response = db.query(Response).filter(
+        Response.survey_id == notif.survey_id,
+        Response.participant_id == notif.participant_id,
+    ).first()
+    if response:
+        response.payout_status = "approved"
+        survey = db.query(Survey).filter(Survey.id == notif.survey_id).first()
+        participant = db.query(User).filter(User.id == notif.participant_id).first()
+        if participant and survey:
+            send_email(
+                to=participant.email,
+                subject="[Insighta] Your response was approved",
+                body=f"""
+                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+                  <h2 style="font-size: 22px; margin-bottom: 8px;">Response Approved</h2>
+                  <p style="color: #8a8a82; margin-bottom: 24px;">Your response has been verified and approved.</p>
+                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
+                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
+                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Reward</div>
+                    <div style="font-size: 22px; font-weight: 700; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
+                  </div>
+                </div>
+                """,
+            )
+    db.commit()
+    return {"message": "accepted"}
+
+
+@app.post("/api/notifications/{notif_id}/reject")
+def reject_notification(
+    notif_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    notif = db.query(Notification).filter(
+        Notification.id == notif_id,
+        Notification.publisher_id == current_user.id,
+    ).first()
+    if not notif:
+        raise HTTPException(404, "Notification not found")
+    notif.status = "rejected"
+
+    response = db.query(Response).filter(
+        Response.survey_id == notif.survey_id,
+        Response.participant_id == notif.participant_id,
+    ).first()
+    if response:
+        response.payout_status = "rejected"
+    db.commit()
+    return {"message": "rejected"}
 
 
 # ---------------------------
