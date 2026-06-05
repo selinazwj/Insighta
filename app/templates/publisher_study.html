@@ -295,15 +295,19 @@
         {% endif %}
       </div>
 
-      {% if survey.form_url == '__builtin__' %}
       <div class="action-group">
         <div class="action-group-head">Data</div>
+        {% if survey.form_url == '__builtin__' %}
         <div class="action-row">
           <div><div class="action-label">View results</div><div class="action-desc">See response breakdowns and AI analysis.</div></div>
           <a href="/surveys/{{ survey.id }}/results" class="action-btn">Results</a>
         </div>
+        {% endif %}
+        <div class="action-row">
+          <div><div class="action-label">Quality check</div><div class="action-desc">{% if survey.form_url == '__builtin__' %}Review built-in response quality scores.{% else %}Upload exported responses and review quality scores.{% endif %}</div></div>
+          <a href="/surveys/{{ survey.id }}/results#qualitySection" class="action-btn primary">Quality</a>
+        </div>
       </div>
-      {% endif %}
 
       <div class="action-group">
         <div class="action-group-head">Danger zone</div>
