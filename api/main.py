@@ -104,6 +104,20 @@ def ensure_survey_listing_columns():
 
 ensure_survey_listing_columns()
 
+def ensure_response_tracking_columns():
+    columns = {col["name"] for col in inspect(engine).get_columns("responses")}
+    response_columns = {
+        "client_ip": "VARCHAR",
+        "user_agent": "VARCHAR",
+        "device_fingerprint": "VARCHAR",
+    }
+    with engine.begin() as conn:
+        for name, column_type in response_columns.items():
+            if name not in columns:
+                conn.execute(text(f"ALTER TABLE responses ADD COLUMN {name} {column_type}"))
+
+ensure_response_tracking_columns()
+
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
