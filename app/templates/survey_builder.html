@@ -595,8 +595,8 @@
     el.style.display = msg ? 'block' : 'none';
   }
 
-  // ── Publish button ─────────────────────────────────────
-async function finishAndPublish() {
+  // ── Publish → full publish flow (audience, budget)
+  async function finishAndPublish() {
     const title = document.getElementById('infoTitle').value.trim();
     if (!title) {
         alert('Please add a survey title before publishing.');
@@ -608,15 +608,15 @@ async function finishAndPublish() {
         return;
     }
     await saveInfo();
-
+    const desc = (document.getElementById('infoDescription').value || '').trim();
     const params = new URLSearchParams({
-        builtin: '1',
-        survey_id: String(SURVEY_ID),
-        title,
-        desc: document.getElementById('infoDescription').value
+      builtin: '1',
+      survey_id: String(SURVEY_ID),
+      title,
+      desc,
     });
     window.location.href = `/publish?${params.toString()}`;
-}
+  }
   // ── Helpers ────────────────────────────────────────────
   function escHtml(str) {
     return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

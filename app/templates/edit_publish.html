@@ -116,6 +116,23 @@
     .progress-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
     .progress-value { font-family: var(--serif); font-size: 20px; color: var(--ink); }
 
+    .auto-filter-intro { font-size: 13px; color: var(--ink-muted); line-height: 1.55; margin-bottom: 16px; }
+    .auto-filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .auto-filter-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; }
+    .auto-filter-toggle input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+    .auto-filter-score { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--ink-soft); }
+    .auto-filter-score.is-disabled { color: var(--ink-muted); }
+    .auto-filter-score input {
+      width: 76px; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 9px;
+      font-family: var(--sans); font-size: 14px; font-weight: 600; text-align: center;
+    }
+    .auto-filter-score input:disabled { background: #f5f4f0; cursor: not-allowed; }
+    .auto-filter-tips { padding: 14px 16px; border-radius: 10px; background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); font-size: 13px; color: var(--ink-soft); line-height: 1.65; }
+    .auto-filter-tips strong { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+    .auto-filter-tips ul { margin: 8px 0 0 18px; padding: 0; }
+    .auto-filter-tips li { margin-bottom: 4px; }
+    .auto-filter-tips .rec { font-weight: 600; color: var(--ink); }
+
     .filter-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); padding: 12px 0 8px; border-top: 1px solid var(--line); margin-top: 8px; }
     .filter-group-label:first-child { border-top: none; padding-top: 0; margin-top: 0; }
 
@@ -323,6 +340,39 @@
         <input type="number" name="additional_needed" value="{{ survey.target_responses - survey.current_responses }}" min="0" required>
       </div>
     </div>
+
+    <!-- QUALITY AUTO FILTER -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-icon">✓</div>
+        <div><h2>Quality Auto filter</h2><p>Auto-approve responses that pass your quality score threshold</p></div>
+      </div>
+      <p class="auto-filter-intro">On Results or Quality: at or above threshold → approved; below → rejected.</p>
+      <div class="auto-filter-row">
+        <label class="auto-filter-toggle">
+          <input type="checkbox" name="quality_auto_filter_enabled" value="1" id="publishAutoFilterEnabled"
+            {% if survey.quality_auto_filter_enabled %}checked{% endif %} onchange="togglePublishAutoFilter()">
+          <span>Enable Auto filter</span>
+        </label>
+        <div class="auto-filter-score {% if not survey.quality_auto_filter_enabled %}is-disabled{% endif %}" id="publishAutoFilterScoreWrap">
+          <span>Scores ≥</span>
+          <input type="number" name="quality_auto_filter_min_score" id="publishAutoFilterMinScore" min="0" max="100" step="1"
+            value="{{ (survey.quality_auto_filter_min_score if survey.quality_auto_filter_min_score is not none else 80) | int }}"
+            {% if not survey.quality_auto_filter_enabled %}disabled{% endif %}
+            aria-label="Minimum quality score">
+          <span>approved; below that, rejected</span>
+        </div>
+      </div>
+      <div class="auto-filter-tips">
+        <strong>Recommended thresholds</strong>
+        <ul>
+          <li><span class="rec">80 (recommended)</span> — balanced default; strong responses auto-approved, borderline cases for manual review.</li>
+          <li><span class="rec">70</span> — more permissive when you need volume.</li>
+          <li><span class="rec">85–90</span> — stricter for paid studies or fraud-sensitive research.</li>
+        </ul>
+      </div>
+    </div>
+
     <!-- TARGET AUDIENCE -->
     <div class="form-section">
       <div class="section-header">
@@ -563,6 +613,14 @@
 </div>
 
 <script>
+  function togglePublishAutoFilter() {
+    const enabled = document.getElementById('publishAutoFilterEnabled').checked;
+    const scoreInput = document.getElementById('publishAutoFilterMinScore');
+    const wrap = document.getElementById('publishAutoFilterScoreWrap');
+    if (scoreInput) scoreInput.disabled = !enabled;
+    if (wrap) wrap.classList.toggle('is-disabled', !enabled);
+  }
+
   document.querySelectorAll('select').forEach(s => {
     const update = () => s.classList.toggle('has-value', !!s.value && s.value !== '');
     s.addEventListener('change', update);
@@ -584,7 +642,7 @@
           const el = this.querySelector(`select[name="${name}"]`);
           if (el && !el.value) el.removeAttribute('name');
       });
-      // 只有显示了 reward 字段才验证
+      // Validate reward only when the reward field is visible
       const rewardInput = document.getElementById('rewardInput');
       if (rewardInput && (parseFloat(rewardInput.value) || 0) <= 0) {
           e.preventDefault();
