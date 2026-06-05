@@ -57,7 +57,7 @@ class RespondentPrediction(Base):
     survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False, index=True)
     participant_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
-    model_version = Column(String, default="rule-v0.1", index=True)
+    model_version = Column(String, default="claude-llm-only", index=True)
     probability = Column(Float, nullable=False)
     confidence = Column(String, default="low")  # high / medium / low
     segment_label = Column(String, nullable=True)
