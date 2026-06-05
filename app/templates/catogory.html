@@ -1,33 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>{{ category }} Surveys</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="icon" type="image/jpeg" href="/static/favicon.jpg">
-    <link rel="apple-touch-icon" href="/static/favicon.jpg">
-    <meta name="theme-color" content="#050E1F">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ category | capitalize }} Surveys - Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <style>
+    :root{--green:#3b7c4f;--green-d:#2a5c39;--green-l:#e8f2eb;--ink:#1a1a18;--ink2:#4a4a44;--ink3:#8a8a82;--bg:#fafaf8;--card:#fff;--line:#eeece6;--line2:#e0ddd6;--serif:'DM Serif Display',Georgia,serif;--sans:'DM Sans',system-ui,sans-serif;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+    .nav{height:56px;padding:0 40px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+    .brand{font-size:15px;font-weight:700;color:var(--ink);text-decoration:none;letter-spacing:-.2px}.brand span{color:var(--green);}
+    .back{font-size:13px;font-weight:600;color:var(--ink3);text-decoration:none;border:.5px solid var(--line2);border-radius:8px;padding:7px 12px}.back:hover{background:#f5f3ee;color:var(--ink2);}
+    .wrap{max-width:920px;margin:0 auto;padding:42px 24px 80px;}
+    .head{margin-bottom:28px}.eyebrow{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px}.head h1{font-family:var(--serif);font-size:38px;font-weight:400;letter-spacing:-.8px}.head p{margin-top:8px;font-size:14px;color:var(--ink3);}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;}
+    .card{background:var(--card);border:.5px solid var(--line);border-radius:10px;padding:18px 20px;text-decoration:none;color:inherit;transition:border-color .15s,box-shadow .15s,transform .15s;}
+    .card:hover{border-color:#c2deca;box-shadow:0 8px 24px rgba(59,124,79,.08);transform:translateY(-1px);}
+    .title{font-size:15px;font-weight:700;color:var(--ink);line-height:1.35;margin-bottom:8px}.meta{font-size:12px;color:var(--ink3);font-weight:500}.arrow{margin-top:16px;font-size:12px;font-weight:700;color:var(--green);}
+    .empty{background:#fff;border:.5px dashed var(--line2);border-radius:12px;padding:48px 24px;text-align:center;color:var(--ink3);font-size:14px;}
+    @media(max-width:640px){.nav{padding:0 16px}.wrap{padding:32px 16px 64px}.head h1{font-size:30px}}
+  </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 p-10 text-white">
-
-    <h1 class="text-4xl font-bold mb-6">{{ category | capitalize }} Surveys</h1>
+<body>
+  <nav class="nav">
+    <a href="/" class="brand">Insight<span>a</span></a>
+    <a href="/dashboard" class="back">Back</a>
+  </nav>
+  <main class="wrap">
+    <section class="head">
+      <div class="eyebrow">Category</div>
+      <h1>{{ category | capitalize }} surveys</h1>
+      <p>Browse available studies in this category.</p>
+    </section>
 
     {% if surveys %}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {% for s in surveys %}
-            <div class="p-6 bg-white/10 rounded-xl shadow-lg backdrop-blur-lg">
-                <h2 class="text-2xl font-semibold">{{ s.title }}</h2>
-                <p class="text-white/70 mt-2">Category: {{ s.category }}</p>
-
-                <a href="/survey/{{ s.id }}" 
-                   class="inline-block mt-4 px-4 py-2 bg-white/30 rounded-lg backdrop-blur hover:bg-white/40 transition">
-                    Enter survey
-                </a>
-            </div>
-            {% endfor %}
-        </div>
+    <section class="grid">
+      {% for s in surveys %}
+      <a class="card" href="/survey/{{ s.id }}">
+        <div class="title">{{ s.title }}</div>
+        <div class="meta">{{ s.category | capitalize }}</div>
+        <div class="arrow">Open survey</div>
+      </a>
+      {% endfor %}
+    </section>
     {% else %}
-        <p class="text-white/80">No surveys in this category yet.</p>
+    <div class="empty">No surveys in this category yet.</div>
     {% endif %}
-
+  </main>
 </body>
 </html>

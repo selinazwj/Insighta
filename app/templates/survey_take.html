@@ -10,23 +10,26 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82;
-      --paper: #faf9f5; --paper-warm: #f3f1ea;
-      --accent: #2d6a4f; --accent-light: #52b788;
-      --line: #e0ddd3;
-      --serif: 'DM Serif Display', Georgia, serif;
-      --sans: 'DM Sans', system-ui, sans-serif;
+      --lime:#d9ed92; --light-green:#b5e48c; --light-green-2:#99d98c;
+      --emerald:#76c893; --ocean-mist:#52b69a; --teal:#34a0a4;
+      --bondi:#168aad; --cerulean:#1a759f; --baltic:#1e6091; --yale:#184e77;
+      --ink:#12324a; --ink-soft:#2f5f6d; --ink-muted:#5f8390;
+      --paper:#fcfff5; --paper-warm:#f4fbdf; --card:#ffffff;
+      --line:#d9efc8; --line-strong:#b8e9ad;
+      --accent:var(--teal); --accent-light:var(--light-green-2);
+      --serif:'DM Serif Display', Georgia, serif;
+      --sans:'DM Sans', system-ui, sans-serif;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
 
     /* Navbar */
-    .navbar { background: rgba(250,249,245,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 14px 48px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-    .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); }
-    .navbar-brand span { color: var(--accent); }
+    .navbar { background: rgba(252,255,245,0.94); backdrop-filter: blur(16px); border-bottom: 2px solid var(--line); padding: 14px 48px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .navbar-brand { font-size: 18px; font-weight: 900; color: var(--ink); letter-spacing: -0.3px; }
+    .navbar-brand span { color: var(--teal); }
     .progress-wrap { display: flex; align-items: center; gap: 10px; }
-    .progress-bar { width: 160px; height: 5px; background: var(--line); border-radius: 100px; overflow: hidden; }
-    .progress-fill { height: 100%; background: var(--accent-light); border-radius: 100px; transition: width 0.4s ease; }
+    .progress-bar { width: 160px; height: 7px; background: var(--line); border-radius: 100px; overflow: hidden; border: 1px solid var(--line-strong); }
+    .progress-fill { height: 100%; background: linear-gradient(90deg,var(--teal),var(--light-green-2)); border-radius: 100px; transition: width 0.4s ease; }
     .progress-label { font-size: 13px; color: var(--ink-muted); }
 
     /* Layout */
@@ -34,13 +37,13 @@
 
     /* Survey header */
     .survey-header { margin-bottom: 40px; }
-    .survey-header h1 { font-family: var(--serif); font-size: 32px; color: var(--ink); letter-spacing: -0.5px; margin-bottom: 8px; }
-    .survey-header p { font-size: 15px; color: var(--ink-muted); font-weight: 300; line-height: 1.6; }
+    .survey-header h1 { font-size: 32px; font-weight: 900; color: var(--ink); letter-spacing: -0.8px; margin-bottom: 8px; }
+    .survey-header p { font-size: 15px; color: var(--ink-muted); font-weight: 600; line-height: 1.6; }
     .survey-meta { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
-    .meta-pill { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--ink-muted); background: var(--paper-warm); border: 1px solid var(--line); padding: 5px 12px; border-radius: 100px; }
+    .meta-pill { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800; color: var(--ink-soft); background: var(--paper-warm); border: 2px solid var(--line); padding: 6px 12px; border-radius: 100px; }
 
     /* Question card */
-    .q-block { background: white; border: 1.5px solid var(--line); border-radius: 14px; padding: 24px 28px; margin-bottom: 16px; transition: border-color 0.2s; }
+    .q-block { background: var(--card); border: 2px solid var(--line-strong); border-radius: 18px; padding: 24px 28px; margin-bottom: 16px; transition: border-color 0.2s, box-shadow 0.2s; box-shadow: 0 4px 0 var(--emerald); }
     .q-block.has-error { border-color: #fca5a5; }
     .q-label { font-size: 16px; font-weight: 500; color: var(--ink); margin-bottom: 4px; line-height: 1.5; }
     .q-required-star { color: #ef4444; margin-left: 3px; }
@@ -50,18 +53,18 @@
 
     /* Single choice */
     .radio-group { display: flex; flex-direction: column; gap: 8px; }
-    .radio-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; user-select: none; }
-    .radio-item:hover { border-color: var(--accent-light); background: rgba(45,106,79,0.03); }
-    .radio-item.selected { border-color: var(--accent); background: rgba(45,106,79,0.06); }
-    .radio-item input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+    .radio-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 2px solid var(--line); border-radius: 12px; cursor: pointer; transition: all 0.15s; user-select: none; }
+    .radio-item:hover { border-color: var(--light-green-2); background: var(--paper-warm); }
+    .radio-item.selected { border-color: var(--teal); background: #eefbf7; box-shadow: 0 3px 0 var(--ocean-mist); }
+    .radio-item input[type="radio"] { accent-color: var(--teal); width: 16px; height: 16px; flex-shrink: 0; }
     .radio-item span { font-size: 15px; color: var(--ink); }
 
     /* Multiple choice */
     .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
-    .checkbox-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; user-select: none; }
-    .checkbox-item:hover { border-color: var(--accent-light); background: rgba(45,106,79,0.03); }
-    .checkbox-item.selected { border-color: var(--accent); background: rgba(45,106,79,0.06); }
-    .checkbox-item input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+    .checkbox-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 2px solid var(--line); border-radius: 12px; cursor: pointer; transition: all 0.15s; user-select: none; }
+    .checkbox-item:hover { border-color: var(--light-green-2); background: var(--paper-warm); }
+    .checkbox-item.selected { border-color: var(--teal); background: #eefbf7; box-shadow: 0 3px 0 var(--ocean-mist); }
+    .checkbox-item input[type="checkbox"] { accent-color: var(--teal); width: 16px; height: 16px; flex-shrink: 0; }
     .checkbox-item span { font-size: 15px; color: var(--ink); }
 
     /* Text answer */
@@ -73,7 +76,7 @@
     .scale-group { display: flex; gap: 8px; flex-wrap: wrap; }
     .scale-btn { width: 52px; height: 52px; border: 1.5px solid var(--line); border-radius: 10px; background: white; cursor: pointer; font-size: 16px; font-weight: 600; color: var(--ink-muted); transition: all 0.15s; font-family: var(--sans); }
     .scale-btn:hover { border-color: var(--accent-light); color: var(--ink); }
-    .scale-btn.selected { border-color: var(--accent); background: var(--accent); color: white; }
+    .scale-btn.selected { border-color: var(--yale); background: var(--teal); color: white; box-shadow: 0 3px 0 var(--yale); }
     .scale-labels { display: flex; justify-content: space-between; margin-top: 8px; }
     .scale-labels span { font-size: 12px; color: var(--ink-muted); }
 
@@ -82,10 +85,10 @@
     .dropdown-answer:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08); }
 
     /* Submit bar */
-    .submit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(250,249,245,0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--line); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+    .submit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(252,255,245,0.96); backdrop-filter: blur(14px); border-top: 2px solid var(--line); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
     .submit-hint { font-size: 13px; color: var(--ink-muted); }
-    .btn-submit { padding: 12px 32px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-submit:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.25); }
+    .btn-submit { padding: 12px 32px; background: var(--teal); color: white; border: 2px solid var(--yale); border-radius: 12px; font-family: var(--sans); font-size: 15px; font-weight: 900; cursor: pointer; transition: all 0.12s; box-shadow: 0 4px 0 var(--yale); }
+    .btn-submit:hover { transform: translateY(1px); box-shadow: 0 3px 0 var(--yale); }
     .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
 
     /* Loading state */
@@ -120,8 +123,8 @@
     <h1>{{ survey.title }}</h1>
     <p>{{ survey.description }}</p>
     <div class="survey-meta">
-      <span class="meta-pill">⏱ {{ survey.estimated_time }} min</span>
-      <span class="meta-pill">💰 ${{ "%.2f"|format(survey.reward_amount) }} reward</span>
+      <span class="meta-pill">{{ survey.estimated_time }} min</span>
+      <span class="meta-pill">${{ "%.2f"|format(survey.reward_amount) }} reward</span>
     </div>
   </div>
 
