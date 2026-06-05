@@ -94,7 +94,7 @@ def ensure_survey_listing_columns():
         "target_lifestyle_tags": "VARCHAR",
         "target_niche_requirements": "VARCHAR",
         "raffle_prize_type": "VARCHAR",
-        "quality_auto_filter_enabled": "BOOLEAN DEFAULT 0",
+        "quality_auto_filter_enabled": "BOOLEAN DEFAULT false",
         "quality_auto_filter_min_score": "FLOAT DEFAULT 80.0",
     }
     with engine.begin() as conn:
