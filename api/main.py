@@ -1998,11 +1998,25 @@ def reopen_closed_survey(survey_id: int, current_user: User = Depends(get_curren
 # ---------------------------
 
 @app.get("/publisher/edit/{survey_id}")
-def edit_survey_get(request: Request, survey_id: int, db: Session = Depends(get_db)):
-    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+def edit_survey_get(
+    request: Request,
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
     current_responses = db.query(Response).filter(Response.survey_id == survey_id, Response.status == "completed").count()
     survey.current_responses = current_responses
-    return templates.TemplateResponse("edit_publish.html", {"request": request, "survey": survey})
+    return templates.TemplateResponse("edit_publish.html", {
+        "request": request,
+        "survey": survey,
+        "current_user": current_user,
+    })
 
 @app.post("/publisher/edit/{survey_id}")
 async def edit_survey_post(
