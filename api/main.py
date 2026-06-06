@@ -53,6 +53,7 @@ from app.ai_growth.routes import router as ai_growth_router
 from app.ai_growth.security import is_safe_internal_next
 from app.ai_growth.jump import mark_latest_jump_completed_for_response
 from app.ai_growth.prediction import recommend_surveys_for_user
+from app.ai_growth.models import JumpEvent, RespondentPrediction, SurveySegmentStats, UserActivityEvent
 
 app = FastAPI()
 app.include_router(verification_router)
@@ -1140,10 +1141,21 @@ def delete_survey(
     if not survey:
         raise HTTPException(404, "Survey not found")
 
-    # Delete answers first, then questions, then responses, then survey
+    # Delete dependent rows first. Postgres/Supabase enforces these foreign keys,
+    # so deleting the survey directly can fail once quality/AI tracking exists.
     question_ids = [q.id for q in db.query(Question).filter(Question.survey_id == survey_id).all()]
+    response_ids = [row[0] for row in db.query(Response.id).filter(Response.survey_id == survey_id).all()]
     if question_ids:
         db.query(Answer).filter(Answer.question_id.in_(question_ids)).delete(synchronize_session=False)
+    if response_ids:
+        db.query(Answer).filter(Answer.response_id.in_(response_ids)).delete(synchronize_session=False)
+        db.query(JumpEvent).filter(JumpEvent.response_id.in_(response_ids)).delete(synchronize_session=False)
+        db.query(ResponseQualityCheck).filter(ResponseQualityCheck.response_id.in_(response_ids)).delete(synchronize_session=False)
+    db.query(JumpEvent).filter(JumpEvent.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(RespondentPrediction).filter(RespondentPrediction.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(SurveySegmentStats).filter(SurveySegmentStats.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(UserActivityEvent).filter(UserActivityEvent.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(ResponseQualityCheck).filter(ResponseQualityCheck.survey_id == survey_id).delete(synchronize_session=False)
     db.query(Question).filter(Question.survey_id == survey_id).delete(synchronize_session=False)
     db.query(Notification).filter(Notification.survey_id == survey_id).delete(synchronize_session=False)
     db.query(Response).filter(Response.survey_id == survey_id).delete(synchronize_session=False)
