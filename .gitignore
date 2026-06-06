@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+.DS_Store
 users.db
 .env
 *.csv
