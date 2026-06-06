@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from app.database import engine, get_db
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist
+from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage
 from app.quality_engine import (
     anthropic_api_key_configured,
     batch_anomaly_scores_for_features,
@@ -39,6 +39,14 @@ from app.quality_engine import (
     evaluate_builtin_response,
     resolve_excel_row_context,
     upsert_builtin_quality_check,
+)
+from app.payouts import (
+    APPROVED,
+    LEGACY_RELEASED,
+    mark_response_under_review,
+    reject_response_payout,
+    release_response_payout,
+    return_response_to_review,
 )
 from app.verification.routes import router as verification_router
 from app.ai_growth.routes import router as ai_growth_router
@@ -1543,8 +1551,7 @@ def complete_survey(
         r.status = "completed"
         r.completed_at = datetime.now(timezone.utc)
         r.payout_amount = survey.reward_amount
-        r.payout_status = "pending"
-        current_user.pending_earnings = (getattr(current_user, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
+        mark_response_under_review(r)
 
         publisher = db.query(User).filter(User.id == survey.publisher_id).first()
         if publisher and publisher.email:
@@ -1586,9 +1593,8 @@ def modify_completed_survey(
 
     if r and r.status == "completed":
         survey = db.query(Survey).filter(Survey.id == survey_id).first()
-        r.status = "started"; r.completed_at = None; r.payout_status = "pending"
-        if survey:
-            current_user.pending_earnings = max(0.0, (getattr(current_user, 'pending_earnings', 0.0) or 0.0) - survey.reward_amount)
+        r.status = "started"; r.completed_at = None
+        return_response_to_review(db, r)
         db.commit()
         return {"message": "Response modified"}
 
@@ -1636,7 +1642,7 @@ def accept_notification(
         Response.participant_id == notif.participant_id,
     ).first()
     if response:
-        response.payout_status = "approved"
+        release_response_payout(db, response)
         survey = db.query(Survey).filter(Survey.id == notif.survey_id).first()
         participant = db.query(User).filter(User.id == notif.participant_id).first()
         if participant and survey:
@@ -1679,7 +1685,7 @@ def reject_notification(
         Response.participant_id == notif.participant_id,
     ).first()
     if response:
-        response.payout_status = "rejected"
+        reject_response_payout(db, response)
     db.commit()
     return {"message": "rejected"}
 
@@ -1954,7 +1960,10 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
     if pending < 1.0: raise HTTPException(400, "Minimum withdrawal is $1.00")
     try:
         transfer = stripe.Transfer.create(amount=int(pending * 100), currency="usd", destination=current_user.stripe_account_id, description=f"Insighta payout for user {current_user.id}")
-        for r in db.query(Response).filter(Response.participant_id == current_user.id, Response.payout_status == "pending").all():
+        for r in db.query(Response).filter(
+            Response.participant_id == current_user.id,
+            Response.payout_status.in_([APPROVED, LEGACY_RELEASED]),
+        ).all():
             r.payout_status = "paid"; r.stripe_transfer_id = transfer.id
         current_user.total_withdrawn = (getattr(current_user, 'total_withdrawn', 0.0) or 0.0) + pending
         current_user.pending_earnings = 0.0; db.commit()
@@ -2034,6 +2043,7 @@ async def edit_survey_post(
     target_cannabis_use: str = Form(None), target_student_status: str = Form(None),
     target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
     target_participation_format: str = Form(None), target_device: str = Form(None),
+    target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
     cover_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -2042,6 +2052,8 @@ async def edit_survey_post(
     target_education_max = _parse_optional_int(form.get("target_education_max"))
     experience_list = form.getlist("target_experience_tags")
     target_experience_tags = ",".join(experience_list) if experience_list else None
+    lifestyle_list = form.getlist("target_lifestyle_tags")
+    target_lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
 
     survey = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
     if not survey:
@@ -2057,6 +2069,7 @@ async def edit_survey_post(
     survey.estimated_time = estimated_time; survey.reward_amount = reward_amount
     survey.target_responses = current_responses + additional_needed
     survey.urgency_level = _clean_target(urgency_level); survey.incentive_type = _clean_target(incentive_type)
+    survey.raffle_prize_type = _clean_target(raffle_prize_type) if _clean_target(incentive_type) == "raffle" else None
     survey.target_age_range = _clean_target(target_age_range)
     survey.target_education_min = target_education_min; survey.target_education_max = target_education_max
     survey.target_field = _clean_target(target_field); survey.target_status = _clean_target(target_status)
@@ -2074,6 +2087,9 @@ async def edit_survey_post(
     survey.target_experience_tags = target_experience_tags
     survey.target_participation_format = _clean_target(target_participation_format)
     survey.target_device = _clean_target(target_device)
+    survey.target_income_level = _clean_target(target_income_level)
+    survey.target_lifestyle_tags = target_lifestyle_tags
+    survey.target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
     _apply_survey_auto_filter_settings(survey, form)
 
     if cover_image and cover_image.filename:
@@ -2142,6 +2158,20 @@ async def profile_post(
     db: Session = Depends(get_db)
 ):
     form = await request.form()
+    if not _should_use_participant_app(request, participant_app):
+        current_user.username = (form.get("username") or "").strip() or None
+        current_user.email = (form.get("email") or "").strip()
+        if "phone_number" in form:
+            current_user.phone_number = (form.get("phone_number") or "").strip() or None
+        current_user.field = _value_with_other(form.get("field"), form.get("field_other"))
+        current_user.status = _value_with_other(form.get("status"), form.get("status_other"))
+        current_user.profile_description = (form.get("profile_description") or "").strip() or None
+        db.commit()
+        return_to = form.get("return_to")
+        if return_to and is_safe_internal_next(return_to):
+            return RedirectResponse(return_to, status_code=303)
+        return RedirectResponse("/publisher", status_code=303)
+
     language_list = _list_with_other(form.getlist("language"), form.get("language_other"))
     experience_list = _list_with_other(form.getlist("experience_tags"), form.get("experience_tags_other"))
     lifestyle_list = _list_with_other(form.getlist("lifestyle_tags"), form.get("lifestyle_tags_other"))
@@ -2321,6 +2351,142 @@ async def submit_feedback(request: Request, current_user: User = Depends(get_cur
 
 
 # ---------------------------
+# Support chat
+# ---------------------------
+
+SUPPORT_AVAILABLE_HOURS = "10am-5pm"
+
+def _support_thread_payload(thread: SupportThread, db: Session):
+    user = db.query(User).filter(User.id == thread.user_id).first()
+    last_message = db.query(SupportMessage).filter(
+        SupportMessage.thread_id == thread.id
+    ).order_by(SupportMessage.created_at.desc()).first()
+    unread_user_messages = db.query(SupportMessage).filter(
+        SupportMessage.thread_id == thread.id,
+        SupportMessage.sender_type == "user",
+        SupportMessage.read_at.is_(None),
+    ).count()
+    return {
+        "id": thread.id,
+        "status": thread.status,
+        "user_id": thread.user_id,
+        "user_email": user.email if user else "unknown",
+        "user_name": user.username if user else None,
+        "last_message": last_message.body if last_message else "",
+        "last_message_at": thread.last_message_at.isoformat() if thread.last_message_at else None,
+        "created_at": thread.created_at.isoformat() if thread.created_at else None,
+        "unread_user_messages": unread_user_messages,
+    }
+
+def _support_message_payload(message: SupportMessage):
+    return {
+        "id": message.id,
+        "thread_id": message.thread_id,
+        "sender_type": message.sender_type,
+        "sender_id": message.sender_id,
+        "body": message.body,
+        "created_at": message.created_at.isoformat() if message.created_at else None,
+    }
+
+def _get_or_create_support_thread(db: Session, user_id: int):
+    thread = db.query(SupportThread).filter(
+        SupportThread.user_id == user_id,
+        SupportThread.status == "open",
+    ).order_by(SupportThread.updated_at.desc()).first()
+    if thread:
+        return thread
+    thread = SupportThread(user_id=user_id, status="open", last_message_at=datetime.utcnow())
+    db.add(thread)
+    db.flush()
+    db.add(SupportMessage(
+        thread_id=thread.id,
+        sender_type="system",
+        body=f"Support hours are {SUPPORT_AVAILABLE_HOURS}. Leave a message and our team will reply here.",
+    ))
+    db.commit()
+    db.refresh(thread)
+    return thread
+
+@app.get("/api/support/availability")
+def support_availability():
+    return JSONResponse({
+        "available_hours": SUPPORT_AVAILABLE_HOURS,
+        "label": f"Human support available {SUPPORT_AVAILABLE_HOURS}",
+    })
+
+@app.get("/api/support/thread")
+def get_support_thread(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    thread = _get_or_create_support_thread(db, current_user.id)
+    messages = db.query(SupportMessage).filter(
+        SupportMessage.thread_id == thread.id
+    ).order_by(SupportMessage.created_at.asc()).all()
+    return JSONResponse({
+        "thread": _support_thread_payload(thread, db),
+        "messages": [_support_message_payload(m) for m in messages],
+        "available_hours": SUPPORT_AVAILABLE_HOURS,
+    })
+
+@app.get("/api/support/messages")
+def get_support_messages(
+    thread_id: int = Query(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    thread = db.query(SupportThread).filter(
+        SupportThread.id == thread_id,
+        SupportThread.user_id == current_user.id,
+    ).first()
+    if not thread:
+        raise HTTPException(404, "Support thread not found")
+    messages = db.query(SupportMessage).filter(
+        SupportMessage.thread_id == thread.id
+    ).order_by(SupportMessage.created_at.asc()).all()
+    return JSONResponse([_support_message_payload(m) for m in messages])
+
+@app.post("/api/support/messages")
+async def send_support_message(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    body = await request.json()
+    text_body = (body.get("body") or "").strip()
+    if not text_body:
+        raise HTTPException(400, "Message cannot be empty")
+    if len(text_body) > 2000:
+        raise HTTPException(400, "Message is too long")
+
+    thread_id = body.get("thread_id")
+    thread = None
+    if thread_id:
+        thread = db.query(SupportThread).filter(
+            SupportThread.id == int(thread_id),
+            SupportThread.user_id == current_user.id,
+        ).first()
+    if not thread:
+        thread = _get_or_create_support_thread(db, current_user.id)
+
+    msg = SupportMessage(
+        thread_id=thread.id,
+        sender_type="user",
+        sender_id=current_user.id,
+        body=text_body,
+    )
+    thread.status = "open"
+    thread.last_message_at = datetime.utcnow()
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    return JSONResponse({
+        "thread": _support_thread_payload(thread, db),
+        "message": _support_message_payload(msg),
+    })
+
+
+# ---------------------------
 # Admin
 # ---------------------------
 
@@ -2361,6 +2527,67 @@ async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Ses
         user = db.query(User).filter(User.id == f.user_id).first()
         result.append({"id": f.id, "user_email": user.email if user else "unknown", "category": f.category, "title": f.title, "content": f.content, "status": f.status, "credit_amount": f.credit_amount, "created_at": str(f.created_at)})
     return JSONResponse(result)
+
+@app.get("/admin/support/threads")
+async def admin_support_threads(admin_key: str = Query(None), db: Session = Depends(get_db)):
+    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    threads = db.query(SupportThread).order_by(SupportThread.last_message_at.desc()).all()
+    return JSONResponse([_support_thread_payload(thread, db) for thread in threads])
+
+@app.get("/admin/support/threads/{thread_id}/messages")
+async def admin_support_messages(thread_id: int, admin_key: str = Query(None), db: Session = Depends(get_db)):
+    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    thread = db.query(SupportThread).filter(SupportThread.id == thread_id).first()
+    if not thread:
+        raise HTTPException(404, "Support thread not found")
+    messages = db.query(SupportMessage).filter(
+        SupportMessage.thread_id == thread.id
+    ).order_by(SupportMessage.created_at.asc()).all()
+    now = datetime.utcnow()
+    for msg in messages:
+        if msg.sender_type == "user" and msg.read_at is None:
+            msg.read_at = now
+    db.commit()
+    return JSONResponse({
+        "thread": _support_thread_payload(thread, db),
+        "messages": [_support_message_payload(m) for m in messages],
+        "available_hours": SUPPORT_AVAILABLE_HOURS,
+    })
+
+@app.post("/admin/support/threads/{thread_id}/messages")
+async def admin_send_support_message(thread_id: int, request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    text_body = (body.get("body") or "").strip()
+    if not text_body:
+        raise HTTPException(400, "Message cannot be empty")
+    if len(text_body) > 2000:
+        raise HTTPException(400, "Message is too long")
+    thread = db.query(SupportThread).filter(SupportThread.id == thread_id).first()
+    if not thread:
+        raise HTTPException(404, "Support thread not found")
+    msg = SupportMessage(thread_id=thread.id, sender_type="admin", body=text_body)
+    thread.status = "open"
+    thread.last_message_at = datetime.utcnow()
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    return JSONResponse({"message": _support_message_payload(msg), "thread": _support_thread_payload(thread, db)})
+
+@app.post("/admin/support/threads/{thread_id}/status")
+async def admin_update_support_status(thread_id: int, request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    status = (body.get("status") or "").strip().lower()
+    if status not in {"open", "closed"}:
+        raise HTTPException(400, "Unsupported status")
+    thread = db.query(SupportThread).filter(SupportThread.id == thread_id).first()
+    if not thread:
+        raise HTTPException(404, "Support thread not found")
+    thread.status = status
+    thread.updated_at = datetime.utcnow()
+    db.commit()
+    return JSONResponse({"thread": _support_thread_payload(thread, db)})
 
 # ---------------------------
 # Quick create built-in survey
@@ -3033,10 +3260,7 @@ async def submit_answers(
         r.status = "completed"
         r.completed_at = datetime.now(timezone.utc)
         r.payout_amount = survey.reward_amount
-        r.payout_status = "pending"
-        current_user.pending_earnings = (
-            getattr(current_user, 'pending_earnings', 0.0) or 0.0
-        ) + survey.reward_amount
+        mark_response_under_review(r)
 
         publisher = db.query(User).filter(User.id == survey.publisher_id).first()
         if publisher and publisher.email:
@@ -3251,24 +3475,38 @@ async def review_quality_check(
     notes = body.get("notes")
     reviewer_label = body.get("reviewer_label")
 
+    response = db.query(Response).filter(Response.id == row.response_id).first() if row.response_id else None
+
     if action == "approve":
         row.review_status = "approved"
+        if response:
+            release_response_payout(db, response)
     elif action == "reject":
         row.review_status = "rejected"
+        if response:
+            reject_response_payout(db, response)
     elif action == "pending":
         row.review_status = "pending"
+        if response:
+            return_response_to_review(db, response)
     elif action == "needs_review":
         row.review_status = "needs_review"
+        if response:
+            return_response_to_review(db, response)
     elif action == "mark_fraud":
         row.review_status = "rejected"
         row.fraud_risk = True
         row.quality_label = "fraud_risk"
         row.reviewer_label = reviewer_label or "fraud"
+        if response:
+            reject_response_payout(db, response)
     elif action == "mark_low_quality":
         row.review_status = "rejected"
         row.reviewer_label = reviewer_label or "low_quality"
         if row.quality_label == "high":
             row.quality_label = "low"
+        if response:
+            reject_response_payout(db, response)
     else:
         raise HTTPException(400, "Invalid action")
 
@@ -3391,6 +3629,21 @@ async def auto_approve_quality_by_score(
         rows = [row for row in rows if row.source_type == "excel"]
 
     approved, rejected = apply_auto_approve_checks(rows, min_score)
+    response_ids = [row.response_id for row in rows if row.response_id]
+    responses_by_id = {}
+    if response_ids:
+        responses_by_id = {
+            response.id: response
+            for response in db.query(Response).filter(Response.id.in_(response_ids)).all()
+        }
+    for row in rows:
+        response = responses_by_id.get(row.response_id)
+        if not response:
+            continue
+        if row.review_status == "approved":
+            release_response_payout(db, response)
+        elif row.review_status == "rejected":
+            reject_response_payout(db, response)
     db.commit()
     return JSONResponse({
         "message": "auto filter applied",

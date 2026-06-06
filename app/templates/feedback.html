@@ -6,382 +6,209 @@
   <title>Feedback — Insighta</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="apple-touch-icon" href="/static/favicon.png">
-  <meta name="theme-color" content="#faf9f5">
+  <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/support_chat.css">
   <style>
     :root {
-      --ink: #1a1a18;
-      --ink-soft: #4a4a44;
-      --ink-muted: #8a8a82;
-      --paper: #faf9f5;
-      --paper-warm: #f3f1ea;
-      --accent: #2d6a4f;
-      --accent-light: #52b788;
-      --accent-warm: #e07a3c;
-      --line: #e0ddd3;
-      --serif: 'DM Serif Display', Georgia, serif;
-      --sans: 'DM Sans', system-ui, sans-serif;
+      --green:#3b7c4f; --green-d:#2a5c39; --green-l:#e8f2eb; --green-m:#c2deca;
+      --ink:#1a1a18; --ink2:#4a4a44; --ink3:#8a8a82; --ink4:#b8b8b0;
+      --bg:#ffffff; --bg2:#fafaf8; --bg3:#f5f3ee;
+      --line:#eeece6; --line2:#e0ddd6;
+      --serif:'DM Serif Display', Georgia, serif;
+      --sans:'DM Sans', system-ui, sans-serif;
+      --sidebar:220px;
     }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:var(--sans);background:var(--bg2);color:var(--ink);min-height:100vh;display:flex;-webkit-font-smoothing:antialiased;}
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    .sidebar{width:var(--sidebar);flex-shrink:0;background:var(--bg);border-right:.5px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+    .sidebar-logo{padding:20px 20px 18px;border-bottom:.5px solid var(--line);font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.2px;text-decoration:none;display:block;}
+    .sidebar-logo span{color:var(--green);}
+    .sidebar-nav{flex:1;padding:10px;display:flex;flex-direction:column;gap:1px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;font-size:13px;font-weight:500;color:var(--ink3);text-decoration:none;border:none;background:none;font-family:var(--sans);width:100%;text-align:left;transition:background .12s,color .12s;}
+    .nav-item:hover{background:var(--bg3);color:var(--ink2);}
+    .nav-item.active{background:var(--green-l);color:var(--green);font-weight:600;}
+    .nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+    .nav-divider{height:.5px;background:var(--line);margin:6px 10px;}
+    .sidebar-user{padding:14px 10px;border-top:.5px solid var(--line);}
+    .user-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:7px;text-decoration:none;transition:background .12s;}
+    .user-row:hover{background:var(--bg3);}
+    .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+    .user-name{font-size:13px;font-weight:500;color:var(--ink);}
+    .user-email{font-size:11px;color:var(--ink3);margin-top:1px;}
 
-    body {
-      font-family: var(--sans);
-      background: var(--paper);
-      color: var(--ink);
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
+    .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+    .topbar{height:56px;padding:0 32px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:80;gap:14px;}
+    .topbar-left{display:flex;align-items:center;gap:12px;min-width:0;}
+    .back-btn{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink3);text-decoration:none;font-weight:500;transition:color .12s;flex-shrink:0;}
+    .back-btn:hover{color:var(--ink);}
+    .back-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
+    .topbar-sep{width:.5px;height:16px;background:var(--line);flex-shrink:0;}
+    .topbar-title{font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-    /* ── LEFT PANEL ── */
-    .left-panel {
-      background: var(--ink);
-      padding: 60px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow: hidden;
-    }
+    .content{width:100%;max-width:1040px;margin:0 auto;padding:36px 32px 80px;}
+    .page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:28px;}
+    .page-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px;}
+    .page-header h1{font-size:32px;font-weight:300;color:var(--ink);letter-spacing:-.6px;margin-bottom:7px;}
+    .page-header h1 strong{font-weight:700;}
+    .page-header p{font-size:14px;color:var(--ink3);line-height:1.6;max-width:560px;}
+    .credit-card{background:var(--green-l);border:.5px solid var(--green-m);border-radius:12px;padding:16px 18px;max-width:300px;color:var(--ink2);font-size:13px;line-height:1.6;}
+    .credit-card strong{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:4px;}
 
-    .left-panel::before {
-      content: '';
-      position: absolute;
-      width: 500px; height: 500px;
-      border-radius: 50%;
-      background: rgba(45,106,79,0.15);
-      bottom: -150px; right: -150px;
-    }
+    .feedback-shell{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start;}
+    .form-card,.side-card,.success-banner{background:var(--bg);border:.5px solid var(--line);border-radius:12px;}
+    .form-card{padding:26px 28px;}
+    .side-card{padding:20px 22px;position:sticky;top:80px;}
+    .side-card h2{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:10px;}
+    .side-card p{font-size:13px;color:var(--ink3);line-height:1.65;margin-bottom:14px;}
+    .side-list{display:flex;flex-direction:column;gap:8px;}
+    .side-item{padding:10px 12px;border:.5px solid var(--line);border-radius:8px;background:var(--bg2);font-size:12px;color:var(--ink2);line-height:1.45;}
 
-    .panel-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-      position: relative;
-      z-index: 1;
-    }
+    .success-banner{padding:16px 18px;margin-bottom:18px;border-color:var(--green-m);background:var(--green-l);}
+    .success-banner h3{font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px;}
+    .success-banner p{font-size:13px;color:var(--ink2);line-height:1.6;}
 
-    .panel-logo img {
-      height: 36px;
-      width: auto;
-      filter: brightness(0) invert(1);
-    }
+    .section-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:4px;}
+    .section-sub{font-size:12px;color:var(--ink3);margin-bottom:18px;}
+    .category-label,.form-group label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:7px;}
+    .category-pills{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;}
+    .category-pill{padding:10px 13px;border:.5px solid var(--line2);border-radius:8px;background:var(--bg);font-size:13px;font-weight:600;color:var(--ink3);cursor:pointer;transition:all .12s;text-align:left;user-select:none;}
+    .category-pill:hover{border-color:var(--green-m);color:var(--ink2);background:var(--green-l);}
+    .category-pill.selected{border-color:var(--green);background:var(--green-l);color:var(--green);}
+    .form-group{margin-bottom:18px;}
+    .form-group input,.form-group textarea{width:100%;border:.5px solid var(--line2);border-radius:8px;padding:10px 14px;font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--bg2);transition:border-color .15s,background .15s;}
+    .form-group input:focus,.form-group textarea:focus{outline:none;border-color:var(--green);background:var(--bg);}
+    .form-group input::placeholder,.form-group textarea::placeholder{color:var(--ink4);}
+    .form-group textarea{resize:vertical;min-height:150px;line-height:1.6;}
+    .btn-submit{width:100%;padding:10px 24px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;transition:background .12s;}
+    .btn-submit:hover{background:var(--green-d);}
 
-    .panel-logo span {
-      font-family: var(--serif);
-      font-size: 22px;
-      color: white;
-    }
-
-    .panel-body {
-      position: relative;
-      z-index: 1;
-    }
-
-    .panel-body h2 {
-      font-family: var(--serif);
-      font-size: 36px;
-      color: white;
-      line-height: 1.15;
-      letter-spacing: -1px;
-      margin-bottom: 16px;
-    }
-
-    .panel-body h2 em {
-      font-style: italic;
-      color: var(--accent-light);
-    }
-
-    .panel-body p {
-      font-size: 15px;
-      color: rgba(255,255,255,0.55);
-      line-height: 1.75;
-      font-weight: 300;
-      max-width: 340px;
-    }
-
-    .credit-box {
-      background: rgba(45,106,79,0.2);
-      border: 1px solid rgba(82,183,136,0.3);
-      border-radius: 12px;
-      padding: 20px 24px;
-      margin-top: 28px;
-    }
-
-    .credit-box .label {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--accent-light);
-      margin-bottom: 8px;
-    }
-
-    .credit-box p {
-      font-size: 14px;
-      color: rgba(255,255,255,0.7);
-      line-height: 1.6;
-      max-width: none;
-    }
-
-    .panel-footer {
-      position: relative;
-      z-index: 1;
-    }
-
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.5);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .back-link:hover { color: white; }
-
-    /* ── RIGHT PANEL ── */
-    .right-panel {
-      padding: 60px 48px;
-      overflow-y: auto;
-    }
-
-    .form-wrapper {
-      max-width: 480px;
-      margin: 0 auto;
-    }
-
-    /* SUCCESS */
-    .success-banner {
-      background: rgba(45,106,79,0.08);
-      border: 1.5px solid rgba(45,106,79,0.2);
-      border-radius: 12px;
-      padding: 20px 24px;
-      margin-bottom: 32px;
-      display: flex;
-      align-items: flex-start;
-      gap: 14px;
-    }
-
-    .success-icon {
-      font-size: 24px;
-      flex-shrink: 0;
-    }
-
-    .success-banner h3 {
-      font-family: var(--serif);
-      font-size: 18px;
-      color: var(--accent);
-      margin-bottom: 4px;
-    }
-
-    .success-banner p {
-      font-size: 14px;
-      color: var(--ink-soft);
-      font-weight: 300;
-      line-height: 1.6;
-    }
-
-    .form-header {
-      margin-bottom: 36px;
-    }
-
-    .form-header h1 {
-      font-family: var(--serif);
-      font-size: 32px;
-      color: var(--ink);
-      letter-spacing: -0.5px;
-      margin-bottom: 8px;
-    }
-
-    .form-header p {
-      font-size: 15px;
-      color: var(--ink-muted);
-      font-weight: 300;
-      line-height: 1.6;
-    }
-
-    /* CATEGORY PILLS */
-    .category-pills {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    .category-pill {
-      padding: 12px 16px;
-      border: 1.5px solid var(--line);
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink-muted);
-      cursor: pointer;
-      transition: all 0.15s;
-      text-align: center;
-      user-select: none;
-    }
-
-    .category-pill:hover {
-      border-color: var(--accent-light);
-      color: var(--ink);
-    }
-
-    .category-pill.selected {
-      border-color: var(--accent);
-      background: rgba(45,106,79,0.08);
-      color: var(--accent);
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink-soft);
-      margin-bottom: 8px;
-    }
-
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1.5px solid var(--line);
-      border-radius: 10px;
-      font-family: var(--sans);
-      font-size: 15px;
-      color: var(--ink);
-      background: white;
-      transition: all 0.2s;
-    }
-
-    .form-group input:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(45,106,79,0.08);
-    }
-
-    .form-group input::placeholder,
-    .form-group textarea::placeholder {
-      color: #c4c2bc;
-      font-weight: 300;
-    }
-
-    .form-group textarea {
-      resize: vertical;
-      min-height: 140px;
-      line-height: 1.6;
-    }
-
-    .btn-submit {
-      width: 100%;
-      padding: 13px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-family: var(--sans);
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-submit:hover {
-      background: #245c43;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(45,106,79,0.25);
-    }
-
-    @media (max-width: 768px) {
-      body { grid-template-columns: 1fr; }
-      .left-panel { display: none; }
-      .right-panel { padding: 40px 24px; }
-      .category-pills { grid-template-columns: 1fr; }
+    @media(max-width:760px){
+      .sidebar{display:none;}
+      .topbar{padding:0 16px;}
+      .topbar-title{display:none;}
+      .content{padding:28px 16px 64px;}
+      .page-header{display:block;}
+      .credit-card{max-width:none;margin-top:18px;}
+      .feedback-shell{grid-template-columns:1fr;}
+      .side-card{position:static;}
+      .category-pills{grid-template-columns:1fr;}
+      .form-card{padding:22px 18px;}
     }
   </style>
 </head>
 <body>
 
-<!-- LEFT PANEL -->
-<div class="left-panel">
-  <a href="/publisher" class="panel-logo">
-    <img src="/static/favicon.png" alt="Insighta">
-    <span>Insighta</span>
-  </a>
-
-  <div class="panel-body">
-    <h2>Help us build something <em>better.</em></h2>
-    <p>Your feedback directly shapes how Insighta evolves. Every bug report, feature idea, and honest opinion makes the platform better for everyone.</p>
-    <div class="credit-box">
-      <div class="label">💰 Earn Cash Credit</div>
-      <p>Submit quality feedback and our team will review it. If your feedback is valuable, we'll add cash credit directly to your account — no strings attached.</p>
-    </div>
-  </div>
-
-  <div class="panel-footer">
-    <a href="/publisher" class="back-link">← Back to dashboard</a>
-  </div>
-</div>
-
-<!-- RIGHT PANEL -->
-<div class="right-panel">
-  <div class="form-wrapper">
-
-    {% if request.query_params.get('success') == '1' %}
-    <div class="success-banner">
-      <div class="success-icon">🎉</div>
+<aside class="sidebar">
+  <a href="/publisher" class="sidebar-logo">Insight<span>a</span></a>
+  <nav class="sidebar-nav">
+    <a href="/publisher" class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      My listings
+    </a>
+    <a href="/publisher" class="nav-item">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      New listing
+    </a>
+    <div class="nav-divider"></div>
+    <a href="/guide" class="nav-item">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Tutorial
+    </a>
+    <a href="/feedback" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Share feedback
+    </a>
+  </nav>
+  <div class="sidebar-user">
+    <a href="/profile" class="user-row">
+      <div class="user-avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
       <div>
-        <h3>Feedback received!</h3>
-        <p>Thank you! Our team will review your submission. If it qualifies for a credit, we'll add it to your account within a few days.</p>
+        <div class="user-name">{{ current_user.username or 'Your profile' }}</div>
+        <div class="user-email">{{ current_user.email }}</div>
       </div>
-    </div>
-    {% endif %}
-
-    <div class="form-header">
-      <h1>Share your feedback</h1>
-      <p>Tell us what's working, what's broken, or what you wish existed.</p>
-    </div>
-
-    <form method="POST" action="/feedback">
-      <input type="hidden" name="category" id="categoryInput" value="general">
-
-      <div style="margin-bottom: 20px;">
-        <label style="display:block; font-size:13px; font-weight:600; color: var(--ink-soft); margin-bottom: 10px;">Category</label>
-        <div class="category-pills">
-          <div class="category-pill" data-value="bug" onclick="selectCategory(this)">🐛 Bug Report</div>
-          <div class="category-pill" data-value="feature_request" onclick="selectCategory(this)">✨ Feature Request</div>
-          <div class="category-pill" data-value="ux" onclick="selectCategory(this)">🎨 UX / Design</div>
-          <div class="category-pill selected" data-value="general" onclick="selectCategory(this)">💬 General Feedback</div>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Title</label>
-        <input type="text" name="title" placeholder="Brief summary of your feedback" required>
-      </div>
-
-      <div class="form-group">
-        <label>Details</label>
-        <textarea name="content" placeholder="Describe in as much detail as possible. For bugs, include steps to reproduce. For features, explain the problem you're trying to solve." required></textarea>
-      </div>
-
-      <button type="submit" class="btn-submit">Submit Feedback →</button>
-    </form>
-
+    </a>
   </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="/publisher" class="back-btn">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        My listings
+      </a>
+      <div class="topbar-sep"></div>
+      <div class="topbar-title">Share feedback</div>
+    </div>
+  </div>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-kicker">Feedback</div>
+        <h1>Help us build <strong>better</strong></h1>
+        <p>Tell us what is confusing, broken, missing, or surprisingly useful. We read every submission.</p>
+      </div>
+      <div class="credit-card">
+        <strong>Credit review</strong>
+        Valuable feedback may receive cash credit after our team reviews it.
+      </div>
+    </div>
+
+    <div class="feedback-shell">
+      <section class="form-card">
+        {% if request.query_params.get('success') == '1' %}
+        <div class="success-banner">
+          <h3>Feedback received</h3>
+          <p>Thank you. If it qualifies for a credit, we will add it to your account within a few days.</p>
+        </div>
+        {% endif %}
+
+        <div class="section-title">Share your feedback</div>
+        <div class="section-sub">A short, specific note is the most useful.</div>
+
+        <form method="POST" action="/feedback">
+          {% set selected_category = request.query_params.get('category') or 'general' %}
+          {% if selected_category == 'support' %}{% set selected_category = 'general' %}{% endif %}
+          <input type="hidden" name="category" id="categoryInput" value="{{ selected_category }}">
+
+          <label class="category-label">Category</label>
+          <div class="category-pills">
+            <div class="category-pill {% if selected_category == 'bug' %}selected{% endif %}" data-value="bug" onclick="selectCategory(this)">Bug report</div>
+            <div class="category-pill {% if selected_category == 'feature_request' %}selected{% endif %}" data-value="feature_request" onclick="selectCategory(this)">Feature request</div>
+            <div class="category-pill {% if selected_category == 'ux' %}selected{% endif %}" data-value="ux" onclick="selectCategory(this)">UX / design</div>
+            <div class="category-pill {% if selected_category == 'general' %}selected{% endif %}" data-value="general" onclick="selectCategory(this)">General feedback</div>
+          </div>
+
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" name="title" placeholder="Brief summary of your feedback" required>
+          </div>
+
+          <div class="form-group">
+            <label>Details</label>
+            <textarea name="content" placeholder="Describe what happened, what you expected, or what would make the workflow better." required></textarea>
+          </div>
+
+          <button type="submit" class="btn-submit">Submit feedback</button>
+        </form>
+      </section>
+
+      <aside class="side-card">
+        <h2>What helps most</h2>
+        <p>Specific context makes feedback easier to review and act on.</p>
+        <div class="side-list">
+          <div class="side-item">For bugs: include the page, what you clicked, and what happened.</div>
+          <div class="side-item">For features: describe the job you were trying to finish.</div>
+          <div class="side-item">For UX: tell us where you hesitated or felt unsure.</div>
+        </div>
+      </aside>
+    </div>
+  </main>
 </div>
 
 <script>
@@ -391,6 +218,7 @@
     document.getElementById('categoryInput').value = el.dataset.value;
   }
 </script>
+<script src="/static/support_chat.js"></script>
 
 </body>
 </html>

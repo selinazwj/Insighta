@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/support_chat.css">
   <style>
     :root {
       --green:   #3b7c4f;
@@ -58,12 +59,6 @@
     .nav-item:hover { background: var(--bg3); color: var(--ink2); }
     .nav-item.active { background: var(--green-l); color: var(--green); font-weight: 600; }
     .nav-item svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
-    .nav-badge {
-      margin-left: auto; background: var(--ink); color: #fff;
-      font-size: 10px; font-weight: 600;
-      min-width: 16px; height: 16px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; padding: 0 4px;
-    }
     .nav-divider { height: 0.5px; background: var(--line); margin: 6px 10px; }
 
     .sidebar-user {
@@ -95,6 +90,14 @@
       position: sticky; top: 0; z-index: 50;
     }
     .topbar-title { font-size: 15px; font-weight: 600; color: var(--ink); }
+    .topbar-actions { display:flex; align-items:center; gap:8px; }
+    .btn-guide {
+      font-size: 13px; font-weight: 600; color: var(--ink2);
+      background: var(--bg); padding: 7px 14px;
+      border-radius: 18px; border: 0.5px solid var(--line2); cursor: pointer;
+      font-family: var(--sans); transition: background .15s, border-color .15s; text-decoration: none;
+    }
+    .btn-guide:hover { background: var(--bg3); border-color: var(--green-m); color: var(--green); }
     .btn-new {
       font-size: 13px; font-weight: 600; color: #fff;
       background: var(--green); padding: 8px 18px;
@@ -184,103 +187,104 @@
     .empty-title { font-family: var(--serif); font-size: 22px; color: var(--ink); margin-bottom: 8px; }
     .empty-sub { font-size: 14px; color: var(--ink3); font-weight: 300; margin-bottom: 24px; }
 
+    /* ── GUIDED TOUR ── */
+    body.tour-active { overflow: hidden; }
+    .tour-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 900;
+      background: rgba(26,26,24,.54); backdrop-filter: blur(3px);
+    }
+    .tour-backdrop.open { display: block; }
+    .tour-spotlight {
+      display: none; position: fixed; z-index: 925; pointer-events: none;
+      border: 3px solid rgba(255,255,255,.98); border-radius: 12px;
+      box-shadow: 0 0 0 5px rgba(59,124,79,.44), 0 20px 70px rgba(26,26,24,.28);
+      transition: left .18s ease, top .18s ease, width .18s ease, height .18s ease;
+    }
+    .tour-spotlight.open { display: block; }
+    .tour-highlight {
+      position: relative; z-index: 926 !important;
+      filter: saturate(1.1) brightness(1.04);
+      border-radius: 10px;
+    }
+    .tour-lift { z-index: 924 !important; }
+    .tour-card {
+      display: none; position: fixed; z-index: 930;
+      width: min(340px, calc(100vw - 32px)); background: var(--bg);
+      border: .5px solid var(--line2); border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(26,26,24,.2); padding: 18px 20px;
+    }
+    .tour-card.open { display: block; }
+    .tour-step { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--green); margin-bottom: 7px; }
+    .tour-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; letter-spacing: -.2px; }
+    .tour-body { font-size: 13px; color: var(--ink3); line-height: 1.65; margin-bottom: 16px; }
+    .tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .tour-btn { border: .5px solid var(--line2); background: var(--bg); color: var(--ink2); border-radius: 8px; padding: 8px 13px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .tour-btn:hover { background: var(--bg3); }
+    .tour-btn.primary { border-color: var(--green); background: var(--green); color: #fff; }
+    .tour-btn.primary:hover { background: var(--green-d); }
+    .tour-btn:disabled { opacity: .35; cursor: default; }
+
     /* ── NEW LISTING MODAL ── */
     .modal-bg {
       display: none; position: fixed; inset: 0; z-index: 500;
-      background: rgba(26,26,24,.5); backdrop-filter: blur(6px);
-      align-items: center; justify-content: center;
+      background: rgba(26,26,24,.38); backdrop-filter: blur(10px);
+      align-items: center; justify-content: center; padding: 24px;
     }
     .modal-bg.open { display: flex; }
     .modal {
-      background: var(--bg); border-radius: 12px;
-      border: 0.5px solid var(--line2); width: 100%; max-width: 460px; margin: 20px;
-      box-shadow: 0 18px 50px rgba(26,26,24,.12);
+      background: var(--bg); border-radius: 14px;
+      border: 0.5px solid var(--line2); width: 100%; max-width: 680px;
+      box-shadow: 0 22px 70px rgba(26,26,24,.16);
       animation: modal-in .18s ease; overflow: hidden;
     }
     @keyframes modal-in { from { transform: translateY(10px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
     .modal-head {
-      padding: 22px 24px 18px; border-bottom: 0.5px solid var(--line);
+      padding: 24px 26px 20px; border-bottom: 0.5px solid var(--line);
       display: flex; align-items: flex-start; justify-content: space-between;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
     }
-    .modal-title { font-family: var(--sans); font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
-    .modal-sub   { font-size: 13px; color: var(--ink3); }
-    .modal-close { background: none; border: none; cursor: pointer; color: var(--ink3); font-size: 17px; line-height: 1; padding: 2px; }
-    .modal-close:hover { color: var(--ink); }
-    .modal-body  { padding: 16px 24px 24px; display: flex; flex-direction: column; gap: 8px; }
-
+    .modal-kicker { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--green); margin-bottom: 6px; }
+    .modal-title { font-family: var(--sans); font-size: 22px; font-weight: 300; color: var(--ink); letter-spacing: -.4px; margin-bottom: 5px; }
+    .modal-title strong { font-weight: 700; }
+    .modal-sub   { font-size: 13px; color: var(--ink3); line-height: 1.55; max-width: 440px; }
+    .modal-close { width: 30px; height: 30px; border-radius: 8px; background: var(--bg); border: .5px solid var(--line); cursor: pointer; color: var(--ink3); display: flex; align-items: center; justify-content: center; transition: all .12s; }
+    .modal-close:hover { color: var(--ink); background: var(--bg3); border-color: var(--line2); }
+    .modal-close svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+    .modal-body  { padding: 22px 26px 26px; }
+    .listing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .listing-form { margin: 0; min-width: 0; }
     .listing-type {
-      display: flex; align-items: center; gap: 14px;
-      padding: 16px 18px; background: var(--bg); border: 0.5px solid var(--line);
-      border-radius: 10px; cursor: pointer; text-decoration: none;
-      font-family: var(--sans);
+      position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+      min-height: 168px; padding: 18px; background: var(--bg); border: 0.5px solid var(--line);
+      border-radius: 12px; cursor: pointer; text-decoration: none; color: inherit;
+      font-family: var(--sans); width: 100%; text-align: left;
       transition: border-color .15s, background .15s, transform .15s, box-shadow .15s;
     }
-    .listing-type:hover { border-color: var(--green-m); background: var(--green-l); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(59,124,79,.08); }
+    .listing-type:hover { border-color: var(--green-m); background: var(--green-l); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(59,124,79,.08); }
+    .listing-type.primary { border-color: var(--green-m); box-shadow: inset 0 0 0 1px rgba(59,124,79,.06); }
+    .listing-type.wide { min-height: 88px; margin-top: 12px; display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 14px; }
     .lt-icon {
-      width: 36px; height: 36px; border-radius: 8px;
+      width: 38px; height: 38px; border-radius: 9px;
       background: var(--bg3); display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
+    .listing-type.primary .lt-icon { background: var(--green-l); }
     .lt-icon svg { width: 16px; height: 16px; stroke: var(--green); fill: none; stroke-width: 2; }
-    .lt-title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
-    .lt-desc  { font-size: 12px; color: var(--ink3); }
-    .lt-arrow { margin-left: auto; font-size: 14px; color: var(--ink4); flex-shrink: 0; transition: transform .15s, color .15s; }
+    .lt-content { min-width: 0; }
+    .lt-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 5px; letter-spacing: -.1px; }
+    .lt-desc  { font-size: 12px; color: var(--ink3); line-height: 1.55; }
+    .lt-tag { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 999px; background: var(--bg3); color: var(--ink3); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-top: auto; }
+    .listing-type.primary .lt-tag { background: var(--green-l); color: var(--green); }
+    .lt-arrow { position: absolute; right: 16px; top: 18px; font-size: 14px; color: var(--ink4); flex-shrink: 0; transition: transform .15s, color .15s; }
+    .listing-type.wide .lt-arrow { position: static; }
     .listing-type:hover .lt-arrow { transform: translateX(2px); color: var(--green); }
-
-    /* ── NOTIFICATION MODAL ── */
-    .notif-modal-bg {
-      display: none; position: fixed; inset: 0; z-index: 500;
-      background: rgba(26,26,24,.5); backdrop-filter: blur(6px);
-      align-items: center; justify-content: center;
+    @media (max-width: 680px) {
+      .modal { max-width: 440px; }
+      .listing-grid { grid-template-columns: 1fr; }
+      .listing-type { min-height: 132px; }
+      .listing-type.wide { display: flex; min-height: 132px; }
+      .listing-type.wide .lt-arrow { position: absolute; right: 16px; top: 18px; }
     }
-    .notif-modal-bg.open { display: flex; }
-    .notif-modal {
-      background: var(--bg); border-radius: 14px; border: 0.5px solid var(--line2);
-      width: 100%; max-width: 560px; max-height: 80vh; margin: 20px;
-      display: flex; flex-direction: column;
-      animation: modal-in .18s ease; overflow: hidden;
-    }
-    .notif-head {
-      padding: 20px 24px 16px; border-bottom: 0.5px solid var(--line);
-      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-    }
-    .notif-head-title { font-size: 15px; font-weight: 600; color: var(--ink); }
-    .notif-head-count { font-size: 12px; color: var(--ink3); margin-top: 2px; }
-    .notif-list { overflow-y: auto; flex: 1; }
-    .notif-item {
-      padding: 14px 24px; border-bottom: 0.5px solid var(--line);
-      display: flex; align-items: flex-start; gap: 14px;
-    }
-    .notif-item:last-child { border-bottom: none; }
-    .notif-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-top: 5px; flex-shrink: 0; }
-    .notif-dot.accepted { background: var(--green); }
-    .notif-dot.rejected { background: #ef4444; }
-    .notif-body { flex: 1; min-width: 0; }
-    .notif-type-pill {
-      display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px;
-      border-radius: 10px; margin-bottom: 5px;
-    }
-    .pill-survey    { background: var(--green-l); color: var(--green); }
-    .pill-interview { background: #f3f0ff; color: #7c3aed; }
-    .notif-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
-    .notif-email { font-size: 12px; color: var(--ink3); margin-bottom: 8px; }
-    .notif-time  { font-size: 11px; color: var(--ink4); }
-    .notif-btns  { display: flex; gap: 6px; margin-top: 10px; }
-    .notif-accept {
-      flex: 1; padding: 6px 0; background: var(--green); color: #fff;
-      border: none; border-radius: 6px; font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer;
-      transition: background .12s;
-    }
-    .notif-accept:hover { background: var(--green-d); }
-    .notif-accept.decided { background: var(--green-l); color: var(--green); cursor: default; }
-    .notif-reject {
-      flex: 1; padding: 6px 0; background: var(--bg); color: #ef4444;
-      border: 0.5px solid #fecaca; border-radius: 6px; font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer;
-      transition: all .12s;
-    }
-    .notif-reject:hover { background: #fff5f5; }
-    .notif-reject.decided { background: var(--bg3); color: var(--ink4); border-color: var(--line); cursor: default; }
-    .notif-empty { padding: 48px 24px; text-align: center; font-size: 13px; color: var(--ink3); }
 
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -291,35 +295,30 @@
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
-  <a href="/publisher" class="sidebar-logo">Insight<span>a</span></a>
+  <a href="/publisher" class="sidebar-logo" data-tour="brand">Insight<span>a</span></a>
   <nav class="sidebar-nav">
-    <a href="/publisher" class="nav-item active">
+    <a href="/publisher" class="nav-item active" data-tour="my-listings">
       <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
       My listings
     </a>
-    <button class="nav-item" onclick="openNewListing()">
+    <button class="nav-item" onclick="openNewListing()" data-tour="sidebar-new">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       New listing
     </button>
 
     <div class="nav-divider"></div>
 
-    <button class="nav-item" onclick="openNotifModal()" id="notif-nav-item">
-      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      Notifications
-      <span class="nav-badge" id="notif-badge" style="display:none;">0</span>
-    </button>
-    <a href="/guide" class="nav-item">
+    <a href="/guide" class="nav-item" data-tour="tutorial">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Tutorial
     </a>
-    <a href="/feedback" class="nav-item">
+    <a href="/feedback" class="nav-item" data-tour="feedback">
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Share feedback
     </a>
   </nav>
   <div class="sidebar-user">
-    <a href="/profile" class="user-row">
+    <a href="/profile" class="user-row" data-tour="profile">
       <div class="user-avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
       <div>
         <div class="user-name">{{ current_user.username or 'Your profile' }}</div>
@@ -333,7 +332,10 @@
 <div class="main">
   <div class="topbar">
     <div class="topbar-title">My listings</div>
-    <button class="btn-new" onclick="openNewListing()">+ New listing</button>
+    <div class="topbar-actions">
+      <button class="btn-guide" onclick="startResearcherTour(true)">Guide</button>
+      <button class="btn-new" onclick="openNewListing()" data-tour="top-new">+ New listing</button>
+    </div>
   </div>
 
   <div class="content">
@@ -345,7 +347,7 @@
     {% set total_target    = all_items | sum(attribute='target_responses') %}
     {% set completion_pct  = ((total_responses * 100) // total_target) if total_target > 0 else 0 %}
 
-    <div class="stats">
+    <div class="stats" data-tour="stats">
       <div class="stat-item">
         <div class="stat-n">{{ total_responses }}</div>
         <div class="stat-l">Responses</div>
@@ -361,7 +363,7 @@
     </div>
 
     <!-- TYPE TABS -->
-    <div class="type-tabs">
+    <div class="type-tabs" data-tour="tabs">
       <button class="type-tab active" id="tab-surveys" onclick="switchTab('surveys')">
         Surveys{% if surveys %} ({{ surveys | length }}){% endif %}
       </button>
@@ -373,7 +375,7 @@
     <!-- SURVEYS -->
     <div id="panel-surveys">
       {% if surveys %}
-      <div class="study-list">
+      <div class="study-list" data-tour="study-list">
         {% for s in surveys %}
         {% set completed = completed_map.get(s.id, 0) %}
         {% set target    = s.target_responses or 0 %}
@@ -394,7 +396,7 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="empty">
+      <div class="empty" data-tour="study-list">
         <div class="empty-title">No surveys yet</div>
         <div class="empty-sub">Create your first survey and start collecting responses.</div>
         <button class="btn-new" onclick="openNewListing()">+ New listing</button>
@@ -405,7 +407,7 @@
     <!-- INTERVIEWS -->
     <div id="panel-interviews" style="display:none;">
       {% if interviews %}
-      <div class="study-list">
+      <div class="study-list" data-tour="study-list">
         {% for s in interviews %}
         {% set completed = completed_map.get(s.id, 0) %}
         {% set target    = s.target_responses or 0 %}
@@ -426,7 +428,7 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="empty">
+      <div class="empty" data-tour="study-list">
         <div class="empty-title">No interviews yet</div>
         <div class="empty-sub">Post your first interview and find the right participants.</div>
         <button class="btn-new" onclick="openNewListing()">+ New listing</button>
@@ -437,59 +439,63 @@
   </div>
 </div>
 
+<div class="tour-backdrop" id="tourBackdrop"></div>
+<div class="tour-spotlight" id="tourSpotlight"></div>
+<div class="tour-card" id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+  <div class="tour-step" id="tourStep"></div>
+  <div class="tour-title" id="tourTitle"></div>
+  <div class="tour-body" id="tourBody"></div>
+  <div class="tour-actions">
+    <button class="tour-btn" id="tourPrev" onclick="prevTourStep()">Back</button>
+    <button class="tour-btn primary" id="tourNext" onclick="nextTourStep()">Next</button>
+  </div>
+</div>
+
 <!-- NEW LISTING MODAL -->
 <div class="modal-bg" id="newListingModal" onclick="if(event.target===this)closeNewListing()">
   <div class="modal">
     <div class="modal-head">
       <div>
-        <div class="modal-title">New listing</div>
-        <div class="modal-sub">Choose what you want to create.</div>
+        <div class="modal-kicker">Create listing</div>
+        <div class="modal-title">Start a <strong>study</strong></div>
+        <div class="modal-sub">Choose the workflow that matches how you want to collect responses.</div>
       </div>
-      <button class="modal-close" onclick="closeNewListing()">x</button>
+      <button class="modal-close" onclick="closeNewListing()" aria-label="Close">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
     <div class="modal-body">
-      <a href="/publish" class="listing-type">
-        <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-        <div>
-          <div class="lt-title">Survey, external link</div>
-          <div class="lt-desc">Use your own Google Form, Qualtrics, or any survey link.</div>
-        </div>
-        <div class="lt-arrow">&gt;</div>
-      </a>
-      <form method="post" action="/surveys/create-builtin" style="margin:0;">
-        <button type="submit" class="listing-type" style="width:100%;cursor:pointer;">
-          <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
-          <div>
-            <div class="lt-title">Survey, build in Insighta</div>
-            <div class="lt-desc">Design your questions with AI. Start building right away.</div>
+      <div class="listing-grid">
+        <a href="/publish" class="listing-type primary">
+          <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+          <div class="lt-content">
+            <div class="lt-title">External survey</div>
+            <div class="lt-desc">Publish a Google Form, Qualtrics, Typeform, or any live survey link.</div>
           </div>
+          <div class="lt-tag">Fastest</div>
           <div class="lt-arrow">&gt;</div>
-        </button>
-      </form>
-      <a href="/publish_interview" class="listing-type">
+        </a>
+        <form method="post" action="/surveys/create-builtin" class="listing-form">
+          <button type="submit" class="listing-type">
+            <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M9 11h6"/><path d="M9 15h4"/><path d="M5 4h14v16H5z"/><path d="M8 4V2"/><path d="M16 4V2"/></svg></div>
+            <div class="lt-content">
+              <div class="lt-title">Built-in survey</div>
+              <div class="lt-desc">Build questions inside Insighta, use AI, then publish from the same flow.</div>
+            </div>
+            <div class="lt-tag">Builder</div>
+            <div class="lt-arrow">&gt;</div>
+          </button>
+        </form>
+      </div>
+      <a href="/publish_interview" class="listing-type wide">
         <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
-        <div>
+        <div class="lt-content">
           <div class="lt-title">Interview</div>
           <div class="lt-desc">Schedule 1-on-1 or group sessions for qualitative research.</div>
         </div>
+        <div class="lt-tag">Live session</div>
         <div class="lt-arrow">&gt;</div>
       </a>
-    </div>
-  </div>
-</div>
-
-<!-- NOTIFICATION MODAL -->
-<div class="notif-modal-bg" id="notifModal" onclick="if(event.target===this)closeNotifModal()">
-  <div class="notif-modal">
-    <div class="notif-head">
-      <div>
-        <div class="notif-head-title">Notifications</div>
-        <div class="notif-head-count" id="notif-count"></div>
-      </div>
-      <button class="modal-close" onclick="closeNotifModal()">x</button>
-    </div>
-    <div class="notif-list" id="notif-list">
-      <div class="notif-empty">Loading...</div>
     </div>
   </div>
 </div>
@@ -508,75 +514,248 @@
   // ── NEW LISTING MODAL ──
   function openNewListing()  { document.getElementById('newListingModal').classList.add('open'); document.body.style.overflow = 'hidden'; }
   function closeNewListing() { document.getElementById('newListingModal').classList.remove('open'); document.body.style.overflow = ''; }
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeNewListing(); closeNotifModal(); } });
 
-  // ── NOTIFICATIONS ──
-  let allNotifs = [];
+  // ── RESEARCHER TOUR ──
+  const TOUR_KEY = 'insighta_researcher_tour_done_v2';
+  let tourIndex = 0;
+  let currentTourTarget = null;
+  let currentTourLift = null;
 
-  async function loadNotifs() {
+  const tourSteps = [
+    {
+      target: 'brand',
+      title: 'Insighta workspace',
+      body: 'This is your researcher dashboard. From here you manage studies, publish new listings, and check participant progress.'
+    },
+    {
+      target: 'my-listings',
+      title: 'My listings',
+      body: 'Your active, draft, and closed research listings all live here. Come back here when you want to check or reopen a study.'
+    },
+    {
+      target: 'sidebar-new',
+      title: 'New listing shortcut',
+      body: 'This sidebar button opens the same creation menu. It stays available while you move around researcher pages.'
+    },
+    {
+      target: 'top-new',
+      title: 'Create a listing',
+      body: 'Use New listing to publish an external survey, build a survey inside Insighta, or recruit for an interview.'
+    },
+    {
+      target: 'stats',
+      title: 'Dashboard metrics',
+      body: 'These numbers give you a quick pulse on total responses, active listings, and overall completion.'
+    },
+    {
+      target: 'tabs',
+      title: 'Switch listing type',
+      body: 'Use these tabs to move between survey listings and interview listings without leaving the dashboard.'
+    },
+    {
+      target: 'study-list',
+      title: 'Open a study',
+      body: 'Click any listing to view details, edit the study, review quality checks, and track participant results.'
+    },
+    {
+      target: 'tutorial',
+      title: 'Tutorial',
+      body: 'The tutorial page is the longer help center for setup steps, publishing guidance, and platform rules.'
+    },
+    {
+      target: 'feedback',
+      title: 'Share feedback',
+      body: 'Use this whenever something feels confusing, broken, or worth improving. Feedback helps us tune the product faster.'
+    },
+    {
+      target: 'profile',
+      title: 'Profile',
+      body: 'Your profile area keeps account details and researcher identity settings in one place.'
+    }
+  ];
+
+  function findTourTarget(name) {
+    const targets = Array.from(document.querySelectorAll(`[data-tour="${name}"]`));
+    return targets.find(el => {
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    }) || targets[0] || null;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function getSpotlightRect(target) {
+    if (!target) return null;
+    const rect = target.getBoundingClientRect();
+    const margin = 10;
+    const width = clamp(rect.width + margin * 2, 48, window.innerWidth - 24);
+    const height = clamp(Math.min(rect.height, window.innerHeight - 32) + margin * 2, 42, window.innerHeight - 24);
+    return {
+      left: clamp(rect.left - margin, 12, window.innerWidth - width - 12),
+      top: clamp(rect.top - margin, 12, window.innerHeight - height - 12),
+      width,
+      height
+    };
+  }
+
+  function positionTourSpotlight(target) {
+    const spotlight = document.getElementById('tourSpotlight');
+    const rect = getSpotlightRect(target);
+    if (!rect) {
+      spotlight.classList.remove('open');
+      return;
+    }
+    spotlight.style.left = `${Math.round(rect.left)}px`;
+    spotlight.style.top = `${Math.round(rect.top)}px`;
+    spotlight.style.width = `${Math.round(rect.width)}px`;
+    spotlight.style.height = `${Math.round(rect.height)}px`;
+    spotlight.classList.add('open');
+  }
+
+  function positionTourCard(target) {
+    const card = document.getElementById('tourCard');
+    const gap = 16;
+    const margin = 16;
+    const cardRect = card.getBoundingClientRect();
+
+    if (!target) {
+      card.style.left = `${Math.round((window.innerWidth - cardRect.width) / 2)}px`;
+      card.style.top = `${Math.round((window.innerHeight - cardRect.height) / 2)}px`;
+      return;
+    }
+
+    const rect = target.getBoundingClientRect();
+    let left = rect.right + gap;
+    let top = rect.top + (rect.height - cardRect.height) / 2;
+
+    if (left + cardRect.width > window.innerWidth - margin) {
+      left = rect.left - cardRect.width - gap;
+    }
+    if (left < margin) {
+      left = rect.left;
+      top = rect.bottom + gap;
+    }
+    if (top + cardRect.height > window.innerHeight - margin) {
+      top = window.innerHeight - cardRect.height - margin;
+    }
+    if (top < margin) top = margin;
+
+    card.style.left = `${Math.round(clamp(left, margin, window.innerWidth - cardRect.width - margin))}px`;
+    card.style.top = `${Math.round(clamp(top, margin, window.innerHeight - cardRect.height - margin))}px`;
+  }
+
+  function showTourStep() {
+    const step = tourSteps[tourIndex];
+    const target = findTourTarget(step.target);
+    const card = document.getElementById('tourCard');
+
+    if (currentTourTarget) currentTourTarget.classList.remove('tour-highlight');
+    if (currentTourLift) currentTourLift.classList.remove('tour-lift');
+    currentTourTarget = target;
+    currentTourLift = target ? target.closest('.topbar, .sidebar') : null;
+    if (target) {
+      target.classList.add('tour-highlight');
+      if (currentTourLift) currentTourLift.classList.add('tour-lift');
+      target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+    }
+
+    document.getElementById('tourStep').textContent = `Step ${tourIndex + 1} of ${tourSteps.length}`;
+    document.getElementById('tourTitle').textContent = step.title;
+    document.getElementById('tourBody').textContent = step.body;
+    document.getElementById('tourPrev').disabled = tourIndex === 0;
+    document.getElementById('tourNext').textContent = tourIndex === tourSteps.length - 1 ? 'Done' : 'Next';
+
+    card.classList.add('open');
+    window.setTimeout(() => {
+      positionTourSpotlight(target);
+      positionTourCard(target);
+    }, 180);
+  }
+
+  function startResearcherTour(replay = false) {
+    closeNewListing();
+    if (replay) {
+      try {
+        sessionStorage.removeItem(TOUR_KEY);
+      } catch {}
+    }
+    tourIndex = 0;
+    document.body.classList.add('tour-active');
+    document.getElementById('tourBackdrop').classList.add('open');
+    showTourStep();
+  }
+
+  function endResearcherTour() {
+    document.body.classList.remove('tour-active');
+    document.getElementById('tourBackdrop').classList.remove('open');
+    document.getElementById('tourSpotlight').classList.remove('open');
+    document.getElementById('tourCard').classList.remove('open');
+    if (currentTourTarget) currentTourTarget.classList.remove('tour-highlight');
+    if (currentTourLift) currentTourLift.classList.remove('tour-lift');
+    currentTourTarget = null;
+    currentTourLift = null;
+    markResearcherTourDone();
+  }
+
+  function nextTourStep() {
+    if (tourIndex >= tourSteps.length - 1) {
+      endResearcherTour();
+      return;
+    }
+    tourIndex += 1;
+    showTourStep();
+  }
+
+  function prevTourStep() {
+    if (tourIndex === 0) return;
+    tourIndex -= 1;
+    showTourStep();
+  }
+
+  function shouldAutoStartResearcherTour() {
     try {
-      const res = await fetch('/api/notifications', { credentials: 'same-origin' });
-      if (!res.ok) return;
-      allNotifs = await res.json();
-      const pending = allNotifs.filter(n => n.status === 'pending').length;
-      const badge = document.getElementById('notif-badge');
-      badge.textContent = pending;
-      badge.style.display = pending > 0 ? 'flex' : 'none';
+      return !sessionStorage.getItem(TOUR_KEY);
+    } catch {
+      return true;
+    }
+  }
+
+  function markResearcherTourDone() {
+    try {
+      sessionStorage.setItem(TOUR_KEY, 'done');
     } catch {}
   }
 
-  function renderNotifs() {
-    const list  = document.getElementById('notif-list');
-    const count = document.getElementById('notif-count');
-    count.textContent = allNotifs.length + ' total';
-    if (!allNotifs.length) {
-      list.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
-      return;
+  function scheduleResearcherTour() {
+    if (shouldAutoStartResearcherTour()) {
+      window.setTimeout(() => startResearcherTour(), 350);
     }
-    list.innerHTML = allNotifs.map(n => {
-      const decided    = n.status !== 'pending';
-      const typeClass  = n.task_type === 'interview' ? 'pill-interview' : 'pill-survey';
-      const typeLabel  = n.task_type === 'interview' ? 'Interview' : 'Survey';
-      const dotClass   = n.status === 'accepted' ? 'accepted' : n.status === 'rejected' ? 'rejected' : '';
-      return `<div class="notif-item" id="notif-${n.id}">
-        <div class="notif-dot ${dotClass}"></div>
-        <div class="notif-body">
-          <span class="notif-type-pill ${typeClass}">${typeLabel}</span>
-          <div class="notif-title">${n.survey_title}</div>
-          <div class="notif-email">${n.participant_email}</div>
-          <div class="notif-time">${n.created_at}</div>
-          <div class="notif-btns">
-            <button class="notif-accept ${decided ? 'decided' : ''}"
-              onclick="${decided ? '' : `decide(${n.id},'accept')`}">
-              ${n.status === 'accepted' ? 'Accepted' : 'Accept'}
-            </button>
-            <button class="notif-reject ${decided ? 'decided' : ''}"
-              onclick="${decided ? '' : `decide(${n.id},'reject')`}">
-              ${n.status === 'rejected' ? 'Rejected' : 'Reject'}
-            </button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
   }
 
-  async function decide(id, action) {
-    const res = await fetch(`/api/notifications/${id}/${action}`, { method: 'POST', credentials: 'same-origin' });
-    if (!res.ok) return;
-    const n = allNotifs.find(x => x.id === id);
-    if (n) n.status = action === 'accept' ? 'accepted' : 'rejected';
-    renderNotifs(); loadNotifs();
+  window.addEventListener('resize', () => {
+    if (document.body.classList.contains('tour-active')) {
+      positionTourSpotlight(currentTourTarget);
+      positionTourCard(currentTourTarget);
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleResearcherTour);
+  } else {
+    scheduleResearcherTour();
   }
 
-  function openNotifModal()  {
-    document.getElementById('notifModal').classList.add('open');
-    document.body.style.overflow = 'hidden';
-    renderNotifs();
-  }
-  function closeNotifModal() { document.getElementById('notifModal').classList.remove('open'); document.body.style.overflow = ''; }
+  window.startResearcherTour = startResearcherTour;
+  window.nextTourStep = nextTourStep;
+  window.prevTourStep = prevTourStep;
 
-  loadNotifs();
-  setInterval(loadNotifs, 30000);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !document.body.classList.contains('tour-active')) closeNewListing();
+  });
 </script>
+<script src="/static/support_chat.js"></script>
 </body>
 </html>

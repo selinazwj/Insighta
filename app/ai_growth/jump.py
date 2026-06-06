@@ -13,6 +13,7 @@ from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.models import Notification, Response, Survey, User
+from app.payouts import mark_response_under_review
 from app.ai_growth.matching import survey_match_result
 from app.ai_growth.models import JumpEvent, UserActivityEvent
 from app.ai_growth.security import (
@@ -187,8 +188,7 @@ def complete_response_with_token(db: Session, token: str, survey_id: int, reques
         response.status = "completed"
         response.completed_at = datetime.now(timezone.utc)
         response.payout_amount = survey.reward_amount
-        response.payout_status = "pending"
-        participant.pending_earnings = (getattr(participant, "pending_earnings", 0.0) or 0.0) + (survey.reward_amount or 0.0)
+        mark_response_under_review(response)
 
         existing_notif = db.query(Notification).filter(
             Notification.survey_id == survey.id,

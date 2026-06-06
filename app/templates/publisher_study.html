@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/support_chat.css">
   <style>
     :root {
       --green:#3b7c4f; --green-d:#2a5c39; --green-l:#e8f2eb; --green-m:#c2deca;
@@ -133,10 +134,6 @@
       New listing
     </a>
     <div class="nav-divider"></div>
-    <a href="/publisher" class="nav-item" onclick="sessionStorage.setItem('openNotif','1')">
-      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      Notifications
-    </a>
     <a href="/guide" class="nav-item">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Tutorial
@@ -205,7 +202,7 @@
           <div class="ov-item"><div class="ov-label">Category</div><div class="ov-value">{{ survey.category | capitalize }}</div></div>
           <div class="ov-item"><div class="ov-label">Estimated time</div><div class="ov-value">{{ survey.estimated_time }} min</div></div>
           <div class="ov-item"><div class="ov-label">Reward per person</div><div class="ov-value">${{ survey.reward_amount }}</div></div>
-          <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">Description</div><div class="ov-value">{{ survey.description or '—' }}</div></div>
+          <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">Overview</div><div class="ov-value">{{ survey.target_niche_requirements or 'Everyone' }}</div></div>
           {% if survey.form_url and survey.form_url != '__builtin__' %}
           <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">Survey link</div><div class="ov-value"><a href="{{ survey.form_url }}" target="_blank">{{ survey.form_url[:60] }}{% if survey.form_url|length > 60 %}…{% endif %}</a></div></div>
           {% endif %}
@@ -394,5 +391,6 @@
     } catch { alert('Unavailable.'); }
   }
 </script>
+<script src="/static/support_chat.js"></script>
 </body>
 </html>

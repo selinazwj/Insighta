@@ -5,365 +5,436 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Edit Survey — Insighta</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
-  <link rel="apple-touch-icon" href="/static/favicon.png">
-  <meta name="theme-color" content="#faf9f5">
+  <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/support_chat.css">
   <style>
     :root {
-      --ink: #1a1a18;
-      --ink-soft: #4a4a44;
-      --ink-muted: #8a8a82;
-      --paper: #faf9f5;
-      --paper-warm: #f3f1ea;
-      --accent: #2d6a4f;
-      --accent-light: #52b788;
-      --accent-warm: #e07a3c;
-      --line: #e0ddd3;
-      --serif: 'DM Serif Display', Georgia, serif;
-      --sans: 'DM Sans', system-ui, sans-serif;
+      --green:#3b7c4f; --green-d:#2a5c39; --green-l:#e8f2eb; --green-m:#c2deca;
+      --ink:#1a1a18; --ink2:#4a4a44; --ink3:#8a8a82; --ink4:#b8b8b0;
+      --bg:#ffffff; --bg2:#fafaf8; --bg3:#f5f3ee;
+      --line:#eeece6; --line2:#e0ddd6;
+      --red:#ef4444; --red-l:#fff5f5; --red-b:#fecaca;
+      --serif:'DM Serif Display',Georgia,serif;
+      --sans:'DM Sans',system-ui,sans-serif;
+      --sidebar:220px;
     }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:var(--sans);background:var(--bg2);color:var(--ink);min-height:100vh;display:flex;-webkit-font-smoothing:antialiased;}
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
+    /* ── SIDEBAR ── */
+    .sidebar{width:var(--sidebar);flex-shrink:0;background:var(--bg);border-right:0.5px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+    .sidebar-logo{padding:20px 20px 18px;border-bottom:0.5px solid var(--line);font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.2px;text-decoration:none;display:block;}
+    .sidebar-logo span{color:var(--green);}
+    .sidebar-nav{flex:1;padding:10px;display:flex;flex-direction:column;gap:1px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;font-size:13px;font-weight:500;color:var(--ink3);text-decoration:none;cursor:pointer;border:none;background:none;font-family:var(--sans);width:100%;text-align:left;transition:background .12s,color .12s;}
+    .nav-item:hover{background:var(--bg3);color:var(--ink2);}
+    .nav-item.active{background:var(--green-l);color:var(--green);font-weight:600;}
+    .nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+    .nav-divider{height:0.5px;background:var(--line);margin:6px 10px;}
+    .sidebar-user{padding:14px 10px;border-top:0.5px solid var(--line);}
+    .user-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:7px;text-decoration:none;transition:background .12s;}
+    .user-row:hover{background:var(--bg3);}
+    .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+    .user-name{font-size:13px;font-weight:500;color:var(--ink);}
+    .user-email{font-size:11px;color:var(--ink3);margin-top:1px;}
 
-    .navbar {
-      background: rgba(250,249,245,0.88); backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--line); padding: 14px 48px;
-      display: flex; justify-content: space-between; align-items: center;
-      position: sticky; top: 0; z-index: 100;
-    }
-    .navbar-left { display: flex; align-items: center; gap: 20px; }
-    .back-btn {
-      display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500;
-      color: var(--ink-muted); text-decoration: none; padding: 7px 12px;
-      border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s;
-    }
-    .back-btn:hover { color: var(--ink); background: var(--paper-warm); border-color: var(--ink-muted); }
-    .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); }
-    .navbar-brand span { color: var(--accent); }
-    .avatar-link {
-      display: flex; align-items: center; gap: 8px; text-decoration: none;
-      color: var(--ink-soft); font-size: 14px; font-weight: 500;
-      padding: 6px 12px; border-radius: 8px; transition: all 0.2s;
-    }
-    .avatar-link:hover { background: var(--paper-warm); }
-    .avatar {
-      width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
-      color: white; display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700;
-    }
+    /* ── MAIN ── */
+    .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+    .topbar{height:56px;padding:0 32px;background:rgba(255,255,255,0.92);backdrop-filter:blur(16px);border-bottom:0.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:14px;position:sticky;top:0;z-index:50;}
+    .topbar-left{display:flex;align-items:center;gap:14px;min-width:0;}
+    .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+    .back-btn{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink3);text-decoration:none;font-weight:500;transition:color .12s;flex-shrink:0;}
+    .back-btn:hover{color:var(--ink);}
+    .back-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
+    .topbar-sep{width:0.5px;height:16px;background:var(--line);flex-shrink:0;}
+    .topbar-title{font-size:15px;font-weight:600;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-    .container { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
+    /* ── CONTENT ── */
+    .content{padding:36px 32px 80px;width:100%;max-width:1040px;margin:0 auto;}
+    .page-header{margin-bottom:28px;}
+    .page-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px;}
+    .page-header h1{font-size:32px;font-weight:300;color:var(--ink);letter-spacing:-.6px;margin-bottom:7px;}
+    .page-header h1 strong{font-weight:700;}
+    .page-header p{font-size:14px;color:var(--ink3);line-height:1.6;max-width:560px;}
 
-    .page-header { margin-bottom: 40px; }
-    .page-header h1 { font-family: var(--serif); font-size: clamp(28px, 4vw, 40px); color: var(--ink); letter-spacing: -1px; margin-bottom: 8px; }
-    .page-header h1 em { font-style: italic; color: var(--accent); }
-    .page-header p { font-size: 16px; color: var(--ink-muted); font-weight: 300; }
+    /* ── FORM SECTIONS ── */
+    .form-section{background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:22px 24px;margin-bottom:14px;}
+    .section-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:0.5px solid var(--line);}
+    .section-num{width:26px;height:26px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink3);flex-shrink:0;margin-top:1px;}
+    .section-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+    .section-sub{font-size:12px;color:var(--ink3);}
 
-    .form-section { background: white; border: 1.5px solid var(--line); border-radius: 16px; padding: 32px; margin-bottom: 20px; }
-    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
-    .section-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(45,106,79,0.1); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-    .section-header h2 { font-family: var(--serif); font-size: 20px; color: var(--ink); letter-spacing: -0.3px; }
-    .section-header p { font-size: 13px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
+    /* ── FIELDS ── */
+    .field{margin-bottom:16px;}
+    .field:last-child{margin-bottom:0;}
+    .field label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:5px;}
+    .field-hint{font-size:11px;color:var(--ink3);margin-bottom:5px;margin-top:-2px;}
+    .field input,.field textarea,.field select{width:100%;border:0.5px solid var(--line2);border-radius:7px;padding:9px 12px;font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--bg2);transition:border-color .15s,background .15s;}
+    .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--green);background:var(--bg);}
+    .field input::placeholder,.field textarea::placeholder{color:var(--ink4);}
+    .field textarea{resize:vertical;min-height:80px;line-height:1.6;}
+    .field select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='11' height='7' viewBox='0 0 11 7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5.5 6L10 1' stroke='%238a8a82' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-color:var(--bg2);padding-right:32px;}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .row .field{margin-bottom:0;}
+    .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+    .row-3 .field{margin-bottom:0;}
 
-    .form-group { margin-bottom: 20px; }
-    .form-group:last-child { margin-bottom: 0; }
-    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 7px; }
-    .label-desc { font-size: 12px; color: var(--ink-muted); font-weight: 300; margin-top: 2px; }
+    /* ── INFO BOXES ── */
+    .info-box{background:var(--green-l);border-left:2.5px solid var(--green);padding:11px 14px;border-radius:0 7px 7px 0;font-size:13px;color:var(--ink2);line-height:1.6;margin-bottom:16px;}
+    .info-box strong{display:block;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+    .warn-box{background:#fffbeb;border-left:2.5px solid var(--amber,#f59e0b);padding:11px 14px;border-radius:0 7px 7px 0;font-size:13px;color:var(--ink2);line-height:1.6;margin-bottom:16px;}
+    .warn-box strong{display:block;font-size:11px;font-weight:700;color:#c05621;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+    .builtin-box{display:flex;align-items:flex-start;gap:12px;background:var(--green-l);border:0.5px solid var(--green-m);border-radius:8px;padding:12px 14px;margin-bottom:16px;}
+    .builtin-box svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:2;flex-shrink:0;margin-top:1px;}
+    .builtin-box-text{font-size:13px;color:var(--ink2);line-height:1.6;}
+    .builtin-box-text strong{font-weight:600;color:var(--green);display:block;margin-bottom:1px;}
 
-    .form-group input, .form-group textarea, .form-group select {
-      width: 100%; padding: 12px 16px; border: 1.5px solid var(--line);
-      border-radius: 10px; font-family: var(--sans); font-size: 15px;
-      color: var(--ink); background: white; transition: all 0.2s;
-    }
-    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
-      outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,0.08);
-    }
-    .form-group input::placeholder, .form-group textarea::placeholder { color: #c4c2bc; font-weight: 300; }
-    .form-group textarea { resize: vertical; min-height: 96px; line-height: 1.6; }
-    .form-group select {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%234a4a44' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 14px center;
-      padding-right: 36px; cursor: pointer; color: #c4c2bc;
-    }
-    .form-group select.has-value { color: var(--ink); }
+    /* ── PROGRESS BAR ── */
+    .progress-card{background:var(--bg3);border:0.5px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+    .progress-label{font-size:12px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;}
+    .progress-value{font-size:18px;font-weight:300;color:var(--green);letter-spacing:-0.5px;}
 
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-    .form-row .form-group, .form-row-3 .form-group { margin-bottom: 0; }
+    /* ── AUTO FILTER ── */
+    .filter-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+    .filter-toggle{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;}
+    .filter-toggle input{width:15px;height:15px;accent-color:var(--green);}
+    .filter-score{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink2);}
+    .filter-score.disabled{color:var(--ink3);}
+    .filter-score input{width:70px;padding:6px 10px;border:0.5px solid var(--line2);border-radius:6px;font-family:var(--sans);font-size:13px;font-weight:600;text-align:center;background:var(--bg2);}
+    .filter-score input:disabled{background:var(--bg3);cursor:not-allowed;}
+    .tips-box{background:var(--bg3);border-left:2.5px solid var(--green);padding:12px 14px;border-radius:0 7px 7px 0;font-size:12px;color:var(--ink2);line-height:1.7;}
+    .tips-box strong{display:block;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+    .tips-box ul{margin-left:16px;}
+    .tips-box li{margin-bottom:3px;}
+    .tips-box .rec{font-weight:600;color:var(--ink);}
 
-    .file-upload-area {
-      border: 1.5px dashed var(--line); border-radius: 10px; padding: 24px;
-      text-align: center; cursor: pointer; transition: all 0.2s; position: relative;
-    }
-    .file-upload-area:hover { border-color: var(--accent); background: rgba(45,106,79,0.02); }
-    .file-upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-    .file-upload-icon { font-size: 28px; margin-bottom: 8px; }
-    .file-upload-text { font-size: 14px; color: var(--ink-muted); font-weight: 300; }
-    .file-upload-text strong { color: var(--accent); font-weight: 600; }
-    .file-name { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 6px; display: none; }
-    .current-image { margin-top: 10px; padding: 10px 14px; background: var(--paper-warm); border-radius: 8px; font-size: 13px; color: var(--ink-muted); }
-    .current-image span { color: var(--ink-soft); font-weight: 500; }
+    /* ── SUB LABELS ── */
+    .sub-label{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);padding:14px 0 8px;border-top:0.5px solid var(--line);margin-top:4px;}
+    .sub-label:first-of-type{border-top:none;padding-top:0;margin-top:0;}
+    .pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px;}
+    .pill{padding:7px 16px;border:.5px solid var(--line2);border-radius:20px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;transition:all .12s;user-select:none;}
+    .pill:hover{border-color:var(--green-m);color:var(--ink2);}
+    .pill.active{border-color:var(--green);background:var(--green-l);color:var(--green);font-weight:600;}
 
-    .progress-box {
-      background: var(--paper-warm); border: 1.5px solid var(--line);
-      border-radius: 10px; padding: 16px 20px;
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
-    }
-    .progress-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
-    .progress-value { font-family: var(--serif); font-size: 20px; color: var(--ink); }
+    /* ── CHECKBOXES ── */
+    .check-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:6px;}
+    .check-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border:0.5px solid var(--line);border-radius:7px;cursor:pointer;font-size:12px;color:var(--ink2);transition:all .12s;}
+    .check-item:hover{border-color:var(--green-m);background:var(--green-l);}
+    .check-item.checked{border-color:var(--green);background:var(--green-l);color:var(--ink);}
+    .check-item input{accent-color:var(--green);width:13px;height:13px;flex-shrink:0;}
 
-    .auto-filter-intro { font-size: 13px; color: var(--ink-muted); line-height: 1.55; margin-bottom: 16px; }
-    .auto-filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-    .auto-filter-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; }
-    .auto-filter-toggle input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
-    .auto-filter-score { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--ink-soft); }
-    .auto-filter-score.is-disabled { color: var(--ink-muted); }
-    .auto-filter-score input {
-      width: 76px; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 9px;
-      font-family: var(--sans); font-size: 14px; font-weight: 600; text-align: center;
-    }
-    .auto-filter-score input:disabled { background: #f5f4f0; cursor: not-allowed; }
-    .auto-filter-tips { padding: 14px 16px; border-radius: 10px; background: rgba(45,106,79,0.06); border-left: 3px solid var(--accent); font-size: 13px; color: var(--ink-soft); line-height: 1.65; }
-    .auto-filter-tips strong { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
-    .auto-filter-tips ul { margin: 8px 0 0 18px; padding: 0; }
-    .auto-filter-tips li { margin-bottom: 4px; }
-    .auto-filter-tips .rec { font-weight: 600; color: var(--ink); }
+    /* ── ADVANCED ── */
+    details>summary{list-style:none;}
+    details>summary::-webkit-details-marker{display:none;}
+    .adv-toggle{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink3);cursor:pointer;padding:12px 0;border-top:0.5px solid var(--line);margin-top:4px;user-select:none;}
+    .adv-toggle:hover{color:var(--ink2);}
+    .adv-toggle svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .2s;}
+    details[open] .adv-toggle svg{transform:rotate(90deg);}
+    .adv-body{padding-top:14px;display:flex;flex-direction:column;gap:12px;}
 
-    .filter-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); padding: 12px 0 8px; border-top: 1px solid var(--line); margin-top: 8px; }
-    .filter-group-label:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+    /* ── FILE ZONE ── */
+    .file-zone{border:0.5px dashed var(--line2);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;position:relative;}
+    .file-zone:hover{border-color:var(--green);background:var(--green-l);}
+    .file-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+    .fz-icon{width:28px;height:28px;border-radius:7px;background:var(--bg3);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;}
+    .fz-icon svg{width:14px;height:14px;stroke:var(--ink3);fill:none;stroke-width:2;}
+    .fz-text{font-size:12px;color:var(--ink3);}
+    .fz-text strong{color:var(--ink2);}
+    .fz-name{font-size:11px;color:var(--green);font-weight:600;margin-top:5px;display:none;}
+    .current-img{margin-top:8px;font-size:11px;color:var(--ink3);background:var(--bg3);border-radius:5px;padding:5px 9px;display:inline-block;}
 
-    .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-    .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; font-size: 13px; color: var(--ink-soft); }
-    .checkbox-item:hover { border-color: var(--accent-light); background: rgba(45,106,79,0.03); }
-    .checkbox-item input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; padding: 0; border: none; background: none; box-shadow: none; }
-    .checkbox-item.checked { border-color: var(--accent); background: rgba(45,106,79,0.06); color: var(--ink); }
+    /* ── SUBMIT BAR ── */
+    .submit-bar{background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:18px 24px;display:flex;align-items:center;justify-content:flex-end;gap:10px;}
+    .btn-cancel{padding:9px 18px;background:transparent;color:var(--ink3);border:0.5px solid var(--line2);border-radius:7px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all .12s;}
+    .btn-cancel:hover{background:var(--bg3);color:var(--ink2);}
+    .btn-save{padding:9px 22px;background:var(--green);color:#fff;border:none;border-radius:7px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:background .12s;display:flex;align-items:center;gap:6px;}
+    .btn-save:hover{background:var(--green-d);}
+    .btn-save svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2.5;}
 
-    details > summary { list-style: none; }
-    details > summary::-webkit-details-marker { display: none; }
-    .advanced-toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink-soft); cursor: pointer; padding: 12px 0; user-select: none; }
-    .advanced-toggle:hover { color: var(--ink); }
-    .advanced-body { padding-top: 20px; display: flex; flex-direction: column; gap: 16px; }
-
-    .submit-section { background: white; border: 1.5px solid var(--line); border-radius: 16px; padding: 28px 32px; display: flex; gap: 12px; align-items: center; justify-content: flex-end; }
-    .btn-cancel { padding: 12px 24px; background: transparent; color: var(--ink-muted); border: 1.5px solid var(--line); border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-cancel:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
-    .btn-save { padding: 12px 28px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
-    .btn-save:hover { background: #245c43; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.3); }
-
-    @media (max-width: 640px) {
-      .navbar { padding: 12px 16px; }
-      .navbar-brand { display: none; }
-      .container { padding: 32px 16px 60px; }
-      .form-section { padding: 24px 20px; }
-      .form-row, .form-row-3 { grid-template-columns: 1fr; }
-      .checkbox-group { grid-template-columns: 1fr; }
-      .submit-section { flex-direction: column-reverse; }
-      .btn-cancel, .btn-save { width: 100%; justify-content: center; }
+    @media(max-width:700px){
+      .sidebar{display:none;}
+      .content{padding:20px 16px 56px;}
+      .row,.row-3{grid-template-columns:1fr;}
+      .check-grid{grid-template-columns:1fr;}
+      .submit-bar{flex-direction:column-reverse;}
+      .btn-cancel,.btn-save{width:100%;justify-content:center;}
     }
   </style>
 </head>
 <body>
 
-<nav class="navbar">
-  <div class="navbar-left">
-    <a href="/publisher" class="back-btn">← Back</a>
-    <a href="/publisher" class="back-btn">Home</a>
-    <div class="navbar-brand">Insight<span>a</span></div>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <a href="/publisher" class="sidebar-logo">Insight<span>a</span></a>
+  <nav class="sidebar-nav">
+    <a href="/publisher" class="nav-item active">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      My listings
+    </a>
+    <a href="/publisher" class="nav-item">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      New listing
+    </a>
+    <div class="nav-divider"></div>
+    <a href="/guide" class="nav-item">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Tutorial
+    </a>
+    <a href="/feedback" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Share feedback
+    </a>
+  </nav>
+  <div class="sidebar-user">
+    <a href="/profile" class="user-row">
+      <div class="user-avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
+      <div>
+        <div class="user-name">{{ current_user.username or 'Your profile' }}</div>
+        <div class="user-email">{{ current_user.email }}</div>
+      </div>
+    </a>
   </div>
-  <a href="/profile" class="avatar-link">
-    <div class="avatar">U</div>
-    <span>Profile</span>
-  </a>
-</nav>
+</aside>
 
-<div class="container">
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="/publisher/study/{{ survey.id }}" class="back-btn">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Study detail
+      </a>
+      <div class="topbar-sep"></div>
+      <div class="topbar-title">Edit listing</div>
+    </div>
+    <div class="topbar-right">
+      <button type="button" class="btn-cancel" onclick="history.back()">Cancel</button>
+    </div>
+  </div>
 
+  <div class="content">
   <div class="page-header">
-    <h1>Edit <em>Survey</em></h1>
-    <p>Update your survey details and targeting.</p>
+    <div class="page-kicker">Edit listing</div>
+    <h1>Edit your <strong>survey</strong></h1>
+    <p>Keep listing details, incentives, quality rules, and audience criteria aligned with the publish setup.</p>
   </div>
-
   <form method="POST" action="/publisher/edit/{{ survey.id }}" enctype="multipart/form-data">
 
-    <!-- BASIC INFO -->
+    <!-- 01 BASIC INFO -->
     <div class="form-section">
-      <div class="section-header">
-        <div class="section-icon">✏️</div>
-        <div><h2>Basic Information</h2><p>{% if survey.form_url == '__builtin__' %}Title and description{% else %}Title, description, and form link{% endif %}</p></div>
+      <div class="section-head">
+        <div class="section-num">01</div>
+        <div>
+          <div class="section-title">Basic information</div>
+          <div class="section-sub">Title, description{% if survey.form_url != '__builtin__' %}, and form link{% endif %}</div>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Survey Title</label>
+      <div class="field">
+        <label>Title <span style="color:var(--red)">*</span></label>
         <input type="text" name="title" value="{{ survey.title }}" required>
       </div>
-      <div class="form-group">
-        <label>Description</label>
+      <div class="field">
+        <label>Description <span style="color:var(--red)">*</span></label>
         <textarea name="description" required>{{ survey.description }}</textarea>
       </div>
-     {% if survey.form_url == '__builtin__' %}
+      {% if survey.form_url == '__builtin__' %}
         <input type="hidden" name="form_url" value="__builtin__">
-        <div class="builtin-badge" style="display:flex; align-items:flex-start; gap:14px; background:rgba(45,106,79,0.06); border:1.5px solid rgba(45,106,79,0.2); border-radius:12px; padding:16px 20px;">
-          <div style="font-size:22px;">✨</div>
-          <div style="font-size:14px; color:var(--ink-soft); line-height:1.6;">
-            <strong style="display:block; font-weight:700; color:var(--accent); margin-bottom:3px;">Insighta Built-in Survey</strong>
-            This survey uses Insighta's built-in question builder. No external link needed.
+        <div class="builtin-box">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <div class="builtin-box-text">
+            <strong>Insighta built-in survey</strong>
+            Questions are managed in the builder. No external link needed.
           </div>
         </div>
       {% else %}
-        <div class="form-group">
-          <label>Form Link</label>
-          <input type="url" name="form_url" value="{{ survey.form_url }}" required>
-        </div>
+      <div class="field">
+        <label>Form link <span style="color:var(--red)">*</span></label>
+        <input type="url" name="form_url" value="{{ survey.form_url }}" required>
+      </div>
       {% endif %}
     </div>
 
-    <!-- SURVEY DETAILS -->
+    <!-- 02 STUDY DETAILS -->
     <div class="form-section">
-      <div class="section-header">
-        <div class="section-icon">📋</div>
-        <div><h2>Survey Details</h2><p>Type, category, and format</p></div>
+      <div class="section-head">
+        <div class="section-num">02</div>
+        <div>
+          <div class="section-title">Study details</div>
+          <div class="section-sub">Type, format, and poster</div>
+        </div>
       </div>
-      <div class="form-row" style="margin-bottom: 20px;">
-        <div class="form-group">
-          <label>Study Type</label>
-          <select name="task_type" required>
-            <option value="survey" {% if survey.task_type=='survey' or not survey.task_type %}selected{% endif %}>Online Survey</option>
-            <option value="interview" {% if survey.task_type=='interview' %}selected{% endif %}>Remote Interview</option>
-            <option value="product_testing" {% if survey.task_type=='product_testing' %}selected{% endif %}>Product Testing / UX</option>
-            <option value="story_collection" {% if survey.task_type=='story_collection' %}selected{% endif %}>Story Collection</option>
-            <option value="in_person_experiment" {% if survey.task_type=='in_person_experiment' %}selected{% endif %}>In-Person Experiment</option>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="field">
+          <label>Study type</label>
+          <select name="task_type">
+            <option value="survey"    {% if survey.task_type in ('survey',none,'') %}selected{% endif %}>Online survey</option>
+            <option value="interview" {% if survey.task_type=='interview' %}selected{% endif %}>Remote interview</option>
+            <option value="ux_test"   {% if survey.task_type=='ux_test' %}selected{% endif %}>UX / product test</option>
+            <option value="diary_study" {% if survey.task_type=='diary_study' %}selected{% endif %}>Diary study</option>
+            <option value="in_person" {% if survey.task_type=='in_person' %}selected{% endif %}>In-person study</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Category</label>
           <select name="category" required>
             <option value="research" {% if survey.category=='research' %}selected{% endif %}>Research</option>
-            <option value="life" {% if survey.category=='life' %}selected{% endif %}>Lifestyle</option>
-            <option value="clubs" {% if survey.category=='clubs' %}selected{% endif %}>Clubs & Events</option>
-            <option value="market" {% if survey.category=='market' %}selected{% endif %}>Market Research</option>
+            <option value="life"     {% if survey.category=='life' %}selected{% endif %}>Lifestyle</option>
+            <option value="clubs"    {% if survey.category=='clubs' %}selected{% endif %}>Clubs &amp; Events</option>
+            <option value="market"   {% if survey.category=='market' %}selected{% endif %}>Market research</option>
             <option value="academic" {% if survey.category=='academic' %}selected{% endif %}>Academic</option>
-            <option value="other" {% if survey.category=='other' %}selected{% endif %}>Other</option>
+            <option value="other"    {% if survey.category=='other' %}selected{% endif %}>Other</option>
           </select>
         </div>
       </div>
-      <div class="form-row" style="margin-bottom: 20px;">
-        <div class="form-group">
-          <label>Estimated Time</label>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="field">
+          <label>Estimated time</label>
           <select name="estimated_time" required>
-            <option value="5" {% if survey.estimated_time==5 %}selected{% endif %}>Under 10 min</option>
+            <option value="5"  {% if survey.estimated_time==5  %}selected{% endif %}>Under 5 min</option>
             <option value="10" {% if survey.estimated_time==10 %}selected{% endif %}>10 min</option>
             <option value="15" {% if survey.estimated_time==15 %}selected{% endif %}>15 min</option>
             <option value="20" {% if survey.estimated_time==20 %}selected{% endif %}>20 min</option>
-            <option value="30" {% if survey.estimated_time==30 %}selected{% endif %}>30+ min</option>
+            <option value="30" {% if survey.estimated_time==30 %}selected{% endif %}>30 min</option>
+            <option value="45" {% if survey.estimated_time==45 %}selected{% endif %}>45 min</option>
+            <option value="60" {% if survey.estimated_time==60 %}selected{% endif %}>60+ min</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Participation Format</label>
+        <div class="field">
+          <label>Participation format</label>
           <select name="target_participation_format">
-            <option value="all" {% if not survey.target_participation_format or survey.target_participation_format=='' %}selected{% endif %}>Any format</option>
-            <option value="online" {% if survey.target_participation_format=='online' %}selected{% endif %}>Online only</option>
-            <option value="in_person" {% if survey.target_participation_format=='in_person' %}selected{% endif %}>In-person required</option>
+            <option value="all"               {% if not survey.target_participation_format %}selected{% endif %}>Any format</option>
+            <option value="Online surveys"    {% if survey.target_participation_format=='Online surveys' %}selected{% endif %}>Online</option>
+            <option value="Video interview"   {% if survey.target_participation_format=='Video interview' %}selected{% endif %}>Remote live session</option>
+            <option value="In-person study"   {% if survey.target_participation_format=='In-person study' %}selected{% endif %}>In-person</option>
+            <option value="Hybrid"            {% if survey.target_participation_format=='Hybrid' %}selected{% endif %}>Hybrid</option>
           </select>
         </div>
       </div>
-      <div class="form-group" style="max-width: 300px;">
-        <label>Device Requirement</label>
+      <div class="field" style="max-width:280px;margin-bottom:16px;">
+        <label>Device requirement</label>
         <select name="target_device">
-          <option value="any" {% if not survey.target_device or survey.target_device=='' %}selected{% endif %}>Any device</option>
-          <option value="laptop" {% if survey.target_device=='laptop' %}selected{% endif %}>Laptop / Desktop</option>
-          <option value="mobile" {% if survey.target_device=='mobile' %}selected{% endif %}>Mobile only</option>
+          <option value="any"    {% if not survey.target_device or survey.target_device=='any' %}selected{% endif %}>Any device</option>
+          <option value="laptop" {% if survey.target_device=='laptop' %}selected{% endif %}>Laptop / desktop</option>
+          <option value="mobile" {% if survey.target_device=='mobile' %}selected{% endif %}>Mobile phone</option>
         </select>
       </div>
-      <div class="form-group" style="margin-top: 20px;">
-        <label>Cover Image <span style="font-weight:300; color: var(--ink-muted);">(Optional)</span></label>
-        <div class="file-upload-area">
-          <input type="file" id="coverImageInput" name="cover_image" accept="image/*">
-          <div class="file-upload-icon">🖼</div>
-          <div class="file-upload-text"><strong>Click to upload</strong> or drag and drop</div>
-          <div class="file-upload-text">JPG, PNG — leave empty to keep current</div>
-          <div class="file-name" id="fileName"></div>
+      <div class="field">
+        <label>Update poster <span style="font-weight:400;color:var(--ink3);">(optional)</span></label>
+        <div class="file-zone">
+          <input type="file" id="posterInput" name="cover_image" accept="image/*">
+          <div class="fz-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+          <div class="fz-text"><strong>Click to upload</strong> or drag and drop — leave empty to keep current</div>
+          <div class="fz-name" id="fzName"></div>
         </div>
         {% if survey.image_url %}
-        <div class="current-image">Current image: <span>{{ survey.image_url.split('/')[-1] }}</span></div>
+        <div class="current-img">Current: {{ survey.image_url.split('/')[-1] }}</div>
         {% endif %}
       </div>
     </div>
 
-    <!-- REWARD -->
+    <!-- 03 REWARD & RESPONSES -->
     <div class="form-section">
-      <div class="section-header">
-        <div class="section-icon">💰</div>
-        <div><h2>Reward Settings</h2><p>Adjust reward and add more responses</p></div>
+      <div class="section-head">
+        <div class="section-num">03</div>
+        <div>
+          <div class="section-title">Budget &amp; timeline</div>
+          <div class="section-sub">Incentive type, target responses, and urgency</div>
+        </div>
       </div>
-      <div class="progress-box">
-        <span class="progress-label">Current Progress</span>
+
+      <div class="progress-card">
+        <span class="progress-label">Current progress</span>
         <span class="progress-value">{{ survey.current_responses }} / {{ survey.target_responses }} responses</span>
       </div>
 
-      <input type="hidden" name="reward_amount" value="{{ survey.reward_amount }}">
+      {% set incentive = survey.incentive_type or 'cash' %}
+      <div class="field" style="margin-bottom:18px;">
+        <label>Incentive type</label>
+        <div class="pills" id="incentivePills">
+          <div class="pill {% if incentive == 'cash' %}active{% endif %}" data-v="cash" onclick="pickIncentive(this)">Cash</div>
+          <div class="pill {% if incentive == 'gift_card' %}active{% endif %}" data-v="gift_card" onclick="pickIncentive(this)">Gift card</div>
+          <div class="pill {% if incentive == 'raffle' %}active{% endif %}" data-v="raffle" onclick="pickIncentive(this)">Raffle</div>
+          <div class="pill {% if incentive == 'volunteer' %}active{% endif %}" data-v="volunteer" onclick="pickIncentive(this)">Volunteer</div>
+        </div>
+        <input type="hidden" name="incentive_type" id="incentiveInput" value="{{ incentive }}">
+      </div>
+
+      <div class="info-box" id="raffleBox" style="{% if incentive != 'raffle' %}display:none;{% endif %}">
+        <strong>Raffle reward</strong>
+        <label style="display:inline-flex;align-items:center;gap:7px;margin-right:12px;font-size:13px;">
+          <input type="radio" name="raffle_prize_type" value="gift_card" {% if survey.raffle_prize_type != 'cash' %}checked{% endif %}> Gift card
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:7px;font-size:13px;">
+          <input type="radio" name="raffle_prize_type" value="cash" {% if survey.raffle_prize_type == 'cash' %}checked{% endif %}> Cash
+        </label>
+      </div>
 
       {% if survey.status == 'published' %}
-        <div style="display:flex; align-items:flex-start; gap:14px; background:var(--paper-warm); border:1.5px solid var(--line); border-radius:12px; padding:16px 20px; margin-bottom:20px;">
-          <div style="font-size:22px;">🔒</div>
-          <div style="font-size:14px; color:var(--ink-soft); line-height:1.6;">
-            <strong style="display:block; font-weight:700; color:var(--ink); margin-bottom:3px;">Reward locked</strong>
-            Reward cannot be changed after publishing to protect participants.
-            Current reward: <strong style="color:var(--accent);">${{ "%.2f"|format(survey.reward_amount) }} per response</strong>
-          </div>
-        </div>
-      {% elif survey.incentive_type in ('raffle', 'volunteer') %}
-        <div style="display:flex; align-items:flex-start; gap:14px; background:rgba(224,122,60,0.06); border:1.5px solid rgba(224,122,60,0.2); border-radius:12px; padding:16px 20px; margin-bottom:20px;">
-          <div style="font-size:22px;">🤝</div>
-          <div style="font-size:14px; color:var(--ink-soft); line-height:1.6;">
-            <strong style="display:block; font-weight:700; color:var(--accent-warm); margin-bottom:3px;">
-              {{ 'Volunteer' if survey.incentive_type == 'volunteer' else 'Raffle' }} Study — No payment required
-            </strong>
-            Participants are not paid per response for this study type.
-          </div>
-        </div>
+      <div class="warn-box">
+        <strong>Reward locked</strong>
+        Reward cannot be changed after publishing to protect participants.
+        Current: <strong style="color:var(--ink);">${{ "%.2f"|format(survey.reward_amount) }} per response</strong>
+      </div>
+      <input type="hidden" name="reward_amount" value="{{ survey.reward_amount }}">
       {% else %}
-        <div class="form-row" style="margin-bottom:0;">
-          <div class="form-group">
-            <label>Reward per Response ($)</label>
-            <div class="label-desc">Amount participant receives after platform fee</div>
-            <input type="number" name="reward_amount" value="{{ "%.2f"|format(survey.reward_amount) }}" step="0.01" min="0.01" required style="margin-top: 8px;">
-          </div>
-        </div>
+      <div class="info-box" id="noPayBox" style="{% if incentive not in ('raffle','volunteer') %}display:none;{% endif %}">
+        <strong>No per-response payout</strong>
+        Participants are not paid per response for raffle or volunteer listings.
+      </div>
+      <div class="field" id="rewardField" style="max-width:220px;margin-bottom:16px;{% if incentive in ('raffle','volunteer') %}display:none;{% endif %}">
+        <label>Reward per response ($)</label>
+        <input type="number" id="rewardInput" name="reward_amount" value="{{ '%.2f'|format(survey.reward_amount) if incentive not in ('raffle','volunteer') else '0.00' }}" step="0.01" min="0" {% if incentive not in ('raffle','volunteer') %}required{% endif %}>
+      </div>
       {% endif %}
 
-      <div class="form-group" style="margin-top: 16px;">
-        <label>Additional Responses Needed</label>
-        <div class="label-desc">Added on top of current {{ survey.current_responses }}</div>
+      <div class="field" style="max-width:220px;">
+        <label>Additional responses needed</label>
+        <div class="field-hint">Added on top of current {{ survey.current_responses }}</div>
         <input type="number" name="additional_needed" value="{{ survey.target_responses - survey.current_responses }}" min="0" required>
+      </div>
+
+      <div class="field" style="margin-top:18px;">
+        <label>Recruitment timeline</label>
+        {% set urgency = survey.urgency_level or 'flexible' %}
+        <div class="pills" id="urgencyPills">
+          <div class="pill {% if urgency == 'flexible' %}active{% endif %}" data-v="flexible" onclick="pickUrgency(this)">No deadline</div>
+          <div class="pill {% if urgency == 'within_1_month' %}active{% endif %}" data-v="within_1_month" onclick="pickUrgency(this)">Within 1 month +5%</div>
+          <div class="pill {% if urgency == 'within_1_week' %}active{% endif %}" data-v="within_1_week" onclick="pickUrgency(this)">Within 1 week +10%</div>
+        </div>
+        <input type="hidden" name="urgency_level" id="urgencyInput" value="{{ urgency }}">
       </div>
     </div>
 
-    <!-- QUALITY AUTO FILTER -->
+    <!-- 04 QUALITY AUTO-FILTER -->
     <div class="form-section">
-      <div class="section-header">
-        <div class="section-icon">✓</div>
-        <div><h2>Quality Auto filter</h2><p>Auto-approve responses that pass your quality score threshold</p></div>
-      </div>
-      <p class="auto-filter-intro">On Results or Quality: at or above threshold → approved; below → rejected.</p>
-      <div class="auto-filter-row">
-        <label class="auto-filter-toggle">
-          <input type="checkbox" name="quality_auto_filter_enabled" value="1" id="publishAutoFilterEnabled"
-            {% if survey.quality_auto_filter_enabled %}checked{% endif %} onchange="togglePublishAutoFilter()">
-          <span>Enable Auto filter</span>
-        </label>
-        <div class="auto-filter-score {% if not survey.quality_auto_filter_enabled %}is-disabled{% endif %}" id="publishAutoFilterScoreWrap">
-          <span>Scores ≥</span>
-          <input type="number" name="quality_auto_filter_min_score" id="publishAutoFilterMinScore" min="0" max="100" step="1"
-            value="{{ (survey.quality_auto_filter_min_score if survey.quality_auto_filter_min_score is not none else 80) | int }}"
-            {% if not survey.quality_auto_filter_enabled %}disabled{% endif %}
-            aria-label="Minimum quality score">
-          <span>approved; below that, rejected</span>
+      <div class="section-head">
+        <div class="section-num">04</div>
+        <div>
+          <div class="section-title">Quality auto-filter</div>
+          <div class="section-sub">Auto-approve responses above your quality threshold</div>
         </div>
       </div>
-      <div class="auto-filter-tips">
+      <div class="field-hint" style="margin-bottom:12px;">Responses at or above the threshold are auto-approved; below it, they are sent for manual review.</div>
+      <div class="filter-row">
+        <label class="filter-toggle">
+          <input type="checkbox" name="quality_auto_filter_enabled" value="1" id="autoFilterEnabled"
+            {% if survey.quality_auto_filter_enabled %}checked{% endif %}
+            onchange="toggleAutoFilter()">
+          Enable auto-filter
+        </label>
+        <div class="filter-score {% if not survey.quality_auto_filter_enabled %}disabled{% endif %}" id="filterScoreWrap">
+          <span>Scores</span>
+          <input type="number" name="quality_auto_filter_min_score" id="filterMinScore"
+            min="0" max="100" step="1"
+            value="{{ (survey.quality_auto_filter_min_score if survey.quality_auto_filter_min_score is not none else 80) | int }}"
+            {% if not survey.quality_auto_filter_enabled %}disabled{% endif %}>
+          <span>and above auto-approved</span>
+        </div>
+      </div>
+      <div class="tips-box">
         <strong>Recommended thresholds</strong>
         <ul>
           <li><span class="rec">80 (recommended)</span> — balanced default; strong responses auto-approved, borderline cases for manual review.</li>
@@ -373,284 +444,313 @@
       </div>
     </div>
 
-    <!-- TARGET AUDIENCE -->
+    <!-- 05 TARGET AUDIENCE -->
     <div class="form-section">
-      <div class="section-header">
-        <div class="section-icon">🎯</div>
-        <div><h2>Target Audience</h2><p>Leave any field blank to allow all participants</p></div>
+      <div class="section-head">
+        <div class="section-num">05</div>
+        <div>
+          <div class="section-title">Target audience</div>
+          <div class="section-sub">Leave any field as "All" to allow all matching participants</div>
+        </div>
       </div>
 
-      <div class="filter-group-label">Demographics</div>
-      <div class="form-row" style="margin-bottom: 16px;">
-        <div class="form-group">
-          <label>Age Range</label>
+      <div class="sub-label">Demographics</div>
+      <div class="row" style="margin-bottom:12px;">
+        <div class="field">
+          <label>Age range</label>
           <select name="target_age_range">
-            <option value="all" {% if not survey.target_age_range or survey.target_age_range=='' %}selected{% endif %}>All ages</option>
-            <option value="18-24" {% if survey.target_age_range=='18-24' %}selected{% endif %}>18–24</option>
-            <option value="25-34" {% if survey.target_age_range=='25-34' %}selected{% endif %}>25–34</option>
-            <option value="35-44" {% if survey.target_age_range=='35-44' %}selected{% endif %}>35–44</option>
-            <option value="45+" {% if survey.target_age_range=='45+' %}selected{% endif %}>45+</option>
+            <option value="all" {% if not survey.target_age_range %}selected{% endif %}>All ages</option>
+            {% for v in ['18-24','25-34','35-44','45+'] %}
+            <option value="{{ v }}" {% if survey.target_age_range==v %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
           </select>
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Location</label>
           <select name="target_state">
-            <option value="all" {% if not survey.target_state or survey.target_state=='' %}selected{% endif %}>All states</option>
-            {% for st in ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'] %}
-            <option value="{{ st }}" {% if survey.target_state==st %}selected{% endif %}>{{ st }}</option>
+            <option value="all" {% if not survey.target_state %}selected{% endif %}>All locations</option>
+            {% for v in ['United States','Canada','China','India','United Kingdom','Australia','Germany','France','South Korea','Japan','Brazil','Mexico','California','New York','Texas','Massachusetts','Florida','Illinois','Other'] %}
+            <option value="{{ v }}" {% if survey.target_state==v %}selected{% endif %}>{{ v }}</option>
             {% endfor %}
           </select>
         </div>
       </div>
-      <div class="form-row" style="margin-bottom: 16px;">
-        <div class="form-group">
+      <div class="row" style="margin-bottom:12px;">
+        <div class="field">
           <label>Language</label>
           <select name="target_language">
-            <option value="all" {% if not survey.target_language or survey.target_language=='' %}selected{% endif %}>All languages</option>
-            {% for lang in ['Arabic','English','French','German','Hindi','Japanese','Korean','Mandarin Chinese','Spanish','Other'] %}
-            <option value="{{ lang }}" {% if survey.target_language==lang %}selected{% endif %}>{{ lang }}</option>
+            <option value="all" {% if not survey.target_language %}selected{% endif %}>All languages</option>
+            {% for v in ['English','Mandarin Chinese','Spanish','French','Arabic','Hindi','Portuguese','Russian','Japanese','Korean','German','Vietnamese','Other'] %}
+            <option value="{{ v }}" {% if survey.target_language==v %}selected{% endif %}>{{ v }}</option>
             {% endfor %}
           </select>
         </div>
-        <div class="form-group">
-          <label>International / Domestic</label>
-          <select name="target_international_domestic">
-            <option value="all" {% if not survey.target_international_domestic or survey.target_international_domestic=='' %}selected{% endif %}>All</option>
-            <option value="Domestic" {% if survey.target_international_domestic=='Domestic' %}selected{% endif %}>Domestic students</option>
-            <option value="International" {% if survey.target_international_domestic=='International' %}selected{% endif %}>International students</option>
+        <div class="field">
+          <label>Race / ethnicity</label>
+          <select name="target_ethnicity">
+            <option value="all" {% if not survey.target_ethnicity %}selected{% endif %}>All</option>
+            {% for v in ['Asian','Black or African American','Hispanic or Latino','Middle Eastern or North African','Native American or Alaska Native','White','Two or more races','Prefer not to say'] %}
+            <option value="{{ v }}" {% if survey.target_ethnicity==v %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:0;">
+        <div class="field">
+          <label>Sexual orientation</label>
+          <select name="target_sexual_orientation">
+            <option value="all" {% if not survey.target_sexual_orientation %}selected{% endif %}>All</option>
+            {% for v in ['Straight / heterosexual','Gay or lesbian','Bisexual','Pansexual','Asexual','Queer','Prefer not to say'] %}
+            <option value="{{ v }}" {% if survey.target_sexual_orientation==v %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Income level</label>
+          <select name="target_income_level">
+            <option value="all" {% if not survey.target_income_level %}selected{% endif %}>All income levels</option>
+            {% for v in ['Under $25,000','$25,000-$49,999','$50,000-$74,999','$75,000-$99,999','$100,000-$149,999','$150,000+','Prefer not to say'] %}
+            <option value="{{ v }}" {% if survey.target_income_level==v %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
           </select>
         </div>
       </div>
 
-      <div class="filter-group-label">Academic Background</div>
-      <div class="form-row" style="margin-bottom: 16px;">
-        <div class="form-group">
-          <label>Student Status</label>
+      <div class="sub-label">Academic background</div>
+      <div class="row" style="margin-bottom:12px;">
+        <div class="field">
+          <label>Student status</label>
           <select name="target_student_status">
-            <option value="all" {% if not survey.target_student_status or survey.target_student_status=='' %}selected{% endif %}>All</option>
-            <option value="undergrad" {% if survey.target_student_status=='undergrad' %}selected{% endif %}>Undergraduate</option>
-            <option value="grad" {% if survey.target_student_status=='grad' %}selected{% endif %}>Graduate / PhD</option>
-            <option value="non-student" {% if survey.target_student_status=='non-student' %}selected{% endif %}>Non-student</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Year in School</label>
-          <select name="target_year_in_school">
-            <option value="all" {% if not survey.target_year_in_school or survey.target_year_in_school=='' %}selected{% endif %}>All years</option>
-            {% for yr in ['Freshman','Sophomore','Junior','Senior','Graduate Year 1','Graduate Year 2+'] %}
-            <option value="{{ yr }}" {% if survey.target_year_in_school==yr %}selected{% endif %}>{{ yr }}</option>
+            <option value="all" {% if not survey.target_student_status %}selected{% endif %}>All</option>
+            {% for v in ['High school student','Undergraduate student','Graduate student','PhD student','Postdoc','Not currently a student'] %}
+            <option value="{{ v }}" {% if survey.target_student_status==v %}selected{% endif %}>{{ v }}</option>
             {% endfor %}
           </select>
         </div>
+        <div class="field">
+          <label>International / domestic</label>
+          <select name="target_international_domestic">
+            <option value="all" {% if not survey.target_international_domestic %}selected{% endif %}>All</option>
+            <option value="Domestic"      {% if survey.target_international_domestic=='Domestic' %}selected{% endif %}>Domestic</option>
+            <option value="International" {% if survey.target_international_domestic=='International' %}selected{% endif %}>International</option>
+          </select>
+        </div>
       </div>
-      <div class="form-row" style="margin-bottom: 16px;">
-        <div class="form-group">
-          <label>Field / Major</label>
+      <div class="row" style="margin-bottom:12px;">
+        <div class="field">
+          <label>Field / major</label>
           <select name="target_field">
-            <option value="all" {% if not survey.target_field or survey.target_field=='' %}selected{% endif %}>All fields</option>
-            {% for f in ['Computer Science & Engineering','Business & Economics','Medicine & Healthcare','Natural Sciences','Social Sciences','Arts & Humanities','Education','Law','Other'] %}
-            <option value="{{ f }}" {% if survey.target_field==f %}selected{% endif %}>{{ f }}</option>
+            <option value="all" {% if not survey.target_field %}selected{% endif %}>All fields</option>
+            {% for v in ['Computer Science & Engineering','Data Science / AI','Business & Economics','Psychology','Medicine & Healthcare','Public Health','Natural Sciences','Social Sciences','Arts & Humanities','Education','Law','Design / HCI','Other'] %}
+            <option value="{{ v }}" {% if survey.target_field==v %}selected{% endif %}>{{ v }}</option>
             {% endfor %}
           </select>
         </div>
-        <div class="form-group">
-          <label>Employment Status</label>
+        <div class="field">
+          <label>Current status</label>
           <select name="target_status">
-            <option value="all" {% if not survey.target_status or survey.target_status=='' %}selected{% endif %}>All</option>
-            <option value="student" {% if survey.target_status=='student' %}selected{% endif %}>Student</option>
-            <option value="working" {% if survey.target_status=='working' %}selected{% endif %}>Working</option>
-            <option value="freelancer" {% if survey.target_status=='freelancer' %}selected{% endif %}>Freelancer</option>
-            <option value="other" {% if survey.target_status=='other' %}selected{% endif %}>Other</option>
+            <option value="all" {% if not survey.target_status %}selected{% endif %}>All</option>
+            {% for v in ['Student','Employed full-time','Employed part-time','Self-employed','Intern','Researcher','Unemployed / between roles','Other'] %}
+            <option value="{{ v }}" {% if survey.target_status==v %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
           </select>
         </div>
       </div>
-      <div class="form-row-3">
-        <div class="form-group">
-          <label>Min Education</label>
+      <div class="row-3" style="margin-bottom:0;">
+        <div class="field">
+          <label>Min education</label>
           <select name="target_education_min">
-            <option value="">No limit</option>
-            <option value="1" {% if survey.target_education_min==1 %}selected{% endif %}>High School</option>
-            <option value="2" {% if survey.target_education_min==2 %}selected{% endif %}>Undergraduate</option>
-            <option value="3" {% if survey.target_education_min==3 %}selected{% endif %}>Graduate</option>
-            <option value="4" {% if survey.target_education_min==4 %}selected{% endif %}>PhD</option>
+            <option value="">No minimum</option>
+            {% for v,l in [(1,'High school'),(2,'Undergraduate'),(3,'Graduate'),(4,'PhD'),(5,'Postdoc')] %}
+            <option value="{{ v }}" {% if survey.target_education_min==v %}selected{% endif %}>{{ l }}</option>
+            {% endfor %}
           </select>
         </div>
-        <div class="form-group">
-          <label>Max Education</label>
+        <div class="field">
+          <label>Max education</label>
           <select name="target_education_max">
-            <option value="">No limit</option>
-            <option value="1" {% if survey.target_education_max==1 %}selected{% endif %}>High School</option>
-            <option value="2" {% if survey.target_education_max==2 %}selected{% endif %}>Undergraduate</option>
-            <option value="3" {% if survey.target_education_max==3 %}selected{% endif %}>Graduate</option>
-            <option value="4" {% if survey.target_education_max==4 %}selected{% endif %}>PhD</option>
+            <option value="">No maximum</option>
+            {% for v,l in [(1,'High school'),(2,'Undergraduate'),(3,'Graduate'),(4,'PhD'),(5,'Postdoc')] %}
+            <option value="{{ v }}" {% if survey.target_education_max==v %}selected{% endif %}>{{ l }}</option>
+            {% endfor %}
           </select>
         </div>
-        <div class="form-group"></div>
+        <div class="field"><!-- spacer --></div>
       </div>
 
-      <div class="filter-group-label">Participant Experience <span style="font-weight:300; text-transform:none; letter-spacing:0;">(select all that apply)</span></div>
-      <div class="label-desc" style="margin-bottom: 10px;">Participants only need to match one selected tag</div>
+      <div class="sub-label">Health</div>
+      <div class="row" style="margin-bottom:0;">
+        <div class="field">
+          <label>Mental health diagnosis</label>
+          <select name="target_mental_health_diagnosis">
+            <option value="all" {% if not survey.target_mental_health_diagnosis %}selected{% endif %}>All</option>
+            {% for v in ['ADHD','Anxiety disorder','Autism spectrum disorder','Bipolar disorder','Depression','Eating disorder','OCD','PTSD','None','Prefer not to say','Other'] %}
+            <option value="{{ v }}" {% if survey.target_mental_health_diagnosis==v %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Physical health diagnosis</label>
+          <select name="target_physical_health_diagnosis">
+            <option value="all" {% if not survey.target_physical_health_diagnosis %}selected{% endif %}>All</option>
+            {% for v in ['Asthma','Autoimmune condition','Cancer history','Chronic pain','Diabetes','Heart condition','Hypertension','Migraine','None','Prefer not to say','Other'] %}
+            <option value="{{ v }}" {% if survey.target_physical_health_diagnosis==v %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="sub-label">Experience tags <span style="font-weight:400;text-transform:none;letter-spacing:0;">(participants match at least one)</span></div>
       {% set etags = ',' ~ (survey.target_experience_tags or '') ~ ',' %}
-      <div class="checkbox-group">
-        <label class="checkbox-item {% if ',startup_experience,' in etags %}checked{% endif %}">
-          <input type="checkbox" name="target_experience_tags" value="startup_experience" {% if ',startup_experience,' in etags %}checked{% endif %} onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
-          🚀 Startup / product experience
+      <div class="check-grid">
+        {% for tag in ['Startup / product experience','Leadership / club experience','Healthcare experience','Caregiving experience','Mental health experience','Chronic illness experience','Heavy social media user','Prior research participation','Immigration experience','Military / veteran'] %}
+        <label class="check-item {% if ',' ~ tag ~ ',' in etags %}checked{% endif %}">
+          <input type="checkbox" name="target_experience_tags" value="{{ tag }}"
+            {% if ',' ~ tag ~ ',' in etags %}checked{% endif %}
+            onchange="this.closest('.check-item').classList.toggle('checked',this.checked)">
+          {{ tag }}
         </label>
-        <label class="checkbox-item {% if ',club_leadership,' in etags %}checked{% endif %}">
-          <input type="checkbox" name="target_experience_tags" value="club_leadership" {% if ',club_leadership,' in etags %}checked{% endif %} onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
-          🎓 Club / org leadership
-        </label>
-        <label class="checkbox-item {% if ',mental_health_experience,' in etags %}checked{% endif %}">
-          <input type="checkbox" name="target_experience_tags" value="mental_health_experience" {% if ',mental_health_experience,' in etags %}checked{% endif %} onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
-          🧠 Mental health experience
-        </label>
-        <label class="checkbox-item {% if ',chronic_illness,' in etags %}checked{% endif %}">
-          <input type="checkbox" name="target_experience_tags" value="chronic_illness" {% if ',chronic_illness,' in etags %}checked{% endif %} onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
-          🏥 Chronic illness
-        </label>
-        <label class="checkbox-item {% if ',heavy_social_media,' in etags %}checked{% endif %}">
-          <input type="checkbox" name="target_experience_tags" value="heavy_social_media" {% if ',heavy_social_media,' in etags %}checked{% endif %} onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
-          📱 Heavy social media user
-        </label>
-        <label class="checkbox-item {% if ',prior_research,' in etags %}checked{% endif %}">
-          <input type="checkbox" name="target_experience_tags" value="prior_research" {% if ',prior_research,' in etags %}checked{% endif %} onchange="this.closest('.checkbox-item').classList.toggle('checked', this.checked)">
-          🔬 Prior research participation
-        </label>
+        {% endfor %}
       </div>
 
-      <details style="margin-top: 24px;">
-        <summary class="advanced-toggle"><span id="advArrow">▸</span> Advanced targeting</summary>
-        <div class="advanced-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Ethnicity</label>
-              <select name="target_ethnicity">
-                <option value="all" {% if not survey.target_ethnicity or survey.target_ethnicity=='' %}selected{% endif %}>All</option>
-                {% for e in ['White','Black or African American','Hispanic or Latino','Asian','Middle Eastern or North African','Native American or Pacific Islander','Two or more races','Other'] %}
-                <option value="{{ e }}" {% if survey.target_ethnicity==e %}selected{% endif %}>{{ e }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Sexual Orientation</label>
-              <select name="target_sexual_orientation">
-                <option value="all" {% if not survey.target_sexual_orientation or survey.target_sexual_orientation=='' %}selected{% endif %}>All</option>
-                {% for o in ['Straight / Heterosexual','Gay or Lesbian','Bisexual','Other'] %}
-                <option value="{{ o }}" {% if survey.target_sexual_orientation==o %}selected{% endif %}>{{ o }}</option>
-                {% endfor %}
-              </select>
-            </div>
+      <div class="sub-label">Lifestyle tags <span style="font-weight:400;text-transform:none;letter-spacing:0;">(participants match at least one)</span></div>
+      {% set ltags = ',' ~ (survey.target_lifestyle_tags or '') ~ ',' %}
+      <div class="check-grid">
+        {% for tag in ['Commuter','Lives on campus','Remote worker','Parent / caregiver','Frequent traveler','Athlete / active lifestyle','Night owl','Early riser'] %}
+        <label class="check-item {% if ',' ~ tag ~ ',' in ltags %}checked{% endif %}">
+          <input type="checkbox" name="target_lifestyle_tags" value="{{ tag }}"
+            {% if ',' ~ tag ~ ',' in ltags %}checked{% endif %}
+            onchange="this.closest('.check-item').classList.toggle('checked',this.checked)">
+          {{ tag }}
+        </label>
+        {% endfor %}
+      </div>
+
+      <!-- Advanced -->
+      <details>
+        <summary>
+          <div class="adv-toggle">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            Advanced targeting
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Mental health diagnosis</label>
-              <select name="target_mental_health_diagnosis">
-                <option value="all" {% if not survey.target_mental_health_diagnosis or survey.target_mental_health_diagnosis=='' %}selected{% endif %}>All</option>
-                <option value="Yes" {% if survey.target_mental_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
-                <option value="No" {% if survey.target_mental_health_diagnosis=='No' %}selected{% endif %}>No</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Physical health diagnosis</label>
-              <select name="target_physical_health_diagnosis">
-                <option value="all" {% if not survey.target_physical_health_diagnosis or survey.target_physical_health_diagnosis=='' %}selected{% endif %}>All</option>
-                <option value="Yes" {% if survey.target_physical_health_diagnosis=='Yes' %}selected{% endif %}>Yes</option>
-                <option value="No" {% if survey.target_physical_health_diagnosis=='No' %}selected{% endif %}>No</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Sport type</label>
-              <select name="target_sport_type">
-                <option value="all" {% if not survey.target_sport_type or survey.target_sport_type=='' %}selected{% endif %}>All</option>
-                {% for st in ['Basketball','Soccer / Football','Baseball / Softball','American Football','Tennis','Golf','Swimming','Running / Jogging','Cycling','Yoga / Pilates','Gym / Weightlifting','Martial Arts','Volleyball','Hockey','Other','None'] %}
-                <option value="{{ st }}" {% if survey.target_sport_type==st %}selected{% endif %}>{{ st }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Sport frequency</label>
-              <select name="target_sport_frequency">
-                <option value="all" {% if not survey.target_sport_frequency or survey.target_sport_frequency=='' %}selected{% endif %}>All</option>
-                {% for sf in ['Daily','Several times a week','Once a week','A few times a month','Rarely','Never'] %}
-                <option value="{{ sf }}" {% if survey.target_sport_frequency==sf %}selected{% endif %}>{{ sf }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
+        </summary>
+        <div class="adv-body">
+          <div class="row">
+            <div class="field">
               <label>Smoking</label>
               <select name="target_smoking">
-                <option value="all" {% if not survey.target_smoking or survey.target_smoking=='' %}selected{% endif %}>All</option>
-                {% for sm in ['Never','Former smoker','Rarely','Occasionally','Several times a week','Daily'] %}
-                <option value="{{ sm }}" {% if survey.target_smoking==sm %}selected{% endif %}>{{ sm }}</option>
+                <option value="all" {% if not survey.target_smoking %}selected{% endif %}>All</option>
+                {% for v in ['Never','Former smoker','Occasionally','Several times a week','Daily'] %}
+                <option value="{{ v }}" {% if survey.target_smoking==v %}selected{% endif %}>{{ v }}</option>
                 {% endfor %}
               </select>
             </div>
-            <div class="form-group">
+            <div class="field">
               <label>Cannabis use</label>
               <select name="target_cannabis_use">
-                <option value="all" {% if not survey.target_cannabis_use or survey.target_cannabis_use=='' %}selected{% endif %}>All</option>
-                {% for cu in ['Never','Former user','Rarely','Occasionally','Several times a week','Daily'] %}
-                <option value="{{ cu }}" {% if survey.target_cannabis_use==cu %}selected{% endif %}>{{ cu }}</option>
+                <option value="all" {% if not survey.target_cannabis_use %}selected{% endif %}>All</option>
+                {% for v in ['Never','Former user','Occasionally','Several times a week','Daily'] %}
+                <option value="{{ v }}" {% if survey.target_cannabis_use==v %}selected{% endif %}>{{ v }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Sport type</label>
+              <select name="target_sport_type">
+                <option value="all" {% if not survey.target_sport_type %}selected{% endif %}>All</option>
+                {% for v in ['Basketball','Soccer','Baseball / softball','Tennis','Golf','Swimming','Running / jogging','Cycling','Yoga / pilates','Gym / weightlifting','Martial arts','Other','None'] %}
+                <option value="{{ v }}" {% if survey.target_sport_type==v %}selected{% endif %}>{{ v }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label>Sport frequency</label>
+              <select name="target_sport_frequency">
+                <option value="all" {% if not survey.target_sport_frequency %}selected{% endif %}>All</option>
+                {% for v in ['Daily','Several times a week','Once a week','A few times a month','Rarely','Never'] %}
+                <option value="{{ v }}" {% if survey.target_sport_frequency==v %}selected{% endif %}>{{ v }}</option>
                 {% endfor %}
               </select>
             </div>
           </div>
         </div>
       </details>
+
+      <div class="field" style="margin-top:18px;">
+        <label>Any niche requirements?</label>
+        <textarea name="target_niche_requirements" placeholder="Add very specific criteria we should consider during matching.">{{ survey.target_niche_requirements or '' }}</textarea>
+      </div>
     </div>
 
     <!-- SUBMIT -->
-    <div class="submit-section">
-      <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
-      <button type="submit" class="btn-save">Save Changes →</button>
+    <div class="submit-bar">
+      <button type="button" class="btn-cancel" onclick="history.back()">Cancel</button>
+      <button type="submit" class="btn-save">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Save changes
+      </button>
     </div>
 
   </form>
+  </div>
 </div>
 
 <script>
-  function togglePublishAutoFilter() {
-    const enabled = document.getElementById('publishAutoFilterEnabled').checked;
-    const scoreInput = document.getElementById('publishAutoFilterMinScore');
-    const wrap = document.getElementById('publishAutoFilterScoreWrap');
-    if (scoreInput) scoreInput.disabled = !enabled;
-    if (wrap) wrap.classList.toggle('is-disabled', !enabled);
+  function pickIncentive(el) {
+    document.querySelectorAll('#incentivePills .pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    const value = el.dataset.v;
+    document.getElementById('incentiveInput').value = value;
+    const raffleBox = document.getElementById('raffleBox');
+    if (raffleBox) raffleBox.style.display = value === 'raffle' ? 'block' : 'none';
+    const noPayBox = document.getElementById('noPayBox');
+    const rewardField = document.getElementById('rewardField');
+    const rewardInput = document.getElementById('rewardInput');
+    const noPay = value === 'raffle' || value === 'volunteer';
+    if (noPayBox) noPayBox.style.display = noPay ? 'block' : 'none';
+    if (rewardField) rewardField.style.display = noPay ? 'none' : 'block';
+    if (rewardInput) {
+      rewardInput.required = !noPay;
+      if (noPay) rewardInput.value = '0';
+    }
   }
 
-  document.querySelectorAll('select').forEach(s => {
-    const update = () => s.classList.toggle('has-value', !!s.value && s.value !== '');
-    s.addEventListener('change', update);
-    update();
-  });
+  function pickUrgency(el) {
+    document.querySelectorAll('#urgencyPills .pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('urgencyInput').value = el.dataset.v;
+  }
 
-  document.getElementById('coverImageInput').addEventListener('change', function() {
-    const fn = document.getElementById('fileName');
-    if (this.files[0]) { fn.textContent = '✓ ' + this.files[0].name; fn.style.display = 'block'; }
-    else { fn.style.display = 'none'; }
-  });
+  function toggleAutoFilter() {
+    const enabled = document.getElementById('autoFilterEnabled').checked;
+    const scoreInput = document.getElementById('filterMinScore');
+    const wrap = document.getElementById('filterScoreWrap');
+    scoreInput.disabled = !enabled;
+    wrap.classList.toggle('disabled', !enabled);
+  }
 
-  document.querySelector('details').addEventListener('toggle', function() {
-    document.getElementById('advArrow').textContent = this.open ? '▾' : '▸';
+  document.getElementById('posterInput').addEventListener('change', function() {
+    const n = document.getElementById('fzName');
+    n.textContent = this.files[0] ? this.files[0].name : '';
+    n.style.display = this.files[0] ? 'block' : 'none';
   });
 
   document.querySelector('form').addEventListener('submit', function(e) {
-      ['target_education_min', 'target_education_max'].forEach(name => {
-          const el = this.querySelector(`select[name="${name}"]`);
-          if (el && !el.value) el.removeAttribute('name');
-      });
-      // Validate reward only when the reward field is visible
-      const rewardInput = document.getElementById('rewardInput');
-      if (rewardInput && (parseFloat(rewardInput.value) || 0) <= 0) {
-          e.preventDefault();
-          alert('Please enter a reward amount greater than 0.');
-          rewardInput.focus();
-      }
+    ['target_education_min','target_education_max'].forEach(name => {
+      const el = this.querySelector(`select[name="${name}"]`);
+      if (el && !el.value) el.removeAttribute('name');
+    });
+    const r = document.getElementById('rewardInput');
+    const incentive = document.getElementById('incentiveInput')?.value;
+    if (r && !['raffle','volunteer'].includes(incentive) && (parseFloat(r.value) || 0) <= 0) {
+      e.preventDefault();
+      alert('Please enter a reward amount greater than 0.');
+      r.focus();
+    }
   });
 </script>
-
+<script src="/static/support_chat.js"></script>
 </body>
 </html>
