@@ -171,6 +171,10 @@ class Response(Base):
     payout_status = Column(String, default="pending")
     payout_amount = Column(Float, nullable=True)
     stripe_transfer_id = Column(String, nullable=True)
+    # ive added these for researcher review feature
+    reviewed_at = Column(DateTime, nullable=True)
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    review_notes = Column(String, nullable=True)
 
     survey = relationship("Survey", back_populates="responses")
     participant = relationship("User", back_populates="responses")

@@ -1162,7 +1162,7 @@ def complete_survey(
         r.completed_at = datetime.now(timezone.utc)
         r.payout_amount = survey.reward_amount
         r.payout_status = "pending"
-        current_user.pending_earnings = (getattr(current_user, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
+#        current_user.pending_earnings = (getattr(current_user, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
 
         notif = Notification(
             publisher_id=survey.publisher_id, participant_id=current_user.id,
@@ -1226,17 +1226,54 @@ def modify_completed_survey(
 # Notifications API
 # ---------------------------
 
+def user_meets_tier(user, required_tier):
+    # ive made this check if user's verified tier is high enough
+    levels = {"tier_3": 1, "tier_2": 2, "tier_1": 3}
+    user_level = levels.get(user.verified_tier, 0)
+    needed = levels.get(required_tier, 1)
+    return user_level >= needed
+
+
 @app.get("/api/notifications")
 def get_notifications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     notifs = db.query(Notification).filter(
         Notification.publisher_id == current_user.id
     ).order_by(Notification.created_at.desc()).all()
-    return JSONResponse([{
-        "id": n.id, "participant_email": n.participant_email,
-        "survey_title": n.survey_title, "task_type": n.task_type or "survey",
-        "status": n.status,
-        "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else ""
-    } for n in notifs])
+
+    # ive added verification badge info so researcher can decide easily
+    result = []
+    for n in notifs:
+        participant = db.query(User).filter(User.id == n.participant_id).first()
+        survey = db.query(Survey).filter(Survey.id == n.survey_id).first()
+
+        # build the badge based on occupation match + tier match
+        badge = "✓ Match"
+        reason = "All checks passed"
+        if not participant or not survey:
+            badge = "? Unknown"
+            reason = "Missing data"
+        else:
+            if survey.required_occupation and participant.occupation != survey.required_occupation:
+                badge = "✗ Occupation mismatch"
+                reason = f"needs {survey.required_occupation}, user is {participant.occupation or 'unset'}"
+            else:
+                required = survey.required_verification_tier or "tier_3"
+                if required != "tier_3" and not user_meets_tier(participant, required):
+                    badge = "⚠ Not verified"
+                    reason = f"needs {required}, user has {participant.verified_tier or 'none'}"
+
+        result.append({
+            "id": n.id, "participant_email": n.participant_email,
+            "survey_title": n.survey_title, "task_type": n.task_type or "survey",
+            "status": n.status,
+            "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else "",
+            # new fields for verification badge
+            "verification_badge": badge,
+            "verification_reason": reason,
+            "participant_occupation": participant.occupation if participant else None,
+            "participant_verified_tier": participant.verified_tier if participant else None,
+        })
+    return JSONResponse(result)
 
 @app.post("/api/notifications/{notif_id}/accept")
 def accept_notification(notif_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -1253,6 +1290,8 @@ def accept_notification(notif_id: int, current_user: User = Depends(get_current_
         survey = db.query(Survey).filter(Survey.id == n.survey_id).first()
         participant = db.query(User).filter(User.id == n.participant_id).first()
         if participant and survey:
+            # ive marked this response approved so withdrawal will release it
+            r.payout_status = "approved"
             participant.pending_earnings = (getattr(participant, 'pending_earnings', 0.0) or 0.0) + survey.reward_amount
             send_email(
                 to=participant.email,
@@ -1280,6 +1319,13 @@ def reject_notification(notif_id: int, current_user: User = Depends(get_current_
         Notification.id == notif_id, Notification.publisher_id == current_user.id
     ).first()
     if not n: raise HTTPException(404, "Notification not found")
+    # ive also marked the response as rejected so withdrawal skips it
+    r = db.query(Response).filter(
+        Response.survey_id == n.survey_id,
+        Response.participant_id == n.participant_id
+    ).first()
+    if r:
+        r.payout_status = "rejected"
     n.status = "rejected"
     db.commit()
     return {"message": "rejected"}
@@ -1524,28 +1570,30 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
         raise HTTPException(400, "Please complete Stripe onboarding first")
     pending = getattr(current_user, 'pending_earnings', 0.0) or 0.0
     if pending < 1.0: raise HTTPException(400, "Minimum withdrawal is $1.00")
-    # ive added the verification gate here (Phase 1 placeholder)
-    # if any pending response is for a tier 1 or tier 2 survey, user must be verified first
-    pending_responses = db.query(Response).filter(
-        Response.participant_id == current_user.id,
-        Response.payout_status == "pending"
-    ).all()
 
-    needs_verification = False
-    for r in pending_responses:
-        survey = db.query(Survey).filter(Survey.id == r.survey_id).first()
-        if survey and survey.required_verification_tier in ("tier_1", "tier_2"):
-            needs_verification = True
-            break
+    # # ive added the verification gate here (Phase 1 placeholder)
+    # # if any pending response is for a tier 1 or tier 2 survey, user must be verified first
+    # pending_responses = db.query(Response).filter(
+    #     Response.participant_id == current_user.id,
+    #     Response.payout_status == "pending"
+    # ).all()
 
-    if needs_verification and current_user.verification_status != "verified":
-        raise HTTPException(
-            status_code=403,
-            detail="Verification required before withdrawal. Please visit /verify to verify yourself."
-        )
+    # needs_verification = False
+    # for r in pending_responses:
+    #     survey = db.query(Survey).filter(Survey.id == r.survey_id).first()
+    #     if survey and survey.required_verification_tier in ("tier_1", "tier_2"):
+    #         needs_verification = True
+    #         break
+
+    # if needs_verification and current_user.verification_status != "verified":
+    #     raise HTTPException(
+    #         status_code=403,
+    #         detail="Verification required before withdrawal. Please visit /verify to verify yourself."
+    #     )
+
     try:
         transfer = stripe.Transfer.create(amount=int(pending * 100), currency="usd", destination=current_user.stripe_account_id, description=f"Insighta payout for user {current_user.id}")
-        for r in db.query(Response).filter(Response.participant_id == current_user.id, Response.payout_status == "pending").all():
+        for r in db.query(Response).filter(Response.participant_id == current_user.id, Response.payout_status == "approved").all():
             r.payout_status = "paid"; r.stripe_transfer_id = transfer.id
         current_user.total_withdrawn = (getattr(current_user, 'total_withdrawn', 0.0) or 0.0) + pending
         current_user.pending_earnings = 0.0; db.commit()
@@ -2107,6 +2155,8 @@ async def update_survey_info(
     survey.target_responses = body.get("target_responses", survey.target_responses)
     db.commit()
     return JSONResponse({"message": "updated"})
+
+
 # ---------------------------
 # Questions API
 # ---------------------------
@@ -2540,9 +2590,9 @@ async def submit_answers(
         r.completed_at = datetime.now(timezone.utc)
         r.payout_amount = survey.reward_amount
         r.payout_status = "pending"
-        current_user.pending_earnings = (
-            getattr(current_user, 'pending_earnings', 0.0) or 0.0
-        ) + survey.reward_amount
+#        current_user.pending_earnings = (
+#            getattr(current_user, 'pending_earnings', 0.0) or 0.0
+#        ) + survey.reward_amount
 
         notif = Notification(
             publisher_id=survey.publisher_id,
