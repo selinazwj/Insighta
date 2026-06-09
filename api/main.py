@@ -54,10 +54,12 @@ from app.ai_growth.security import is_safe_internal_next
 from app.ai_growth.jump import mark_latest_jump_completed_for_response
 from app.ai_growth.prediction import recommend_surveys_for_user
 from app.ai_growth.models import JumpEvent, RespondentPrediction, SurveySegmentStats, UserActivityEvent
+from app.discovery.router import router as discovery_router
 
 app = FastAPI()
 app.include_router(verification_router)
 app.include_router(ai_growth_router)
+app.include_router(discovery_router)
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory="app/templates")
