@@ -30,7 +30,7 @@
     /* ── LOGIN ── */
     .login-screen {
       min-height: 100vh;
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
       padding: 24px;
@@ -103,7 +103,7 @@
     }
 
     /* ── MAIN ── */
-    .main-screen { display: none; }
+    .main-screen { display: block; }
 
     .topbar {
       background: var(--ink);
@@ -992,7 +992,7 @@
 </div>
 
 <script>
-  let adminKey = '';
+  let adminKey = 'admin-open';
   let allFeedbacks = [];
   let currentFilter = 'all';
   let supportThreads = [];
@@ -1135,15 +1135,17 @@
   }
 
   function logout() {
-    adminKey = '';
+    adminKey = 'admin-open';
     allFeedbacks = [];
     supportThreads = [];
     selectedSupportThreadId = null;
     if (supportPollTimer) clearInterval(supportPollTimer);
     supportPollTimer = null;
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('mainScreen').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainScreen').style.display = 'block';
     document.getElementById('adminKeyInput').value = '';
+    loadFeedbacks();
+    loadSupportThreads();
   }
 
   async function loadFeedbacks() {
@@ -1404,6 +1406,11 @@
       alert('Failed to close thread');
     }
   }
+
+  document.getElementById('adminKeyDisplay').textContent = 'Open admin mode';
+  loadFeedbacks();
+  loadSupportThreads();
+  supportPollTimer = setInterval(loadSupportThreads, 8000);
 </script>
 
 </body>
