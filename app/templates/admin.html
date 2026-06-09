@@ -834,6 +834,76 @@
       overflow-wrap: anywhere;
     }
 
+    .channel-table-wrap {
+      overflow-x: auto;
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      background: white;
+    }
+
+    .channel-table {
+      width: 100%;
+      min-width: 1120px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .channel-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--paper-warm);
+      color: var(--ink);
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1.5px solid var(--line);
+      font: 800 11px var(--sans);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      vertical-align: top;
+    }
+
+    .channel-table td {
+      padding: 13px 10px;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink-soft);
+      line-height: 1.45;
+      vertical-align: top;
+    }
+
+    .channel-table tr:last-child td { border-bottom: 0; }
+
+    .channel-table-name {
+      min-width: 190px;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .channel-table-type {
+      min-width: 118px;
+      font-weight: 700;
+    }
+
+    .channel-table-scale { min-width: 190px; }
+    .channel-table-fit { min-width: 190px; }
+    .channel-table-contact { min-width: 160px; }
+    .channel-table-url { min-width: 210px; }
+    .channel-table-notes { min-width: 210px; }
+
+    .channel-rating {
+      display: inline-block;
+      color: var(--accent-warm);
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+      white-space: nowrap;
+    }
+
+    .channel-url-list {
+      display: grid;
+      gap: 5px;
+    }
+
     @media (max-width: 860px) {
       .support-layout { grid-template-columns: 1fr; }
       .support-thread-list { border-right: 0; border-bottom: 1.5px solid var(--line); max-height: 260px; }
@@ -1070,9 +1140,58 @@
         <div class="discovery-source">${esc(data.source || 'unknown')}</div>
       </div>
       ${warningHtml}
-      <div class="channel-list">
-        ${channels.map(renderChannelCard).join('')}
+      <div class="channel-table-wrap">
+        <table class="channel-table">
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th>Type</th>
+              <th>Scale / Activity</th>
+              <th>Boston Offline Fit</th>
+              <th>Compliant Contact</th>
+              <th>URL</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${channels.map(renderChannelRow).join('')}
+          </tbody>
+        </table>
       </div>`;
+  }
+
+  function fitStars(text) {
+    const value = String(text || '');
+    const match = value.match(/[★☆]{3,5}/);
+    if (!match) return '';
+    return `<span class="channel-rating">${esc(match[0])}</span><br>`;
+  }
+
+  function stripStars(text) {
+    return String(text || '').replace(/[★☆]{3,5}/g, '').trim();
+  }
+
+  function renderChannelRow(channel) {
+    const urls = [channel.url, channel.contact_url].filter(Boolean);
+    const uniqueUrls = [...new Set(urls)];
+    const urlHtml = uniqueUrls.length
+      ? uniqueUrls.map(url => `<a class="channel-link" href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>`).join('')
+      : 'No URL returned yet';
+    const localFit = channel.local_fit || channel.population_fit || '';
+    const notes = [
+      channel.compliance_notes,
+      (channel.evidence || []).slice(0, 2).join(' | ')
+    ].filter(Boolean).join(' ');
+    return `
+      <tr>
+        <td class="channel-table-name">${esc(channel.name)}</td>
+        <td class="channel-table-type">${esc(channel.channel_type)}</td>
+        <td class="channel-table-scale">${esc(channel.scale_activity || channel.estimated_reach || 'Unknown')}</td>
+        <td class="channel-table-fit">${fitStars(localFit)}${esc(stripStars(localFit))}</td>
+        <td class="channel-table-contact">${esc(channel.compliant_contact || channel.access_method)}</td>
+        <td class="channel-table-url"><div class="channel-url-list">${urlHtml}</div></td>
+        <td class="channel-table-notes">${esc(notes)}</td>
+      </tr>`;
   }
 
   function renderChannelCard(channel) {

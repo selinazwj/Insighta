@@ -20,11 +20,15 @@ class Channel(BaseModel):
     name: str
     channel_type: str = Field(..., description="clinic, org, registry, forum, campus, community, etc.")
     url: Optional[str] = None
+    contact_url: Optional[str] = None
     location: Optional[str] = None
     population_fit: str
     access_method: str = Field(..., description="How Insighta should approach the gatekeeper or public channel")
+    compliant_contact: Optional[str] = Field(None, description="Short operator-facing compliant contact method")
     compliance_notes: str
     estimated_reach: Optional[str] = None
+    scale_activity: Optional[str] = Field(None, description="Public size, member count, cadence, ratings, or activity signal")
+    local_fit: Optional[str] = Field(None, description="Fit for the requested local/in-person criteria")
     evidence: List[str] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list)
     access_feasibility_score: float = Field(0.0, ge=0.0, le=1.0)
@@ -43,4 +47,3 @@ class DiscoveryResult(BaseModel):
     )
     source: str = "offline"
     warnings: List[str] = Field(default_factory=list)
-
