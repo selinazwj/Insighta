@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Channel Discovery</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18;
+      --ink-soft: #4a4a44;
+      --ink-muted: #8a8a82;
+      --paper: #faf9f5;
+      --paper-warm: #f3f1ea;
+      --accent: #2d6a4f;
+      --accent-light: #52b788;
+      --accent-warm: #e07a3c;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+    }
+
+    .topbar {
+      background: var(--ink);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 40px;
+    }
+
+    .brand {
+      font: 400 18px var(--serif);
+    }
+
+    .brand span { color: var(--accent-light); }
+
+    .topbar a {
+      color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 8px;
+      padding: 7px 12px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .shell {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 34px 24px 46px;
+    }
+
+    .hero {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      font: 400 34px/1.1 var(--serif);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      color: var(--ink-soft);
+      font-size: 15px;
+      line-height: 1.55;
+      font-weight: 300;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: white;
+      color: var(--accent);
+      padding: 9px 13px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .panel {
+      background: white;
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      gap: 14px;
+      padding: 22px;
+      border-bottom: 1.5px solid var(--line);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+    .field.wide { grid-column: span 2; }
+
+    label {
+      color: var(--ink-muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--ink);
+      font: 500 14px var(--sans);
+      padding: 11px 12px;
+    }
+
+    textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,106,79,0.08);
+    }
+
+    .actions {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .rule {
+      max-width: 780px;
+      color: var(--ink-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: white;
+      padding: 12px 18px;
+      font: 800 13px var(--sans);
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .results {
+      padding: 22px;
+    }
+
+    .status {
+      color: var(--ink-muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .summary {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .summary h2 {
+      font: 400 22px var(--serif);
+      margin-bottom: 4px;
+    }
+
+    .source {
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--paper-warm);
+      border: 1px solid var(--line);
+      color: var(--ink-soft);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      padding: 7px 10px;
+      text-transform: uppercase;
+    }
+
+    .warning {
+      background: #fff7ed;
+      color: #9a4b12;
+      border: 1px solid #fed7aa;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      margin-bottom: 14px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      background: white;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1180px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: var(--paper-warm);
+      color: var(--ink);
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1.5px solid var(--line);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      vertical-align: top;
+    }
+
+    td {
+      padding: 13px 10px;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink-soft);
+      line-height: 1.45;
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .name {
+      min-width: 190px;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .type { min-width: 120px; font-weight: 700; }
+    .scale { min-width: 190px; }
+    .fit { min-width: 190px; }
+    .contact { min-width: 170px; }
+    .url { min-width: 230px; }
+    .notes { min-width: 230px; }
+
+    .rating {
+      display: inline-block;
+      color: var(--accent-warm);
+      font-weight: 900;
+      margin-bottom: 4px;
+      white-space: nowrap;
+    }
+
+    .url-list {
+      display: grid;
+      gap: 5px;
+    }
+
+    a.channel-link {
+      color: var(--accent);
+      font-weight: 800;
+      overflow-wrap: anywhere;
+      text-decoration: none;
+    }
+
+    @media (max-width: 900px) {
+      .topbar { padding: 14px 20px; }
+      .hero { flex-direction: column; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.wide { grid-column: 1; }
+      .summary { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Insight<span>a</span> Admin</div>
+    <a href="/admin">Back to Admin</a>
+  </div>
+
+  <main class="shell">
+    <div class="hero">
+      <div>
+        <h1>Channel Discovery</h1>
+        <p class="subtitle">Internal recruitment map for finding real communities, clinics, organizations, registries, and forums. The output is an ops table for compliant gatekeeper outreach, not a list of individual contacts.</p>
+      </div>
+      <div class="badge">Internal only</div>
+    </div>
+
+    <section class="panel">
+      <form class="form-grid" onsubmit="runDiscovery(event)">
+        <div class="field wide">
+          <label for="population">Population</label>
+          <input id="population" value="Boston University students with anxiety" required>
+        </div>
+        <div class="field">
+          <label for="location">Location</label>
+          <input id="location" value="Boston">
+        </div>
+        <div class="field">
+          <label for="participation">Participation</label>
+          <select id="participation">
+            <option value="true">In-person or local</option>
+            <option value="false">Remote / online ok</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="ageMin">Age min</label>
+          <input id="ageMin" type="number" min="0" max="120" value="18">
+        </div>
+        <div class="field">
+          <label for="ageMax">Age max</label>
+          <input id="ageMax" type="number" min="0" max="120" value="30">
+        </div>
+        <div class="field">
+          <label for="sampleSize">Sample size</label>
+          <input id="sampleSize" type="number" min="1" value="100">
+        </div>
+        <div class="field wide">
+          <label for="topic">Study topic</label>
+          <input id="topic" value="student mental health">
+        </div>
+        <div class="field full">
+          <label for="notes">Notes</label>
+          <textarea id="notes">Prefer campus-adjacent and IRB-friendly channels.</textarea>
+        </div>
+        <div class="actions">
+          <div class="rule">Product rule: find public community metadata and trusted gatekeepers only. Never scrape individuals or output personal contact info.</div>
+          <button id="submitBtn" type="submit">Find channels</button>
+        </div>
+      </form>
+      <div class="results" id="results">
+        <div class="status">Run a search to generate a ranked internal recruitment map.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const adminKey = 'admin-open';
+
+    function esc(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function numOrNull(id) {
+      const value = document.getElementById(id).value;
+      if (value === '') return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    async function runDiscovery(event) {
+      event.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const results = document.getElementById('results');
+      const criteria = {
+        population: document.getElementById('population').value.trim(),
+        location: document.getElementById('location').value.trim() || null,
+        in_person: document.getElementById('participation').value === 'true',
+        age_min: numOrNull('ageMin'),
+        age_max: numOrNull('ageMax'),
+        sample_size: numOrNull('sampleSize'),
+        study_topic: document.getElementById('topic').value.trim() || null,
+        notes: document.getElementById('notes').value.trim() || null
+      };
+      if (!criteria.population) {
+        alert('Population is required');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Searching...';
+      results.innerHTML = '<div class="status">Finding compliant channels and ranking them...</div>';
+      try {
+        const res = await fetch('/admin/discovery/find', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ admin_key: adminKey, criteria })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || 'Discovery failed');
+        renderResults(data);
+      } catch (error) {
+        results.innerHTML = `<div class="warning">${esc(error.message || 'Discovery failed')}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Find channels';
+      }
+    }
+
+    function ratingLabel(text) {
+      const value = String(text || '');
+      const numeric = value.match(/([1-5])\/5/);
+      if (numeric) return `<span class="rating">Fit ${esc(numeric[1])}/5</span><br>`;
+      const starCount = (value.match(/\u2605/g) || []).length;
+      if (starCount) return `<span class="rating">Fit ${starCount}/5</span><br>`;
+      return '';
+    }
+
+    function stripRating(text) {
+      return String(text || '')
+        .replace(/[1-5]\/5/g, '')
+        .replace(/[\u2605\u2606]{3,5}/g, '')
+        .trim();
+    }
+
+    function renderResults(data) {
+      const results = document.getElementById('results');
+      const channels = data.channels || [];
+      const warnings = (data.warnings || []).filter(Boolean);
+      const warningHtml = warnings.length ? `<div class="warning">${warnings.map(esc).join('<br>')}</div>` : '';
+      if (!channels.length) {
+        results.innerHTML = `
+          <div class="summary">
+            <div>
+              <h2>No channels found</h2>
+              <div class="status">${esc(data.summary || 'Try broadening the criteria.')}</div>
+            </div>
+            <div class="source">${esc(data.source || 'unknown')}</div>
+          </div>
+          ${warningHtml}`;
+        return;
+      }
+      results.innerHTML = `
+        <div class="summary">
+          <div>
+            <h2>${channels.length} ranked channels</h2>
+            <div class="status">${esc(data.summary || data.compliance_rule || '')}</div>
+          </div>
+          <div class="source">${esc(data.source || 'unknown')}</div>
+        </div>
+        ${warningHtml}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Channel</th>
+                <th>Type</th>
+                <th>Scale / Activity</th>
+                <th>Boston Offline Fit</th>
+                <th>Compliant Contact</th>
+                <th>URL</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${channels.map(renderRow).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function renderRow(channel) {
+      const urls = [channel.url, channel.contact_url].filter(Boolean);
+      const uniqueUrls = [...new Set(urls)];
+      const urlHtml = uniqueUrls.length
+        ? uniqueUrls.map(url => `<a class="channel-link" href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>`).join('')
+        : 'No URL returned yet';
+      const localFit = channel.local_fit || channel.population_fit || '';
+      const notes = [
+        channel.compliance_notes,
+        (channel.evidence || []).slice(0, 2).join(' | ')
+      ].filter(Boolean).join(' ');
+      return `
+        <tr>
+          <td class="name">${esc(channel.name)}</td>
+          <td class="type">${esc(channel.channel_type)}</td>
+          <td class="scale">${esc(channel.scale_activity || channel.estimated_reach || 'Unknown')}</td>
+          <td class="fit">${ratingLabel(localFit)}${esc(stripRating(localFit))}</td>
+          <td class="contact">${esc(channel.compliant_contact || channel.access_method)}</td>
+          <td class="url"><div class="url-list">${urlHtml}</div></td>
+          <td class="notes">${esc(notes)}</td>
+        </tr>`;
+    }
+  </script>
+</body>
+</html>

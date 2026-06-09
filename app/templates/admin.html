@@ -923,7 +923,7 @@
     <h1>Admin Panel</h1>
     <p>Enter your admin key to continue</p>
     <input type="password" id="adminKeyInput" placeholder="Admin key" onkeydown="if(event.key==='Enter') login()">
-    <button onclick="login()">Sign In →</button>
+    <button onclick="login()">Sign In</button>
     <div class="login-error" id="loginError">Invalid admin key</div>
   </div>
 </div>
@@ -961,12 +961,12 @@
 
     <div class="filter-row">
       <button class="filter-btn active" onclick="filterFeedback('all', this)">All</button>
-      <button class="filter-btn" onclick="filterFeedback('pending', this)">⏳ Pending</button>
-      <button class="filter-btn" onclick="filterFeedback('credited', this)">✅ Credited</button>
-      <button class="filter-btn" onclick="filterFeedback('rejected', this)">❌ Rejected</button>
-      <button class="filter-btn" onclick="filterFeedback('bug', this)">🐛 Bug</button>
-      <button class="filter-btn" onclick="filterFeedback('feature_request', this)">✨ Feature</button>
-      <button class="filter-btn" onclick="filterFeedback('ux', this)">🎨 UX</button>
+      <button class="filter-btn" onclick="filterFeedback('pending', this)">Pending</button>
+      <button class="filter-btn" onclick="filterFeedback('credited', this)">Credited</button>
+      <button class="filter-btn" onclick="filterFeedback('rejected', this)">Rejected</button>
+      <button class="filter-btn" onclick="filterFeedback('bug', this)">Bug</button>
+      <button class="filter-btn" onclick="filterFeedback('feature_request', this)">Feature</button>
+      <button class="filter-btn" onclick="filterFeedback('ux', this)">UX</button>
     </div>
 
     <div class="feedback-list" id="feedbackList">
@@ -977,53 +977,15 @@
       <div class="discovery-head">
         <div>
           <div class="discovery-title">Channel Discovery</div>
-          <div class="discovery-sub">Internal recruitment map for finding clinics, organizations, registries, forums, and community gatekeepers. This stays behind admin for now.</div>
+          <div class="discovery-sub">Internal recruitment map for clinics, organizations, registries, forums, and community gatekeepers. Opens in a separate workspace.</div>
         </div>
         <div class="discovery-badge">Internal only</div>
       </div>
-      <form class="discovery-form" onsubmit="runDiscovery(event)">
-        <div class="discovery-field full">
-          <label for="discoveryPopulation">Population</label>
-          <input id="discoveryPopulation" value="Boston University students with anxiety" required>
-        </div>
-        <div class="discovery-field">
-          <label for="discoveryLocation">Location</label>
-          <input id="discoveryLocation" value="Boston">
-        </div>
-        <div class="discovery-field">
-          <label for="discoveryInPerson">Participation</label>
-          <select id="discoveryInPerson">
-            <option value="true">In-person or local</option>
-            <option value="false">Remote / online ok</option>
-          </select>
-        </div>
-        <div class="discovery-field">
-          <label for="discoveryAgeMin">Age min</label>
-          <input id="discoveryAgeMin" type="number" min="0" max="120" value="18">
-        </div>
-        <div class="discovery-field">
-          <label for="discoveryAgeMax">Age max</label>
-          <input id="discoveryAgeMax" type="number" min="0" max="120" value="30">
-        </div>
-        <div class="discovery-field">
-          <label for="discoverySampleSize">Sample size</label>
-          <input id="discoverySampleSize" type="number" min="1" value="100">
-        </div>
-        <div class="discovery-field">
-          <label for="discoveryTopic">Study topic</label>
-          <input id="discoveryTopic" value="student mental health">
-        </div>
-        <div class="discovery-field full">
-          <label for="discoveryNotes">Notes</label>
-          <textarea id="discoveryNotes">Prefer campus-adjacent and IRB-friendly channels.</textarea>
-        </div>
+      <div class="discovery-results">
         <div class="discovery-actions">
           <div class="discovery-rule">Product rule: find public community metadata and trusted gatekeepers only. Never scrape individuals or output personal contact info.</div>
-          <button class="discovery-submit" id="discoverySubmit" type="submit">Find channels</button>
+          <button class="discovery-submit" type="button" onclick="window.open('/admin/discovery', '_blank')">Open Channel Discovery</button>
         </div>
-      </form>
-      <div class="discovery-results" id="discoveryResults">
-        <div class="discovery-status">Run a search to generate a ranked internal recruitment map.</div>
       </div>
     </section>
 
@@ -1068,159 +1030,6 @@
   let supportThreads = [];
   let selectedSupportThreadId = null;
   let supportPollTimer = null;
-
-  function numOrNull(id) {
-    const value = document.getElementById(id).value;
-    if (value === '') return null;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  async function runDiscovery(event) {
-    event.preventDefault();
-    const btn = document.getElementById('discoverySubmit');
-    const results = document.getElementById('discoveryResults');
-    const criteria = {
-      population: document.getElementById('discoveryPopulation').value.trim(),
-      location: document.getElementById('discoveryLocation').value.trim() || null,
-      in_person: document.getElementById('discoveryInPerson').value === 'true',
-      age_min: numOrNull('discoveryAgeMin'),
-      age_max: numOrNull('discoveryAgeMax'),
-      sample_size: numOrNull('discoverySampleSize'),
-      study_topic: document.getElementById('discoveryTopic').value.trim() || null,
-      notes: document.getElementById('discoveryNotes').value.trim() || null
-    };
-    if (!criteria.population) {
-      alert('Population is required');
-      return;
-    }
-    btn.disabled = true;
-    btn.textContent = 'Searching...';
-    results.innerHTML = '<div class="discovery-status">Finding compliant channels and ranking them...</div>';
-    try {
-      const res = await fetch('/admin/discovery/find', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ admin_key: adminKey, criteria })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || 'Discovery failed');
-      renderDiscoveryResults(data);
-    } catch (error) {
-      results.innerHTML = `<div class="discovery-warning">${esc(error.message || 'Discovery failed')}</div>`;
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Find channels';
-    }
-  }
-
-  function renderDiscoveryResults(data) {
-    const results = document.getElementById('discoveryResults');
-    const channels = data.channels || [];
-    const warnings = (data.warnings || []).filter(Boolean);
-    const warningHtml = warnings.length ? `<div class="discovery-warning">${warnings.map(esc).join('<br>')}</div>` : '';
-    if (!channels.length) {
-      results.innerHTML = `
-        <div class="discovery-summary">
-          <div>
-            <h3>No channels found</h3>
-            <div class="discovery-status">${esc(data.summary || 'Try broadening the criteria.')}</div>
-          </div>
-          <div class="discovery-source">${esc(data.source || 'unknown')}</div>
-        </div>
-        ${warningHtml}`;
-      return;
-    }
-    results.innerHTML = `
-      <div class="discovery-summary">
-        <div>
-          <h3>${channels.length} ranked channels</h3>
-          <div class="discovery-status">${esc(data.summary || data.compliance_rule || '')}</div>
-        </div>
-        <div class="discovery-source">${esc(data.source || 'unknown')}</div>
-      </div>
-      ${warningHtml}
-      <div class="channel-table-wrap">
-        <table class="channel-table">
-          <thead>
-            <tr>
-              <th>Channel</th>
-              <th>Type</th>
-              <th>Scale / Activity</th>
-              <th>Boston Offline Fit</th>
-              <th>Compliant Contact</th>
-              <th>URL</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${channels.map(renderChannelRow).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  }
-
-  function fitStars(text) {
-    const value = String(text || '');
-    const match = value.match(/[★☆]{3,5}/);
-    if (!match) return '';
-    return `<span class="channel-rating">${esc(match[0])}</span><br>`;
-  }
-
-  function stripStars(text) {
-    return String(text || '').replace(/[★☆]{3,5}/g, '').trim();
-  }
-
-  function renderChannelRow(channel) {
-    const urls = [channel.url, channel.contact_url].filter(Boolean);
-    const uniqueUrls = [...new Set(urls)];
-    const urlHtml = uniqueUrls.length
-      ? uniqueUrls.map(url => `<a class="channel-link" href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>`).join('')
-      : 'No URL returned yet';
-    const localFit = channel.local_fit || channel.population_fit || '';
-    const notes = [
-      channel.compliance_notes,
-      (channel.evidence || []).slice(0, 2).join(' | ')
-    ].filter(Boolean).join(' ');
-    return `
-      <tr>
-        <td class="channel-table-name">${esc(channel.name)}</td>
-        <td class="channel-table-type">${esc(channel.channel_type)}</td>
-        <td class="channel-table-scale">${esc(channel.scale_activity || channel.estimated_reach || 'Unknown')}</td>
-        <td class="channel-table-fit">${fitStars(localFit)}${esc(stripStars(localFit))}</td>
-        <td class="channel-table-contact">${esc(channel.compliant_contact || channel.access_method)}</td>
-        <td class="channel-table-url"><div class="channel-url-list">${urlHtml}</div></td>
-        <td class="channel-table-notes">${esc(notes)}</td>
-      </tr>`;
-  }
-
-  function renderChannelCard(channel) {
-    const score = Math.round((Number(channel.total_score || 0)) * 100);
-    const tags = (channel.tags || []).slice(0, 5).map(tag => `<span class="channel-pill">${esc(tag)}</span>`).join('');
-    const evidence = (channel.evidence || []).slice(0, 3).join(' | ');
-    return `
-      <div class="channel-card">
-        <div class="channel-top">
-          <div>
-            <div class="channel-name">${esc(channel.name)}</div>
-            <div class="channel-meta">
-              <span class="channel-pill">${esc(channel.channel_type)}</span>
-              <span class="channel-pill">${esc(channel.location || 'Location unknown')}</span>
-              ${tags}
-            </div>
-          </div>
-          <div class="channel-score">${score}<span>score</span></div>
-        </div>
-        <div class="channel-grid">
-          <div class="channel-block"><strong>Population fit</strong>${esc(channel.population_fit)}</div>
-          <div class="channel-block"><strong>Access method</strong>${esc(channel.access_method)}</div>
-          <div class="channel-block"><strong>Compliance notes</strong>${esc(channel.compliance_notes)}</div>
-          <div class="channel-block"><strong>Reach / evidence</strong>${esc(channel.estimated_reach || 'Unknown')}<br>${esc(evidence)}</div>
-          <div class="channel-block"><strong>URL</strong>${channel.url ? `<a class="channel-link" href="${esc(channel.url)}" target="_blank" rel="noopener">${esc(channel.url)}</a>` : 'No URL returned yet'}</div>
-          <div class="channel-block"><strong>Score details</strong>Access ${esc(channel.access_feasibility_score)} · Geo ${esc(channel.geo_fit_score)} · Reach ${esc(channel.reach_score)}</div>
-        </div>
-      </div>`;
-  }
 
   async function login() {
     const key = document.getElementById('adminKeyInput').value.trim();
@@ -1322,7 +1131,7 @@
       return;
     }
 
-    const CAT_LABELS = { bug: '🐛 Bug', feature_request: '✨ Feature', ux: '🎨 UX', general: '💬 General', other: '📌 Other' };
+    const CAT_LABELS = { bug: 'Bug', feature_request: 'Feature', ux: 'UX', general: 'General', other: 'Other' };
 
     list.innerHTML = filtered.map(f => {
       const date = new Date(f.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -1335,7 +1144,7 @@
         <button class="btn-credit" onclick="grantCredit(${f.id})">Grant Credit</button>
         <button class="btn-reject" onclick="rejectFeedback(${f.id})">Reject</button>
       ` : f.status === 'credited' ? `
-        <span class="credited-note">✓ $${f.credit_amount.toFixed(2)} credit issued</span>
+        <span class="credited-note">$${f.credit_amount.toFixed(2)} credit issued</span>
       ` : `<span style="font-size:13px; color: var(--ink-muted);">Rejected</span>`;
 
       return `
@@ -1344,7 +1153,7 @@
             <div class="card-meta">
               <span class="cat-badge">${catLabel}</span>
               <span class="status-badge ${statusClass}">${f.status}</span>
-              <span class="card-user">👤 ${f.user_email}</span>
+              <span class="card-user">${f.user_email}</span>
             </div>
             <span class="card-date">${date}</span>
           </div>

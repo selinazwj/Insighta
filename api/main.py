@@ -2515,6 +2515,10 @@ def _admin_key_matches(value: str | None) -> bool:
 def admin_page(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
 
+@app.get("/admin/discovery", response_class=HTMLResponse)
+def admin_discovery_page(request: Request):
+    return templates.TemplateResponse("admin_discovery.html", {"request": request})
+
 @app.post("/admin/verify")
 async def admin_verify(request: Request):
     body = await request.json()
