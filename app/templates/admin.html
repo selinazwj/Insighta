@@ -567,9 +567,281 @@
       cursor: pointer;
     }
 
+    .discovery-admin {
+      background: white;
+      border: 1.5px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+
+    .discovery-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 22px 24px;
+      border-bottom: 1.5px solid var(--line);
+      background: linear-gradient(135deg, rgba(82,183,136,0.14), rgba(26,117,159,0.08));
+    }
+
+    .discovery-title {
+      font-family: var(--serif);
+      font-size: 24px;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
+    .discovery-sub {
+      max-width: 680px;
+      color: var(--ink-soft);
+      font-size: 14px;
+      line-height: 1.55;
+      font-weight: 300;
+    }
+
+    .discovery-badge {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(45,106,79,0.12);
+      color: var(--accent);
+      font: 700 11px var(--sans);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .discovery-form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      padding: 24px;
+      border-bottom: 1.5px solid var(--line);
+    }
+
+    .discovery-field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .discovery-field.full { grid-column: 1 / -1; }
+
+    .discovery-field label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+
+    .discovery-field input,
+    .discovery-field textarea,
+    .discovery-field select {
+      width: 100%;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--ink);
+      font: 500 14px var(--sans);
+      padding: 11px 12px;
+    }
+
+    .discovery-field textarea {
+      min-height: 74px;
+      resize: vertical;
+    }
+
+    .discovery-field input:focus,
+    .discovery-field textarea:focus,
+    .discovery-field select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,106,79,0.08);
+    }
+
+    .discovery-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+
+    .discovery-rule {
+      color: var(--ink-muted);
+      font-size: 12px;
+      line-height: 1.5;
+      max-width: 610px;
+    }
+
+    .discovery-submit {
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: white;
+      padding: 12px 18px;
+      font: 800 13px var(--sans);
+      cursor: pointer;
+    }
+
+    .discovery-submit:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .discovery-results {
+      padding: 22px 24px 24px;
+    }
+
+    .discovery-status {
+      color: var(--ink-muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .discovery-summary {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .discovery-summary h3 {
+      font-family: var(--serif);
+      font-size: 20px;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
+    .discovery-source {
+      border-radius: 999px;
+      background: var(--paper-warm);
+      border: 1px solid var(--line);
+      color: var(--ink-soft);
+      font: 800 11px var(--sans);
+      letter-spacing: 0.05em;
+      padding: 7px 10px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .discovery-warning {
+      background: #fff7ed;
+      color: #9a4b12;
+      border: 1px solid #fed7aa;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      margin-bottom: 14px;
+    }
+
+    .channel-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .channel-card {
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      background: var(--paper);
+    }
+
+    .channel-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+
+    .channel-name {
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--ink);
+      line-height: 1.35;
+    }
+
+    .channel-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 7px;
+    }
+
+    .channel-pill {
+      border-radius: 999px;
+      background: white;
+      border: 1px solid var(--line);
+      color: var(--ink-soft);
+      font: 700 11px var(--sans);
+      padding: 5px 8px;
+    }
+
+    .channel-score {
+      min-width: 62px;
+      text-align: center;
+      border-radius: 10px;
+      background: var(--accent);
+      color: white;
+      padding: 8px 10px;
+      font-weight: 800;
+    }
+
+    .channel-score span {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.78;
+      margin-top: 1px;
+    }
+
+    .channel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .channel-block {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-size: 13px;
+      line-height: 1.48;
+      color: var(--ink-soft);
+    }
+
+    .channel-block strong {
+      display: block;
+      color: var(--ink);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .channel-link {
+      color: var(--accent);
+      font-weight: 800;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+
     @media (max-width: 860px) {
       .support-layout { grid-template-columns: 1fr; }
       .support-thread-list { border-right: 0; border-bottom: 1.5px solid var(--line); max-height: 260px; }
+      .discovery-head,
+      .discovery-summary,
+      .channel-top { flex-direction: column; }
+      .discovery-form,
+      .channel-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -631,6 +903,60 @@
       <div class="empty-state"><p>Loading...</p></div>
     </div>
 
+    <section class="discovery-admin">
+      <div class="discovery-head">
+        <div>
+          <div class="discovery-title">Channel Discovery</div>
+          <div class="discovery-sub">Internal recruitment map for finding clinics, organizations, registries, forums, and community gatekeepers. This stays behind admin for now.</div>
+        </div>
+        <div class="discovery-badge">Internal only</div>
+      </div>
+      <form class="discovery-form" onsubmit="runDiscovery(event)">
+        <div class="discovery-field full">
+          <label for="discoveryPopulation">Population</label>
+          <input id="discoveryPopulation" value="Boston University students with anxiety" required>
+        </div>
+        <div class="discovery-field">
+          <label for="discoveryLocation">Location</label>
+          <input id="discoveryLocation" value="Boston">
+        </div>
+        <div class="discovery-field">
+          <label for="discoveryInPerson">Participation</label>
+          <select id="discoveryInPerson">
+            <option value="true">In-person or local</option>
+            <option value="false">Remote / online ok</option>
+          </select>
+        </div>
+        <div class="discovery-field">
+          <label for="discoveryAgeMin">Age min</label>
+          <input id="discoveryAgeMin" type="number" min="0" max="120" value="18">
+        </div>
+        <div class="discovery-field">
+          <label for="discoveryAgeMax">Age max</label>
+          <input id="discoveryAgeMax" type="number" min="0" max="120" value="30">
+        </div>
+        <div class="discovery-field">
+          <label for="discoverySampleSize">Sample size</label>
+          <input id="discoverySampleSize" type="number" min="1" value="100">
+        </div>
+        <div class="discovery-field">
+          <label for="discoveryTopic">Study topic</label>
+          <input id="discoveryTopic" value="student mental health">
+        </div>
+        <div class="discovery-field full">
+          <label for="discoveryNotes">Notes</label>
+          <textarea id="discoveryNotes">Prefer campus-adjacent and IRB-friendly channels.</textarea>
+        </div>
+        <div class="discovery-actions">
+          <div class="discovery-rule">Product rule: find public community metadata and trusted gatekeepers only. Never scrape individuals or output personal contact info.</div>
+          <button class="discovery-submit" id="discoverySubmit" type="submit">Find channels</button>
+        </div>
+      </form>
+      <div class="discovery-results" id="discoveryResults">
+        <div class="discovery-status">Run a search to generate a ranked internal recruitment map.</div>
+      </div>
+    </section>
+
     <section class="support-admin">
       <div class="support-admin-head">
         <div>
@@ -672,6 +998,110 @@
   let supportThreads = [];
   let selectedSupportThreadId = null;
   let supportPollTimer = null;
+
+  function numOrNull(id) {
+    const value = document.getElementById(id).value;
+    if (value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  async function runDiscovery(event) {
+    event.preventDefault();
+    const btn = document.getElementById('discoverySubmit');
+    const results = document.getElementById('discoveryResults');
+    const criteria = {
+      population: document.getElementById('discoveryPopulation').value.trim(),
+      location: document.getElementById('discoveryLocation').value.trim() || null,
+      in_person: document.getElementById('discoveryInPerson').value === 'true',
+      age_min: numOrNull('discoveryAgeMin'),
+      age_max: numOrNull('discoveryAgeMax'),
+      sample_size: numOrNull('discoverySampleSize'),
+      study_topic: document.getElementById('discoveryTopic').value.trim() || null,
+      notes: document.getElementById('discoveryNotes').value.trim() || null
+    };
+    if (!criteria.population) {
+      alert('Population is required');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Searching...';
+    results.innerHTML = '<div class="discovery-status">Finding compliant channels and ranking them...</div>';
+    try {
+      const res = await fetch('/admin/discovery/find', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_key: adminKey, criteria })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Discovery failed');
+      renderDiscoveryResults(data);
+    } catch (error) {
+      results.innerHTML = `<div class="discovery-warning">${esc(error.message || 'Discovery failed')}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Find channels';
+    }
+  }
+
+  function renderDiscoveryResults(data) {
+    const results = document.getElementById('discoveryResults');
+    const channels = data.channels || [];
+    const warnings = (data.warnings || []).filter(Boolean);
+    const warningHtml = warnings.length ? `<div class="discovery-warning">${warnings.map(esc).join('<br>')}</div>` : '';
+    if (!channels.length) {
+      results.innerHTML = `
+        <div class="discovery-summary">
+          <div>
+            <h3>No channels found</h3>
+            <div class="discovery-status">${esc(data.summary || 'Try broadening the criteria.')}</div>
+          </div>
+          <div class="discovery-source">${esc(data.source || 'unknown')}</div>
+        </div>
+        ${warningHtml}`;
+      return;
+    }
+    results.innerHTML = `
+      <div class="discovery-summary">
+        <div>
+          <h3>${channels.length} ranked channels</h3>
+          <div class="discovery-status">${esc(data.summary || data.compliance_rule || '')}</div>
+        </div>
+        <div class="discovery-source">${esc(data.source || 'unknown')}</div>
+      </div>
+      ${warningHtml}
+      <div class="channel-list">
+        ${channels.map(renderChannelCard).join('')}
+      </div>`;
+  }
+
+  function renderChannelCard(channel) {
+    const score = Math.round((Number(channel.total_score || 0)) * 100);
+    const tags = (channel.tags || []).slice(0, 5).map(tag => `<span class="channel-pill">${esc(tag)}</span>`).join('');
+    const evidence = (channel.evidence || []).slice(0, 3).join(' | ');
+    return `
+      <div class="channel-card">
+        <div class="channel-top">
+          <div>
+            <div class="channel-name">${esc(channel.name)}</div>
+            <div class="channel-meta">
+              <span class="channel-pill">${esc(channel.channel_type)}</span>
+              <span class="channel-pill">${esc(channel.location || 'Location unknown')}</span>
+              ${tags}
+            </div>
+          </div>
+          <div class="channel-score">${score}<span>score</span></div>
+        </div>
+        <div class="channel-grid">
+          <div class="channel-block"><strong>Population fit</strong>${esc(channel.population_fit)}</div>
+          <div class="channel-block"><strong>Access method</strong>${esc(channel.access_method)}</div>
+          <div class="channel-block"><strong>Compliance notes</strong>${esc(channel.compliance_notes)}</div>
+          <div class="channel-block"><strong>Reach / evidence</strong>${esc(channel.estimated_reach || 'Unknown')}<br>${esc(evidence)}</div>
+          <div class="channel-block"><strong>URL</strong>${channel.url ? `<a class="channel-link" href="${esc(channel.url)}" target="_blank" rel="noopener">${esc(channel.url)}</a>` : 'No URL returned yet'}</div>
+          <div class="channel-block"><strong>Score details</strong>Access ${esc(channel.access_feasibility_score)} · Geo ${esc(channel.geo_fit_score)} · Reach ${esc(channel.reach_score)}</div>
+        </div>
+      </div>`;
+  }
 
   function login() {
     const key = document.getElementById('adminKeyInput').value.trim();

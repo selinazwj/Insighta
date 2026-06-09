@@ -55,6 +55,9 @@ from app.ai_growth.jump import mark_latest_jump_completed_for_response
 from app.ai_growth.prediction import recommend_surveys_for_user
 from app.ai_growth.models import JumpEvent, RespondentPrediction, SurveySegmentStats, UserActivityEvent
 from app.discovery.router import router as discovery_router
+from app.discovery.discovery import discover as discover_channels
+from app.discovery.models import Criteria as DiscoveryCriteria
+from app.discovery.ranking import rank as rank_discovery_channels
 
 app = FastAPI()
 app.include_router(verification_router)
@@ -2541,6 +2544,18 @@ async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Ses
         user = db.query(User).filter(User.id == f.user_id).first()
         result.append({"id": f.id, "user_email": user.email if user else "unknown", "category": f.category, "title": f.title, "content": f.content, "status": f.status, "credit_amount": f.credit_amount, "created_at": str(f.created_at)})
     return JSONResponse(result)
+
+@app.post("/admin/discovery/find")
+async def admin_find_discovery_channels(request: Request):
+    body = await request.json()
+    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    try:
+        criteria = DiscoveryCriteria(**(body.get("criteria") or {}))
+    except Exception as exc:
+        raise HTTPException(422, f"Invalid discovery criteria: {exc}")
+    result = discover_channels(criteria)
+    result.channels = rank_discovery_channels(result.channels, criteria)
+    return result
 
 @app.get("/admin/support/threads")
 async def admin_support_threads(admin_key: str = Query(None), db: Session = Depends(get_db)):
