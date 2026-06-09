@@ -2507,14 +2507,26 @@ async def send_support_message(
 # Admin
 # ---------------------------
 
+def _admin_key_matches(value: str | None) -> bool:
+    expected = (os.environ.get("ADMIN_KEY", "insighta-admin") or "").strip()
+    return (value or "").strip() == expected
+
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
 
+@app.post("/admin/verify")
+async def admin_verify(request: Request):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+    return JSONResponse({"success": True})
+
 @app.post("/admin/feedback/{feedback_id}/credit")
 async def grant_credit(feedback_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
-    if body.get("admin_key", "") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
     amount = float(body.get("amount", 0))
     if amount <= 0: raise HTTPException(400, "Amount must be > 0")
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
@@ -2529,7 +2541,7 @@ async def grant_credit(feedback_id: int, request: Request, db: Session = Depends
 @app.post("/admin/feedback/{feedback_id}/reject")
 async def reject_feedback(feedback_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
-    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
     if not feedback: raise HTTPException(404, "Feedback not found")
     feedback.status = "rejected"; feedback.reviewed_at = datetime.utcnow(); db.commit()
@@ -2537,7 +2549,7 @@ async def reject_feedback(feedback_id: int, request: Request, db: Session = Depe
 
 @app.get("/admin/feedbacks")
 async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Session = Depends(get_db)):
-    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(admin_key): raise HTTPException(403, "Unauthorized")
     feedbacks = db.query(Feedback).order_by(Feedback.created_at.desc()).all()
     result = []
     for f in feedbacks:
@@ -2548,7 +2560,7 @@ async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Ses
 @app.post("/admin/discovery/find")
 async def admin_find_discovery_channels(request: Request):
     body = await request.json()
-    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
     try:
         criteria = DiscoveryCriteria(**(body.get("criteria") or {}))
     except Exception as exc:
@@ -2559,13 +2571,13 @@ async def admin_find_discovery_channels(request: Request):
 
 @app.get("/admin/support/threads")
 async def admin_support_threads(admin_key: str = Query(None), db: Session = Depends(get_db)):
-    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(admin_key): raise HTTPException(403, "Unauthorized")
     threads = db.query(SupportThread).order_by(SupportThread.last_message_at.desc()).all()
     return JSONResponse([_support_thread_payload(thread, db) for thread in threads])
 
 @app.get("/admin/support/threads/{thread_id}/messages")
 async def admin_support_messages(thread_id: int, admin_key: str = Query(None), db: Session = Depends(get_db)):
-    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(admin_key): raise HTTPException(403, "Unauthorized")
     thread = db.query(SupportThread).filter(SupportThread.id == thread_id).first()
     if not thread:
         raise HTTPException(404, "Support thread not found")
@@ -2586,7 +2598,7 @@ async def admin_support_messages(thread_id: int, admin_key: str = Query(None), d
 @app.post("/admin/support/threads/{thread_id}/messages")
 async def admin_send_support_message(thread_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
-    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
     text_body = (body.get("body") or "").strip()
     if not text_body:
         raise HTTPException(400, "Message cannot be empty")
@@ -2606,7 +2618,7 @@ async def admin_send_support_message(thread_id: int, request: Request, db: Sessi
 @app.post("/admin/support/threads/{thread_id}/status")
 async def admin_update_support_status(thread_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
-    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
     status = (body.get("status") or "").strip().lower()
     if status not in {"open", "closed"}:
         raise HTTPException(400, "Unsupported status")

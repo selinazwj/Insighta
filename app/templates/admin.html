@@ -1103,11 +1103,35 @@
       </div>`;
   }
 
-  function login() {
+  async function login() {
     const key = document.getElementById('adminKeyInput').value.trim();
     if (!key) return;
-    adminKey = key;
-    loadFeedbacks();
+    const loginError = document.getElementById('loginError');
+    loginError.style.display = 'none';
+    try {
+      const res = await fetch('/admin/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_key: key })
+      });
+      if (res.status === 403) {
+        loginError.textContent = 'Invalid admin key';
+        loginError.style.display = 'block';
+        return;
+      }
+      if (!res.ok) throw new Error('Admin verification failed');
+      adminKey = key;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+      document.getElementById('adminKeyDisplay').textContent = 'Signed in';
+      loadFeedbacks();
+      await loadSupportThreads();
+      if (supportPollTimer) clearInterval(supportPollTimer);
+      supportPollTimer = setInterval(loadSupportThreads, 8000);
+    } catch {
+      loginError.textContent = 'Connection error. Try again.';
+      loginError.style.display = 'block';
+    }
   }
 
   function logout() {
@@ -1126,26 +1150,19 @@
     try {
       const res = await fetch(`/admin/feedbacks?admin_key=${encodeURIComponent(adminKey)}`);
       if (res.status === 403) {
-        document.getElementById('loginError').style.display = 'block';
+        alert('Admin session expired. Please sign in again.');
         adminKey = '';
+        logout();
         return;
       }
+      if (!res.ok) throw new Error('Failed to load feedback');
       const data = await res.json();
       allFeedbacks = data;
 
-      document.getElementById('loginError').style.display = 'none';
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('mainScreen').style.display = 'block';
-      document.getElementById('adminKeyDisplay').textContent = 'Signed in';
-
       updateStats();
       renderFeedbacks();
-      await loadSupportThreads();
-      if (supportPollTimer) clearInterval(supportPollTimer);
-      supportPollTimer = setInterval(loadSupportThreads, 8000);
     } catch {
-      document.getElementById('loginError').style.display = 'block';
-      document.getElementById('loginError').textContent = 'Connection error. Try again.';
+      document.getElementById('feedbackList').innerHTML = '<div class="empty-state"><p>Failed to load feedback</p></div>';
     }
   }
 
