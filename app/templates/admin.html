@@ -23,11 +23,26 @@
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:var(--sans);background:var(--bg2);color:var(--ink);min-height:100vh;display:flex;-webkit-font-smoothing:antialiased;}
+    body.locked{display:block;}
+    body.locked .sidebar,
+    body.locked .main{display:none;}
+
+    /* ── LOGIN ── */
+    .login-screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:24px;background:var(--bg2);}
+    body.locked .login-screen{display:flex;}
+    .login-card{width:100%;max-width:380px;background:var(--bg);border:0.5px solid var(--line);border-radius:14px;padding:34px 32px;box-shadow:0 12px 40px rgba(26,26,24,.06);}
+    .login-card h1{font-family:var(--serif);font-size:28px;font-weight:400;color:var(--ink);margin-bottom:6px;}
+    .login-card p{font-size:13px;color:var(--ink3);line-height:1.5;margin-bottom:22px;}
+    .login-card input{width:100%;border:0.5px solid var(--line2);border-radius:8px;background:var(--bg2);color:var(--ink);font:500 14px var(--sans);padding:11px 12px;margin-bottom:10px;}
+    .login-card input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(59,124,79,.08);}
+    .login-card button{width:100%;border:none;border-radius:8px;background:var(--green);color:white;font:700 13px var(--sans);padding:11px 12px;cursor:pointer;}
+    .login-error{display:none;color:#b91c1c;font-size:12px;margin-top:10px;}
 
     /* ── SIDEBAR ── */
     .sidebar{width:var(--sidebar);flex-shrink:0;background:var(--bg);border-right:0.5px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
-    .sidebar-logo{padding:20px 20px 18px;border-bottom:0.5px solid var(--line);font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.2px;text-decoration:none;display:flex;align-items:center;justify-content:space-between;}
-    .sidebar-logo span{color:var(--green);}
+    .sidebar-logo{padding:20px 20px 18px;border-bottom:0.5px solid var(--line);font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.2px;text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    .brand-word{white-space:nowrap;}
+    .brand-word span{color:var(--green);}
     .admin-badge{font-size:10px;font-weight:700;background:var(--amber-l);color:#92400e;border:0.5px solid #fde68a;padding:2px 7px;border-radius:10px;}
     .sidebar-nav{flex:1;padding:10px;display:flex;flex-direction:column;gap:1px;}
     .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;font-size:13px;font-weight:500;color:var(--ink3);text-decoration:none;cursor:pointer;border:none;background:none;font-family:var(--sans);width:100%;text-align:left;transition:background .12s,color .12s;}
@@ -178,12 +193,23 @@
     }
   </style>
 </head>
-<body>
+<body class="locked">
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <h1>Admin Console</h1>
+    <p>Enter the admin key to access feedback, support, and channel discovery tools.</p>
+    <input type="password" id="adminKeyInput" placeholder="Admin key" onkeydown="if(event.key==='Enter') login()">
+    <button onclick="login()">Sign in</button>
+    <div class="login-error" id="loginError">Invalid admin key</div>
+  </div>
+</div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    Insight<span>a</span>
+    <div class="brand-word">Insight<span>a</span></div>
     <span class="admin-badge">Admin</span>
   </div>
   <nav class="sidebar-nav">
@@ -348,7 +374,7 @@
 </div><!-- /main -->
 
 <script>
-  let adminKey = 'admin-open';
+  let adminKey = '';
   let allFeedbacks = [];
   let currentFilter = 'all';
   let supportThreads = [];
@@ -358,6 +384,37 @@
 
   // ── PANEL SWITCH ──
   const PANEL_TITLES = { overview:'Overview', feedback:'Feedback review', support:'Support inbox', discovery:'Channel discovery' };
+
+  async function login() {
+    const input = document.getElementById('adminKeyInput');
+    const error = document.getElementById('loginError');
+    const key = input.value.trim();
+    if (!key) return;
+    error.style.display = 'none';
+    try {
+      const res = await fetch('/admin/verify', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: key })
+      });
+      if (res.status === 403) {
+        error.textContent = 'Invalid admin key';
+        error.style.display = 'block';
+        return;
+      }
+      if (!res.ok) throw new Error('Admin verification failed');
+      adminKey = key;
+      document.body.classList.remove('locked');
+      input.value = '';
+      loadFeedbacks();
+      loadSupportThreads();
+      if (supportPollTimer) clearInterval(supportPollTimer);
+      supportPollTimer = setInterval(loadSupportThreads, 8000);
+    } catch {
+      error.textContent = 'Connection error. Try again.';
+      error.style.display = 'block';
+    }
+  }
 
   function switchPanel(id) {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -656,14 +713,18 @@
   }
 
   function logout() {
-    adminKey = 'admin-open';
-    if (confirm('Reset admin session?')) window.location.reload();
+    adminKey = '';
+    allFeedbacks = [];
+    supportThreads = [];
+    selectedThreadId = null;
+    if (supportPollTimer) clearInterval(supportPollTimer);
+    supportPollTimer = null;
+    document.body.classList.add('locked');
+    document.getElementById('adminKeyInput').value = '';
   }
 
   // ── INIT ──
-  loadFeedbacks();
-  loadSupportThreads();
-  supportPollTimer = setInterval(loadSupportThreads, 8000);
+  document.getElementById('adminKeyInput').focus();
 </script>
 </body>
 </html>
