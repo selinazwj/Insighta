@@ -105,45 +105,186 @@
     /* ── MAIN ── */
     .main-screen { display: block; }
 
-    .topbar {
+    .admin-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      background: var(--paper);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
       background: var(--ink);
-      padding: 16px 40px;
+      color: white;
+      padding: 24px 18px;
+    }
+
+    .side-brand {
+      font-family: var(--serif);
+      font-size: 24px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .side-brand span { color: var(--accent-light); }
+
+    .side-kicker {
+      color: rgba(255,255,255,0.48);
+      font-size: 12px;
+      margin-bottom: 28px;
+    }
+
+    .side-nav {
+      display: grid;
+      gap: 7px;
+    }
+
+    .side-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      color: rgba(255,255,255,0.72);
+      padding: 10px 12px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .side-link:hover,
+    .side-link.active {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.12);
+      color: white;
+    }
+
+    .side-link small {
+      color: rgba(255,255,255,0.42);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .side-footer {
+      margin-top: auto;
+      display: grid;
+      gap: 10px;
+      color: rgba(255,255,255,0.5);
+      font-size: 12px;
+    }
+
+    .side-action {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.78);
+      padding: 9px 10px;
+      font: 700 12px var(--sans);
+      cursor: pointer;
+    }
+
+    .side-action:hover {
+      color: white;
+      border-color: rgba(255,255,255,0.34);
+    }
+
+    .admin-main {
+      min-width: 0;
+    }
+
+    .topbar {
+      background: rgba(250,249,245,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      padding: 18px 32px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 5;
     }
 
     .topbar-brand {
       font-family: var(--serif);
-      font-size: 18px;
-      color: white;
+      font-size: 26px;
+      color: var(--ink);
     }
 
-    .topbar-brand span { color: var(--accent-light); }
+    .topbar-brand span { color: var(--accent); }
 
     .topbar-right {
       display: flex;
       align-items: center;
       gap: 16px;
       font-size: 13px;
-      color: rgba(255,255,255,0.5);
+      color: var(--ink-muted);
     }
 
     .btn-logout {
       font-size: 13px;
       font-weight: 600;
-      color: rgba(255,255,255,0.6);
+      color: var(--ink-soft);
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid var(--line);
       padding: 6px 14px;
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s;
     }
 
-    .btn-logout:hover { color: white; border-color: rgba(255,255,255,0.5); }
+    .btn-logout:hover { color: var(--ink); border-color: var(--accent-light); background: white; }
 
-    .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
+    .container { max-width: 1180px; margin: 0 auto; padding: 32px 28px 48px; }
+
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      margin: 0 0 16px;
+    }
+
+    .section-heading h2 {
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 400;
+      color: var(--ink);
+    }
+
+    .section-heading p {
+      margin-top: 3px;
+      color: var(--ink-muted);
+      font-size: 14px;
+    }
+
+    .utility-row {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .utility-btn {
+      border: 1.5px solid var(--line);
+      border-radius: 9px;
+      background: white;
+      color: var(--ink-soft);
+      padding: 8px 12px;
+      font: 800 12px var(--sans);
+      cursor: pointer;
+    }
+
+    .utility-btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
 
     /* ── STATS ── */
     .stats-row {
@@ -905,6 +1046,18 @@
     }
 
     @media (max-width: 860px) {
+      .admin-shell { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        padding: 18px;
+      }
+      .side-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .side-footer { margin-top: 16px; grid-template-columns: 1fr 1fr; align-items: center; }
+      .topbar { position: relative; padding: 18px 20px; }
+      .container { padding: 24px 18px 36px; }
+      .section-heading { align-items: flex-start; flex-direction: column; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
       .support-layout { grid-template-columns: 1fr; }
       .support-thread-list { border-right: 0; border-bottom: 1.5px solid var(--line); max-height: 260px; }
       .discovery-head,
@@ -912,6 +1065,17 @@
       .channel-top { flex-direction: column; }
       .discovery-form,
       .channel-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .side-nav,
+      .side-footer,
+      .stats-row { grid-template-columns: 1fr; }
+      .card-top,
+      .card-actions,
+      .support-chat-admin-head { align-items: flex-start; flex-direction: column; }
+      .support-reply-form { flex-direction: column; }
+      .support-reply-form button { min-height: 42px; }
     }
   </style>
 </head>
@@ -930,96 +1094,147 @@
 
 <!-- MAIN -->
 <div class="main-screen" id="mainScreen">
-  <div class="topbar">
-    <div class="topbar-brand">Insight<span>a</span> Admin</div>
-    <div class="topbar-right">
-      <span id="adminKeyDisplay"></span>
-      <button class="btn-logout" onclick="logout()">Sign Out</button>
-    </div>
-  </div>
-
-  <div class="container">
-
-    <div class="stats-row" id="statsRow">
-      <div class="stat-card">
-        <div class="stat-label">Total Feedback</div>
-        <div class="stat-value" id="statTotal">—</div>
+  <div class="admin-shell">
+    <aside class="sidebar">
+      <div class="side-brand">Insight<span>a</span></div>
+      <div class="side-kicker">Internal admin workspace</div>
+      <nav class="side-nav">
+        <a class="side-link active" href="#overview">Overview <small>Live</small></a>
+        <a class="side-link" href="#feedback">Feedback <small>Review</small></a>
+        <a class="side-link" href="/admin/discovery" target="_blank">Channel Discovery <small>New</small></a>
+        <a class="side-link" href="#support">Support Inbox <small>Chat</small></a>
+      </nav>
+      <div class="side-footer">
+        <div id="adminKeyDisplay">Open admin mode</div>
+        <button class="side-action" onclick="loadFeedbacks(); loadSupportThreads();">Refresh data</button>
+        <button class="side-action" onclick="logout()">Reset session</button>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Pending Review</div>
-        <div class="stat-value orange" id="statPending">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Credited</div>
-        <div class="stat-value green" id="statCredited">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total Credit Issued</div>
-        <div class="stat-value green" id="statAmount">—</div>
-      </div>
-    </div>
+    </aside>
 
-    <div class="filter-row">
-      <button class="filter-btn active" onclick="filterFeedback('all', this)">All</button>
-      <button class="filter-btn" onclick="filterFeedback('pending', this)">Pending</button>
-      <button class="filter-btn" onclick="filterFeedback('credited', this)">Credited</button>
-      <button class="filter-btn" onclick="filterFeedback('rejected', this)">Rejected</button>
-      <button class="filter-btn" onclick="filterFeedback('bug', this)">Bug</button>
-      <button class="filter-btn" onclick="filterFeedback('feature_request', this)">Feature</button>
-      <button class="filter-btn" onclick="filterFeedback('ux', this)">UX</button>
-    </div>
-
-    <div class="feedback-list" id="feedbackList">
-      <div class="empty-state"><p>Loading...</p></div>
-    </div>
-
-    <section class="discovery-admin">
-      <div class="discovery-head">
+    <div class="admin-main">
+      <div class="topbar">
         <div>
-          <div class="discovery-title">Channel Discovery</div>
-          <div class="discovery-sub">Internal recruitment map for clinics, organizations, registries, forums, and community gatekeepers. Opens in a separate workspace.</div>
+          <div class="topbar-brand">Admin Console</div>
+          <div class="side-kicker" style="margin:4px 0 0;color:var(--ink-muted);">Feedback, support, and internal discovery tools</div>
         </div>
-        <div class="discovery-badge">Internal only</div>
-      </div>
-      <div class="discovery-results">
-        <div class="discovery-actions">
-          <div class="discovery-rule">Product rule: find public community metadata and trusted gatekeepers only. Never scrape individuals or output personal contact info.</div>
-          <button class="discovery-submit" type="button" onclick="window.open('/admin/discovery', '_blank')">Open Channel Discovery</button>
+        <div class="topbar-right">
+          <button class="btn-logout" onclick="window.open('/admin/discovery', '_blank')">Open Discovery</button>
         </div>
       </div>
-    </section>
 
-    <section class="support-admin">
-      <div class="support-admin-head">
-        <div>
-          <div class="support-admin-title">Support Inbox</div>
-          <div class="support-admin-sub">Live chat requests from users. Replies appear inside their support window.</div>
+      <div class="container">
+        <div class="section-heading" id="overview">
+          <div>
+            <h2>Overview</h2>
+            <p>Quick operating metrics from feedback and support workflows.</p>
+          </div>
+          <div class="utility-row">
+            <button class="utility-btn" onclick="loadFeedbacks()">Fetch feedback</button>
+            <button class="utility-btn" onclick="loadSupportThreads()">Fetch support</button>
+          </div>
         </div>
-        <div class="support-admin-hours">Available 10am-5pm</div>
-      </div>
-      <div class="support-layout">
-        <div class="support-thread-list" id="supportThreadList">
-          <div class="empty-state"><p>Loading support threads...</p></div>
+
+        <div class="stats-row" id="statsRow">
+          <div class="stat-card">
+            <div class="stat-label">Total Feedback</div>
+            <div class="stat-value" id="statTotal">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pending Review</div>
+            <div class="stat-value orange" id="statPending">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Credited</div>
+            <div class="stat-value green" id="statCredited">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Credit Issued</div>
+            <div class="stat-value green" id="statAmount">—</div>
+          </div>
         </div>
-        <div class="support-chat-admin">
-          <div class="support-chat-admin-head">
-            <div class="support-selected-user" id="supportSelectedUser">Select a thread</div>
-            <div class="support-chat-tools">
-              <button class="support-tool-btn" onclick="loadSupportThreads()">Refresh</button>
-              <button class="support-tool-btn" onclick="closeSupportThread()">Close thread</button>
+
+        <div class="section-heading" id="feedback">
+          <div>
+            <h2>Feedback Review</h2>
+            <p>Fetch user feedback, grant credits, or reject items after review.</p>
+          </div>
+          <div class="utility-row">
+            <button class="utility-btn primary" onclick="loadFeedbacks()">Refresh feedback</button>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="filterFeedback('all', this)">All</button>
+          <button class="filter-btn" onclick="filterFeedback('pending', this)">Pending</button>
+          <button class="filter-btn" onclick="filterFeedback('credited', this)">Credited</button>
+          <button class="filter-btn" onclick="filterFeedback('rejected', this)">Rejected</button>
+          <button class="filter-btn" onclick="filterFeedback('bug', this)">Bug</button>
+          <button class="filter-btn" onclick="filterFeedback('feature_request', this)">Feature</button>
+          <button class="filter-btn" onclick="filterFeedback('ux', this)">UX</button>
+        </div>
+
+        <div class="feedback-list" id="feedbackList">
+          <div class="empty-state"><p>Loading...</p></div>
+        </div>
+
+        <section class="discovery-admin">
+          <div class="discovery-head">
+            <div>
+              <div class="discovery-title">Channel Discovery</div>
+              <div class="discovery-sub">Internal recruitment map for clinics, organizations, registries, forums, and community gatekeepers. Opens in a separate workspace.</div>
+            </div>
+            <div class="discovery-badge">Internal only</div>
+          </div>
+          <div class="discovery-results">
+            <div class="discovery-actions">
+              <div class="discovery-rule">Product rule: find public community metadata and trusted gatekeepers only. Never scrape individuals or output personal contact info.</div>
+              <button class="discovery-submit" type="button" onclick="window.open('/admin/discovery', '_blank')">Open Channel Discovery</button>
             </div>
           </div>
-          <div class="support-admin-messages" id="supportAdminMessages">
-            <div class="empty-state"><p>No thread selected</p></div>
-          </div>
-          <form class="support-reply-form" onsubmit="sendAdminSupportReply(event)">
-            <textarea id="supportReplyInput" placeholder="Reply as Insighta support..." disabled></textarea>
-            <button type="submit" id="supportReplyBtn" disabled>Send</button>
-          </form>
-        </div>
-      </div>
-    </section>
+        </section>
 
+        <div class="section-heading" id="support">
+          <div>
+            <h2>Support Inbox</h2>
+            <p>Live chat requests from users. Replies appear inside their support window.</p>
+          </div>
+          <div class="utility-row">
+            <button class="utility-btn primary" onclick="loadSupportThreads()">Refresh support</button>
+          </div>
+        </div>
+
+        <section class="support-admin">
+          <div class="support-admin-head">
+            <div>
+              <div class="support-admin-title">Active conversations</div>
+              <div class="support-admin-sub">Select a thread to view messages and reply as Insighta support.</div>
+            </div>
+            <div class="support-admin-hours">Available 10am-5pm</div>
+          </div>
+          <div class="support-layout">
+            <div class="support-thread-list" id="supportThreadList">
+              <div class="empty-state"><p>Loading support threads...</p></div>
+            </div>
+            <div class="support-chat-admin">
+              <div class="support-chat-admin-head">
+                <div class="support-selected-user" id="supportSelectedUser">Select a thread</div>
+                <div class="support-chat-tools">
+                  <button class="support-tool-btn" onclick="loadSupportThreads()">Refresh</button>
+                  <button class="support-tool-btn" onclick="closeSupportThread()">Close thread</button>
+                </div>
+              </div>
+              <div class="support-admin-messages" id="supportAdminMessages">
+                <div class="empty-state"><p>No thread selected</p></div>
+              </div>
+              <form class="support-reply-form" onsubmit="sendAdminSupportReply(event)">
+                <textarea id="supportReplyInput" placeholder="Reply as Insighta support..." disabled></textarea>
+                <button type="submit" id="supportReplyBtn" disabled>Send</button>
+              </form>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
   </div>
 </div>
 

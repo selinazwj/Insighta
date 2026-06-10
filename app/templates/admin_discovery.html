@@ -32,36 +32,121 @@
       font-family: var(--sans);
     }
 
-    .topbar {
+    .admin-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
       background: var(--ink);
       color: white;
+      padding: 24px 18px;
+    }
+
+    .side-brand {
+      font-family: var(--serif);
+      font-size: 24px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .side-brand span { color: var(--accent-light); }
+
+    .side-kicker {
+      color: rgba(255,255,255,0.48);
+      font-size: 12px;
+      margin-bottom: 28px;
+    }
+
+    .side-nav {
+      display: grid;
+      gap: 7px;
+    }
+
+    .side-link {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      padding: 16px 40px;
-    }
-
-    .brand {
-      font: 400 18px var(--serif);
-    }
-
-    .brand span { color: var(--accent-light); }
-
-    .topbar a {
-      color: rgba(255,255,255,0.7);
-      border: 1px solid rgba(255,255,255,0.22);
-      border-radius: 8px;
-      padding: 7px 12px;
+      gap: 12px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      color: rgba(255,255,255,0.72);
+      padding: 10px 12px;
       text-decoration: none;
       font-size: 13px;
       font-weight: 700;
     }
 
+    .side-link:hover,
+    .side-link.active {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.12);
+      color: white;
+    }
+
+    .side-link small {
+      color: rgba(255,255,255,0.42);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .side-footer {
+      margin-top: auto;
+      color: rgba(255,255,255,0.5);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .admin-main {
+      min-width: 0;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(250,249,245,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 32px;
+    }
+
+    .topbar-title {
+      font: 400 26px var(--serif);
+      color: var(--ink);
+    }
+
+    .topbar-sub {
+      margin-top: 4px;
+      color: var(--ink-muted);
+      font-size: 12px;
+    }
+
+    .topbar a {
+      color: var(--ink-soft);
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
     .shell {
       max-width: 1380px;
       margin: 0 auto;
-      padding: 34px 24px 46px;
+      padding: 32px 28px 46px;
     }
 
     .hero {
@@ -304,7 +389,16 @@
     }
 
     @media (max-width: 900px) {
-      .topbar { padding: 14px 20px; }
+      .admin-shell { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        padding: 18px;
+      }
+      .side-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .side-footer { margin-top: 16px; }
+      .topbar { position: relative; padding: 18px 20px; }
+      .shell { padding: 24px 18px 36px; }
       .hero { flex-direction: column; }
       .form-grid { grid-template-columns: 1fr; }
       .field.wide { grid-column: 1; }
@@ -313,21 +407,38 @@
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="brand">Insight<span>a</span> Admin</div>
-    <a href="/admin">Back to Admin</a>
-  </div>
+  <div class="admin-shell">
+    <aside class="sidebar">
+      <div class="side-brand">Insight<span>a</span></div>
+      <div class="side-kicker">Internal admin workspace</div>
+      <nav class="side-nav">
+        <a class="side-link" href="/admin#overview">Overview <small>Admin</small></a>
+        <a class="side-link" href="/admin#feedback">Feedback <small>Review</small></a>
+        <a class="side-link active" href="/admin/discovery">Channel Discovery <small>Active</small></a>
+        <a class="side-link" href="/admin#support">Support Inbox <small>Chat</small></a>
+      </nav>
+      <div class="side-footer">Discovery is internal-only and returns gatekeeper outreach targets, not individual contacts.</div>
+    </aside>
 
-  <main class="shell">
-    <div class="hero">
-      <div>
-        <h1>Channel Discovery</h1>
-        <p class="subtitle">Internal recruitment map for finding real communities, clinics, organizations, registries, and forums. The output is an ops table for compliant gatekeeper outreach, not a list of individual contacts.</p>
+    <div class="admin-main">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Channel Discovery</div>
+          <div class="topbar-sub">Build a ranked recruitment channel table for ops outreach.</div>
+        </div>
+        <a href="/admin">Back to Admin</a>
       </div>
-      <div class="badge">Internal only</div>
-    </div>
 
-    <section class="panel">
+      <main class="shell">
+        <div class="hero">
+          <div>
+            <h1>Channel Discovery</h1>
+            <p class="subtitle">Internal recruitment map for finding real communities, clinics, organizations, registries, and forums. The output is an ops table for compliant gatekeeper outreach, not a list of individual contacts.</p>
+          </div>
+          <div class="badge">Internal only</div>
+        </div>
+
+        <section class="panel">
       <form class="form-grid" onsubmit="runDiscovery(event)">
         <div class="field wide">
           <label for="population">Population</label>
@@ -372,8 +483,10 @@
       <div class="results" id="results">
         <div class="status">Run a search to generate a ranked internal recruitment map.</div>
       </div>
-    </section>
-  </main>
+        </section>
+      </main>
+    </div>
+  </div>
 
   <script>
     const adminKey = 'admin-open';
