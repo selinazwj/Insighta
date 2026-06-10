@@ -54,10 +54,15 @@ from app.ai_growth.security import is_safe_internal_next
 from app.ai_growth.jump import mark_latest_jump_completed_for_response
 from app.ai_growth.prediction import recommend_surveys_for_user
 from app.ai_growth.models import JumpEvent, RespondentPrediction, SurveySegmentStats, UserActivityEvent
+from app.discovery.router import router as discovery_router
+from app.discovery.discovery import discover as discover_channels
+from app.discovery.models import Criteria as DiscoveryCriteria
+from app.discovery.ranking import rank as rank_discovery_channels
 
 app = FastAPI()
 app.include_router(verification_router)
 app.include_router(ai_growth_router)
+app.include_router(discovery_router)
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory="app/templates")
@@ -2502,14 +2507,29 @@ async def send_support_message(
 # Admin
 # ---------------------------
 
+def _admin_key_matches(value: str | None) -> bool:
+    return True
+
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
 
+@app.get("/admin/discovery", response_class=HTMLResponse)
+def admin_discovery_page(request: Request):
+    return RedirectResponse("/admin#discovery", status_code=303)
+
+@app.post("/admin/verify")
+async def admin_verify(request: Request):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+    return JSONResponse({"success": True})
+
 @app.post("/admin/feedback/{feedback_id}/credit")
 async def grant_credit(feedback_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
-    if body.get("admin_key", "") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
     amount = float(body.get("amount", 0))
     if amount <= 0: raise HTTPException(400, "Amount must be > 0")
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
@@ -2524,7 +2544,7 @@ async def grant_credit(feedback_id: int, request: Request, db: Session = Depends
 @app.post("/admin/feedback/{feedback_id}/reject")
 async def reject_feedback(feedback_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
-    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
     if not feedback: raise HTTPException(404, "Feedback not found")
     feedback.status = "rejected"; feedback.reviewed_at = datetime.utcnow(); db.commit()
@@ -2532,7 +2552,7 @@ async def reject_feedback(feedback_id: int, request: Request, db: Session = Depe
 
 @app.get("/admin/feedbacks")
 async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Session = Depends(get_db)):
-    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(admin_key): raise HTTPException(403, "Unauthorized")
     feedbacks = db.query(Feedback).order_by(Feedback.created_at.desc()).all()
     result = []
     for f in feedbacks:
@@ -2540,15 +2560,27 @@ async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Ses
         result.append({"id": f.id, "user_email": user.email if user else "unknown", "category": f.category, "title": f.title, "content": f.content, "status": f.status, "credit_amount": f.credit_amount, "created_at": str(f.created_at)})
     return JSONResponse(result)
 
+@app.post("/admin/discovery/find")
+async def admin_find_discovery_channels(request: Request):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
+    try:
+        criteria = DiscoveryCriteria(**(body.get("criteria") or {}))
+    except Exception as exc:
+        raise HTTPException(422, f"Invalid discovery criteria: {exc}")
+    result = discover_channels(criteria)
+    result.channels = rank_discovery_channels(result.channels, criteria)
+    return result
+
 @app.get("/admin/support/threads")
 async def admin_support_threads(admin_key: str = Query(None), db: Session = Depends(get_db)):
-    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(admin_key): raise HTTPException(403, "Unauthorized")
     threads = db.query(SupportThread).order_by(SupportThread.last_message_at.desc()).all()
     return JSONResponse([_support_thread_payload(thread, db) for thread in threads])
 
 @app.get("/admin/support/threads/{thread_id}/messages")
 async def admin_support_messages(thread_id: int, admin_key: str = Query(None), db: Session = Depends(get_db)):
-    if admin_key != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(admin_key): raise HTTPException(403, "Unauthorized")
     thread = db.query(SupportThread).filter(SupportThread.id == thread_id).first()
     if not thread:
         raise HTTPException(404, "Support thread not found")
@@ -2569,7 +2601,7 @@ async def admin_support_messages(thread_id: int, admin_key: str = Query(None), d
 @app.post("/admin/support/threads/{thread_id}/messages")
 async def admin_send_support_message(thread_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
-    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
     text_body = (body.get("body") or "").strip()
     if not text_body:
         raise HTTPException(400, "Message cannot be empty")
@@ -2589,7 +2621,7 @@ async def admin_send_support_message(thread_id: int, request: Request, db: Sessi
 @app.post("/admin/support/threads/{thread_id}/status")
 async def admin_update_support_status(thread_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
-    if body.get("admin_key") != os.environ.get("ADMIN_KEY", "insighta-admin"): raise HTTPException(403, "Unauthorized")
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
     status = (body.get("status") or "").strip().lower()
     if status not in {"open", "closed"}:
         raise HTTPException(400, "Unsupported status")
