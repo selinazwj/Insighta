@@ -17,6 +17,7 @@ import uuid
 import os
 import secrets
 import hashlib
+import html
 import stripe
 import smtplib
 import httpx
@@ -138,6 +139,7 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+SUPPORT_ALERT_EMAIL = os.environ.get("SUPPORT_ALERT_EMAIL", "vfsa@bu.edu")
 VERIFICATION_CODE_EXPIRE_MINUTES = 10
 
 # ---------------------------
@@ -169,6 +171,38 @@ def send_email(to: str, subject: str, body: str):
             server.sendmail(EMAIL_ADDRESS, to, msg.as_string())
     except Exception as e:
         print(f"Email error: {e}")
+
+def send_support_alert_email(user: User, thread: SupportThread, message: SupportMessage):
+    if not SUPPORT_ALERT_EMAIL:
+        return
+    user_label = html.escape(user.email or user.username or f"User #{user.id}")
+    user_name = html.escape(user.username or "")
+    subject_user = (user.email or "a user").replace("\r", " ").replace("\n", " ")
+    message_body = html.escape(message.body or "").replace("\n", "<br>")
+    admin_url = f"{BASE_URL.rstrip('/')}/admin#support"
+    send_email(
+        to=SUPPORT_ALERT_EMAIL,
+        subject=f"[Insighta Support] New message from {subject_user}",
+        body=f"""
+        <div style="font-family: sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 24px; color: #1a1a18;">
+          <h2 style="font-size: 22px; margin-bottom: 8px;">New support message</h2>
+          <p style="color: #8a8a82; margin-bottom: 22px;">A user sent a message through Insighta support.</p>
+          <div style="background: #f3f1ea; border-radius: 10px; padding: 18px 20px; margin-bottom: 22px;">
+            <div style="font-size: 12px; color: #8a8a82; margin-bottom: 4px;">User</div>
+            <div style="font-size: 15px; font-weight: 600;">{user_label}</div>
+            {f'<div style="font-size: 13px; color: #8a8a82; margin-top: 4px;">{user_name}</div>' if user_name else ''}
+            <div style="font-size: 12px; color: #8a8a82; margin-top: 14px; margin-bottom: 4px;">Thread</div>
+            <div style="font-size: 15px;">#{thread.id}</div>
+          </div>
+          <div style="border: 1px solid #e0ddd3; border-radius: 10px; padding: 16px 18px; margin-bottom: 22px; line-height: 1.55;">
+            {message_body}
+          </div>
+          <a href="{admin_url}" style="display: inline-block; padding: 11px 18px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+            Open support inbox
+          </a>
+        </div>
+        """,
+    )
 
 router = APIRouter()
 
@@ -2497,6 +2531,7 @@ async def send_support_message(
     db.add(msg)
     db.commit()
     db.refresh(msg)
+    send_support_alert_email(current_user, thread, msg)
     return JSONResponse({
         "thread": _support_thread_payload(thread, db),
         "message": _support_message_payload(msg),
