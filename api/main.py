@@ -2508,7 +2508,8 @@ async def send_support_message(
 # ---------------------------
 
 def _admin_key_matches(value: str | None) -> bool:
-    return True
+    expected = (os.environ.get("ADMIN_KEY", "insighta-admin") or "").strip()
+    return (value or "").strip() == expected
 
 
 @app.get("/admin", response_class=HTMLResponse)
