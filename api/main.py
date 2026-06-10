@@ -2517,7 +2517,7 @@ def admin_page(request: Request):
 
 @app.get("/admin/discovery", response_class=HTMLResponse)
 def admin_discovery_page(request: Request):
-    return templates.TemplateResponse("admin_discovery.html", {"request": request})
+    return RedirectResponse("/admin#discovery", status_code=303)
 
 @app.post("/admin/verify")
 async def admin_verify(request: Request):
