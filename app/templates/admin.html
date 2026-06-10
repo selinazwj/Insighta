@@ -40,8 +40,9 @@
 
     /* ── SIDEBAR ── */
     .sidebar{width:var(--sidebar);flex-shrink:0;background:var(--bg);border-right:0.5px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
-    .sidebar-logo{padding:20px 20px 18px;border-bottom:0.5px solid var(--line);font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.2px;text-decoration:none;display:flex;align-items:center;justify-content:space-between;}
-    .sidebar-logo span{color:var(--green);}
+    .sidebar-logo{padding:20px 20px 18px;border-bottom:0.5px solid var(--line);font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.2px;text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    .brand-word{white-space:nowrap;}
+    .brand-word span{color:var(--green);}
     .admin-badge{font-size:10px;font-weight:700;background:var(--amber-l);color:#92400e;border:0.5px solid #fde68a;padding:2px 7px;border-radius:10px;}
     .sidebar-nav{flex:1;padding:10px;display:flex;flex-direction:column;gap:1px;}
     .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;font-size:13px;font-weight:500;color:var(--ink3);text-decoration:none;cursor:pointer;border:none;background:none;font-family:var(--sans);width:100%;text-align:left;transition:background .12s,color .12s;}
@@ -208,7 +209,7 @@
 <!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    Insight<span>a</span>
+    <div class="brand-word">Insight<span>a</span></div>
     <span class="admin-badge">Admin</span>
   </div>
   <nav class="sidebar-nav">
