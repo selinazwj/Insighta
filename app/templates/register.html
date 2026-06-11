@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap" rel="stylesheet">
   <style>
     :root {
       --green: #3b7c4f; --green-d: #2a5c39; --green-l: #e8f2eb; --green-m: #c2deca;
@@ -128,21 +128,126 @@
 
     {% if participant_app %}
     :root {
-      --ink: #12324a; --ink-soft: #2f5f6d; --ink-muted: #6b8790;
-      --paper: #ffffff; --paper-warm: #fafaf8;
-      --accent: var(--green); --accent-light: var(--green-m);
-      --line: #eeece6;
+      --lime: #d9ed92; --lime2: #b5e48c; --lime3: #99d98c;
+      --em: #76c893; --teal: #34a0a4; --teal2: #168aad;
+      --ocean: #1a759f; --baltic: #1e6091; --yale: #184e77;
+      --green: var(--teal); --green-d: var(--teal2); --green-l: #eefbf7; --green-m: var(--lime2);
+      --ink: #12324a; --ink-soft: #2f5f6d; --ink-muted: #5f8390; --ink4: #94aeb4;
+      --paper: #fcfff5; --paper-warm: #f4fbdf; --paper-soft: #eefbf7;
+      --accent: var(--teal); --accent-light: var(--lime2);
+      --line: #d9efc8; --line2: #b8e9ad;
     }
-    body { background: var(--paper); }
-    .left-panel { background: var(--paper-warm); }
-    .panel-step.active .step-dot { color: white; }
-    .badge-required { color: var(--green); background: var(--green-l); border-color: var(--green-m); }
-    input[type="email"], input[type="password"], input[type="text"], input[type="tel"] { border: 0.5px solid var(--line2); border-radius: 8px; }
-    input:focus { border-color: var(--green); box-shadow: none; }
-    .btn-next, .btn-submit, .btn-agree { background: var(--green); border: none; border-radius: 20px; font-weight: 600; box-shadow: none; }
-    .btn-next:hover, .btn-submit:hover, .btn-agree.enabled:hover { background: var(--green-d); box-shadow: none; }
-    .btn-back { border: 0.5px solid var(--line2); border-radius: 20px; background: #fff; }
+    body {
+      background:
+        radial-gradient(circle at 14% 16%, rgba(217,237,146,.65), rgba(217,237,146,0) 24%),
+        linear-gradient(120deg, var(--paper), var(--paper-warm));
+    }
+    .left-panel {
+      background: rgba(255,255,255,.72);
+      border-right: 2px solid var(--line);
+    }
+    .panel-logo span { font-size: 18px; font-weight: 900; letter-spacing: 0; }
+    .panel-steps {
+      background: #fff;
+      border: 2px solid var(--line2);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 5px 0 var(--em);
+    }
+    .panel-step { opacity: .55; }
+    .panel-step.active { opacity: 1; }
+    .step-dot {
+      border: 2px solid var(--line2);
+      background: var(--paper-warm);
+      color: var(--yale);
+      font-weight: 900;
+      box-shadow: 0 2px 0 var(--line2);
+    }
+    .panel-step.active .step-dot {
+      background: var(--teal);
+      color: white;
+      border-color: var(--yale);
+      box-shadow: 0 3px 0 var(--yale);
+    }
+    .panel-step.done .step-dot {
+      background: var(--lime);
+      color: var(--yale);
+      border-color: var(--lime2);
+      box-shadow: 0 2px 0 var(--lime3);
+    }
+    .step-info h4,
+    .step-header h1 {
+      font-weight: 900;
+      letter-spacing: 0;
+      color: var(--ink);
+    }
+    .step-info p,
+    .step-header p,
+    .form-group label,
+    .field-note,
+    .form-footer,
+    .panel-footer p { color: var(--ink-soft); font-weight: 700; }
+    .step-eyebrow {
+      color: var(--teal2);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+    .step-eyebrow::before { background: var(--teal2); height: 2px; }
+    .badge-required {
+      color: var(--yale);
+      background: var(--lime);
+      border: 2px solid var(--lime2);
+      font-weight: 900;
+    }
+    input[type="email"], input[type="password"], input[type="text"], input[type="tel"] {
+      height: 46px;
+      border: 2px solid var(--line2);
+      border-radius: 12px;
+      background: #fff;
+      font-weight: 700;
+    }
+    input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 4px rgba(52,160,164,.12);
+    }
+    .btn-send-code {
+      border: 2px solid var(--line2);
+      border-radius: 12px;
+      font-weight: 900;
+      color: var(--teal2);
+      box-shadow: 0 3px 0 var(--line2);
+    }
+    .btn-next, .btn-submit, .btn-agree {
+      height: 46px;
+      background: var(--teal);
+      border: 2px solid var(--yale);
+      border-radius: 14px;
+      font-weight: 900;
+      box-shadow: 0 4px 0 var(--yale);
+      transition: transform .1s, box-shadow .1s, background .15s;
+    }
+    .btn-next:hover, .btn-submit:hover, .btn-agree.enabled:hover {
+      background: var(--teal2);
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 var(--yale);
+    }
+    .btn-back {
+      border: 2px solid var(--line2);
+      border-radius: 14px;
+      background: #fff;
+      font-weight: 900;
+      box-shadow: 0 3px 0 var(--line2);
+    }
+    .modal {
+      border: 2px solid var(--line2);
+      box-shadow: 0 6px 0 var(--em);
+    }
+    .modal-header h2 { font-weight: 900; letter-spacing: 0; }
     .consent-check-area { background: var(--paper-warm); }
+    .form-footer a,
+    .panel-footer a,
+    .field-note strong { color: var(--teal2); font-weight: 900; }
     {% endif %}
   </style>
 </head>
