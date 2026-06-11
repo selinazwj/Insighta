@@ -105,6 +105,7 @@ class Survey(Base):
     target_income_level = Column(String, nullable=True)
     target_lifestyle_tags = Column(String, nullable=True)
     target_niche_requirements = Column(String, nullable=True)
+    availability_slots = Column(String, nullable=True)
     urgency_level = Column(String, nullable=True)
     incentive_type = Column(String, nullable=True)
     raffle_prize_type = Column(String, nullable=True)
@@ -184,6 +185,7 @@ class Response(Base):
     client_ip = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)
     device_fingerprint = Column(String, nullable=True)
+    booking_slot = Column(String, nullable=True)
 
     survey = relationship("Survey", back_populates="responses")
     participant = relationship("User", back_populates="responses")

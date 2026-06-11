@@ -18,6 +18,7 @@ import os
 import secrets
 import hashlib
 import html
+import json
 import stripe
 import smtplib
 import httpx
@@ -109,6 +110,7 @@ def ensure_survey_listing_columns():
         "target_lifestyle_tags": "VARCHAR",
         "target_niche_requirements": "VARCHAR",
         "raffle_prize_type": "VARCHAR",
+        "availability_slots": "TEXT",
         "quality_auto_filter_enabled": "BOOLEAN DEFAULT false",
         "quality_auto_filter_min_score": "FLOAT DEFAULT 80.0",
     }
@@ -125,6 +127,7 @@ def ensure_response_tracking_columns():
         "client_ip": "VARCHAR",
         "user_agent": "VARCHAR",
         "device_fingerprint": "VARCHAR",
+        "booking_slot": "TEXT",
     }
     with engine.begin() as conn:
         for name, column_type in response_columns.items():
@@ -1180,11 +1183,36 @@ def publisher_study(
         Response.survey_id == survey_id,
         Response.status == "completed"
     ).count()
+    availability_slots = []
+    if getattr(survey, "availability_slots", None):
+        try:
+            parsed_slots = json.loads(survey.availability_slots)
+            if isinstance(parsed_slots, list):
+                availability_slots = parsed_slots
+        except Exception:
+            availability_slots = []
+    booking_rows = []
+    if _normalize_task_type(getattr(survey, "task_type", None)) == "interview":
+        rows = db.query(Response, User).join(User, User.id == Response.participant_id).filter(
+            Response.survey_id == survey_id,
+            Response.booking_slot.isnot(None),
+        ).order_by(Response.started_at.desc()).all()
+        booking_rows = [
+            {
+                "participant": user.email,
+                "slot": response.booking_slot,
+                "status": response.status,
+                "started_at": response.started_at,
+            }
+            for response, user in rows
+        ]
     return templates.TemplateResponse("publisher_study.html", {
         "request": request,
         "survey": survey,
         "completed_count": completed_count,
         "current_user": current_user,
+        "availability_slots": availability_slots,
+        "booking_rows": booking_rows,
     })
 
 # ---------------------------
@@ -1251,6 +1279,14 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
     }
     form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
     response_status = user_response.status if user_response else None
+    availability_slots = []
+    if getattr(s, "availability_slots", None):
+        try:
+            parsed_slots = json.loads(s.availability_slots)
+            if isinstance(parsed_slots, list):
+                availability_slots = parsed_slots
+        except Exception:
+            availability_slots = []
 
     return {
         "id": s.id,
@@ -1267,6 +1303,8 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "is_completed": response_status == "completed",
         "is_skipped": response_status == "skipped",
         "status": response_status,
+        "booking_slot": getattr(user_response, "booking_slot", None) if user_response else None,
+        "availability_slots": availability_slots,
         "urgency": getattr(s, 'urgency_level', None) or 'flexible',
         "incentive_type": getattr(s, 'incentive_type', None),
     }
@@ -1497,6 +1535,14 @@ def dashboard_mobile(
         ).first()
         is_completed = user_response and user_response.status == "completed"
         form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
+        availability_slots = []
+        if getattr(s, "availability_slots", None):
+            try:
+                parsed_slots = json.loads(s.availability_slots)
+                if isinstance(parsed_slots, list):
+                    availability_slots = parsed_slots
+            except Exception:
+                availability_slots = []
         surveys_data.append({
             "id": s.id, "title": s.title, "desc": s.description,
             "link": form_link,
@@ -1506,6 +1552,8 @@ def dashboard_mobile(
             "responses": f"{completed_cnt}/{s.target_responses}",
             "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
             "is_completed": is_completed,
+            "booking_slot": getattr(user_response, "booking_slot", None) if user_response else None,
+            "availability_slots": availability_slots,
             "urgency": getattr(s, 'urgency_level', None) or 'flexible',
             "incentive_type": getattr(s, 'incentive_type', None),
             "completion_probability": llm_rec.get("completion_probability"),
@@ -1583,8 +1631,9 @@ def get_dashboard_stats(
 # ---------------------------
 
 @app.post("/surveys/{survey_id}/start")
-def start_survey(
+async def start_survey(
     survey_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1595,9 +1644,18 @@ def start_survey(
     existing = db.query(Response).filter(
         Response.survey_id == survey_id, Response.participant_id == current_user.id
     ).first()
+    booking_slot = None
+    try:
+        body = await request.json()
+        booking_slot = (body.get("booking_slot") or "").strip() if isinstance(body, dict) else None
+    except Exception:
+        booking_slot = None
 
     if not existing:
-        db.add(Response(survey_id=survey_id, participant_id=current_user.id, status="started"))
+        db.add(Response(survey_id=survey_id, participant_id=current_user.id, status="started", booking_slot=booking_slot or None))
+        db.commit()
+    elif booking_slot:
+        existing.booking_slot = booking_slot
         db.commit()
 
     return {"message": "Survey started successfully"}
@@ -1886,6 +1944,15 @@ async def publish_interview(
     lifestyle_list = form.getlist("target_lifestyle_tags")
     target_education_min = _parse_optional_int(form.get("target_education_min"))
     target_education_max = _parse_optional_int(form.get("target_education_max"))
+    availability_slots = (form.get("availability_slots") or "").strip()
+    if availability_slots:
+        try:
+            parsed_slots = json.loads(availability_slots)
+            availability_slots = json.dumps(parsed_slots if isinstance(parsed_slots, list) else [])
+        except Exception:
+            availability_slots = None
+    else:
+        availability_slots = None
     incentive_clean = _clean_target(incentive_type) or "cash"
     is_no_pay = incentive_clean in ("raffle", "volunteer")
     reward = 0.0 if is_no_pay else (per_person_gross or 0.0)
@@ -1922,6 +1989,7 @@ async def publish_interview(
         target_income_level=_clean_target(form.get("target_income_level")),
         target_lifestyle_tags=",".join(lifestyle_list) if lifestyle_list else None,
         target_niche_requirements=_clean_target(form.get("target_niche_requirements")),
+        availability_slots=availability_slots,
         status="draft", published_at=None, closed_at=None,
     )
     db.add(survey); db.commit()

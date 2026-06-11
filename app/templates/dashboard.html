@@ -210,6 +210,32 @@
       display:flex; align-items:center; gap:5px;
     }
 
+    .slot-modal-bg {
+      display:none; position:fixed; inset:0; z-index:200;
+      background:rgba(18,50,74,.34); backdrop-filter:blur(6px);
+      align-items:center; justify-content:center; padding:20px;
+    }
+    .slot-modal-bg.open { display:flex; }
+    .slot-modal {
+      width:100%; max-width:460px; background:#fff;
+      border:2px solid var(--line2); border-radius:18px;
+      box-shadow:0 6px 0 var(--em); padding:22px;
+    }
+    .slot-modal h3 { font-size:20px; font-weight:900; color:var(--ink); margin-bottom:6px; }
+    .slot-modal p { font-size:13px; color:var(--ink3); font-weight:600; line-height:1.5; margin-bottom:14px; }
+    .slot-options { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+    .slot-option { display:flex; align-items:center; gap:10px; padding:11px 12px; border:2px solid var(--line); border-radius:12px; cursor:pointer; font-size:13px; font-weight:900; color:var(--ink2); }
+    .slot-option:hover { background:var(--paper2); border-color:var(--line2); }
+    .slot-option input { accent-color:var(--teal); }
+    .slot-modal-actions { display:flex; justify-content:flex-end; gap:8px; }
+    .slot-cancel, .slot-confirm {
+      border-radius:12px; font-family:var(--sans); font-size:13px; font-weight:900;
+      padding:10px 16px; cursor:pointer;
+    }
+    .slot-cancel { background:#fff; color:var(--ink3); border:2px solid var(--line); box-shadow:0 3px 0 var(--line2); }
+    .slot-confirm { background:var(--teal); color:#fff; border:2px solid var(--yale); box-shadow:0 4px 0 var(--yale); }
+    .slot-confirm:hover { transform:translateY(2px); box-shadow:0 2px 0 var(--yale); }
+
     /* empty state */
     .empty { text-align:center; padding:64px 24px; }
     .empty svg { width:48px; height:48px; stroke:var(--line2); fill:none; stroke-width:1.5; margin-bottom:16px; }
@@ -310,8 +336,27 @@
   </div>
 </div>
 
+<div class="slot-modal-bg" id="slotModalBg" onclick="if(event.target===this)closeSlotModal()">
+  <div class="slot-modal">
+    <h3>Choose a time</h3>
+    <p id="slotModalSub">Pick one available session time before booking this in-person study.</p>
+    <div class="slot-options" id="slotOptions"></div>
+    <div class="slot-modal-actions">
+      <button type="button" class="slot-cancel" onclick="closeSlotModal()">Cancel</button>
+      <button type="button" class="slot-confirm" onclick="confirmSlotBooking()">Continue</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const surveys = {{ surveys | tojson | safe }};
+  let pendingSlotStudy = null;
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
 
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 
@@ -336,6 +381,7 @@
     el.innerHTML = all.map(s => {
       const isBuiltIn = !s.link || s.link === '';
       const safeLink  = (s.link || '').replace(/'/g, "\\'");
+      const isInPerson = s.type === 'interview';
       const match     = s.match_pct || Math.floor(72 + Math.random() * 25);
 
       const actions = s.is_completed
@@ -348,7 +394,7 @@
         : `<div class="card-actions">
              <button class="btn-skip" onclick="doSkip(${s.id},event)">Skip</button>
              <button class="btn-take" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn},event)">
-               Take study
+               ${isInPerson ? 'Book time' : 'Take study'}
                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
              </button>
            </div>`;
@@ -386,7 +432,12 @@
 
   async function doTake(id, link, isBuiltIn, e) {
     burst(e);
-    await fetch(`/surveys/${id}/start`, { method:'POST', credentials:'same-origin' }).catch(()=>{});
+    const s = surveys.find(x => x.id === id);
+    if (s && s.type === 'interview' && Array.isArray(s.availability_slots) && s.availability_slots.length) {
+      openSlotModal(s, link, isBuiltIn);
+      return;
+    }
+    await startStudy(id);
     if (isBuiltIn) { window.location.href = `/surveys/${id}/take`; }
     else {
       window.open(link, '_blank');
@@ -394,6 +445,55 @@
         if (confirm('Did you finish the survey? Mark as complete?')) doComplete(id);
       }, 1500);
     }
+  }
+
+  async function startStudy(id, bookingSlot) {
+    const opts = { method:'POST', credentials:'same-origin' };
+    if (bookingSlot) {
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify({ booking_slot: bookingSlot });
+    }
+    return fetch(`/surveys/${id}/start`, opts).catch(()=>null);
+  }
+
+  function slotLabel(slot) {
+    if (!slot) return '';
+    if (slot.label) return slot.label;
+    const date = new Date(slot.date + 'T00:00:00');
+    const dateLabel = Number.isNaN(date.getTime()) ? slot.date : date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    return `${dateLabel}, ${slot.start} - ${slot.end}`;
+  }
+
+  function openSlotModal(study, link, isBuiltIn) {
+    pendingSlotStudy = { study, link, isBuiltIn };
+    document.getElementById('slotModalSub').textContent = `Pick one available session time for ${study.title}.`;
+    document.getElementById('slotOptions').innerHTML = study.availability_slots.map((slot, idx) => `
+      <label class="slot-option">
+        <input type="radio" name="bookingSlot" value="${idx}" ${idx === 0 ? 'checked' : ''}>
+        <span>${escapeHtml(slotLabel(slot))}</span>
+      </label>
+    `).join('');
+    document.getElementById('slotModalBg').classList.add('open');
+  }
+
+  function closeSlotModal() {
+    document.getElementById('slotModalBg').classList.remove('open');
+    pendingSlotStudy = null;
+  }
+
+  async function confirmSlotBooking() {
+    if (!pendingSlotStudy) return;
+    const picked = document.querySelector('input[name="bookingSlot"]:checked');
+    if (!picked) return;
+    const { study, link, isBuiltIn } = pendingSlotStudy;
+    const slot = study.availability_slots[parseInt(picked.value, 10)];
+    const label = slotLabel(slot);
+    await startStudy(study.id, label);
+    study.booking_slot = label;
+    closeSlotModal();
+    if (isBuiltIn) { window.location.href = `/surveys/${study.id}/take`; }
+    else if (link) { window.open(link, '_blank'); }
+    else { alert('Your time has been saved. The researcher will follow up with details.'); }
   }
 
   async function doComplete(id) {

@@ -563,9 +563,9 @@
       ? `<button class="btn-skip" onclick="doModify(${s.id})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Undo</button>`
       : isBuiltIn
         ? `<button class="btn-skip" onclick="doSkip()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skip</button>
-           <button class="btn-take" onclick="doTake(${s.id},'',true)">Take Survey <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`
+           <button class="btn-take" onclick="doTake(${s.id},'',true)">${s.type === 'interview' ? 'Book time' : 'Take Survey'} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`
         : `<button class="btn-skip" onclick="doSkip()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skip</button>
-           <button class="btn-take" onclick="doTake(${s.id},'${s.link}',false)">Take Survey <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+           <button class="btn-take" onclick="doTake(${s.id},'${s.link}',false)">${s.type === 'interview' ? 'Book time' : 'Take Survey'} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
            <button class="btn-mark" onclick="doComplete(${s.id})">Mark done</button>`;
 
     wrap.innerHTML = `
@@ -623,7 +623,7 @@
       const safeLink = (s.link || '').replace(/'/g, "\\'");
       const action = s.is_completed
         ? `<button class="list-secondary" onclick="doModify(${s.id})">Undo</button>`
-        : `<button class="list-primary" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn})">Take study</button>`;
+        : `<button class="list-primary" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn})">${s.type === 'interview' ? 'Book time' : 'Take study'}</button>`;
       const done = s.is_completed ? `<span>Completed</span>` : '';
       return `
         <div class="study-row">
@@ -656,8 +656,45 @@
 
   function doSkip() { advanceFromCurrent('left'); }
 
+  function slotLabel(slot) {
+    if (!slot) return '';
+    if (slot.label) return slot.label;
+    const date = new Date(slot.date + 'T00:00:00');
+    const dateLabel = Number.isNaN(date.getTime()) ? slot.date : date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    return `${dateLabel}, ${slot.start} - ${slot.end}`;
+  }
+
+  function pickSlotMobile(study) {
+    if (!Array.isArray(study.availability_slots) || !study.availability_slots.length) return null;
+    const options = study.availability_slots.map((slot, i) => `${i + 1}. ${slotLabel(slot)}`).join('\n');
+    const raw = prompt(`Choose a time for ${study.title}:\n\n${options}\n\nEnter a number:`);
+    if (!raw) return null;
+    const idx = parseInt(raw, 10) - 1;
+    if (idx < 0 || idx >= study.availability_slots.length) {
+      alert('Please choose a valid time number.');
+      return null;
+    }
+    return slotLabel(study.availability_slots[idx]);
+  }
+
+  async function startStudy(id, bookingSlot) {
+    const opts = { method: 'POST', credentials: 'same-origin' };
+    if (bookingSlot) {
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify({ booking_slot: bookingSlot });
+    }
+    return fetch(`/surveys/${id}/start`, opts).catch(()=>null);
+  }
+
   async function doTake(id, link, isBuiltIn) {
-    await fetch(`/surveys/${id}/start`, { method: 'POST', credentials: 'same-origin' }).catch(()=>{});
+    const s = activeSurveys.find(x => x.id === id) || allSurveys.find(x => x.id === id);
+    let bookingSlot = null;
+    if (s && s.type === 'interview' && Array.isArray(s.availability_slots) && s.availability_slots.length) {
+      bookingSlot = pickSlotMobile(s);
+      if (!bookingSlot) return;
+      s.booking_slot = bookingSlot;
+    }
+    await startStudy(id, bookingSlot);
     if (isBuiltIn) { window.location.href = `/surveys/${id}/take`; }
     else {
       window.open(link, '_blank');
