@@ -459,6 +459,14 @@ def _participant_dashboard_url(request: Request) -> str:
 def _should_use_participant_app(request: Request, participant_app: Optional[str] = None) -> bool:
     return _is_mobile_request(request) or participant_app == "1"
 
+def _auth_uses_participant_app(request: Request, role: Optional[str] = None, participant_app: Optional[str] = None) -> bool:
+    normalized_role = (role or "").strip().lower()
+    if normalized_role == "participant":
+        return True
+    if normalized_role == "researcher":
+        return False
+    return _should_use_participant_app(request, participant_app)
+
 def _post_auth_url(request: Request, participant_app: Optional[str] = None, welcome: bool = False) -> str:
     if _should_use_participant_app(request, participant_app):
         base_url = _participant_dashboard_url(request)
@@ -498,6 +506,10 @@ def _mark_participant_app(response: RedirectResponse, request: Optional[Request]
         max_age=60 * 60 * 24 * 30,
         **_cookie_policy(request),
     )
+
+def _clear_participant_app(response, request: Optional[Request] = None):
+    policy = _cookie_policy(request)
+    response.delete_cookie("participant_app", samesite=policy["samesite"], secure=policy["secure"])
 
 def _mask_email(email: str) -> str:
     if "@" not in email:
@@ -874,7 +886,7 @@ def login_page(
     participant_app: Optional[str] = Cookie(None),
 ):
     normalized_role = role if role in {"participant", "researcher"} else ""
-    return no_store_response(templates.TemplateResponse("login.html", {
+    response = no_store_response(templates.TemplateResponse("login.html", {
         "request": request,
         "error": oauth_error or None,
         "success": success,
@@ -885,8 +897,11 @@ def login_page(
         "reset_email": _normalize_email(email or ""),
         "login_next": next if is_safe_internal_next(next) else "",
         "login_role": normalized_role,
-        "participant_app": normalized_role == "participant" or _is_mobile_request(request),
+        "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
     }))
+    if normalized_role == "researcher":
+        _clear_participant_app(response, request)
+    return response
 
 @app.post("/login")
 def login(
@@ -902,25 +917,27 @@ def login(
     try:
         user = db.query(User).filter(User.email == normalized_email).first()
     except Exception as e:
+        normalized_role = role if role in {"participant", "researcher"} else ""
         return no_store_response(templates.TemplateResponse("login.html", {
             "request": request,
             "error": f"Database error: {e}",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
             "login_next": next if is_safe_internal_next(next) else "",
-            "login_role": role if role in {"participant", "researcher"} else "",
-            "participant_app": role == "participant" or _is_mobile_request(request),
+            "login_role": normalized_role,
+            "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }))
 
     if not user or not pwd_context.verify(password, user.password):
+        normalized_role = role if role in {"participant", "researcher"} else ""
         return no_store_response(templates.TemplateResponse("login.html", {
             "request": request,
             "error": "Invalid email or password",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
             "login_next": next if is_safe_internal_next(next) else "",
-            "login_role": role if role in {"participant", "researcher"} else "",
-            "participant_app": role == "participant" or _is_mobile_request(request),
+            "login_role": normalized_role,
+            "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }))
 
     response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next, role), status_code=303)
@@ -928,8 +945,7 @@ def login(
     if (role or "").strip().lower() == "participant":
         _mark_participant_app(response, request)
     elif (role or "").strip().lower() == "researcher":
-        policy = _cookie_policy(request)
-        response.delete_cookie("participant_app", samesite=policy["samesite"], secure=policy["secure"])
+        _clear_participant_app(response, request)
     return response
 
 
@@ -993,15 +1009,18 @@ def show_register(
     participant_app: Optional[str] = Cookie(None)
 ):
     normalized_role = role if role in {"participant", "researcher"} else ""
-    return no_store_response(templates.TemplateResponse(
+    response = no_store_response(templates.TemplateResponse(
         "register.html",
         {
             "request": request, "error": None, "register_email": "", "register_phone": "", "register_code": "",
             "register_step": 1,
             "register_role": normalized_role,
-            "participant_app": normalized_role == "participant" or participant_app == "1" or _is_mobile_request(request),
+            "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }
     ))
+    if normalized_role == "researcher":
+        _clear_participant_app(response, request)
+    return response
 
 @app.post("/register", response_class=HTMLResponse)
 async def do_register(
@@ -1019,14 +1038,17 @@ async def do_register(
     role = role if role in {"participant", "researcher"} else None
 
     def reg_error(msg, step: int = 1):
-        return no_store_response(templates.TemplateResponse("register.html", {
+        response = no_store_response(templates.TemplateResponse("register.html", {
             "request": request, "error": msg, "register_email": email,
             "register_phone": phone_number,
             "register_code": verification_code,
             "register_step": step,
             "register_role": role or "",
-            "participant_app": role == "participant" or _should_use_participant_app(request, participant_app),
+            "participant_app": _auth_uses_participant_app(request, role, participant_app),
         }))
+        if role == "researcher":
+            _clear_participant_app(response, request)
+        return response
 
     if not email: return reg_error("Email is required.")
     if password != confirm: return reg_error("Passwords do not match.", step=2)
@@ -1051,8 +1073,7 @@ async def do_register(
     if role == "participant":
         _mark_participant_app(response, request)
     elif role == "researcher":
-        policy = _cookie_policy(request)
-        response.delete_cookie("participant_app", samesite=policy["samesite"], secure=policy["secure"])
+        _clear_participant_app(response, request)
     return response
 
 
