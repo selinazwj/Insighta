@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap" rel="stylesheet">
   <style>
     :root {
       --green:   #3b7c4f;
@@ -335,6 +335,42 @@
       background: var(--green-d);
     }
     body.participant-mode .participant-preview { display: block; animation: quest-pop .26s ease both; }
+    body.participant-mode .nav-logo,
+    body.participant-mode .nav-links a,
+    body.participant-mode .nav-signin,
+    body.participant-mode .nav-cta,
+    body.participant-mode .hero-kicker,
+    body.participant-mode .hero-h1,
+    body.participant-mode .hero-sub,
+    body.participant-mode .btn-hero,
+    body.participant-mode .btn-hero-ghost,
+    body.participant-mode .hero-stat,
+    body.participant-mode .section,
+    body.participant-mode .cta-section {
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+    body.participant-mode .nav-logo { font-size: 18px; font-weight: 900; }
+    body.participant-mode .role-tab,
+    body.participant-mode .nav-signin,
+    body.participant-mode .nav-cta { font-weight: 900; }
+    body.participant-mode .hero-kicker {
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    body.participant-mode .hero-h1 {
+      font-size: 54px;
+      line-height: 1.02;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+    body.participant-mode .hero-h1 strong { font-weight: 900; color: var(--teal2); }
+    body.participant-mode .hero-sub {
+      color: var(--ink2);
+      font-size: 16px;
+      font-weight: 700;
+    }
     body.participant-mode .btn-hero {
       border: 2px solid var(--yale);
       box-shadow: 0 4px 0 var(--yale);
