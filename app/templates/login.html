@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap" rel="stylesheet">
   <style>
     :root {
       --green: #3b7c4f; --green-d: #2a5c39; --green-l: #e8f2eb; --green-m: #c2deca;
@@ -97,27 +97,98 @@
 
     {% if participant_app %}
     :root {
-      --lime-cream: #eef8c8ff;
-      --light-green: #d8f1bdff;
-      --light-green-2: #b8e9adff;
-      --emerald: #76c893ff;
-      --ocean-mist: #52b69aff;
-      --tropical-teal: #34a0a4ff;
-      --cerulean: #1a759fff;
-      --baltic-blue: #1e6091ff;
-      --yale-blue: #184e77ff;
-      --paper: #ffffff; --paper-warm: #fafaf8;
-      --accent: var(--green); --accent-light: var(--green-m); --accent-warm: var(--green);
-      --line: #eeece6;
+      --lime: #d9ed92; --lime2: #b5e48c; --lime3: #99d98c;
+      --em: #76c893; --teal: #34a0a4; --teal2: #168aad;
+      --ocean: #1a759f; --baltic: #1e6091; --yale: #184e77;
+      --green: var(--teal); --green-d: var(--teal2); --green-l: #eefbf7; --green-m: var(--lime2);
+      --ink: #12324a; --ink-soft: #2f5f6d; --ink-muted: #5f8390; --ink4: #94aeb4;
+      --paper: #fcfff5; --paper-warm: #f4fbdf; --paper-soft: #eefbf7;
+      --accent: var(--teal); --accent-light: var(--lime2); --accent-warm: var(--teal);
+      --line: #d9efc8; --line2: #b8e9ad;
     }
-    body { background: var(--paper); }
-    .role-badge { background: var(--green-l); border: 0.5px solid var(--green-m); color: var(--green); box-shadow: none; }
-    .form-group input { border: 0.5px solid var(--line2); border-radius: 8px; }
-    .btn-social { border: 0.5px solid var(--line2); border-radius: 8px; font-weight: 500; box-shadow: none; }
-    .btn-submit { background: var(--green); border: none; border-radius: 20px; font-weight: 600; box-shadow: none; }
-    .btn-submit:hover { background: var(--green-d); box-shadow: none; }
-    .divider::before, .divider::after { background: var(--line); }
-    .left-panel { background: var(--paper-warm); }
+    body {
+      background:
+        radial-gradient(circle at 12% 14%, rgba(217,237,146,.65), rgba(217,237,146,0) 24%),
+        linear-gradient(120deg, var(--paper), var(--paper-warm));
+    }
+    .left-panel {
+      background: rgba(255,255,255,.72);
+      border-right: 2px solid var(--line);
+    }
+    .panel-logo span { font-size: 18px; font-weight: 900; letter-spacing: 0; }
+    .panel-body h2 {
+      font-size: clamp(38px, 4vw, 58px);
+      font-weight: 900;
+      letter-spacing: 0;
+      line-height: 1.02;
+      color: var(--ink);
+    }
+    .panel-body p { color: var(--ink-soft); font-weight: 700; }
+    .panel-quote {
+      border: 2px solid var(--line2);
+      border-radius: 18px;
+      box-shadow: 0 5px 0 var(--em);
+      background: #fff;
+    }
+    .panel-quote p {
+      font-family: var(--sans);
+      font-style: normal;
+      font-weight: 900;
+      color: var(--yale);
+    }
+    .role-badge {
+      background: var(--lime);
+      border: 2px solid var(--lime2);
+      color: var(--yale);
+      box-shadow: 0 3px 0 var(--lime3);
+      font-weight: 900;
+    }
+    .form-header h1 {
+      font-weight: 900;
+      letter-spacing: 0;
+      color: var(--ink);
+    }
+    .form-header p,
+    .form-group label,
+    .form-footer { color: var(--ink-soft); font-weight: 700; }
+    .form-group input {
+      height: 46px;
+      border: 2px solid var(--line2);
+      border-radius: 12px;
+      background: #fff;
+      font-weight: 700;
+    }
+    .form-group input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 4px rgba(52,160,164,.12);
+    }
+    .btn-social {
+      border: 2px solid var(--line2);
+      border-radius: 12px;
+      font-weight: 900;
+      box-shadow: 0 3px 0 var(--line2);
+      background: #fff;
+    }
+    .btn-social:hover { background: var(--paper-warm); border-color: var(--lime2); }
+    .btn-submit {
+      height: 46px;
+      background: var(--teal);
+      border: 2px solid var(--yale);
+      border-radius: 14px;
+      font-weight: 900;
+      box-shadow: 0 4px 0 var(--yale);
+      transition: transform .1s, box-shadow .1s, background .15s;
+    }
+    .btn-submit:hover {
+      background: var(--teal2);
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 var(--yale);
+    }
+    .forgot-link,
+    .form-footer a { color: var(--teal2); font-weight: 900; }
+    .divider::before, .divider::after { background: var(--line); height: 2px; }
+    .divider span { color: var(--ink-muted); font-weight: 900; }
+    .reset-panel h3 { font-weight: 900; letter-spacing: 0; }
     {% endif %}
 
   </style>

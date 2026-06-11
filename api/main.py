@@ -833,6 +833,8 @@ async def linkedin_callback(
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
+    if _is_mobile_request(request):
+        return RedirectResponse("/participant", status_code=302)
     return templates.TemplateResponse(
         "index.html",
         {"request": request, "show": None, "error": None}
