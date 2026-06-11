@@ -107,6 +107,7 @@
       background: var(--green); padding: 12px 26px;
       border-radius: 24px; text-decoration: none; cursor: pointer; border: none;
       font-family: var(--sans); transition: background .15s;
+      display: inline-flex; align-items: center; justify-content: center;
     }
     .btn-hero:hover { background: var(--green-d); }
     .btn-hero-ghost {
@@ -116,6 +117,49 @@
     }
     .btn-hero-ghost:hover { color: var(--ink); }
     .btn-hero-ghost svg { width: 14px; height: 14px; }
+
+    .participant-preview {
+      display: none;
+      max-width: 520px;
+      margin: -38px 0 52px;
+      background: #fff;
+      border: 2px solid var(--line2);
+      border-radius: 20px;
+      box-shadow: 0 6px 0 var(--em);
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .participant-preview::before {
+      content: '';
+      position: absolute;
+      right: -34px;
+      top: -38px;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: var(--lime);
+      border: 2px solid var(--lime2);
+      opacity: .72;
+    }
+    .quest-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; position: relative; z-index: 1; margin-bottom: 12px; }
+    .quest-label {
+      display: inline-flex; align-items: center;
+      background: var(--lime); border: 1.5px solid var(--lime2);
+      border-radius: 20px; padding: 4px 10px;
+      color: var(--yale); font-size: 11px; font-weight: 900;
+      margin-bottom: 8px;
+    }
+    .quest-title { color: var(--ink); font-size: 17px; line-height: 1.25; font-weight: 900; margin-bottom: 4px; }
+    .quest-desc { color: var(--ink3); font-size: 13px; line-height: 1.5; font-weight: 600; }
+    .quest-reward { text-align: right; color: var(--teal2); font-size: 28px; font-weight: 900; line-height: 1; }
+    .quest-reward span { display: block; color: var(--ink3); font-size: 10px; font-weight: 800; margin-top: 4px; }
+    .quest-meta { display: flex; flex-wrap: wrap; gap: 8px; position: relative; z-index: 1; padding-top: 12px; border-top: 2px dashed var(--line); }
+    .quest-pill {
+      background: var(--bg3); border: 1.5px solid var(--line);
+      border-radius: 20px; padding: 5px 10px;
+      color: var(--ink2); font-size: 12px; font-weight: 900;
+    }
 
     /* Hero stats */
     .hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 0.5px solid var(--line); border-bottom: 0.5px solid var(--line); }
@@ -259,18 +303,30 @@
     @keyframes ri { to { opacity: 1; transform: none; } }
 
     body.participant-mode {
-      --green: #34a0a4ff;
-      --green-d: #1a759fff;
-      --green-l: #e8f7f3;
-      --green-m: #99d98cff;
-      --bg2: #fbfef3;
-      --bg3: #eef8c8;
-      --line: #d8ecd8;
-      --line2: #b5e48c;
+      --lime: #d9ed92;
+      --lime2: #b5e48c;
+      --lime3: #99d98c;
+      --em: #76c893;
+      --teal: #34a0a4;
+      --teal2: #168aad;
+      --ocean: #1a759f;
+      --yale: #184e77;
+      --green: var(--teal);
+      --green-d: var(--teal2);
+      --green-l: #eefbf7;
+      --green-m: var(--lime2);
+      --bg2: #fcfff5;
+      --bg3: #f4fbdf;
+      --line: #d9efc8;
+      --line2: #b8e9ad;
+      --ink: #12324a;
+      --ink2: #2f5f6d;
+      --ink3: #5f8390;
     }
     body.participant-mode .hero {
       background:
-        linear-gradient(110deg, rgba(238,248,200,.72), rgba(255,255,255,.78) 42%, rgba(82,182,154,.16));
+        radial-gradient(circle at 86% 18%, rgba(217,237,146,.9), rgba(217,237,146,0) 20%),
+        linear-gradient(110deg, rgba(252,255,245,.92), rgba(244,251,223,.8) 48%, rgba(82,182,154,.22));
     }
     body.participant-mode .cta-card.dark {
       background: #184e77;
@@ -278,6 +334,29 @@
     body.participant-mode .role-tab.active {
       background: var(--green-d);
     }
+    body.participant-mode .participant-preview { display: block; animation: quest-pop .26s ease both; }
+    body.participant-mode .btn-hero {
+      border: 2px solid var(--yale);
+      box-shadow: 0 4px 0 var(--yale);
+      border-radius: 14px;
+      font-weight: 900;
+      background: var(--teal);
+      transition: transform .1s, box-shadow .1s, background .15s;
+    }
+    body.participant-mode .btn-hero:hover { transform: translateY(2px); box-shadow: 0 2px 0 var(--yale); background: var(--teal2); }
+    body.participant-mode .nav-cta,
+    body.participant-mode .role-tab.active {
+      box-shadow: 0 3px 0 var(--lime3);
+      border: 1.5px solid var(--lime2);
+    }
+    body.participant-mode .hero-stat {
+      background: #fff;
+      border-right: 2px solid var(--line);
+      padding-left: 18px;
+      box-shadow: inset 0 -4px 0 rgba(118,200,147,.22);
+    }
+    body.participant-mode .hs-n { color: var(--teal2); font-weight: 900; }
+    @keyframes quest-pop { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 
     /* responsive */
     @media (max-width: 860px) {
@@ -340,6 +419,21 @@
         How it works
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
+    </div>
+    <div class="participant-preview mode-text" id="participantPreview">
+      <div class="quest-top">
+        <div>
+          <div class="quest-label">Matched quest</div>
+          <div class="quest-title">Student wellness check-in</div>
+          <div class="quest-desc">A quick study matched to your profile, schedule, and interests.</div>
+        </div>
+        <div class="quest-reward">$8<span>reward</span></div>
+      </div>
+      <div class="quest-meta">
+        <div class="quest-pill">8 min</div>
+        <div class="quest-pill">94% match</div>
+        <div class="quest-pill">Online</div>
+      </div>
     </div>
     <div class="hero-stats">
       <div class="hero-stat">
@@ -574,14 +668,14 @@
       ]
     },
     participant: {
-      kicker: 'Participant study space',
-      title: 'Find studies that<br><strong>fit your life.</strong><br>Earn with purpose.',
-      sub: 'Switch into the participant side to see matched studies, track progress, and get paid for contributing to research that needs your voice.',
+      kicker: 'Participant quest board',
+      title: 'Pick study quests<br><strong>that fit you.</strong><br>Earn as you go.',
+      sub: 'Switch into a playful participant space with matched study cards, clear rewards, and progress that feels easy to track.',
       primary: 'Join as participant',
       stats: [
-        ['Matched', 'Studies that fit you', 'based on your profile'],
-        ['Clear', 'Reward and time upfront', 'know before you start'],
-        ['Flexible', 'Online or local options', 'choose what works'],
+        ['94%', 'Example match score', 'based on your profile'],
+        ['Cards', 'Swipe or list view', 'choose your style'],
+        ['$8+', 'Clear rewards upfront', 'know before you start'],
         ['Private', 'Profile used for matching', 'never sold or scraped']
       ]
     }
