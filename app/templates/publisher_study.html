@@ -198,7 +198,7 @@
       <div class="ov-section">
         <div class="ov-section-title">Study details</div>
         <div class="ov-grid">
-          <div class="ov-item"><div class="ov-label">Type</div><div class="ov-value">{{ 'Interview' if survey.task_type == 'interview' else 'Survey' }}</div></div>
+          <div class="ov-item"><div class="ov-label">Type</div><div class="ov-value">{{ 'In-person study' if survey.task_type == 'interview' else 'Survey' }}</div></div>
           <div class="ov-item"><div class="ov-label">Category</div><div class="ov-value">{{ survey.category | capitalize }}</div></div>
           <div class="ov-item"><div class="ov-label">Estimated time</div><div class="ov-value">{{ survey.estimated_time }} min</div></div>
           <div class="ov-item"><div class="ov-label">Reward per person</div><div class="ov-value">${{ survey.reward_amount }}</div></div>

@@ -368,7 +368,7 @@
         Surveys{% if surveys %} ({{ surveys | length }}){% endif %}
       </button>
       <button class="type-tab" id="tab-interviews" onclick="switchTab('interviews')">
-        Interviews{% if interviews %} ({{ interviews | length }}){% endif %}
+        In-person studies{% if interviews %} ({{ interviews | length }}){% endif %}
       </button>
     </div>
 
@@ -416,7 +416,7 @@
           <div class="study-dot" style="background:{% if s.status == 'published' %}#7c3aed{% elif s.status == 'draft' %}#f59e0b{% else %}var(--ink4){% endif %};"></div>
           <div class="study-info">
             <div class="study-title">{{ s.title }}</div>
-            <div class="study-meta">Interview · {{ s.estimated_time }} min · ${{ s.reward_amount }}</div>
+            <div class="study-meta">In-person study · {{ s.estimated_time }} min · ${{ s.reward_amount }}</div>
           </div>
           <div class="study-prog">
             <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%; background:#7c3aed;"></div></div>
@@ -429,8 +429,8 @@
       </div>
       {% else %}
       <div class="empty" data-tour="study-list">
-        <div class="empty-title">No interviews yet</div>
-        <div class="empty-sub">Post your first interview and find the right participants.</div>
+        <div class="empty-title">No in-person studies yet</div>
+        <div class="empty-sub">Post your first in-person study and find the right participants.</div>
         <button class="btn-new" onclick="openNewListing()">+ New listing</button>
       </div>
       {% endif %}
@@ -490,10 +490,10 @@
       <a href="/publish_interview" class="listing-type wide">
         <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
         <div class="lt-content">
-          <div class="lt-title">Interview</div>
-          <div class="lt-desc">Schedule 1-on-1 or group sessions for qualitative research.</div>
+          <div class="lt-title">In-person study</div>
+          <div class="lt-desc">Recruit participants for lab visits, field studies, or on-site sessions.</div>
         </div>
-        <div class="lt-tag">Live session</div>
+        <div class="lt-tag">On site</div>
         <div class="lt-arrow">&gt;</div>
       </a>
     </div>
@@ -540,7 +540,7 @@
     {
       target: 'top-new',
       title: 'Create a listing',
-      body: 'Use New listing to publish an external survey, build a survey inside Insighta, or recruit for an interview.'
+      body: 'Use New listing to publish an external survey, build a survey inside Insighta, or recruit for an in-person study.'
     },
     {
       target: 'stats',
@@ -550,7 +550,7 @@
     {
       target: 'tabs',
       title: 'Switch listing type',
-      body: 'Use these tabs to move between survey listings and interview listings without leaving the dashboard.'
+      body: 'Use these tabs to move between survey listings and in-person study listings without leaving the dashboard.'
     },
     {
       target: 'study-list',

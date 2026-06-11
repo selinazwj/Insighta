@@ -1843,7 +1843,7 @@ async def calculate_price(request: Request, current_user: User = Depends(get_cur
 
 
 # ---------------------------
-# Publish interview
+# Publish in-person study
 # ---------------------------
 
 @app.get("/publish_interview", response_class=HTMLResponse)
@@ -1884,6 +1884,14 @@ async def publish_interview(
         target_status=_clean_target(form.get("target_status")),
         target_state=_clean_target(form.get("target_state")),
         target_language=_clean_target(form.get("target_language")),
+        target_ethnicity=_clean_target(form.get("target_ethnicity")),
+        target_sexual_orientation=_clean_target(form.get("target_sexual_orientation")),
+        target_mental_health_diagnosis=_clean_target(form.get("target_mental_health_diagnosis")),
+        target_physical_health_diagnosis=_clean_target(form.get("target_physical_health_diagnosis")),
+        target_sport_type=_clean_target(form.get("target_sport_type")),
+        target_sport_frequency=_clean_target(form.get("target_sport_frequency")),
+        target_smoking=_clean_target(form.get("target_smoking")),
+        target_cannabis_use=_clean_target(form.get("target_cannabis_use")),
         target_student_status=_clean_target(form.get("target_student_status")),
         target_year_in_school=None,
         target_international_domestic=_clean_target(form.get("target_international_domestic")),

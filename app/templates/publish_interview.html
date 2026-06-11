@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Publish Interview — Insighta</title>
+  <title>Publish In-person Study — Insighta</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="apple-touch-icon" href="/static/favicon.png">
   <meta name="theme-color" content="#ffffff">
@@ -188,7 +188,7 @@
         My listings
       </a>
       <div class="topbar-sep"></div>
-      <div class="topbar-title">Publish interview</div>
+      <div class="topbar-title">Publish in-person study</div>
     </div>
     <div class="topbar-right">
       <button type="button" class="btn-cancel" onclick="window.location.href='/publisher'">Cancel</button>
@@ -198,9 +198,9 @@
 <div class="container">
 
   <div class="page-header">
-    <div class="type-badge">Interview study</div>
-    <h1>Post an <em>Interview</em></h1>
-    <p>Find the right participants for 1-on-1 or group conversations.</p>
+    <div class="type-badge">In-person study</div>
+    <h1>Post an <em>in-person study</em></h1>
+    <p>Find the right participants for live sessions, lab visits, field studies, or on-site research.</p>
   </div>
 
   <form id="interviewForm" method="POST" action="/publish_interview">
@@ -211,16 +211,16 @@
     <div class="form-section">
       <div class="section-header">
         <div class="section-icon">01</div>
-        <div><h2>Basic Information</h2><p>What your interview is about</p></div>
+        <div><h2>Basic Information</h2><p>What your in-person study is about</p></div>
       </div>
       <div class="form-group">
         <label>Study Title *</label>
-        <input type="text" name="title" placeholder="e.g., User Experience Research - Mobile Banking App" required>
+        <input type="text" name="title" placeholder="e.g., In-person usability study for a campus app" required>
       </div>
       <div class="form-group">
         <label>Description *</label>
-        <div class="label-desc">Explain what the interview is about and what participants can expect</div>
-        <textarea name="description" placeholder="We're conducting 30-minute interviews to understand how students manage their finances day-to-day..." required style="min-height: 120px;"></textarea>
+        <div class="label-desc">Explain what the in-person session is about and what participants can expect</div>
+        <textarea name="description" placeholder="We're conducting 30-minute in-person sessions to understand how students use campus services..." required style="min-height: 120px;"></textarea>
       </div>
       <div class="form-group">
         <label>Category *</label>
@@ -236,23 +236,15 @@
       </div>
     </div>
 
-    <!-- INTERVIEW DETAILS -->
+    <!-- IN-PERSON DETAILS -->
     <div class="form-section">
       <div class="section-header">
         <div class="section-icon">02</div>
-        <div><h2>Interview Details</h2><p>Format, duration, and scheduling</p></div>
+        <div><h2>In-person study details</h2><p>Location, duration, and scheduling</p></div>
       </div>
 
-      <div class="form-group">
-        <label>Interview Format</label>
-        <div class="label-desc">How will the session be conducted?</div>
-        <div class="format-pills">
-          <div class="format-pill selected" data-value="video" onclick="selectFormat(this)">Video call</div>
-          <div class="format-pill" data-value="phone" onclick="selectFormat(this)">Phone call</div>
-          <div class="format-pill" data-value="in_person" onclick="selectFormat(this)">In person</div>
-        </div>
-        <input type="hidden" name="interview_format" id="formatInput" value="video">
-      </div>
+      <input type="hidden" name="interview_format" id="formatInput" value="in_person">
+      <input type="hidden" name="target_participation_format" value="In-person study">
 
       <div class="form-row" style="margin-bottom: 20px;">
         <div class="form-group">
@@ -273,8 +265,8 @@
       </div>
 
       <div class="form-group">
-        <label>Scheduling Link</label>
-        <div class="label-desc">Calendly, Doodle, or any booking link. Participants use this to book their slot.</div>
+        <label>Calendly / booking link</label>
+        <div class="label-desc">Add the Calendly link participants should use to book their in-person slot.</div>
         <input type="url" name="scheduling_link" placeholder="https://calendly.com/your-link">
       </div>
 
@@ -284,8 +276,8 @@
         <textarea name="availability_notes" placeholder="Available weekdays 9am-5pm EST, Saturdays 10am-2pm. Sessions can be booked anytime in the next 3 weeks." style="min-height: 80px;"></textarea>
       </div>
 
-      <div class="form-group" id="locationRow" style="display:none;">
-        <label>Location</label>
+      <div class="form-group" id="locationRow">
+        <label>In-person location</label>
         <div class="label-desc">Where will the in-person session take place?</div>
         <input type="text" name="interview_location" placeholder="e.g. Questrom School of Business, Room 315, Boston, MA">
       </div>
@@ -320,7 +312,7 @@
 
       <div class="raffle-box" id="volunteerBox">
         <strong>Volunteer recruitment fee</strong>
-        Volunteer interview listings do not pay participants per session. We charge $1 per 10 target participants to cover recruitment and verification.
+        Volunteer in-person listings do not pay participants per session. We charge $1 per 10 target participants to cover recruitment and verification.
       </div>
 
       <div id="budgetSection">
@@ -426,11 +418,19 @@
         <div class="advanced-body">
           <div class="form-row">
             <div class="form-group"><label>Sexual Orientation</label><select name="target_sexual_orientation"><option value="all" selected>All</option><option>Straight / heterosexual</option><option>Gay or lesbian</option><option>Bisexual</option><option>Pansexual</option><option>Asexual</option><option>Queer</option><option>Questioning</option><option>Prefer to self-describe</option><option>Prefer not to say</option></select></div>
-            <div class="form-group"></div>
+            <div class="form-group"><label>Primary study device</label><select name="target_device"><option value="any" selected>Any device</option><option value="laptop">Laptop / desktop</option><option value="mobile">Mobile phone</option></select></div>
           </div>
           <div class="form-row">
             <div class="form-group"><label>Mental health diagnosis</label><select name="target_mental_health_diagnosis"><option value="all" selected>All</option><option>ADHD</option><option>Anxiety disorder</option><option>Autism spectrum disorder</option><option>Bipolar disorder</option><option>Depression</option><option>Eating disorder</option><option>OCD</option><option>PTSD / trauma-related disorder</option><option>Substance use disorder</option><option>None</option><option>Prefer not to say</option><option>Other</option></select></div>
             <div class="form-group"><label>Physical health diagnosis</label><select name="target_physical_health_diagnosis"><option value="all" selected>All</option><option>Asthma</option><option>Autoimmune condition</option><option>Cancer history</option><option>Chronic pain</option><option>Diabetes</option><option>Heart condition</option><option>Hypertension</option><option>Migraine</option><option>Mobility impairment</option><option>Neurological condition</option><option>None</option><option>Prefer not to say</option><option>Other</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Smoking</label><select name="target_smoking"><option value="all" selected>All</option><option>Never</option><option>Former</option><option>Occasional</option><option>Current daily</option><option>Prefer not to say</option></select></div>
+            <div class="form-group"><label>Cannabis use</label><select name="target_cannabis_use"><option value="all" selected>All</option><option>Never</option><option>Former</option><option>Occasional</option><option>Regular</option><option>Medical use</option><option>Prefer not to say</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Sport type</label><select name="target_sport_type"><option value="all" selected>All</option><option>Team sports</option><option>Individual sports</option><option>Gym / fitness</option><option>Running</option><option>Cycling</option><option>Swimming</option><option>Esports</option><option>None</option><option>Other</option></select></div>
+            <div class="form-group"><label>Sport frequency</label><select name="target_sport_frequency"><option value="all" selected>All</option><option>Never</option><option>Less than weekly</option><option>1-2 times / week</option><option>3-5 times / week</option><option>Daily</option></select></div>
           </div>
         </div>
       </details>
