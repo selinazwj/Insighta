@@ -67,18 +67,19 @@
 
     .theme-wipe {
       position: fixed; inset: 0; z-index: 450; pointer-events: none;
-      background: linear-gradient(90deg, rgba(255,255,255,0), var(--green-l), var(--green));
-      transform: translateX(100%);
+      background: linear-gradient(90deg, rgba(255,255,255,0), rgba(232,242,235,.72), rgba(52,160,164,.18), rgba(255,255,255,0));
+      transform: translateX(0);
       opacity: 0;
     }
+    .theme-wipe canvas { width: 100%; height: 100%; display: block; }
     .theme-wipe.run {
-      animation: wipe-left .58s cubic-bezier(.22,.8,.24,1);
+      animation: sweep-fade .86s cubic-bezier(.22,.8,.24,1);
     }
-    @keyframes wipe-left {
-      0% { transform: translateX(100%); opacity: 0; }
-      18% { opacity: .95; }
-      55% { transform: translateX(0); opacity: .92; }
-      100% { transform: translateX(-100%); opacity: 0; }
+    @keyframes sweep-fade {
+      0% { opacity: 0; }
+      15% { opacity: .95; }
+      72% { opacity: .9; }
+      100% { opacity: 0; }
     }
 
     /* ── HERO ── */
@@ -379,7 +380,7 @@
   </style>
 </head>
 <body>
-<div class="theme-wipe" id="themeWipe"></div>
+<div class="theme-wipe" id="themeWipe"><canvas id="themeSweepCanvas"></canvas></div>
 
 <!-- NAV -->
 <nav class="nav">
@@ -629,6 +630,9 @@
 
 <script>
   let role = 'researcher';
+  const themeSweep = document.getElementById('themeSweepCanvas');
+  const themeSweepCtx = themeSweep.getContext('2d');
+  let sweepPlaying = false;
 
   const homepageCopy = {
     researcher: {
@@ -657,17 +661,144 @@
     }
   };
 
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function sweepEase(t) { return t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
+  function sweepBounce(t) {
+    if (t < 1 / 2.75) return 7.5625 * t * t;
+    if (t < 2 / 2.75) { t -= 1.5 / 2.75; return 7.5625 * t * t + .75; }
+    if (t < 2.5 / 2.75) { t -= 2.25 / 2.75; return 7.5625 * t * t + .9375; }
+    t -= 2.625 / 2.75; return 7.5625 * t * t + .984375;
+  }
+
+  function resizeThemeSweep() {
+    const dpr = window.devicePixelRatio || 1;
+    themeSweep.width = Math.max(1, Math.floor(window.innerWidth * dpr));
+    themeSweep.height = Math.max(1, Math.floor(window.innerHeight * dpr));
+    themeSweepCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resizeThemeSweep();
+  window.addEventListener('resize', resizeThemeSweep);
+
+  function drawThemeLogo(cx, cy, angle, alpha, barScales) {
+    const ctx = themeSweepCtx;
+    const colors = ['#184e77', '#168aad', '#52b69a', '#d9ed92'];
+    const teal = '#34a0a4';
+    const gold = '#f0b429';
+    const orange = '#e8834a';
+    const bw = 34, gap = 13, heights = [1, .72, .52, .34], maxH = 92;
+    const chartW = heights.length * bw + (heights.length - 1) * gap;
+    const left = -chartW / 2;
+    const baseY = 0;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+
+    for (let i = 0; i < heights.length; i++) {
+      const bx = left + i * (bw + gap);
+      const bh = maxH * heights[i] * barScales[i];
+      ctx.fillStyle = colors[i];
+      ctx.beginPath();
+      ctx.roundRect(bx, baseY - bh, bw, bh, [5, 5, 0, 0]);
+      ctx.fill();
+      if (barScales[i] > .85) {
+        ctx.fillStyle = 'rgba(255,255,255,.16)';
+        ctx.beginPath();
+        ctx.roundRect(bx, baseY - bh, bw * .4, bh, [5, 0, 0, 0]);
+        ctx.fill();
+      }
+    }
+
+    ctx.strokeStyle = teal; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(left - 18, baseY + 5);
+    ctx.quadraticCurveTo(0, baseY + 20, left + chartW + 18, baseY + 5);
+    ctx.stroke();
+    ctx.strokeStyle = orange; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(left - 8, baseY + 13);
+    ctx.quadraticCurveTo(0, baseY + 26, left + chartW + 8, baseY + 13);
+    ctx.stroke();
+
+    const starX = left - 10;
+    const starY = baseY - maxH * 1.12;
+    const arcEndX = left + chartW + 40;
+    const arcEndY = baseY + 8;
+    const arcCtrlX = left + chartW * .55;
+    const arcCtrlY = baseY - maxH * .18;
+    ctx.strokeStyle = gold; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(starX, starY);
+    ctx.quadraticCurveTo(arcCtrlX, arcCtrlY, arcEndX, arcEndY);
+    ctx.stroke();
+
+    ctx.fillStyle = gold;
+    ctx.save();
+    ctx.translate(starX, starY);
+    const sr = 10;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+      const b = a + Math.PI / 5;
+      if (i === 0) ctx.moveTo(Math.cos(a) * sr, Math.sin(a) * sr);
+      else ctx.lineTo(Math.cos(a) * sr, Math.sin(a) * sr);
+      ctx.lineTo(Math.cos(b) * sr * .4, Math.sin(b) * sr * .4);
+    }
+    ctx.closePath(); ctx.fill(); ctx.restore();
+    ctx.restore();
+  }
+
+  function playThemeSweep() {
+    if (sweepPlaying) return;
+    sweepPlaying = true;
+    resizeThemeSweep();
+    const wipe = document.getElementById('themeWipe');
+    wipe.classList.remove('run');
+    void wipe.offsetWidth;
+    wipe.classList.add('run');
+
+    const dur = 860;
+    let start = null;
+    const ctx = themeSweepCtx;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    function frame(ts) {
+      if (!start) start = ts;
+      const p = clamp((ts - start) / dur, 0, 1);
+      ctx.clearRect(0, 0, w, h);
+      const ep = sweepEase(p);
+      const u = 1 - ep;
+      const p0 = { x: -170, y: h * .52 };
+      const p1 = { x: w * .48, y: h * .18 };
+      const p2 = { x: w + 170, y: h * .52 };
+      const x = u * u * p0.x + 2 * u * ep * p1.x + ep * ep * p2.x;
+      const y = u * u * p0.y + 2 * u * ep * p1.y + ep * ep * p2.y;
+      const dx = 2 * (1 - ep) * (p1.x - p0.x) + 2 * ep * (p2.x - p1.x);
+      const dy = 2 * (1 - ep) * (p1.y - p0.y) + 2 * ep * (p2.y - p1.y);
+      const angle = Math.atan2(dy, dx);
+      const alpha = clamp(p < .12 ? p / .12 : p > .78 ? 1 - (p - .78) / .22 : 1, 0, 1);
+      const barScales = [0, 1, 2, 3].map(i => sweepBounce(clamp((p - i * .08) / .26, 0, 1)));
+      drawThemeLogo(x, y, angle, alpha, barScales);
+
+      if (p < 1) requestAnimationFrame(frame);
+      else {
+        ctx.clearRect(0, 0, w, h);
+        sweepPlaying = false;
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
   function setHomepageMode(mode, animate = true) {
     role = mode === 'participant' ? 'participant' : 'researcher';
     const isParticipant = role === 'participant';
     const copy = homepageCopy[role];
-    const wipe = document.getElementById('themeWipe');
 
     if (animate) {
       document.body.classList.add('is-switching');
-      wipe.classList.remove('run');
-      void wipe.offsetWidth;
-      wipe.classList.add('run');
+      playThemeSweep();
     }
 
     window.setTimeout(() => {
