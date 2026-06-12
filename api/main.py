@@ -1330,6 +1330,8 @@ def dashboard(
     user_edu_max = _education_rank(current_user.education_level, fallback=999)
 
     def survey_matches(s: Survey) -> bool:
+        if getattr(s, "payment_status", None) == "admin_demo":
+            return True
         if not _field_matches(s.target_age_range, current_user.age_range): return False
         if s.target_education_min is not None:
             if user_edu_min < s.target_education_min: return False
@@ -1483,6 +1485,8 @@ def dashboard_mobile(
     user_edu_max = _education_rank(current_user.education_level, fallback=999)
 
     def survey_matches(s: Survey) -> bool:
+        if getattr(s, "payment_status", None) == "admin_demo":
+            return True
         if not _field_matches(s.target_age_range, current_user.age_range): return False
         if s.target_education_min is not None:
             if user_edu_min < s.target_education_min: return False
