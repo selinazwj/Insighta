@@ -329,15 +329,34 @@ def _field_matches(target: Optional[str], user_val: Optional[str]) -> bool:
         return False
     return target.strip().lower() == user_val.strip().lower()
 
+def _age_matches(target: Optional[str], user: User) -> bool:
+    if _is_empty(target):
+        return True
+    target_clean = target.strip().lower()
+    try:
+        birth_year = int(getattr(user, "birth_year", None) or 0)
+        birth_month = int(getattr(user, "birth_month", None) or 1)
+        today = date.today()
+        user_age = today.year - birth_year - ((today.month, today.day) < (birth_month, 1))
+    except (TypeError, ValueError):
+        user_age = None
+    numbers = [int(n) for n in re.findall(r"\d+", target_clean)]
+    if user_age is not None and numbers:
+        if len(numbers) >= 2:
+            return numbers[0] <= user_age <= numbers[1]
+        if "+" in target_clean or "older" in target_clean:
+            return user_age >= numbers[0]
+        if "under" in target_clean or "below" in target_clean:
+            return user_age <= numbers[0]
+    return _field_matches(target, getattr(user, "age_range", None))
+
 def _location_matches(target: Optional[str], user: User) -> bool:
     if _is_empty(target):
         return True
     target_clean = target.strip().lower()
     user_values = [
         getattr(user, "state", None),
-        getattr(user, "current_country", None),
         getattr(user, "current_province", None),
-        getattr(user, "current_city", None),
     ]
     return any((value or "").strip().lower() == target_clean for value in user_values)
 
@@ -1332,7 +1351,7 @@ def dashboard(
     def survey_matches(s: Survey) -> bool:
         if getattr(s, "payment_status", None) == "admin_demo":
             return True
-        if not _field_matches(s.target_age_range, current_user.age_range): return False
+        if not _age_matches(s.target_age_range, current_user): return False
         if s.target_education_min is not None:
             if user_edu_min < s.target_education_min: return False
         if s.target_education_max is not None:
@@ -1487,7 +1506,7 @@ def dashboard_mobile(
     def survey_matches(s: Survey) -> bool:
         if getattr(s, "payment_status", None) == "admin_demo":
             return True
-        if not _field_matches(s.target_age_range, current_user.age_range): return False
+        if not _age_matches(s.target_age_range, current_user): return False
         if s.target_education_min is not None:
             if user_edu_min < s.target_education_min: return False
         if s.target_education_max is not None:
@@ -2354,13 +2373,13 @@ async def profile_post(
     current_user.field = _value_with_other(form.get("field"), form.get("field_other"))
     current_user.status = _value_with_other(form.get("status"), form.get("status_other"))
 
-    current_user.current_country = form.get("current_country")
+    current_user.current_country = form.get("current_country") or "United States"
     current_user.current_province = form.get("current_province")
     current_user.current_city = form.get("current_city")
-    current_user.origin_country = form.get("origin_country")
+    current_user.origin_country = form.get("origin_country") or ("United States" if form.get("origin_province") else None)
     current_user.origin_province = form.get("origin_province")
     current_user.origin_city = form.get("origin_city")
-    current_user.state = form.get("state") or form.get("current_province") or form.get("current_country")
+    current_user.state = form.get("state") or form.get("current_province")
 
     current_user.race = _value_with_other(form.get("race"), form.get("race_other"))
     current_user.ethnicity = form.get("ethnicity") or current_user.race

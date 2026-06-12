@@ -113,18 +113,13 @@
 {% set mental_other = current_user.mental_health_diagnosis.split(':', 1)[1].strip() if current_user.mental_health_diagnosis and current_user.mental_health_diagnosis.startswith('Other:') else '' %}
 {% set physical_other = current_user.physical_health_diagnosis.split(':', 1)[1].strip() if current_user.physical_health_diagnosis and current_user.physical_health_diagnosis.startswith('Other:') else '' %}
 
-<datalist id="country-options">
-  {% for option in ['United States','Canada','China','India','United Kingdom','Australia','Germany','France','Spain','Italy','Japan','South Korea','Singapore','Mexico','Brazil','Argentina','Chile','Colombia','Nigeria','South Africa','Egypt','Turkey','Saudi Arabia','United Arab Emirates','Vietnam','Thailand','Indonesia','Philippines','Malaysia','Pakistan','Bangladesh','Other'] %}
-    <option value="{{ option }}"></option>
-  {% endfor %}
-</datalist>
-<datalist id="province-options">
-  {% for option in ['Alabama','Alaska','Arizona','California','Colorado','Connecticut','Florida','Georgia','Illinois','Massachusetts','Michigan','New Jersey','New York','North Carolina','Ohio','Pennsylvania','Texas','Virginia','Washington','Washington DC','Ontario','Quebec','British Columbia','Alberta','Beijing','Shanghai','Guangdong','Jiangsu','Zhejiang','Sichuan','Hong Kong','Taiwan','England','Scotland','New South Wales','Victoria','Other'] %}
+<datalist id="state-options">
+  {% for option in ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','Washington DC','West Virginia','Wisconsin','Wyoming','Other'] %}
     <option value="{{ option }}"></option>
   {% endfor %}
 </datalist>
 <datalist id="city-options">
-  {% for option in ['New York','Los Angeles','San Francisco','San Jose','Seattle','Boston','Chicago','Austin','Dallas','Houston','Atlanta','Washington DC','Philadelphia','Toronto','Vancouver','Montreal','Beijing','Shanghai','Shenzhen','Guangzhou','Hangzhou','Nanjing','Chengdu','Hong Kong','Taipei','London','Paris','Berlin','Sydney','Melbourne','Singapore','Tokyo','Seoul','Other'] %}
+  {% for option in ['New York','Los Angeles','San Francisco','San Jose','Seattle','Boston','Chicago','Austin','Dallas','Houston','Atlanta','Washington DC','Philadelphia','Phoenix','San Diego','Denver','Miami','Portland','Other'] %}
     <option value="{{ option }}"></option>
   {% endfor %}
 </datalist>
@@ -170,7 +165,7 @@
       </div>
     </div>
 
-    {% set pf = [current_user.username, current_user.phone_number, current_user.birth_year, current_user.birth_month, current_user.profile_description, current_user.education_level, current_user.field, current_user.status, current_user.current_country, current_user.current_province, current_user.current_city, current_user.language, current_user.race, current_user.student_status, current_user.year_in_school, current_user.international_domestic, current_user.experience_tags, current_user.participation_format, current_user.device_type, current_user.income_level, current_user.lifestyle_tags] %}
+    {% set pf = [current_user.username, current_user.phone_number, current_user.birth_year, current_user.birth_month, current_user.profile_description, current_user.education_level, current_user.field, current_user.status, current_user.current_province, current_user.current_city, current_user.language, current_user.race, current_user.student_status, current_user.year_in_school, current_user.international_domestic, current_user.experience_tags, current_user.participation_format, current_user.device_type, current_user.income_level, current_user.lifestyle_tags] %}
     {% set filled = pf | select | list | length %}
     {% set total = pf | length %}
     {% set pct = (filled * 100 // total) %}
@@ -303,12 +298,10 @@
           <div class="sh-title">Location</div>
         </div>
         <div class="section-body">
-          <div class="form-grid three">
-            <label class="form-group"><span class="form-label">Country you live in now</span><input class="form-input" list="country-options" name="current_country" value="{{ current_user.current_country or '' }}" placeholder="Search country"></label>
-            <label class="form-group"><span class="form-label">Province / state now</span><input class="form-input" list="province-options" name="current_province" value="{{ current_user.current_province or current_user.state or '' }}" placeholder="Search province / state"></label>
+          <div class="form-grid two">
+            <label class="form-group"><span class="form-label">State you live in now</span><input class="form-input" list="state-options" name="current_province" value="{{ current_user.current_province or current_user.state or '' }}" placeholder="Search U.S. state"></label>
             <label class="form-group"><span class="form-label">City now</span><input class="form-input" list="city-options" name="current_city" value="{{ current_user.current_city or '' }}" placeholder="Search city"></label>
-            <label class="form-group"><span class="form-label">Country you are from</span><input class="form-input" list="country-options" name="origin_country" value="{{ current_user.origin_country or '' }}" placeholder="Search country"></label>
-            <label class="form-group"><span class="form-label">Province / state from</span><input class="form-input" list="province-options" name="origin_province" value="{{ current_user.origin_province or '' }}" placeholder="Search province / state"></label>
+            <label class="form-group"><span class="form-label">State you are from</span><input class="form-input" list="state-options" name="origin_province" value="{{ current_user.origin_province or '' }}" placeholder="Search U.S. state"></label>
             <label class="form-group"><span class="form-label">City from</span><input class="form-input" list="city-options" name="origin_city" value="{{ current_user.origin_city or '' }}" placeholder="Search city"></label>
           </div>
           <div class="helper" style="margin-top:10px;">Use the second row only if where you are from is different from where you live now.</div>
