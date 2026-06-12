@@ -124,7 +124,7 @@
     <p>{{ survey.description }}</p>
     <div class="survey-meta">
       <span class="meta-pill">{{ survey.estimated_time }} min</span>
-      <span class="meta-pill">${{ "%.2f"|format(survey.reward_amount) }} reward</span>
+      <span class="meta-pill">${{ "%.2f"|format(survey.admin_display_reward_amount if survey.admin_display_reward_amount is not none else survey.reward_amount) }} reward</span>
     </div>
   </div>
 

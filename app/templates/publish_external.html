@@ -109,6 +109,9 @@
     /* ── INFO BOX ── */
     .info-box{background:var(--green-l);border-left:2.5px solid var(--green);padding:12px 16px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink2);line-height:1.6;margin-bottom:18px;}
     .info-box strong{display:block;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+    .admin-box{background:var(--amber-l);border:.5px solid #fde68a;border-radius:12px;padding:18px 20px;margin-bottom:16px;}
+    .admin-box .section-title{color:#92400e;}
+    .admin-box .section-sub{color:#a16207;}
 
     /* ── PILL SELECTOR ── */
     .pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px;}
@@ -204,17 +207,18 @@
 <body>
 
 <aside class="sidebar">
-  <a href="/publisher" class="sidebar-logo">Insight<span>a</span></a>
+  <a href="{{ '/admin#publish' if is_admin_publish else '/publisher' }}" class="sidebar-logo">Insight<span>a</span></a>
   <nav class="sidebar-nav">
-    <a href="/publisher" class="nav-item">
+    <a href="{{ '/admin#publish' if is_admin_publish else '/publisher' }}" class="nav-item">
       <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      My listings
+      {{ 'Admin console' if is_admin_publish else 'My listings' }}
     </a>
-    <a href="/publisher" class="nav-item active">
+    <a href="{{ '/admin#publish' if is_admin_publish else '/publisher' }}" class="nav-item active">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       New listing
     </a>
     <div class="nav-divider"></div>
+    {% if not is_admin_publish %}
     <a href="/guide" class="nav-item">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Tutorial
@@ -223,6 +227,7 @@
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Share feedback
     </a>
+    {% endif %}
   </nav>
   <div class="sidebar-user">
     <a href="/profile" class="user-row">
@@ -238,26 +243,33 @@
 <div class="main">
   <div class="topbar">
     <div class="topbar-left">
-    <a href="/publisher" class="back-btn">
+    <a href="{{ '/admin#publish' if is_admin_publish else '/publisher' }}" class="back-btn">
       <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      My listings
+      {{ 'Admin console' if is_admin_publish else 'My listings' }}
     </a>
       <div class="topbar-sep"></div>
       <div class="topbar-title">Publish survey</div>
     </div>
     <div class="topbar-right">
       <span class="draft-status" id="draftStatus"></span>
-      <button type="button" class="btn-save" onclick="saveDraft()">Save draft</button>
-      <button type="button" class="btn-cancel" onclick="window.location.href='/publisher'">Cancel</button>
+      {% if not is_admin_publish %}<button type="button" class="btn-save" onclick="saveDraft()">Save draft</button>{% endif %}
+      <button type="button" class="btn-cancel" onclick="window.location.href='{{ '/admin#publish' if is_admin_publish else '/publisher' }}'">Cancel</button>
     </div>
   </div>
 
 <div class="container">
 
   <div class="page-header">
-    <h1>Publish a <strong>survey</strong></h1>
-    <p>Set your audience, timeline, quality filters, and budget before launch.</p>
+    <h1>{{ 'Publish a demo' if is_admin_publish else 'Publish a' }} <strong>survey</strong></h1>
+    <p>{{ 'Admin-only publishing for business validation. This can display a reward without charging a researcher.' if is_admin_publish else 'Set your audience, timeline, quality filters, and budget before launch.' }}</p>
   </div>
+
+  {% if admin_created %}
+  <div class="info-box">
+    <strong>Created</strong>
+    Demo listing published. It is visible to matching participants with the admin display reward.
+  </div>
+  {% endif %}
 
   <!-- AI FILL -->
   <div class="ai-card">
@@ -276,7 +288,10 @@
     <div class="ai-msg success" id="aiSuccess">Done. Review the fields and adjust before publishing.</div>
   </div>
 
-  <form id="publishForm" method="POST" action="/publish" enctype="multipart/form-data">
+  <form id="publishForm" method="POST" action="{{ '/admin/publish' if is_admin_publish else '/publish' }}" enctype="multipart/form-data">
+    {% if is_admin_publish %}
+    <input type="hidden" name="admin_key" value="{{ admin_key }}">
+    {% endif %}
     <input type="hidden" name="existing_survey_id" value="{{ existing_survey_id or 0 }}">
 
     <!-- 01 BASIC INFO -->
@@ -831,13 +846,29 @@
       </div>
     </div>
 
+    {% if is_admin_publish %}
+    <div class="form-section admin-box">
+      <div class="section-head">
+        <div class="section-num">A</div>
+        <div>
+          <div class="section-title">Admin demo reward</div>
+          <div class="section-sub">This amount is shown to participants only. It does not trigger Stripe or payout logic.</div>
+        </div>
+      </div>
+      <div class="field" style="max-width:260px;">
+        <label>Displayed participant reward ($)</label>
+        <input type="number" name="admin_display_reward_amount" placeholder="e.g. 10.00" min="0" step="0.01">
+      </div>
+    </div>
+    {% endif %}
+
     <!-- SUBMIT -->
     <div class="submit-bar">
       <button type="button" class="btn-cancel" onclick="history.back()">Cancel</button>
-      <button type="button" class="btn-save" onclick="saveDraft()">Save draft</button>
+      {% if not is_admin_publish %}<button type="button" class="btn-save" onclick="saveDraft()">Save draft</button>{% endif %}
       <button type="submit" class="btn-publish" id="submitBtn">
         <svg viewBox="0 0 24 24"><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        <span id="submitLabel">Pay &amp; Publish</span>
+        <span id="submitLabel">{{ 'Publish demo listing' if is_admin_publish else 'Pay & Publish' }}</span>
       </button>
     </div>
 
@@ -846,7 +877,8 @@
 </div>
 
 <script>
-  const DRAFT_KEY = `insighta_publish_draft_{{ 'builtin' if builtin else 'external' }}_{{ existing_survey_id or 0 }}`;
+  const IS_ADMIN_PUBLISH = {{ 'true' if is_admin_publish else 'false' }};
+  const DRAFT_KEY = `insighta_publish_draft_{{ 'admin' if is_admin_publish else 'builtin' if builtin else 'external' }}_{{ existing_survey_id or 0 }}`;
 
   // ── INCENTIVE ──
   function pickIncentive(el) {
@@ -857,7 +889,7 @@
     document.getElementById('raffleBox').style.display    = v === 'raffle'    ? 'block' : 'none';
     document.getElementById('volunteerBox').style.display = v === 'volunteer' ? 'block' : 'none';
     document.getElementById('paidFields').style.display   = (v === 'raffle' || v === 'volunteer') ? 'none' : 'block';
-    document.getElementById('submitLabel').textContent    = (v === 'raffle' || v === 'volunteer') ? 'Publish' : 'Pay & Publish';
+    document.getElementById('submitLabel').textContent    = IS_ADMIN_PUBLISH ? 'Publish demo listing' : ((v === 'raffle' || v === 'volunteer') ? 'Publish' : 'Pay & Publish');
     updateCommission();
   }
 
@@ -1042,7 +1074,7 @@
     });
     const incentive = document.getElementById('incentiveInput').value;
     const noPay = incentive === 'raffle' || incentive === 'volunteer';
-    if (!noPay) {
+    if (!noPay && !IS_ADMIN_PUBLISH) {
       const pp = parseFloat(ppInput.value) || 0;
       const tot = parseFloat(totalInput.value) || 0;
       if (!pp && !tot) {

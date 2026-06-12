@@ -232,6 +232,10 @@
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       Channel discovery
     </button>
+    <button class="nav-item" id="nav-publish" onclick="switchPanel('publish')">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/><path d="M4 19h16"/></svg>
+      Demo publishing
+    </button>
   </nav>
   <div class="sidebar-user">
     <div class="user-row" onclick="logout()">
@@ -263,7 +267,7 @@
       <div class="stat"><div class="stat-n green" id="statAmount">—</div><div class="stat-l">Total credit issued</div></div>
       <div class="stat"><div class="stat-n" id="statSupport">—</div><div class="stat-l">Open support threads</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
       <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('feedback')">
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Feedback review</div>
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Review user feedback, grant credits, or reject submissions.</div>
@@ -277,6 +281,11 @@
       <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('discovery')">
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Channel discovery</div>
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Generate ranked recruitment channel tables for ops outreach.</div>
+        <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
+      </div>
+      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('publish')">
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Demo publishing</div>
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Publish validation listings with a participant-facing display reward.</div>
         <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
       </div>
     </div>
@@ -371,6 +380,17 @@
     <div id="discoveryResults"></div>
   </div>
 
+  <!-- ── PUBLISH PANEL ── -->
+  <div class="panel" id="panel-publish">
+    <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:24px;max-width:720px;">
+      <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px;">Publish validation listing</div>
+      <div style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:18px;">
+        Use the same survey publishing form as researchers, plus one admin-only field for the reward amount participants see. This skips Stripe and marks the listing as an admin demo.
+      </div>
+      <button class="btn-run" onclick="openAdminPublish()">Create demo listing</button>
+    </div>
+  </div>
+
 </div><!-- /main -->
 
 <script>
@@ -383,7 +403,7 @@
   let currentPanel = 'overview';
 
   // ── PANEL SWITCH ──
-  const PANEL_TITLES = { overview:'Overview', feedback:'Feedback review', support:'Support inbox', discovery:'Channel discovery' };
+  const PANEL_TITLES = { overview:'Overview', feedback:'Feedback review', support:'Support inbox', discovery:'Channel discovery', publish:'Demo publishing' };
 
   async function login() {
     const input = document.getElementById('adminKeyInput');
@@ -432,6 +452,11 @@
     if (currentPanel === 'feedback') loadFeedbacks();
     else if (currentPanel === 'support') loadSupportThreads();
     else if (currentPanel === 'overview') { loadFeedbacks(); loadSupportThreads(); }
+  }
+
+  function openAdminPublish() {
+    if (!adminKey) return;
+    window.location.href = `/admin/publish?admin_key=${encodeURIComponent(adminKey)}`;
   }
 
   // ── FEEDBACK ──

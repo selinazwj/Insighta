@@ -111,6 +111,7 @@ def ensure_survey_listing_columns():
         "target_niche_requirements": "VARCHAR",
         "raffle_prize_type": "VARCHAR",
         "availability_slots": "TEXT",
+        "admin_display_reward_amount": "FLOAT",
         "quality_auto_filter_enabled": "BOOLEAN DEFAULT false",
         "quality_auto_filter_min_score": "FLOAT DEFAULT 80.0",
     }
@@ -1279,6 +1280,9 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
     }
     form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
     response_status = user_response.status if user_response else None
+    display_reward = getattr(s, "admin_display_reward_amount", None)
+    if display_reward is None:
+        display_reward = s.reward_amount
     availability_slots = []
     if getattr(s, "availability_slots", None):
         try:
@@ -1296,7 +1300,7 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "type": _normalize_task_type(getattr(s, "task_type", None)),
         "category": s.category,
         "time": f"{s.estimated_time} min",
-        "reward": f"${s.reward_amount:.2f}",
+        "reward": f"${display_reward:.2f}",
         "responses": f"{completed_cnt}/{s.target_responses}",
         "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
         "is_started": response_status == "started",
@@ -1535,6 +1539,9 @@ def dashboard_mobile(
         ).first()
         is_completed = user_response and user_response.status == "completed"
         form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
+        display_reward = getattr(s, "admin_display_reward_amount", None)
+        if display_reward is None:
+            display_reward = s.reward_amount
         availability_slots = []
         if getattr(s, "availability_slots", None):
             try:
@@ -1548,7 +1555,7 @@ def dashboard_mobile(
             "link": form_link,
             "type": _normalize_task_type(getattr(s, "task_type", None)),
             "category": s.category, "time": f"{s.estimated_time} min",
-            "reward": f"${s.reward_amount:.2f}",
+            "reward": f"${display_reward:.2f}",
             "responses": f"{completed_cnt}/{s.target_responses}",
             "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
             "is_completed": is_completed,
@@ -2646,6 +2653,23 @@ def _admin_key_matches(value: str | None) -> bool:
     return (value or "").strip() == expected
 
 
+def _get_admin_publisher_user(db: Session) -> User:
+    email = (os.environ.get("ADMIN_PUBLISHER_EMAIL") or "vfsa@bu.edu").strip().lower()
+    user = db.query(User).filter(func.lower(User.email) == email).first()
+    if user:
+        return user
+    user = User(
+        email=email,
+        password="admin-managed-publisher",
+        username="Insighta Admin",
+        status="Researcher",
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
@@ -2660,6 +2684,77 @@ async def admin_verify(request: Request):
     if not _admin_key_matches(body.get("admin_key")):
         raise HTTPException(403, "Unauthorized")
     return JSONResponse({"success": True})
+
+
+@app.get("/admin/publish", response_class=HTMLResponse)
+def admin_publish_page(request: Request, admin_key: str = Query(None), db: Session = Depends(get_db)):
+    if not _admin_key_matches(admin_key):
+        raise HTTPException(403, "Unauthorized")
+    admin_user = _get_admin_publisher_user(db)
+    return templates.TemplateResponse("publish_external.html", {
+        "request": request,
+        "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
+        "builtin": False,
+        "existing_survey_id": 0,
+        "prefill_title": "",
+        "prefill_desc": "",
+        "existing_survey": None,
+        "current_user": admin_user,
+        "is_admin_publish": True,
+        "admin_key": admin_key,
+        "admin_created": request.query_params.get("created") == "1",
+    })
+
+
+@app.post("/admin/publish")
+async def admin_publish_survey(request: Request, db: Session = Depends(get_db)):
+    form = await request.form()
+    if not _admin_key_matches(form.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+    admin_user = _get_admin_publisher_user(db)
+    display_amount_raw = (form.get("admin_display_reward_amount") or "").strip()
+    display_amount = float(display_amount_raw) if display_amount_raw else None
+    return await publish_survey(
+        request=request,
+        title=form.get("title"),
+        description=form.get("description"),
+        form_url=form.get("form_url"),
+        task_type=form.get("task_type") or "survey",
+        category=form.get("category"),
+        estimated_time=int(form.get("estimated_time") or 0),
+        per_person_gross=float(form.get("per_person_gross") or 0),
+        total_budget=float(form.get("total_budget") or 0),
+        target_responses=int(form.get("target_responses") or 1),
+        urgency_level=form.get("urgency_level"),
+        incentive_type=form.get("incentive_type"),
+        target_age_range=form.get("target_age_range"),
+        target_field=form.get("target_field"),
+        target_status=form.get("target_status"),
+        target_state=form.get("target_state"),
+        target_language=form.get("target_language"),
+        target_ethnicity=form.get("target_ethnicity"),
+        target_sexual_orientation=form.get("target_sexual_orientation"),
+        target_mental_health_diagnosis=form.get("target_mental_health_diagnosis"),
+        target_physical_health_diagnosis=form.get("target_physical_health_diagnosis"),
+        target_sport_type=form.get("target_sport_type"),
+        target_sport_frequency=form.get("target_sport_frequency"),
+        target_smoking=form.get("target_smoking"),
+        target_cannabis_use=form.get("target_cannabis_use"),
+        target_student_status=form.get("target_student_status"),
+        target_year_in_school=form.get("target_year_in_school"),
+        target_international_domestic=form.get("target_international_domestic"),
+        target_participation_format=form.get("target_participation_format"),
+        target_device=form.get("target_device"),
+        target_income_level=form.get("target_income_level"),
+        raffle_prize_type=form.get("raffle_prize_type"),
+        cover_image=form.get("cover_image"),
+        admin_display_reward_amount=display_amount,
+        admin_publish=True,
+        admin_redirect_key=form.get("admin_key"),
+        current_user=admin_user,
+        db=db,
+    )
+
 
 @app.post("/admin/feedback/{feedback_id}/credit")
 async def grant_credit(feedback_id: int, request: Request, db: Session = Depends(get_db)):
@@ -2815,6 +2910,9 @@ async def publish_survey(
     target_participation_format: str = Form(None), target_device: str = Form(None),
     target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
     cover_image: UploadFile = File(None),
+    admin_display_reward_amount: Optional[float] = Form(None),
+    admin_publish: bool = False,
+    admin_redirect_key: Optional[str] = None,
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
@@ -2840,11 +2938,16 @@ async def publish_survey(
         ppg = 0.0; rate = 0.0; reward = 0.0
         total = volunteer_platform_fee(target_responses)
     else:
-        if per_person_gross: ppg = float(per_person_gross)
-        elif total_budget: ppg = float(total_budget) / int(target_responses)
+        if admin_publish and not per_person_gross and not total_budget:
+            ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
+        elif per_person_gross is not None and float(per_person_gross) > 0:
+            ppg = float(per_person_gross)
+        elif total_budget and float(total_budget) > 0:
+            ppg = float(total_budget) / int(target_responses)
         else: ppg = 5.0
-        rate, reward = calculate_commission(ppg)
-        total = round(ppg * int(target_responses), 2)
+        if not (admin_publish and ppg == 0.0):
+            rate, reward = calculate_commission(ppg)
+            total = round(ppg * int(target_responses), 2)
     total = round(total * timeline_multiplier(urgency_level), 2)
 
     image_url = None
@@ -2899,6 +3002,7 @@ async def publish_survey(
         survey.target_income_level = _clean_target(target_income_level)
         survey.target_lifestyle_tags = target_lifestyle_tags
         survey.target_niche_requirements = target_niche_requirements
+        survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish else None
         _apply_survey_auto_filter_settings(survey, form)
         db.commit()
         db.refresh(survey)
@@ -2930,10 +3034,19 @@ async def publish_survey(
             target_income_level=_clean_target(target_income_level),
             target_lifestyle_tags=target_lifestyle_tags,
             target_niche_requirements=target_niche_requirements,
+            admin_display_reward_amount=admin_display_reward_amount if admin_publish else None,
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
         _apply_survey_auto_filter_settings(survey, form)
         db.add(survey); db.commit(); db.refresh(survey)
+
+    if admin_publish:
+        survey.status = "published"
+        survey.payment_status = "admin_demo"
+        survey.published_at = datetime.utcnow()
+        db.commit()
+        redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
+        return RedirectResponse(f"/admin/publish?{redirect_qs}", status_code=303)
 
     # Handle no-pay incentives, missing Stripe key, and Stripe checkout
     if is_no_pay or not stripe.api_key:

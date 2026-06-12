@@ -121,6 +121,7 @@ class Survey(Base):
 
     # Reward & progress
     reward_amount = Column(Float, nullable=False)
+    admin_display_reward_amount = Column(Float, nullable=True)
     total_budget = Column(Float, nullable=True)
     per_person_gross = Column(Float, nullable=True)
     commission_rate = Column(Float, nullable=True)
