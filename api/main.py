@@ -2457,30 +2457,91 @@ def _fallback_ai_fill(prompt: str, warning: str | None = None) -> dict:
     return result
 
 
-async def _ai_fill_from_prompt(prompt: str) -> JSONResponse:
-    if not prompt:
-        raise HTTPException(400, "Prompt is required")
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+def _parse_ai_fill_json(text: str) -> dict:
+    import json as _json
+    match = re.search(r'\{.*\}', text or "", re.DOTALL)
+    if not match:
+        raise ValueError("AI response parsing failed")
+    data = _json.loads(match.group())
+    return {
+        "title": str(data.get("title") or "").strip()[:80] or "Research Study",
+        "description": str(data.get("description") or "").strip() or "Help us validate this research study by completing a short survey.",
+        "category": data.get("category") if data.get("category") in {"research", "life", "clubs", "market", "academic", "other"} else "research",
+        "estimated_time": int(float(data.get("estimated_time") or 10)),
+        "per_person_gross": float(data.get("per_person_gross") or 5.0),
+        "target_responses": int(float(data.get("target_responses") or 50)),
+    }
+
+
+async def _openai_ai_fill(prompt: str) -> dict:
+    api_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
     if not api_key:
-        return JSONResponse(_fallback_ai_fill(prompt, "ANTHROPIC_API_KEY is not configured; used local fallback."))
-    try:
-        import anthropic, json as _json
-        client = anthropic.Anthropic(api_key=api_key)
-        message = client.messages.create(
-            model="claude-haiku-4-5-20251001", max_tokens=1000,
-            messages=[{"role": "user", "content": f"""You are helping a researcher fill out a survey publishing form.
+        raise RuntimeError("OPENAI_API_KEY is not configured")
+    model = (os.environ.get("OPENAI_AI_FILL_MODEL") or "gpt-4o-mini").strip()
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "You fill a survey publishing form. Return only valid JSON.",
+            },
+            {
+                "role": "user",
+                "content": f"""Based on this study description: "{prompt}"
+Return ONLY a valid JSON object with these exact fields:
+{{"title":"clear survey title under 10 words","description":"2-3 sentence description","category":"one of: research, life, clubs, market, academic, other","estimated_time":5,"per_person_gross":5.00,"target_responses":100}}""",
+            },
+        ],
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"},
+    }
+    async with httpx.AsyncClient(timeout=20) as client:
+        res = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json=payload,
+        )
+    if res.status_code >= 400:
+        raise RuntimeError(f"OpenAI API error {res.status_code}: {res.text[:500]}")
+    body = res.json()
+    text = body["choices"][0]["message"]["content"]
+    result = _parse_ai_fill_json(text)
+    result["provider"] = "openai"
+    return result
+
+
+async def _anthropic_ai_fill(prompt: str) -> dict:
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY is not configured")
+    import anthropic
+    model = (os.environ.get("ANTHROPIC_AI_FILL_MODEL") or "claude-3-5-haiku-latest").strip()
+    client = anthropic.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model=model, max_tokens=1000,
+        messages=[{"role": "user", "content": f"""You are helping a researcher fill out a survey publishing form.
 Based on this description: "{prompt}"
 Return ONLY a valid JSON object with these exact fields, no extra text:
 {{"title": "clear survey title under 10 words", "description": "2-3 sentence description", "category": "one of: research, life, clubs, market, academic, other", "estimated_time": 5, "per_person_gross": 5.00, "target_responses": 100}}"""}]
-        )
-        text = message.content[0].text
-        match = re.search(r'\{.*\}', text, re.DOTALL)
-        if not match:
-            return JSONResponse(_fallback_ai_fill(prompt, "AI response parsing failed; used local fallback."))
-        result = _json.loads(match.group())
-        return JSONResponse(result)
+    )
+    result = _parse_ai_fill_json(message.content[0].text)
+    result["provider"] = "anthropic"
+    return result
+
+
+async def _ai_fill_from_prompt(prompt: str) -> JSONResponse:
+    if not prompt:
+        raise HTTPException(400, "Prompt is required")
+    errors = []
+    try:
+        return JSONResponse(await _openai_ai_fill(prompt))
     except Exception as exc:
-        return JSONResponse(_fallback_ai_fill(prompt, f"AI provider unavailable; used local fallback. {exc}"))
+        errors.append(str(exc))
+    try:
+        return JSONResponse(await _anthropic_ai_fill(prompt))
+    except Exception as exc:
+        errors.append(str(exc))
+    return JSONResponse(_fallback_ai_fill(prompt, f"AI providers unavailable; used local fallback. {' | '.join(errors)}"))
 
 
 @app.post("/api/ai-fill")
