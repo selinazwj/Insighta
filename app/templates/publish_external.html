@@ -875,6 +875,7 @@
 
 <script>
   const IS_ADMIN_PUBLISH = {{ 'true' if is_admin_publish else 'false' }};
+  const ADMIN_KEY = {{ (admin_key or '')|tojson if is_admin_publish else 'null' }};
   const DRAFT_KEY = `insighta_publish_draft_{{ 'admin' if is_admin_publish else 'builtin' if builtin else 'external' }}_{{ existing_survey_id or 0 }}`;
 
   // ── INCENTIVE ──
@@ -968,9 +969,11 @@
     btn.disabled = true; btn.textContent = '...';
     errEl.style.display = 'none'; okEl.style.display = 'none';
     try {
-      const res = await fetch('/api/ai-fill', {
+      const endpoint = IS_ADMIN_PUBLISH ? '/admin/api/ai-fill' : '/api/ai-fill';
+      const body = IS_ADMIN_PUBLISH ? { prompt, admin_key: ADMIN_KEY } : { prompt };
+      const res = await fetch(endpoint, {
         method:'POST', headers:{'Content-Type':'application/json'},
-        credentials:'same-origin', body: JSON.stringify({ prompt })
+        credentials:'same-origin', body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error(await res.text());
       const d = await res.json();

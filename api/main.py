@@ -2416,26 +2416,31 @@ async def profile_post(
 # AI Fill
 # ---------------------------
 
+async def _ai_fill_from_prompt(prompt: str) -> JSONResponse:
+    if not prompt:
+        raise HTTPException(400, "Prompt is required")
+    import anthropic, json as _json
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001", max_tokens=1000,
+        messages=[{"role": "user", "content": f"""You are helping a researcher fill out a survey publishing form.
+Based on this description: "{prompt}"
+Return ONLY a valid JSON object with these exact fields, no extra text:
+{{"title": "clear survey title under 10 words", "description": "2-3 sentence description", "category": "one of: research, life, clubs, market, academic, other", "estimated_time": 5, "per_person_gross": 5.00, "target_responses": 100}}"""}]
+    )
+    text = message.content[0].text
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if not match:
+        raise HTTPException(500, "AI response parsing failed")
+    result = _json.loads(match.group())
+    return JSONResponse(result)
+
+
 @app.post("/api/ai-fill")
 async def ai_fill(request: Request, current_user: User = Depends(get_current_user)):
     try:
         body = await request.json()
-        prompt = body.get("prompt", "")
-        if not prompt: raise HTTPException(400, "Prompt is required")
-        import anthropic, json as _json
-        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-        message = client.messages.create(
-            model="claude-haiku-4-5-20251001", max_tokens=1000,
-            messages=[{"role": "user", "content": f"""You are helping a researcher fill out a survey publishing form.
-Based on this description: "{prompt}"
-Return ONLY a valid JSON object with these exact fields, no extra text:
-{{"title": "clear survey title under 10 words", "description": "2-3 sentence description", "category": "one of: research, life, clubs, market, academic, other", "estimated_time": 5, "per_person_gross": 5.00, "target_responses": 100}}"""}]
-        )
-        text = message.content[0].text
-        match = re.search(r'\{.*\}', text, re.DOTALL)
-        if not match: raise HTTPException(500, "AI response parsing failed")
-        result = _json.loads(match.group())
-        return JSONResponse(result)
+        return await _ai_fill_from_prompt(body.get("prompt", ""))
     except Exception as e:
         import traceback; print(traceback.format_exc())
         raise HTTPException(500, str(e))
@@ -2707,6 +2712,20 @@ async def admin_verify(request: Request):
     if not _admin_key_matches(body.get("admin_key")):
         raise HTTPException(403, "Unauthorized")
     return JSONResponse({"success": True})
+
+
+@app.post("/admin/api/ai-fill")
+async def admin_ai_fill(request: Request):
+    try:
+        body = await request.json()
+        if not _admin_key_matches(body.get("admin_key")):
+            raise HTTPException(403, "Unauthorized")
+        return await _ai_fill_from_prompt(body.get("prompt", ""))
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback; print(traceback.format_exc())
+        raise HTTPException(500, str(e))
 
 
 @app.get("/admin/publish", response_class=HTMLResponse)
