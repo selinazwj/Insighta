@@ -1032,8 +1032,13 @@
       if (!res.ok) throw new Error(await res.text());
       const d = await res.json();
       applyAiFill(d);
-      if (d.warning) okEl.textContent = 'Filled with fallback. Review before publishing.';
-      else okEl.textContent = d.provider ? `Filled with ${d.provider}. Review before publishing.` : 'Done. Review the fields and adjust before publishing.';
+      if (d.warning) {
+        okEl.textContent = 'Filled with fallback. Review before publishing.';
+        errEl.textContent = d.warning;
+        errEl.style.display = 'block';
+      } else {
+        okEl.textContent = d.provider ? `Filled with ${d.provider}. Review before publishing.` : 'Done. Review the fields and adjust before publishing.';
+      }
       okEl.style.display = 'block';
       document.querySelector('.form-section').scrollIntoView({ behavior:'smooth' });
     } catch (error) {
