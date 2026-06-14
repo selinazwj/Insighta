@@ -2416,24 +2416,71 @@ async def profile_post(
 # AI Fill
 # ---------------------------
 
+def _fallback_ai_fill(prompt: str, warning: str | None = None) -> dict:
+    clean = re.sub(r"\s+", " ", (prompt or "").strip())
+    title_words = re.findall(r"[A-Za-z0-9]+", clean)[:8]
+    title = " ".join(title_words).strip() or "Research Study"
+    if len(title) > 64:
+        title = title[:61].rstrip() + "..."
+    lower = clean.lower()
+    category = "research"
+    if any(word in lower for word in ["class", "student", "school", "academic", "college", "university"]):
+        category = "academic"
+    elif any(word in lower for word in ["food", "habit", "shopping", "consumer", "market", "brand"]):
+        category = "market"
+    elif any(word in lower for word in ["club", "organization", "community"]):
+        category = "clubs"
+    elif any(word in lower for word in ["lifestyle", "sleep", "wellness", "fitness", "health"]):
+        category = "life"
+    numbers = [int(n) for n in re.findall(r"\b\d+\b", lower)]
+    target_responses = next((n for n in numbers if 1 <= n <= 10000), 50)
+    estimated_time = 10
+    time_match = re.search(r"(\d+)\s*(?:min|minute|minutes)", lower)
+    if time_match:
+        estimated_time = max(1, min(120, int(time_match.group(1))))
+    per_person = 5.0
+    amount_match = re.search(r"\$\s*(\d+(?:\.\d+)?)", lower)
+    if not amount_match:
+        amount_match = re.search(r"(?:pay|reward|incentive|compensation)\s*(?:is|of|:)?\s*(\d+(?:\.\d+)?)", lower)
+    if amount_match:
+        per_person = max(0.0, min(500.0, float(amount_match.group(1))))
+    result = {
+        "title": title,
+        "description": clean or "Help us validate this research study by completing a short survey. Your responses will be used for product and recruitment testing.",
+        "category": category,
+        "estimated_time": estimated_time,
+        "per_person_gross": per_person,
+        "target_responses": target_responses,
+    }
+    if warning:
+        result["warning"] = warning
+    return result
+
+
 async def _ai_fill_from_prompt(prompt: str) -> JSONResponse:
     if not prompt:
         raise HTTPException(400, "Prompt is required")
-    import anthropic, json as _json
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-    message = client.messages.create(
-        model="claude-haiku-4-5-20251001", max_tokens=1000,
-        messages=[{"role": "user", "content": f"""You are helping a researcher fill out a survey publishing form.
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return JSONResponse(_fallback_ai_fill(prompt, "ANTHROPIC_API_KEY is not configured; used local fallback."))
+    try:
+        import anthropic, json as _json
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001", max_tokens=1000,
+            messages=[{"role": "user", "content": f"""You are helping a researcher fill out a survey publishing form.
 Based on this description: "{prompt}"
 Return ONLY a valid JSON object with these exact fields, no extra text:
 {{"title": "clear survey title under 10 words", "description": "2-3 sentence description", "category": "one of: research, life, clubs, market, academic, other", "estimated_time": 5, "per_person_gross": 5.00, "target_responses": 100}}"""}]
-    )
-    text = message.content[0].text
-    match = re.search(r'\{.*\}', text, re.DOTALL)
-    if not match:
-        raise HTTPException(500, "AI response parsing failed")
-    result = _json.loads(match.group())
-    return JSONResponse(result)
+        )
+        text = message.content[0].text
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if not match:
+            return JSONResponse(_fallback_ai_fill(prompt, "AI response parsing failed; used local fallback."))
+        result = _json.loads(match.group())
+        return JSONResponse(result)
+    except Exception as exc:
+        return JSONResponse(_fallback_ai_fill(prompt, f"AI provider unavailable; used local fallback. {exc}"))
 
 
 @app.post("/api/ai-fill")

@@ -990,10 +990,12 @@
       if (d.per_person_gross) ppInput.value = parseFloat(d.per_person_gross).toFixed(2);
       if (d.target_responses)  targetInput.value = d.target_responses;
       updateCommission();
+      if (d.warning) okEl.textContent = 'Filled with fallback. Review before publishing.';
+      else okEl.textContent = 'Done. Review the fields and adjust before publishing.';
       okEl.style.display = 'block';
       document.querySelector('.form-section').scrollIntoView({ behavior:'smooth' });
-    } catch {
-      errEl.textContent = 'Something went wrong. Please try again.';
+    } catch (error) {
+      errEl.textContent = `Something went wrong. ${error.message || 'Please try again.'}`;
       errEl.style.display = 'block';
     } finally {
       btn.disabled = false; btn.textContent = 'Generate';
