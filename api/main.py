@@ -2481,11 +2481,13 @@ async def _anthropic_ai_fill(prompt: str) -> dict:
     configured_model = (os.environ.get("ANTHROPIC_AI_FILL_MODEL") or "").strip()
     model_candidates = [
         configured_model,
-        "claude-haiku-4-5-20251015",
-        "claude-haiku-4-5-latest",
-        "claude-3-5-haiku-latest",
+        "claude-haiku-4-5-20251001",
+        "claude-haiku-4-5",
+        "claude-sonnet-4-6",
+        "claude-opus-4-8",
+        "claude-fable-5",
+        "claude-sonnet-4-5",
         "claude-3-5-haiku-20241022",
-        "claude-sonnet-4-5-latest",
     ]
     model_candidates = [m for i, m in enumerate(model_candidates) if m and m not in model_candidates[:i]]
     client = anthropic.Anthropic(api_key=api_key)
