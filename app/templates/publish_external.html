@@ -960,6 +960,60 @@
   });
 
   // ── AI FILL ──
+  function localAiFill(prompt, warning) {
+    const clean = prompt.replace(/\s+/g, ' ').trim();
+    const words = clean.match(/[A-Za-z0-9]+/g) || [];
+    const lower = clean.toLowerCase();
+    const numberMatches = [...lower.matchAll(/\b\d+\b/g)].map(m => parseInt(m[0], 10));
+    const timeMatch = lower.match(/(\d+)\s*(min|minute|minutes)/);
+    const moneyMatch = lower.match(/\$\s*(\d+(?:\.\d+)?)/) || lower.match(/(?:pay|reward|incentive|compensation)\s*(?:is|of|:)?\s*(\d+(?:\.\d+)?)/);
+    let category = 'research';
+    if (['class','student','school','academic','college','university'].some(w => lower.includes(w))) category = 'academic';
+    else if (['food','habit','shopping','consumer','market','brand'].some(w => lower.includes(w))) category = 'market';
+    else if (['club','organization','community'].some(w => lower.includes(w))) category = 'clubs';
+    else if (['lifestyle','sleep','wellness','fitness','health'].some(w => lower.includes(w))) category = 'life';
+    return {
+      title: words.slice(0, 8).join(' ') || 'Research Study',
+      description: clean || 'Help us validate this research study by completing a short survey.',
+      category,
+      estimated_time: timeMatch ? Number(timeMatch[1]) : 10,
+      per_person_gross: moneyMatch ? Number(moneyMatch[1]) : 5,
+      target_responses: numberMatches.find(n => n >= 1 && n <= 10000) || 50,
+      warning
+    };
+  }
+
+  function nearestOptionValue(select, rawValue) {
+    const wanted = Number(rawValue);
+    if (!select || !wanted) return '';
+    const values = [...select.options].map(o => Number(o.value)).filter(v => Number.isFinite(v) && v > 0);
+    if (!values.length) return '';
+    return String(values.reduce((best, v) => Math.abs(v - wanted) < Math.abs(best - wanted) ? v : best, values[0]));
+  }
+
+  function applyAiFill(d) {
+    if (d.title) document.querySelector('input[name="title"]').value = d.title;
+    if (d.description) document.querySelector('textarea[name="description"]').value = d.description;
+    if (d.category) {
+      const s = document.querySelector('select[name="category"]');
+      s.value = [...s.options].some(o => o.value === d.category) ? d.category : 'research';
+    }
+    if (d.estimated_time) {
+      const s = document.querySelector('select[name="estimated_time"]');
+      s.value = [...s.options].some(o => o.value === String(d.estimated_time))
+        ? String(d.estimated_time)
+        : nearestOptionValue(s, d.estimated_time);
+    }
+    if (d.per_person_gross) {
+      const amount = parseFloat(d.per_person_gross).toFixed(2);
+      ppInput.value = amount;
+      const demoReward = document.querySelector('input[name="admin_display_reward_amount"]');
+      if (demoReward && !demoReward.value) demoReward.value = amount;
+    }
+    if (d.target_responses) targetInput.value = d.target_responses;
+    updateCommission();
+  }
+
   async function fillWithAI() {
     const prompt = document.getElementById('aiPrompt').value.trim();
     if (!prompt) { alert('Please describe your study first.'); return; }
@@ -977,26 +1031,17 @@
       });
       if (!res.ok) throw new Error(await res.text());
       const d = await res.json();
-      if (d.title)        document.querySelector('input[name="title"]').value = d.title;
-      if (d.description)  document.querySelector('textarea[name="description"]').value = d.description;
-      if (d.category) {
-        const s = document.querySelector('select[name="category"]');
-        s.value = d.category;
-      }
-      if (d.estimated_time) {
-        const s = document.querySelector('select[name="estimated_time"]');
-        s.value = String(d.estimated_time);
-      }
-      if (d.per_person_gross) ppInput.value = parseFloat(d.per_person_gross).toFixed(2);
-      if (d.target_responses)  targetInput.value = d.target_responses;
-      updateCommission();
+      applyAiFill(d);
       if (d.warning) okEl.textContent = 'Filled with fallback. Review before publishing.';
       else okEl.textContent = 'Done. Review the fields and adjust before publishing.';
       okEl.style.display = 'block';
       document.querySelector('.form-section').scrollIntoView({ behavior:'smooth' });
     } catch (error) {
-      errEl.textContent = `Something went wrong. ${error.message || 'Please try again.'}`;
-      errEl.style.display = 'block';
+      const fallback = localAiFill(prompt, error.message || 'Request failed');
+      applyAiFill(fallback);
+      okEl.textContent = 'Filled with local fallback. Review before publishing.';
+      okEl.style.display = 'block';
+      document.querySelector('.form-section').scrollIntoView({ behavior:'smooth' });
     } finally {
       btn.disabled = false; btn.textContent = 'Generate';
     }
