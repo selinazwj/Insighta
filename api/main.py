@@ -2479,14 +2479,13 @@ async def _anthropic_ai_fill(prompt: str) -> dict:
         raise RuntimeError("ANTHROPIC_API_KEY is not configured")
     import anthropic
     configured_model = (os.environ.get("ANTHROPIC_AI_FILL_MODEL") or "").strip()
+    allow_expensive_models = (os.environ.get("ALLOW_EXPENSIVE_ANTHROPIC_MODELS") or "").strip().lower() == "true"
+    if configured_model and any(name in configured_model.lower() for name in ("opus", "fable")) and not allow_expensive_models:
+        raise RuntimeError("ANTHROPIC_AI_FILL_MODEL points to an expensive model. Use Haiku or set ALLOW_EXPENSIVE_ANTHROPIC_MODELS=true explicitly.")
     model_candidates = [
         configured_model,
         "claude-haiku-4-5-20251001",
         "claude-haiku-4-5",
-        "claude-sonnet-4-6",
-        "claude-opus-4-8",
-        "claude-fable-5",
-        "claude-sonnet-4-5",
         "claude-3-5-haiku-20241022",
     ]
     model_candidates = [m for i, m in enumerate(model_candidates) if m and m not in model_candidates[:i]]
@@ -2499,7 +2498,7 @@ Return ONLY a valid JSON object with these exact fields, no extra text:
     for model in model_candidates:
         try:
             message = client.messages.create(
-                model=model, max_tokens=1000,
+                model=model, max_tokens=450,
                 messages=[{"role": "user", "content": prompt_text}]
             )
             result = _parse_ai_fill_json(message.content[0].text)
