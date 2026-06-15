@@ -922,7 +922,9 @@ def login_page(
         "login_role": normalized_role,
         "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
     }))
-    if normalized_role == "researcher":
+    if normalized_role == "participant":
+        _mark_participant_app(response, request)
+    elif normalized_role == "researcher":
         _clear_participant_app(response, request)
     return response
 
@@ -1041,7 +1043,9 @@ def show_register(
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }
     ))
-    if normalized_role == "researcher":
+    if normalized_role == "participant":
+        _mark_participant_app(response, request)
+    elif normalized_role == "researcher":
         _clear_participant_app(response, request)
     return response
 
