@@ -176,6 +176,14 @@
     .fit-rating{color:#c05621;font-weight:700;display:block;margin-bottom:2px;}
     .channel-link{color:var(--green);font-weight:600;text-decoration:none;display:block;overflow-wrap:anywhere;}
     .channel-link:hover{text-decoration:underline;}
+    .listing-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+    .listing-search{height:38px;min-width:260px;border:0.5px solid var(--line2);border-radius:7px;padding:0 12px;font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--ink);}
+    .listing-search:focus{outline:none;border-color:var(--green);}
+    .listings-results{background:var(--bg);border:0.5px solid var(--line);border-radius:10px;overflow:hidden;}
+    .listing-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+    .listing-desc{font-size:12px;color:var(--ink3);max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .danger-btn{height:32px;padding:0 12px;border-radius:6px;border:0.5px solid var(--red-b);background:var(--red-l);color:#b91c1c;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;}
+    .danger-btn:hover{background:#fee2e2;}
 
     /* ── EMPTY / LOADING ── */
     .empty{text-align:center;padding:64px 20px;}
@@ -236,6 +244,10 @@
       <svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/><path d="M4 19h16"/></svg>
       Demo publishing
     </button>
+    <button class="nav-item" id="nav-listings" onclick="switchPanel('listings')">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
+      Listings
+    </button>
   </nav>
   <div class="sidebar-user">
     <div class="user-row" onclick="logout()">
@@ -267,7 +279,7 @@
       <div class="stat"><div class="stat-n green" id="statAmount">—</div><div class="stat-l">Total credit issued</div></div>
       <div class="stat"><div class="stat-n" id="statSupport">—</div><div class="stat-l">Open support threads</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
       <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('feedback')">
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Feedback review</div>
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Review user feedback, grant credits, or reject submissions.</div>
@@ -286,6 +298,11 @@
       <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('publish')">
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Demo publishing</div>
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Publish validation listings with a participant-facing display reward.</div>
+        <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
+      </div>
+      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('listings')">
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Listings</div>
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Review uploaded studies and delete test listings from admin.</div>
         <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
       </div>
     </div>
@@ -391,6 +408,18 @@
     </div>
   </div>
 
+  <!-- ── LISTINGS PANEL ── -->
+  <div class="panel" id="panel-listings">
+    <div class="listing-toolbar">
+      <input class="listing-search" id="listingSearch" placeholder="Search listings by title..." onkeydown="if(event.key==='Enter') loadListings()">
+      <button class="btn-run" onclick="loadListings()">Search</button>
+      <button class="btn-refresh" onclick="deleteKnownTestListings()">Delete campus life tests</button>
+    </div>
+    <div id="listingsResults" class="listings-results">
+      <div class="empty"><div class="empty-sub">Open this panel to load listings.</div></div>
+    </div>
+  </div>
+
 </div><!-- /main -->
 
 <script>
@@ -398,12 +427,13 @@
   let allFeedbacks = [];
   let currentFilter = 'all';
   let supportThreads = [];
+  let listings = [];
   let selectedThreadId = null;
   let supportPollTimer = null;
   let currentPanel = 'overview';
 
   // ── PANEL SWITCH ──
-  const PANEL_TITLES = { overview:'Overview', feedback:'Feedback review', support:'Support inbox', discovery:'Channel discovery', publish:'Demo publishing' };
+  const PANEL_TITLES = { overview:'Overview', feedback:'Feedback review', support:'Support inbox', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
 
   async function login() {
     const input = document.getElementById('adminKeyInput');
@@ -445,18 +475,101 @@
     currentPanel = id;
     if (id === 'feedback') loadFeedbacks();
     if (id === 'support')  loadSupportThreads();
+    if (id === 'listings') loadListings();
     if (id === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
 
   function refreshCurrent() {
     if (currentPanel === 'feedback') loadFeedbacks();
     else if (currentPanel === 'support') loadSupportThreads();
+    else if (currentPanel === 'listings') loadListings();
     else if (currentPanel === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
 
   function openAdminPublish() {
     if (!adminKey) return;
     window.location.href = `/admin/publish?admin_key=${encodeURIComponent(adminKey)}`;
+  }
+
+  // ── LISTINGS ──
+  async function loadListings() {
+    const wrap = document.getElementById('listingsResults');
+    const q = document.getElementById('listingSearch')?.value.trim() || '';
+    wrap.innerHTML = '<div class="empty"><div class="empty-sub">Loading listings...</div></div>';
+    try {
+      const res = await fetch(`/admin/listings?admin_key=${encodeURIComponent(adminKey)}&q=${encodeURIComponent(q)}`, {cache:'no-store'});
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Failed to load listings');
+      listings = await res.json();
+      renderListings();
+    } catch(err) {
+      wrap.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message)}</div></div>`;
+    }
+  }
+
+  function renderListings() {
+    const wrap = document.getElementById('listingsResults');
+    if (!listings.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-title">No listings found</div></div>';
+      return;
+    }
+    const rows = listings.map(s => {
+      const created = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+      const displayReward = s.admin_display_reward_amount ?? s.reward_amount ?? 0;
+      return `<tr>
+        <td>
+          <div class="listing-title">${esc(s.title)}</div>
+          <div class="listing-desc">${esc(s.description || '')}</div>
+        </td>
+        <td>${esc(s.status || '')}<br><span style="color:var(--ink3);">${esc(s.payment_status || '')}</span></td>
+        <td>${esc(s.task_type || '')}<br><span style="color:var(--ink3);">${esc(s.category || '')}</span></td>
+        <td>$${Number(displayReward || 0).toFixed(2)}</td>
+        <td>${s.completed_count || 0}/${s.target_responses || 0}</td>
+        <td>${esc(s.publisher_email || '')}</td>
+        <td>${created}</td>
+        <td><button class="danger-btn" onclick="deleteListing(${s.id}, '${escAttr(s.title)}')">Delete</button></td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>Listing</th><th>Status</th><th>Type</th><th>Reward</th><th>Responses</th><th>Publisher</th><th>Created</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+
+  async function deleteListing(id, title) {
+    if (!confirm(`Delete listing "${title}"? This also deletes related responses and quality data.`)) return;
+    try {
+      const res = await fetch(`/admin/listings/${id}/delete`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey })
+      });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Delete failed');
+      listings = listings.filter(s => s.id !== id);
+      renderListings();
+    } catch(err) {
+      alert(err.message);
+    }
+  }
+
+  async function deleteKnownTestListings() {
+    const titles = [
+      'Campus Life Discovery Survey',
+      'Help Improve Campus Life for Students Like You'
+    ];
+    if (!confirm(`Delete these test listings if present?\\n\\n${titles.join('\\n')}`)) return;
+    try {
+      const res = await fetch('/admin/listings/delete-by-title', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, titles })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.detail || 'Delete failed');
+      alert(`Deleted ${data.deleted?.length || 0} listing(s).`);
+      await loadListings();
+    } catch(err) {
+      alert(err.message);
+    }
   }
 
   // ── FEEDBACK ──
@@ -735,6 +848,10 @@
   // ── UTILS ──
   function esc(s) {
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function escAttr(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   function logout() {

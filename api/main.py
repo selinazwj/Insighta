@@ -1242,19 +1242,8 @@ def publisher_study(
 # ---------------------------
 # Delete survey
 # ---------------------------
-@app.post("/publisher/delete/{survey_id}")
-def delete_survey(
-    survey_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    survey = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.publisher_id == current_user.id
-    ).first()
-    if not survey:
-        raise HTTPException(404, "Survey not found")
-
+def _delete_survey_tree(db: Session, survey: Survey) -> None:
+    survey_id = survey.id
     # Delete dependent rows first. Postgres/Supabase enforces these foreign keys,
     # so deleting the survey directly can fail once quality/AI tracking exists.
     question_ids = [q.id for q in db.query(Question).filter(Question.survey_id == survey_id).all()]
@@ -1275,6 +1264,22 @@ def delete_survey(
     db.query(Response).filter(Response.survey_id == survey_id).delete(synchronize_session=False)
     db.delete(survey)
     db.commit()
+
+
+@app.post("/publisher/delete/{survey_id}")
+def delete_survey(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    _delete_survey_tree(db, survey)
     return RedirectResponse("/publisher", status_code=303)
 
 # ---------------------------
@@ -2907,6 +2912,75 @@ async def reject_feedback(feedback_id: int, request: Request, db: Session = Depe
     if not feedback: raise HTTPException(404, "Feedback not found")
     feedback.status = "rejected"; feedback.reviewed_at = datetime.utcnow(); db.commit()
     return JSONResponse({"success": True})
+
+@app.get("/admin/listings")
+async def admin_list_listings(
+    admin_key: str = Query(None),
+    q: str = Query(""),
+    db: Session = Depends(get_db),
+):
+    if not _admin_key_matches(admin_key): raise HTTPException(403, "Unauthorized")
+    query = db.query(Survey).order_by(Survey.created_at.desc())
+    search = (q or "").strip()
+    if search:
+        query = query.filter(Survey.title.ilike(f"%{search}%"))
+    surveys = query.limit(200).all()
+    publisher_ids = {s.publisher_id for s in surveys if s.publisher_id}
+    publishers = {}
+    if publisher_ids:
+        publishers = {u.id: u for u in db.query(User).filter(User.id.in_(publisher_ids)).all()}
+    result = []
+    for s in surveys:
+        completed_count = db.query(Response).filter(
+            Response.survey_id == s.id,
+            Response.status == "completed",
+        ).count()
+        publisher = publishers.get(s.publisher_id)
+        result.append({
+            "id": s.id,
+            "title": s.title,
+            "description": s.description,
+            "status": s.status,
+            "payment_status": s.payment_status,
+            "task_type": _normalize_task_type(getattr(s, "task_type", None)),
+            "category": s.category,
+            "reward_amount": s.reward_amount,
+            "admin_display_reward_amount": getattr(s, "admin_display_reward_amount", None),
+            "target_responses": s.target_responses,
+            "completed_count": completed_count,
+            "publisher_email": publisher.email if publisher else "unknown",
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+            "published_at": s.published_at.isoformat() if s.published_at else None,
+        })
+    return JSONResponse(result)
+
+
+@app.post("/admin/listings/{survey_id}/delete")
+async def admin_delete_listing(survey_id: int, request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    deleted = {"id": survey.id, "title": survey.title}
+    _delete_survey_tree(db, survey)
+    return JSONResponse({"success": True, "deleted": deleted})
+
+
+@app.post("/admin/listings/delete-by-title")
+async def admin_delete_listings_by_title(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
+    titles = [str(t).strip() for t in (body.get("titles") or []) if str(t).strip()]
+    if not titles:
+        raise HTTPException(400, "No titles provided")
+    surveys = db.query(Survey).filter(Survey.title.in_(titles)).all()
+    deleted = []
+    for survey in surveys:
+        deleted.append({"id": survey.id, "title": survey.title})
+        _delete_survey_tree(db, survey)
+    return JSONResponse({"success": True, "deleted": deleted})
+
 
 @app.get("/admin/feedbacks")
 async def list_feedbacks(request: Request, admin_key: str = Query(None), db: Session = Depends(get_db)):
