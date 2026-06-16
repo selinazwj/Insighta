@@ -118,6 +118,7 @@ class Survey(Base):
     category = Column(String, nullable=False)
     estimated_time = Column(Integer, nullable=False)
     image_url = Column(String, nullable=True)
+    share_slug = Column(String, unique=True, index=True, nullable=True)
 
     # Reward & progress
     reward_amount = Column(Float, nullable=False)

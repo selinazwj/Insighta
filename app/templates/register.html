@@ -314,7 +314,7 @@
     </div>
   </div>
   <div class="panel-footer">
-    <p>Already have an account? <a href="/login{% if register_role %}?role={{ register_role }}{% endif %}">Sign in →</a></p>
+    <p>Already have an account? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in →</a></p>
   </div>
 </div>
 
@@ -328,6 +328,7 @@
 
     <form method="POST" action="/register" id="registerForm">
       <input type="hidden" name="role" value="{{ register_role or '' }}">
+      <input type="hidden" name="next" value="{{ register_next or '' }}">
 
       <!-- STEP 1: Email + Verification -->
       <div class="step {% if register_step|default(1) == 1 %}active{% endif %}" id="step1">
@@ -368,7 +369,7 @@
         </div>
 
         <button type="button" class="btn-next" onclick="goToStep2()">Continue →</button>
-        <p class="form-footer">Already have an account? <a href="/login{% if register_role %}?role={{ register_role }}{% endif %}">Sign in</a></p>
+        <p class="form-footer">Already have an account? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in</a></p>
       </div>
 
       <!-- STEP 2: Password -->

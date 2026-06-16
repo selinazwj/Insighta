@@ -281,6 +281,10 @@
 
       <div class="action-group">
         <div class="action-group-head">Status</div>
+        <div class="action-row">
+          <div><div class="action-label">Share link</div><div class="action-desc">Copy the public recruitment page for this listing.</div></div>
+          <button type="button" class="action-btn primary" onclick="copyShareLink()">Copy link</button>
+        </div>
 
         {% if survey.status == 'draft' %}
         <div class="action-row">
@@ -368,6 +372,7 @@
 
 <script>
   const SURVEY_ID = {{ survey.id }};
+  const SHARE_URL = {{ share_url | tojson }};
 
   function switchTab(tab) {
     ['overview','actions','ai'].forEach(t => {
@@ -381,6 +386,15 @@
   // restore last tab
   const saved = localStorage.getItem('studyTab_' + SURVEY_ID);
   if (saved && saved !== 'overview') switchTab(saved);
+
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(SHARE_URL);
+      alert('Share link copied.');
+    } catch {
+      prompt('Copy this link', SHARE_URL);
+    }
+  }
 
   async function loadForecast(force) {
     const loading = document.getElementById('ai-loading');

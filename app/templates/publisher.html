@@ -292,6 +292,7 @@
           <a href="/surveys/{{ s.id }}/results" class="btn">Results</a>
           {% endif %}
 
+          <button class="btn" type="button" onclick="copyShareLink('/r/{{ s.share_slug }}')">Share link</button>
           <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
             <button class="btn">Edit</button>
           </form>
@@ -370,6 +371,7 @@
           </form>
           {% else %}<button class="btn btn-disabled">Close</button>{% endif %}
 
+          <button class="btn" type="button" onclick="copyShareLink('/r/{{ s.share_slug }}')">Share link</button>
           <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
             <button class="btn">Edit</button>
           </form>
@@ -419,6 +421,16 @@
   }
   function handleBackdropClick(e) { if (e.target === document.getElementById('newListingModal')) closeModal(); }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  async function copyShareLink(path) {
+    const url = new URL(path, window.location.origin).toString();
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Share link copied.');
+    } catch {
+      prompt('Copy this link', url);
+    }
+  }
 
   async function renderForecastCard(card, force=false) {
     const id = card.dataset.surveyId;

@@ -526,7 +526,10 @@
         <td>${s.completed_count || 0}/${s.target_responses || 0}</td>
         <td>${esc(s.publisher_email || '')}</td>
         <td>${created}</td>
-        <td><button class="danger-btn" onclick="deleteListing(${s.id}, '${escAttr(s.title)}')">Delete</button></td>
+        <td>
+          <button class="btn-refresh" onclick="copyListingLink('${escAttr(s.share_url || '')}')">Copy link</button>
+          <button class="danger-btn" onclick="deleteListing(${s.id}, '${escAttr(s.title)}')">Delete</button>
+        </td>
       </tr>`;
     }).join('');
     wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
@@ -548,6 +551,16 @@
       renderListings();
     } catch(err) {
       alert(err.message);
+    }
+  }
+
+  async function copyListingLink(url) {
+    if (!url) { alert('This listing does not have a share link yet.'); return; }
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Share link copied.');
+    } catch {
+      prompt('Copy this link', url);
     }
   }
 

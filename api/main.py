@@ -112,6 +112,7 @@ def ensure_survey_listing_columns():
         "raffle_prize_type": "VARCHAR",
         "availability_slots": "TEXT",
         "admin_display_reward_amount": "FLOAT",
+        "share_slug": "VARCHAR",
         "quality_auto_filter_enabled": "BOOLEAN DEFAULT false",
         "quality_auto_filter_min_score": "FLOAT DEFAULT 80.0",
     }
@@ -521,6 +522,34 @@ def _post_auth_url_with_next(
     if normalized_role == "researcher":
         return "/publisher"
     return _post_auth_url(request, participant_app, welcome=welcome)
+
+def _absolute_url(request: Request, path: str) -> str:
+    base = str(request.base_url).rstrip("/")
+    if not path.startswith("/"):
+        path = f"/{path}"
+    return f"{base}{path}"
+
+def _new_share_slug() -> str:
+    return secrets.token_urlsafe(8).replace("-", "").replace("_", "")[:10]
+
+def _ensure_survey_share_slug(db: Session, survey: Survey, commit: bool = False) -> str:
+    if getattr(survey, "share_slug", None):
+        return survey.share_slug
+    for _ in range(12):
+        slug = _new_share_slug()
+        if not db.query(Survey).filter(Survey.share_slug == slug).first():
+            survey.share_slug = slug
+            if commit:
+                db.commit()
+                db.refresh(survey)
+            return slug
+    raise HTTPException(500, "Could not create share link")
+
+def _survey_share_path(db: Session, survey: Survey, commit: bool = False) -> str:
+    return f"/r/{_ensure_survey_share_slug(db, survey, commit=commit)}"
+
+def _survey_share_url(request: Request, db: Session, survey: Survey, commit: bool = False) -> str:
+    return _absolute_url(request, _survey_share_path(db, survey, commit=commit))
 
 def _mark_participant_app(response: RedirectResponse, request: Optional[Request] = None):
     response.set_cookie(
@@ -1031,15 +1060,18 @@ def password_reset(
 def show_register(
     request: Request,
     role: Optional[str] = None,
+    next: Optional[str] = None,
     participant_app: Optional[str] = Cookie(None)
 ):
     normalized_role = role if role in {"participant", "researcher"} else ""
+    register_next = next if is_safe_internal_next(next) else ""
     response = no_store_response(templates.TemplateResponse(
         "register.html",
         {
             "request": request, "error": None, "register_email": "", "register_phone": "", "register_code": "",
             "register_step": 1,
             "register_role": normalized_role,
+            "register_next": register_next,
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }
     ))
@@ -1061,6 +1093,7 @@ async def do_register(
     password = form.get("password") or ""
     confirm = form.get("confirm") or ""
     verification_code = form.get("verification_code") or ""
+    next_url = form.get("next") or ""
     role = (form.get("role") or "").strip().lower()
     role = role if role in {"participant", "researcher"} else None
 
@@ -1071,6 +1104,7 @@ async def do_register(
             "register_code": verification_code,
             "register_step": step,
             "register_role": role or "",
+            "register_next": next_url if is_safe_internal_next(next_url) else "",
             "participant_app": _auth_uses_participant_app(request, role, participant_app),
         }))
         if role == "researcher":
@@ -1095,7 +1129,7 @@ async def do_register(
     db.commit()
     db.refresh(user)
 
-    response = RedirectResponse(_post_auth_url_with_next(request, participant_app, role=role, welcome=True), status_code=303)
+    response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next_url, role=role, welcome=True), status_code=303)
     response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
     if role == "participant":
         _mark_participant_app(response, request)
@@ -1118,6 +1152,60 @@ def get_current_user(
     if not user:
         raise HTTPException(401, "User not found")
     return user
+
+@app.get("/r/{share_slug}", response_class=HTMLResponse)
+def recruitment_share_page(
+    share_slug: str,
+    request: Request,
+    user_id: str = Cookie(None),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(Survey.share_slug == share_slug).first()
+    if not survey:
+        raise HTTPException(404, "Listing not found")
+    if survey.status not in {"published", "closed"}:
+        raise HTTPException(404, "Listing is not published")
+
+    current_user = None
+    user_response = None
+    if user_id:
+        try:
+            current_user = db.query(User).filter(User.id == int(user_id)).first()
+        except Exception:
+            current_user = None
+    if current_user:
+        user_response = db.query(Response).filter(
+            Response.survey_id == survey.id,
+            Response.participant_id == current_user.id,
+        ).first()
+
+    availability_slots = []
+    if getattr(survey, "availability_slots", None):
+        try:
+            parsed_slots = json.loads(survey.availability_slots)
+            if isinstance(parsed_slots, list):
+                availability_slots = parsed_slots
+        except Exception:
+            availability_slots = []
+
+    display_reward = getattr(survey, "admin_display_reward_amount", None)
+    if display_reward is None:
+        display_reward = survey.reward_amount
+
+    next_path = f"/r/{share_slug}"
+    return templates.TemplateResponse("recruitment_share.html", {
+        "request": request,
+        "survey": survey,
+        "current_user": current_user,
+        "user_response": user_response,
+        "availability_slots": availability_slots,
+        "display_reward": display_reward,
+        "share_url": _absolute_url(request, next_path),
+        "login_url": f"/login?{urlencode({'role': 'participant', 'next': next_path})}",
+        "register_url": f"/register?{urlencode({'role': 'participant', 'next': next_path})}",
+        "is_builtin": survey.form_url == "__builtin__",
+        "is_interview": _normalize_task_type(getattr(survey, "task_type", None)) == "interview",
+    })
 
 
 # ---------------------------
@@ -1162,6 +1250,13 @@ def publisher_dashboard(
     if not current_user:
         return RedirectResponse("/login", status_code=303)
     all_items = db.query(Survey).filter(Survey.publisher_id == current_user.id).all()
+    slugs_changed = False
+    for item in all_items:
+        if not getattr(item, "share_slug", None):
+            _ensure_survey_share_slug(db, item)
+            slugs_changed = True
+    if slugs_changed:
+        db.commit()
     survey_ids = [s.id for s in all_items]
 
     if not survey_ids:
@@ -1237,6 +1332,7 @@ def publisher_study(
         "current_user": current_user,
         "availability_slots": availability_slots,
         "booking_rows": booking_rows,
+        "share_url": _survey_share_url(request, db, survey, commit=True),
     })
 
 # ---------------------------
@@ -2031,6 +2127,7 @@ async def publish_interview(
         availability_slots=availability_slots,
         status="draft", published_at=None, closed_at=None,
     )
+    _ensure_survey_share_slug(db, survey)
     db.add(survey); db.commit()
     return RedirectResponse("/publisher", status_code=303)
 
@@ -2915,6 +3012,7 @@ async def reject_feedback(feedback_id: int, request: Request, db: Session = Depe
 
 @app.get("/admin/listings")
 async def admin_list_listings(
+    request: Request,
     admin_key: str = Query(None),
     q: str = Query(""),
     db: Session = Depends(get_db),
@@ -2925,6 +3023,13 @@ async def admin_list_listings(
     if search:
         query = query.filter(Survey.title.ilike(f"%{search}%"))
     surveys = query.limit(200).all()
+    slugs_changed = False
+    for s in surveys:
+        if not getattr(s, "share_slug", None):
+            _ensure_survey_share_slug(db, s)
+            slugs_changed = True
+    if slugs_changed:
+        db.commit()
     publisher_ids = {s.publisher_id for s in surveys if s.publisher_id}
     publishers = {}
     if publisher_ids:
@@ -2951,6 +3056,7 @@ async def admin_list_listings(
             "publisher_email": publisher.email if publisher else "unknown",
             "created_at": s.created_at.isoformat() if s.created_at else None,
             "published_at": s.published_at.isoformat() if s.published_at else None,
+            "share_url": _survey_share_url(request, db, s),
         })
     return JSONResponse(result)
 
@@ -3090,6 +3196,7 @@ def create_builtin_survey(
         target_responses=50,
         status="draft",
     )
+    _ensure_survey_share_slug(db, survey)
     db.add(survey)
     db.commit()
     db.refresh(survey)
@@ -3205,6 +3312,7 @@ async def publish_survey(
         survey.target_lifestyle_tags = target_lifestyle_tags
         survey.target_niche_requirements = target_niche_requirements
         survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish else None
+        _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
         db.commit()
         db.refresh(survey)
@@ -3239,6 +3347,7 @@ async def publish_survey(
             admin_display_reward_amount=admin_display_reward_amount if admin_publish else None,
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
+        _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
         db.add(survey); db.commit(); db.refresh(survey)
 
