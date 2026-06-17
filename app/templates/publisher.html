@@ -48,6 +48,10 @@
     .notif-type-interview { background: rgba(124,58,237,0.1); color: #7c3aed; }
     .notif-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
     .notif-email { font-size: 12px; color: var(--ink-muted); margin-bottom: 8px; }
+    /* ive added these for verification — show participant verification status to the researcher */
+    .notif-verify { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; margin-bottom: 8px; }
+    .notif-verify.warn { background: #FEF3C7; color: #92400E; }
+    .notif-verify.ok { background: rgba(45,106,79,0.1); color: var(--accent); }
     .notif-time { font-size: 11px; color: var(--ink-muted); }
     .notif-actions { display: flex; gap: 8px; margin-top: 10px; }
     .notif-accept { flex: 1; padding: 6px 0; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
@@ -490,6 +494,13 @@
       const acceptActive = n.status === 'accepted';
       const rejectActive = n.status === 'rejected';
       const decided = acceptActive || rejectActive;
+      // ive added this for verification — warn the researcher if this survey needs verification
+      let verifyHtml = '';
+      if (n.requires_verification) {
+        verifyHtml = n.verification_warning
+          ? `<div class="notif-verify warn">⚠ Participant not verified</div>`
+          : `<div class="notif-verify ok">✓ Participant verified</div>`;
+      }
       const actionHtml = `<div class="notif-actions">
         <button class="notif-accept ${acceptActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'accept')">
           ${acceptActive ? '✓ Accepted' : '✓ Accept'}
@@ -503,6 +514,7 @@
           <span class="notif-type-tag ${typeClass}">${typeLabel}</span>
           <div class="notif-title">${n.survey_title}</div>
           <div class="notif-email">📧 ${n.participant_email}</div>
+          ${verifyHtml}
           <div class="notif-time">${n.created_at}</div>
           ${actionHtml}
         </div>`;

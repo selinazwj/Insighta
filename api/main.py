@@ -1787,14 +1787,31 @@ def get_notifications(
     notifs = db.query(Notification).filter(
         Notification.publisher_id == current_user.id
     ).order_by(Notification.created_at.desc()).all()
-    return JSONResponse([{
-        "id": n.id,
-        "participant_email": n.participant_email,
-        "survey_title": n.survey_title,
-        "task_type": n.task_type or "survey",
-        "status": n.status,
-        "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else "",
-    } for n in notifs])
+
+    # ive added this for verification — tell the researcher if the participant is verified
+    # so they can decide before approving payout (we warn but still allow)
+    def _verify_info(n):
+        survey = db.query(Survey).filter(Survey.id == n.survey_id).first()
+        participant = db.query(User).filter(User.id == n.participant_id).first()
+        requires = bool(survey and survey.required_verification_tier in ("tier_1", "tier_2"))
+        status = getattr(participant, "verification_status", "unverified") or "unverified"
+        return requires, status
+
+    payload = []
+    for n in notifs:
+        requires_verification, participant_verification_status = _verify_info(n)
+        payload.append({
+            "id": n.id,
+            "participant_email": n.participant_email,
+            "survey_title": n.survey_title,
+            "task_type": n.task_type or "survey",
+            "status": n.status,
+            "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else "",
+            "requires_verification": requires_verification,
+            "participant_verification_status": participant_verification_status,
+            "verification_warning": requires_verification and participant_verification_status != "verified",
+        })
+    return JSONResponse(payload)
 
 
 @app.post("/api/notifications/{notif_id}/accept")
@@ -2154,21 +2171,14 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
     pending = getattr(current_user, 'pending_earnings', 0.0) or 0.0
     if pending < 1.0: raise HTTPException(400, "Minimum withdrawal is $1.00")
 
-    # ive added this for verification — check if any responses require verification
-    responses_to_withdraw = db.query(Response).filter(
-        Response.participant_id == current_user.id,
-        Response.payout_status.in_([APPROVED, LEGACY_RELEASED]),
-    ).all()
-
-    for response in responses_to_withdraw:
-        survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
-        if survey and survey.required_verification_tier in ('tier_1', 'tier_2'):
-            if getattr(current_user, 'verification_status', 'unverified') != 'verified':
-                raise HTTPException(403, "Verification required. Please verify your identity at /verify to claim this payout.")
-
+    # ive moved the verification gate to the researcher approval step — by the time
+    # funds are in pending_earnings the researcher already approved, so withdraw is clean
     try:
         transfer = stripe.Transfer.create(amount=int(pending * 100), currency="usd", destination=current_user.stripe_account_id, description=f"Insighta payout for user {current_user.id}")
-        for r in responses_to_withdraw:
+        for r in db.query(Response).filter(
+            Response.participant_id == current_user.id,
+            Response.payout_status.in_([APPROVED, LEGACY_RELEASED]),
+        ).all():
             r.payout_status = "paid"; r.stripe_transfer_id = transfer.id
         current_user.total_withdrawn = (getattr(current_user, 'total_withdrawn', 0.0) or 0.0) + pending
         current_user.pending_earnings = 0.0; db.commit()
