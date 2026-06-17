@@ -2160,6 +2160,26 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
 
 
 # ---------------------------
+# Identity verification
+# ---------------------------
+
+@app.get("/verify", response_class=HTMLResponse)
+def verify_page(request: Request, current_user: User = Depends(get_current_user)):
+    # ive added this for verification — placeholder for identity verification
+    return templates.TemplateResponse("verify.html", {"request": request, "current_user": current_user})
+
+
+@app.post("/verify")
+def verify_user(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # ive added this for verification — marks user as verified tier_3
+    current_user.verification_status = "verified"
+    current_user.verified_tier = "tier_3"
+    current_user.verified_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse("/participant", status_code=303)
+
+
+# ---------------------------
 # Survey status management
 # ---------------------------
 
