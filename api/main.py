@@ -1061,6 +1061,7 @@ async def do_register(
     password = form.get("password") or ""
     confirm = form.get("confirm") or ""
     verification_code = form.get("verification_code") or ""
+    occupation = (form.get("occupation") or "").strip()
     role = (form.get("role") or "").strip().lower()
     role = role if role in {"participant", "researcher"} else None
 
@@ -1081,6 +1082,7 @@ async def do_register(
     if password != confirm: return reg_error("Passwords do not match.", step=2)
     pw_error = _validate_registration_password(password)
     if pw_error: return reg_error(pw_error, step=2)
+    if not occupation: return reg_error("Occupation is required.", step=3)
     if db.query(User).filter(User.email == email).first():
         return reg_error("Email already exists.")
     if not _consume_verification_code(db, email, "register", verification_code):
@@ -1090,6 +1092,7 @@ async def do_register(
         email=email,
         password=pwd_context.hash(password),
         phone_number=phone_number or None,
+        occupation=occupation,
     )
     db.add(user)
     db.commit()

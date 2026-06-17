@@ -312,6 +312,10 @@
       <div class="step-dot">2</div>
       <div class="step-info"><h4>Create Password</h4><p>Secure your account</p></div>
     </div>
+    <div class="panel-step {% if register_step|default(1) == 3 %}active{% endif %}" id="panelStep3">
+      <div class="step-dot">3</div>
+      <div class="step-info"><h4>Your Occupation</h4><p>Helps match you with studies</p></div>
+    </div>
   </div>
   <div class="panel-footer">
     <p>Already have an account? <a href="/login{% if register_role %}?role={{ register_role }}{% endif %}">Sign in →</a></p>
@@ -374,7 +378,7 @@
       <!-- STEP 2: Password -->
       <div class="step {% if register_step|default(1) == 2 %}active{% endif %}" id="step2">
         <div class="step-header">
-          <span class="step-eyebrow">Step 2 of 2</span>
+          <span class="step-eyebrow">Step 2 of 3</span>
           <h1>Create a password.</h1>
           <p>Choose a strong password. We will ask for your profile details after you enter the app.</p>
         </div>
@@ -394,8 +398,46 @@
           <input type="password" name="confirm" id="confirm" required placeholder="••••••••">
         </div>
 
-        <button type="button" class="btn-next" onclick="requestConsent()">Create Account →</button>
+        <button type="button" class="btn-next" onclick="goToStep3()">Continue →</button>
         <button type="button" class="btn-back" onclick="backToStep1()">← Back</button>
+      </div>
+
+      <!-- STEP 3: Occupation -->
+      <div class="step {% if register_step|default(1) == 3 %}active{% endif %}" id="step3">
+        <div class="step-header">
+          <span class="step-eyebrow">Step 3 of 3</span>
+          <h1>What's your occupation?</h1>
+          <p>This helps us match you with relevant research studies. ive added this for verification</p>
+        </div>
+
+        <div class="form-group">
+          <label>Occupation <span class="badge-required">Required</span></label>
+          <select name="occupation" id="occupation" required>
+            <option value="">Select your occupation</option>
+            <optgroup label="Tier 1 — Licensed Professionals">
+              <option value="physician">Physician</option>
+              <option value="nurse">Nurse</option>
+              <option value="lawyer">Lawyer</option>
+              <option value="therapist">Therapist</option>
+              <option value="engineer">Engineer</option>
+            </optgroup>
+            <optgroup label="Tier 2 — Professionals">
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+              <option value="it_professional">IT Professional</option>
+              <option value="researcher">Researcher</option>
+              <option value="marketer">Marketer</option>
+              <option value="business">Business</option>
+            </optgroup>
+            <optgroup label="Tier 3 — General">
+              <option value="general_public">General Public</option>
+              <option value="other">Other</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <button type="button" class="btn-next" onclick="requestConsent()">Create Account →</button>
+        <button type="button" class="btn-back" onclick="backToStep2()">← Back</button>
       </div>
 
     </form>
@@ -512,6 +554,48 @@
     window.scrollTo(0, 0);
   }
 
+  function goToStep3() {
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm').value;
+    let hasError = false;
+
+    ['password', 'confirm'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) {
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+        hasError = true;
+        el.addEventListener('input', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
+      } else {
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+      }
+    });
+    if (hasError) return;
+    if (password !== confirm) {
+      const el = document.getElementById('confirm');
+      el.style.borderColor = '#ef4444';
+      el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      return;
+    }
+
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step3').classList.add('active');
+    document.getElementById('panelStep2').classList.remove('active');
+    document.getElementById('panelStep2').classList.add('done');
+    document.getElementById('panelStep3').classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function backToStep2() {
+    document.getElementById('step3').classList.remove('active');
+    document.getElementById('step2').classList.add('active');
+    document.getElementById('panelStep3').classList.remove('active');
+    document.getElementById('panelStep2').classList.remove('done');
+    document.getElementById('panelStep2').classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
   // ── Password strength ─────────────────────────────────────
   function checkPasswordStrength(val) {
     const fill = document.getElementById('pwBarFill');
@@ -581,9 +665,19 @@
   document.getElementById('panelStep1').classList.remove('active');
   document.getElementById('panelStep1').classList.add('done');
   document.getElementById('panelStep2').classList.add('active');
+  {% elif register_step|default(1) == 3 %}
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.remove('active');
+  document.getElementById('step3').classList.add('active');
+  document.getElementById('panelStep1').classList.remove('active');
+  document.getElementById('panelStep1').classList.add('done');
+  document.getElementById('panelStep2').classList.remove('active');
+  document.getElementById('panelStep2').classList.add('done');
+  document.getElementById('panelStep3').classList.add('active');
   {% else %}
   document.getElementById('step1').classList.add('active');
   document.getElementById('step2').classList.remove('active');
+  document.getElementById('step3').classList.remove('active');
   {% endif %}
   {% endif %}
 </script>
