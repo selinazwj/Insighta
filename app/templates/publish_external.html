@@ -795,11 +795,66 @@
       </div>
     </div>
 
-
-    <!-- 05 QUALITY AUTO FILTER -->
+    <!-- 05 VERIFICATION REQUIREMENTS -->
     <div class="form-section">
       <div class="section-head">
         <div class="section-num">05</div>
+        <div>
+          <div class="section-title">Verification requirements</div>
+          <div class="section-sub">Specify participant credentials needed to take this study</div>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="field">
+          <label>Required occupation</label>
+          <select name="required_occupation">
+            <option value="">Any occupation</option>
+            <optgroup label="Tier 1 — Licensed Professionals">
+              <option value="physician" {% if existing_survey and existing_survey.required_occupation == 'physician' %}selected{% endif %}>Physician</option>
+              <option value="nurse" {% if existing_survey and existing_survey.required_occupation == 'nurse' %}selected{% endif %}>Nurse</option>
+              <option value="lawyer" {% if existing_survey and existing_survey.required_occupation == 'lawyer' %}selected{% endif %}>Lawyer</option>
+              <option value="therapist" {% if existing_survey and existing_survey.required_occupation == 'therapist' %}selected{% endif %}>Therapist</option>
+              <option value="engineer" {% if existing_survey and existing_survey.required_occupation == 'engineer' %}selected{% endif %}>Engineer</option>
+            </optgroup>
+            <optgroup label="Tier 2 — Professionals">
+              <option value="student" {% if existing_survey and existing_survey.required_occupation == 'student' %}selected{% endif %}>Student</option>
+              <option value="teacher" {% if existing_survey and existing_survey.required_occupation == 'teacher' %}selected{% endif %}>Teacher</option>
+              <option value="it_professional" {% if existing_survey and existing_survey.required_occupation == 'it_professional' %}selected{% endif %}>IT Professional</option>
+              <option value="researcher" {% if existing_survey and existing_survey.required_occupation == 'researcher' %}selected{% endif %}>Researcher</option>
+              <option value="marketer" {% if existing_survey and existing_survey.required_occupation == 'marketer' %}selected{% endif %}>Marketer</option>
+              <option value="business" {% if existing_survey and existing_survey.required_occupation == 'business' %}selected{% endif %}>Business</option>
+            </optgroup>
+            <optgroup label="Tier 3 — General">
+              <option value="general_public" {% if existing_survey and existing_survey.required_occupation == 'general_public' %}selected{% endif %}>General Public</option>
+              <option value="other" {% if existing_survey and existing_survey.required_occupation == 'other' %}selected{% endif %}>Other</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="field">
+          <label>Verification tier</label>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">
+            <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
+              <input type="radio" name="required_verification_tier" value="tier_1" {% if existing_survey and existing_survey.required_verification_tier == 'tier_1' %}checked{% endif %}>
+              <span>Tier 1 — Strict verification</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
+              <input type="radio" name="required_verification_tier" value="tier_2" {% if existing_survey and existing_survey.required_verification_tier == 'tier_2' %}checked{% endif %}>
+              <span>Tier 2 — Standard verification</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
+              <input type="radio" name="required_verification_tier" value="tier_3" {% if existing_survey and (existing_survey.required_verification_tier == 'tier_3' or not existing_survey.required_verification_tier) %}checked{% endif %} checked>
+              <span>Tier 3 — Basic / any participant</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="field-hint" style="margin-top:14px;">ive added this for verification — tier 3 (basic) is the default and allows general public participation.</div>
+    </div>
+
+    <!-- 06 QUALITY AUTO FILTER -->
+    <div class="form-section">
+      <div class="section-head">
+        <div class="section-num">06</div>
         <div>
           <div class="section-title">Quality auto filter</div>
           <div class="section-sub">Auto-approve strong responses and flag weaker ones for review</div>
@@ -828,10 +883,10 @@
       </div>
     </div>
 
-    <!-- 06 NICHE REQUIREMENTS -->
+    <!-- 07 NICHE REQUIREMENTS -->
     <div class="form-section">
       <div class="section-head">
-        <div class="section-num">06</div>
+        <div class="section-num">07</div>
         <div>
           <div class="section-title">Any niche requirements?</div>
           <div class="section-sub">Add very specific criteria we should consider during manual matching</div>

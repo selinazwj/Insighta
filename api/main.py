@@ -1974,6 +1974,7 @@ async def publish_interview(
     availability_notes: Optional[str] = Form(None), interview_location: Optional[str] = Form(None),
     urgency_level: Optional[str] = Form(None), deadline_date: Optional[str] = Form(None),
     incentive_type: Optional[str] = Form(None), per_person_gross: Optional[float] = Form(None),
+    required_occupation: str = Form(None), required_verification_tier: str = Form(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
@@ -2026,6 +2027,8 @@ async def publish_interview(
         target_income_level=_clean_target(form.get("target_income_level")),
         target_lifestyle_tags=",".join(lifestyle_list) if lifestyle_list else None,
         target_niche_requirements=_clean_target(form.get("target_niche_requirements")),
+        required_occupation=_clean_target(required_occupation),
+        required_verification_tier=_clean_target(required_verification_tier) or "tier_3",
         availability_slots=availability_slots,
         status="draft", published_at=None, closed_at=None,
     )
@@ -2251,6 +2254,7 @@ async def edit_survey_post(
     target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
     target_participation_format: str = Form(None), target_device: str = Form(None),
     target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
+    required_occupation: str = Form(None), required_verification_tier: str = Form(None),
     cover_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -2297,6 +2301,8 @@ async def edit_survey_post(
     survey.target_income_level = _clean_target(target_income_level)
     survey.target_lifestyle_tags = target_lifestyle_tags
     survey.target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
+    survey.required_occupation = _clean_target(required_occupation)
+    survey.required_verification_tier = _clean_target(required_verification_tier) or "tier_3"
     _apply_survey_auto_filter_settings(survey, form)
 
     if cover_image and cover_image.filename:
@@ -3060,6 +3066,7 @@ async def publish_survey(
     target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
     target_participation_format: str = Form(None), target_device: str = Form(None),
     target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
+    required_occupation: str = Form(None), required_verification_tier: str = Form(None),
     cover_image: UploadFile = File(None),
     admin_display_reward_amount: Optional[float] = Form(None),
     admin_publish: bool = False,
@@ -3153,6 +3160,8 @@ async def publish_survey(
         survey.target_income_level = _clean_target(target_income_level)
         survey.target_lifestyle_tags = target_lifestyle_tags
         survey.target_niche_requirements = target_niche_requirements
+        survey.required_occupation = _clean_target(required_occupation)
+        survey.required_verification_tier = _clean_target(required_verification_tier) or "tier_3"
         survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish else None
         _apply_survey_auto_filter_settings(survey, form)
         db.commit()
@@ -3185,6 +3194,8 @@ async def publish_survey(
             target_income_level=_clean_target(target_income_level),
             target_lifestyle_tags=target_lifestyle_tags,
             target_niche_requirements=target_niche_requirements,
+            required_occupation=_clean_target(required_occupation),
+            required_verification_tier=_clean_target(required_verification_tier) or "tier_3",
             admin_display_reward_amount=admin_display_reward_amount if admin_publish else None,
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
