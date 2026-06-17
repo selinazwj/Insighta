@@ -2148,12 +2148,22 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
         raise HTTPException(400, "Please complete Stripe onboarding first")
     pending = getattr(current_user, 'pending_earnings', 0.0) or 0.0
     if pending < 1.0: raise HTTPException(400, "Minimum withdrawal is $1.00")
+
+    # ive added this for verification — check if any responses require verification
+    responses_to_withdraw = db.query(Response).filter(
+        Response.participant_id == current_user.id,
+        Response.payout_status.in_([APPROVED, LEGACY_RELEASED]),
+    ).all()
+
+    for response in responses_to_withdraw:
+        survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+        if survey and survey.required_verification_tier in ('tier_1', 'tier_2'):
+            if getattr(current_user, 'verification_status', 'unverified') != 'verified':
+                raise HTTPException(403, "Verification required. Please verify your identity at /verify to claim this payout.")
+
     try:
         transfer = stripe.Transfer.create(amount=int(pending * 100), currency="usd", destination=current_user.stripe_account_id, description=f"Insighta payout for user {current_user.id}")
-        for r in db.query(Response).filter(
-            Response.participant_id == current_user.id,
-            Response.payout_status.in_([APPROVED, LEGACY_RELEASED]),
-        ).all():
+        for r in responses_to_withdraw:
             r.payout_status = "paid"; r.stripe_transfer_id = transfer.id
         current_user.total_withdrawn = (getattr(current_user, 'total_withdrawn', 0.0) or 0.0) + pending
         current_user.pending_earnings = 0.0; db.commit()
