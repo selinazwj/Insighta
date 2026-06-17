@@ -159,6 +159,42 @@
       color: var(--ink);
     }
 
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-box {
+      background: #fff5f5;
+      color: #c53030;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      border: 1px solid #fed7d7;
+      text-align: left;
+    }
+
+    /* OTP flow */
+    .code-row { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }
+    .code-row input {
+      flex: 1; height: 48px; padding: 0 14px;
+      border: 1px solid var(--line); border-radius: 10px;
+      font-family: var(--sans); font-size: 20px; font-weight: 600;
+      letter-spacing: 6px; text-align: center; color: var(--ink);
+      background: var(--paper-warm);
+    }
+    .code-row input:focus { outline: none; border-color: var(--accent); background: white; }
+    .btn-send-code {
+      height: 48px; padding: 0 18px; flex-shrink: 0;
+      background: white; color: var(--accent);
+      border: 1.5px solid var(--line); border-radius: 10px;
+      font-family: var(--sans); font-size: 14px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: all .2s;
+    }
+    .btn-send-code:hover { background: var(--paper-warm); border-color: var(--accent); }
+    .btn-send-code:disabled { opacity: 0.5; cursor: not-allowed; }
+    .code-hint { font-size: 13px; color: var(--ink-muted); margin: -2px 0 22px; text-align: left; }
+    .code-hint.success { color: var(--accent); }
+    .code-hint.error { color: #c53030; }
+
     @media (max-width: 480px) {
       .card { padding: 40px 24px; }
     }
@@ -169,31 +205,76 @@
 <div class="card">
   <div class="shield-icon">🛡️</div>
 
-  <h1>Verify yourself</h1>
+  {% if current_user.verification_status == 'verified' %}
+  <h1>You're verified</h1>
   <p class="subtitle">
-    To claim your payout, we need to verify your identity.<br>
-    This takes just a moment.
+    Your identity has been verified.<br>
+    You can now withdraw your earnings.
   </p>
-
   <div class="info-box">
     <div class="label">Verification status</div>
-    <div class="message">
-      {% if current_user.verification_status == 'verified' %}
-      ✓ You're verified and can withdraw your earnings.
-      {% else %}
-      You haven't verified your identity yet. Click below to get started.
-      {% endif %}
-    </div>
+    <div class="message">✓ Verified ({{ current_user.verified_tier or 'tier_3' }})</div>
   </div>
+  <a href="/participant" class="btn-secondary">Back to Dashboard</a>
 
-  {% if current_user.verification_status != 'verified' %}
-  <form method="POST" action="/verify">
-    <button type="submit" class="btn-primary">Start Verification →</button>
-  </form>
+  {% else %}
+  <h1>Verify yourself</h1>
+  <p class="subtitle">
+    To claim your payout, verify your identity with a one-time<br>
+    code we'll send to your email. This takes just a moment.
+  </p>
+
+  {% if error %}
+  <div class="error-box">{{ error }}</div>
   {% endif %}
 
+  <!-- ive added this for verification — OTP step (phase 2a) -->
+  <form method="POST" action="/verify" id="verifyForm">
+    <div class="code-row">
+      <input type="text" name="verification_code" id="verificationCode"
+        placeholder="6-digit code" maxlength="6" autocomplete="one-time-code"
+        inputmode="numeric" required>
+      <button type="button" class="btn-send-code" id="btnSendCode" onclick="sendVerifyCode()">
+        Send Code
+      </button>
+    </div>
+    <div class="code-hint" id="codeHint">Click "Send Code" to get a code at your email.</div>
+
+    <button type="submit" class="btn-primary">Verify & Claim Payout →</button>
+  </form>
+
   <a href="/participant" class="btn-secondary">Back to Dashboard</a>
+  {% endif %}
 </div>
+
+<script>
+  // ive added this for verification — request an OTP to the logged in users email
+  async function sendVerifyCode() {
+    const btn = document.getElementById('btnSendCode');
+    const hint = document.getElementById('codeHint');
+    btn.disabled = true; btn.textContent = 'Sending...';
+    hint.textContent = ''; hint.className = 'code-hint';
+    try {
+      const res = await fetch('/verify/send-code', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        hint.textContent = data.message; hint.className = 'code-hint success';
+        let secs = 60;
+        const interval = setInterval(() => {
+          secs--;
+          btn.textContent = `Resend (${secs}s)`;
+          if (secs <= 0) { clearInterval(interval); btn.disabled = false; btn.textContent = 'Resend Code'; }
+        }, 1000);
+      } else {
+        hint.textContent = data.message; hint.className = 'code-hint error';
+        btn.disabled = false; btn.textContent = 'Send Code';
+      }
+    } catch {
+      hint.textContent = 'Network error. Please try again.'; hint.className = 'code-hint error';
+      btn.disabled = false; btn.textContent = 'Send Code';
+    }
+  }
+</script>
 
 </body>
 </html>

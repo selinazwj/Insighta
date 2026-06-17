@@ -605,6 +605,11 @@ def _send_verification_email(email: str, purpose: str, code: str):
         subject = "Insighta registration verification code"
         title = "Verify your email"
         body_text = "Use the following verification code to finish creating your Insighta account."
+    elif purpose == "verify_identity":
+        # ive added this for verification — copy for the identity verification OTP
+        subject = "Insighta identity verification code"
+        title = "Verify your identity"
+        body_text = "Use the following verification code to verify your identity and claim your payout."
     else:
         subject = "Insighta password reset verification code"
         title = "Reset your password"
@@ -2178,17 +2183,43 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
 
 @app.get("/verify", response_class=HTMLResponse)
 def verify_page(request: Request, current_user: User = Depends(get_current_user)):
-    # ive added this for verification — placeholder for identity verification
-    return templates.TemplateResponse("verify.html", {"request": request, "current_user": current_user})
+    # ive added this for verification — shows the OTP verification page
+    return no_store_response(templates.TemplateResponse("verify.html", {
+        "request": request, "current_user": current_user, "error": None,
+    }))
 
 
-@app.post("/verify")
-def verify_user(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # ive added this for verification — marks user as verified tier_3
-    current_user.verification_status = "verified"
-    current_user.verified_tier = "tier_3"
-    current_user.verified_at = datetime.utcnow()
-    db.commit()
+@app.post("/verify/send-code")
+def verify_send_code(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # ive added this for verification — sends an OTP to the logged in users own email
+    if getattr(current_user, "verification_status", "unverified") == "verified":
+        return JSONResponse({"ok": False, "message": "You are already verified."}, status_code=400)
+    code = _issue_verification_code(db, current_user.email, "verify_identity")
+    _send_verification_email(current_user.email, "verify_identity", code)
+    return JSONResponse({
+        "ok": True,
+        "message": f"Verification code sent to {_mask_email(current_user.email)}."
+    })
+
+
+@app.post("/verify", response_class=HTMLResponse)
+def verify_user(
+    request: Request,
+    verification_code: str = Form(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # ive added this for verification — checks the OTP then marks user verified tier_3
+    if getattr(current_user, "verification_status", "unverified") != "verified":
+        if not _consume_verification_code(db, current_user.email, "verify_identity", verification_code):
+            return no_store_response(templates.TemplateResponse("verify.html", {
+                "request": request, "current_user": current_user,
+                "error": "Invalid or expired verification code. Please request a new one.",
+            }))
+        current_user.verification_status = "verified"
+        current_user.verified_tier = "tier_3"
+        current_user.verified_at = datetime.utcnow()
+        db.commit()
     return RedirectResponse("/participant", status_code=303)
 
 
