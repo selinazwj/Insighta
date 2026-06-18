@@ -450,7 +450,10 @@
 
   function openRecruitmentPage(path, e) {
     burst(e);
-    window.location.href = path || '/dashboard';
+    if (!path) { window.location.href = '/dashboard'; return; }
+    const url = new URL(path, window.location.origin);
+    url.searchParams.set('from', 'participant');
+    window.location.href = url.toString();
   }
 
   async function startStudy(id, bookingSlot) {

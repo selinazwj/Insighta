@@ -1157,6 +1157,7 @@ def get_current_user(
 def recruitment_share_page(
     share_slug: str,
     request: Request,
+    from_: Optional[str] = Query(None, alias="from"),
     user_id: str = Cookie(None),
     db: Session = Depends(get_db),
 ):
@@ -1193,6 +1194,11 @@ def recruitment_share_page(
         display_reward = survey.reward_amount
 
     next_path = f"/r/{share_slug}"
+    dashboard_path = _participant_dashboard_url(request)
+    from_participant_app = from_ == "participant"
+    brand_action = "back" if from_participant_app else ("dashboard" if current_user else "none")
+    brand_href = dashboard_path if brand_action == "dashboard" else "#"
+    brand_label = "Back to app" if from_participant_app else ("Dashboard" if current_user else "Insighta")
     return templates.TemplateResponse("recruitment_share.html", {
         "request": request,
         "survey": survey,
@@ -1203,6 +1209,10 @@ def recruitment_share_page(
         "share_url": _absolute_url(request, next_path),
         "login_url": f"/login?{urlencode({'role': 'participant', 'next': next_path})}",
         "register_url": f"/register?{urlencode({'role': 'participant', 'next': next_path})}",
+        "dashboard_url": dashboard_path,
+        "brand_action": brand_action,
+        "brand_href": brand_href,
+        "brand_label": brand_label,
         "is_builtin": survey.form_url == "__builtin__",
         "is_interview": _normalize_task_type(getattr(survey, "task_type", None)) == "interview",
     })

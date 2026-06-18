@@ -656,7 +656,10 @@
   function doSkip() { advanceFromCurrent('left'); }
 
   function openRecruitmentPage(path) {
-    window.location.href = path || '/dashboard/mobile';
+    if (!path) { window.location.href = '/dashboard/mobile'; return; }
+    const url = new URL(path, window.location.origin);
+    url.searchParams.set('from', 'participant');
+    window.location.href = url.toString();
   }
 
   function slotLabel(slot) {

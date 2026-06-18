@@ -195,14 +195,14 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/" aria-label="Insighta home">
+    <a class="brand" href="{{ brand_href }}" data-brand-action="{{ brand_action }}" onclick="handleBrandNav(event)" aria-label="{{ brand_label }}">
       <span class="brand-mark">i</span>
-      <span>Insighta</span>
+      <span>{{ brand_label }}</span>
     </a>
     <div class="top-actions">
       <button class="ghost-link" type="button" onclick="copyShareLink()">Copy link</button>
       {% if current_user %}
-        <a class="ghost-link" href="/dashboard">Participant dashboard</a>
+        <a class="ghost-link" href="{{ dashboard_url }}">Participant dashboard</a>
       {% else %}
         <a class="ghost-link" href="{{ login_url }}">Sign in</a>
       {% endif %}
@@ -304,6 +304,27 @@
 
   <script>
     const shareUrl = {{ share_url | tojson }};
+    const dashboardUrl = {{ dashboard_url | tojson }};
+
+    function handleBrandNav(event) {
+      const action = event.currentTarget.dataset.brandAction;
+      if (action === 'back') {
+        event.preventDefault();
+        const referrer = document.referrer || '';
+        const sameOrigin = referrer.startsWith(window.location.origin);
+        const fromDashboard = sameOrigin && /\/dashboard(\/mobile)?/.test(new URL(referrer).pathname);
+        if (fromDashboard && window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = dashboardUrl;
+        }
+        return;
+      }
+      if (action === 'none') {
+        event.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
 
     async function copyShareLink() {
       try {
