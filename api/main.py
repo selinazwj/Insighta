@@ -1198,7 +1198,7 @@ def recruitment_share_page(
     from_participant_app = from_ == "participant"
     brand_action = "back" if from_participant_app else ("dashboard" if current_user else "none")
     brand_href = dashboard_path if brand_action == "dashboard" else "#"
-    brand_label = "Back to app" if from_participant_app else ("Dashboard" if current_user else "Insighta")
+    brand_label = "Back to dashboard" if from_participant_app else ("Dashboard" if current_user else "Insighta")
     return templates.TemplateResponse("recruitment_share.html", {
         "request": request,
         "survey": survey,
