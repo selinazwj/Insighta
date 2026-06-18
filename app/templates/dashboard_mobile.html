@@ -547,6 +547,7 @@
 
     const s = remaining[0], s2 = remaining[1], s3 = remaining[2];
     const isBuiltIn = !s.link || s.link === '';
+    const safeSharePath = (s.share_path || `/r/${s.share_slug || ''}`).replace(/'/g, "\\'");
 
     const urgentPill = s.urgency === 'within_1_week'
       ? `<div class="meta-pill" style="color:#c05621;background:rgba(192,86,33,.08);border-color:rgba(192,86,33,.2)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Urgent</div>`
@@ -560,9 +561,9 @@
       ? `<button class="btn-skip" onclick="doModify(${s.id})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Undo</button>`
       : isBuiltIn
         ? `<button class="btn-skip" onclick="doSkip()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skip</button>
-           <button class="btn-take" onclick="doTake(${s.id},'',true)">${s.type === 'interview' ? 'Book time' : 'Take Survey'} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`
+           <button class="btn-take" onclick="openRecruitmentPage('${safeSharePath}')">${s.type === 'interview' ? 'Book time' : 'Take Survey'} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`
         : `<button class="btn-skip" onclick="doSkip()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skip</button>
-           <button class="btn-take" onclick="doTake(${s.id},'${s.link}',false)">${s.type === 'interview' ? 'Book time' : 'Take Survey'} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+           <button class="btn-take" onclick="openRecruitmentPage('${safeSharePath}')">${s.type === 'interview' ? 'Book time' : 'Take Survey'} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
            <button class="btn-mark" onclick="doComplete(${s.id})">Mark done</button>`;
 
     wrap.innerHTML = `
@@ -618,9 +619,10 @@
     wrap.innerHTML = `<div class="study-list">${remaining.map(s => {
       const isBuiltIn = !s.link || s.link === '';
       const safeLink = (s.link || '').replace(/'/g, "\\'");
+      const safeSharePath = (s.share_path || `/r/${s.share_slug || ''}`).replace(/'/g, "\\'");
       const action = s.is_completed
         ? `<button class="list-secondary" onclick="doModify(${s.id})">Undo</button>`
-        : `<button class="list-primary" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn})">${s.type === 'interview' ? 'Book time' : 'Take study'}</button>`;
+        : `<button class="list-primary" onclick="openRecruitmentPage('${safeSharePath}')">${s.type === 'interview' ? 'Book time' : 'Take study'}</button>`;
       const done = s.is_completed ? `<span>Completed</span>` : '';
       return `
         <div class="study-row">
@@ -652,6 +654,10 @@
   }
 
   function doSkip() { advanceFromCurrent('left'); }
+
+  function openRecruitmentPage(path) {
+    window.location.href = path || '/dashboard/mobile';
+  }
 
   function slotLabel(slot) {
     if (!slot) return '';

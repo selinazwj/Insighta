@@ -381,6 +381,7 @@
     el.innerHTML = all.map(s => {
       const isBuiltIn = !s.link || s.link === '';
       const safeLink  = (s.link || '').replace(/'/g, "\\'");
+      const safeSharePath = (s.share_path || `/r/${s.share_slug || ''}`).replace(/'/g, "\\'");
       const isInPerson = s.type === 'interview';
       const match     = s.match_pct || Math.floor(72 + Math.random() * 25);
 
@@ -393,7 +394,7 @@
            </div>`
         : `<div class="card-actions">
              <button class="btn-skip" onclick="doSkip(${s.id},event)">Skip</button>
-             <button class="btn-take" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn},event)">
+             <button class="btn-take" onclick="openRecruitmentPage('${safeSharePath}',event)">
                ${isInPerson ? 'Book time' : 'Take study'}
                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
              </button>
@@ -445,6 +446,11 @@
         if (confirm('Did you finish the survey? Mark as complete?')) doComplete(id);
       }, 1500);
     }
+  }
+
+  function openRecruitmentPage(path, e) {
+    burst(e);
+    window.location.href = path || '/dashboard';
   }
 
   async function startStudy(id, bookingSlot) {

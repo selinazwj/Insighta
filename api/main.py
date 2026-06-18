@@ -1421,6 +1421,7 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "title": s.title,
         "desc": s.description,
         "link": form_link,
+        "share_path": _survey_share_path(db, s, commit=True),
         "type": _normalize_task_type(getattr(s, "task_type", None)),
         "category": s.category,
         "time": f"{s.estimated_time} min",
@@ -1681,6 +1682,7 @@ def dashboard_mobile(
         surveys_data.append({
             "id": s.id, "title": s.title, "desc": s.description,
             "link": form_link,
+            "share_path": _survey_share_path(db, s, commit=True),
             "type": _normalize_task_type(getattr(s, "task_type", None)),
             "category": s.category, "time": f"{s.estimated_time} min",
             "reward": f"${display_reward:.2f}",
