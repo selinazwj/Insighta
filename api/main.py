@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -1217,6 +1217,37 @@ def recruitment_share_page(
         "is_interview": _normalize_task_type(getattr(survey, "task_type", None)) == "interview",
     })
 
+@app.get("/r/{share_slug}/qr.png")
+def recruitment_share_qr(
+    share_slug: str,
+    request: Request,
+    download: bool = Query(False),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(Survey.share_slug == share_slug).first()
+    if not survey or survey.status not in {"published", "closed"}:
+        raise HTTPException(404, "Listing not found")
+    try:
+        import qrcode
+    except ImportError as exc:
+        raise HTTPException(503, "QR generation is not installed") from exc
+
+    share_url = _absolute_url(request, f"/r/{share_slug}")
+    qr = qrcode.QRCode(version=None, box_size=10, border=3)
+    qr.add_data(share_url)
+    qr.make(fit=True)
+    image = qr.make_image(fill_color="#184e77", back_color="white")
+    output = BytesIO()
+    image.save(output, format="PNG")
+    output.seek(0)
+    disposition = "attachment" if download else "inline"
+    filename = f"insighta-{share_slug}-qr.png"
+    return StreamingResponse(
+        output,
+        media_type="image/png",
+        headers={"Content-Disposition": f'{disposition}; filename="{filename}"'},
+    )
+
 
 # ---------------------------
 # Choice page
@@ -1430,6 +1461,7 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "id": s.id,
         "title": s.title,
         "desc": s.description,
+        "niche": getattr(s, "target_niche_requirements", None),
         "link": form_link,
         "share_path": _survey_share_path(db, s, commit=True),
         "type": _normalize_task_type(getattr(s, "task_type", None)),
@@ -1691,6 +1723,7 @@ def dashboard_mobile(
                 availability_slots = []
         surveys_data.append({
             "id": s.id, "title": s.title, "desc": s.description,
+            "niche": getattr(s, "target_niche_requirements", None),
             "link": form_link,
             "share_path": _survey_share_path(db, s, commit=True),
             "type": _normalize_task_type(getattr(s, "task_type", None)),

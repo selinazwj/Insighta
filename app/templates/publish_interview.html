@@ -59,6 +59,20 @@
     .page-header p { font-size: 14px; color: var(--ink-muted); line-height: 1.6; max-width: 560px; }
 
     .form-section { background: var(--bg); border: .5px solid var(--line); border-radius: 12px; padding: 26px 28px; margin-bottom: 16px; }
+    [data-wizard-step][hidden] { display: none !important; }
+    .wizard-progress { background:var(--bg); border:.5px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:16px; }
+    .wizard-progress-top { display:flex; justify-content:space-between; gap:12px; margin-bottom:12px; font-size:14px; font-weight:700; color:var(--ink); }
+    .wizard-progress-top span:last-child { color:var(--green); font-size:12px; }
+    .wizard-track { height:7px; border-radius:999px; background:var(--paper-warm); overflow:hidden; }
+    .wizard-fill { width:25%; height:100%; border-radius:inherit; background:var(--green); transition:width .22s ease; }
+    .wizard-labels { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; }
+    .wizard-label { text-align:center; font-size:11px; font-weight:600; color:var(--ink-muted); }
+    .wizard-label.active { color:var(--green); }
+    .wizard-nav { background:var(--bg); border:.5px solid var(--line); border-radius:12px; padding:16px 20px; display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .wizard-note { flex:1; text-align:center; font-size:12px; color:var(--ink-muted); }
+    .btn-step { padding:10px 20px; border-radius:8px; font-family:var(--sans); font-size:14px; font-weight:600; cursor:pointer; }
+    .btn-step.back { background:var(--bg); color:var(--ink-muted); border:.5px solid var(--line2); }
+    .btn-step.next { background:var(--green); color:white; border:0; }
     .section-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 22px; padding-bottom: 18px; border-bottom: .5px solid var(--line); }
     .section-icon { width: 28px; height: 28px; border-radius: 7px; background: var(--paper-warm); color: var(--ink-muted); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
     .section-header h2 { font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: 0; }
@@ -152,6 +166,10 @@
       .form-row, .form-row-3 { grid-template-columns: 1fr; }
       .slot-row { grid-template-columns: 1fr; }
       .checkbox-group { grid-template-columns: 1fr; }
+      .wizard-label { font-size:10px; }
+      .wizard-nav { flex-wrap:wrap; }
+      .wizard-note { width:100%; flex-basis:100%; order:-1; }
+      .btn-step { flex:1; }
       .submit-section { flex-direction: column-reverse; }
       .btn-cancel, .btn-publish { width: 100%; justify-content: center; }
     }
@@ -214,12 +232,18 @@
     <p>Find the right participants for live sessions, lab visits, field studies, or on-site research.</p>
   </div>
 
+  <div class="wizard-progress" aria-label="Listing progress">
+    <div class="wizard-progress-top"><span id="wizardTitle">Basics</span><span id="wizardCount">Step 1 of 4</span></div>
+    <div class="wizard-track"><div class="wizard-fill" id="wizardFill"></div></div>
+    <div class="wizard-labels"><div class="wizard-label active">Basics</div><div class="wizard-label">Schedule</div><div class="wizard-label">Budget</div><div class="wizard-label">Audience</div></div>
+  </div>
+
   <form id="interviewForm" method="POST" action="/publish_interview">
 
     <input type="hidden" name="task_type" value="interview">
 
     <!-- BASIC INFO -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="1">
       <div class="section-header">
         <div class="section-icon">01</div>
         <div><h2>Basic Information</h2><p>What your in-person study is about</p></div>
@@ -248,7 +272,7 @@
     </div>
 
     <!-- IN-PERSON DETAILS -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="2" hidden>
       <div class="section-header">
         <div class="section-icon">02</div>
         <div><h2>In-person study details</h2><p>Location, duration, and scheduling</p></div>
@@ -319,7 +343,7 @@
     </div>
 
     <!-- COMPENSATION & TIMELINE -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="3" hidden>
       <div class="section-header">
         <div class="section-icon">03</div>
         <div><h2>Compensation & Timeline</h2><p>How you'll reward participants and when you need them</p></div>
@@ -396,7 +420,7 @@
     </div>
 
     <!-- TARGET PARTICIPANTS -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="4" hidden>
       <div class="section-header">
         <div class="section-icon">04</div>
         <div><h2>Target Participants</h2><p>Leave a field as all to allow all matching participants</p></div>
@@ -477,8 +501,14 @@
       </div>
     </div>
 
+    <div class="wizard-nav">
+      <button type="button" class="btn-step back" id="wizardBack" onclick="changeWizardStep(-1)">Back</button>
+      <div class="wizard-note">Your entries stay in this form while you move between steps.</div>
+      <button type="button" class="btn-step next" id="wizardNext" onclick="changeWizardStep(1)">Continue</button>
+    </div>
+
     <!-- SUBMIT -->
-    <div class="submit-section">
+    <div class="submit-section" data-wizard-step="4" hidden>
       <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
       <button type="submit" class="btn-publish" id="submitBtn">Publish</button>
     </div>
@@ -489,6 +519,37 @@
 
 <script>
   const availabilitySlots = [];
+  const WIZARD_TITLES = ['Basics', 'Schedule & location', 'Budget & timeline', 'Target audience'];
+  let currentWizardStep = 1;
+
+  function showWizardStep(step, shouldScroll = true) {
+    currentWizardStep = Math.max(1, Math.min(4, step));
+    document.querySelectorAll('[data-wizard-step]').forEach(section => {
+      section.hidden = Number(section.dataset.wizardStep) !== currentWizardStep;
+    });
+    document.getElementById('wizardBack').style.visibility = currentWizardStep === 1 ? 'hidden' : 'visible';
+    document.getElementById('wizardNext').hidden = currentWizardStep === 4;
+    document.getElementById('wizardTitle').textContent = WIZARD_TITLES[currentWizardStep - 1];
+    document.getElementById('wizardCount').textContent = `Step ${currentWizardStep} of 4`;
+    document.getElementById('wizardFill').style.width = `${currentWizardStep * 25}%`;
+    document.querySelectorAll('.wizard-label').forEach((label, index) => label.classList.toggle('active', index < currentWizardStep));
+    if (shouldScroll) document.querySelector('.wizard-progress').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function changeWizardStep(delta) {
+    if (delta > 0) {
+      let firstInvalid = null;
+      document.querySelectorAll(`[data-wizard-step="${currentWizardStep}"] [required]`).forEach(el => {
+        if (!String(el.value || '').trim() && !firstInvalid) firstInvalid = el;
+      });
+      if (firstInvalid) {
+        firstInvalid.reportValidity();
+        firstInvalid.scrollIntoView({ behavior:'smooth', block:'center' });
+        return;
+      }
+    }
+    showWizardStep(currentWizardStep + delta);
+  }
 
   function formatSlotLabel(slot) {
     const date = new Date(slot.date + 'T00:00:00');
@@ -642,6 +703,7 @@
   document.getElementById('interviewForm').addEventListener('submit', function() {
     document.getElementById('availabilitySlots').value = JSON.stringify(availabilitySlots);
   });
+  showWizardStep(1, false);
 </script>
 <script src="/static/support_chat.js"></script>
 </body>

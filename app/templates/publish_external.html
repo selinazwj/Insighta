@@ -80,6 +80,21 @@
 
     /* ── FORM SECTIONS ── */
     .form-section{background:var(--bg);border:.5px solid var(--line);border-radius:12px;padding:26px 28px;margin-bottom:16px;}
+    [data-wizard-step][hidden]{display:none!important;}
+    .wizard-progress{background:var(--bg);border:.5px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px;}
+    .wizard-progress-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
+    .wizard-progress-title{font-size:14px;font-weight:700;color:var(--ink);}
+    .wizard-progress-count{font-size:12px;font-weight:700;color:var(--green);}
+    .wizard-track{height:7px;border-radius:999px;background:var(--bg3);overflow:hidden;}
+    .wizard-fill{height:100%;width:25%;border-radius:inherit;background:var(--green);transition:width .22s ease;}
+    .wizard-labels{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+    .wizard-label{font-size:11px;font-weight:600;color:var(--ink4);text-align:center;}
+    .wizard-label.active{color:var(--green);}
+    .wizard-nav{background:var(--bg);border:.5px solid var(--line);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;}
+    .wizard-nav-note{font-size:12px;color:var(--ink3);}
+    .btn-step{padding:10px 20px;border-radius:8px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;}
+    .btn-step.back{background:var(--bg);color:var(--ink3);border:.5px solid var(--line2);}
+    .btn-step.next{background:var(--green);color:white;border:0;margin-left:auto;}
     .section-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:22px;padding-bottom:18px;border-bottom:.5px solid var(--line);}
     .section-num{width:28px;height:28px;border-radius:7px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink3);flex-shrink:0;margin-top:1px;}
     .section-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:2px;}
@@ -200,6 +215,10 @@
       .row,.row-3{grid-template-columns:1fr;}
       .check-grid{grid-template-columns:1fr;}
       .submit-bar{flex-direction:column-reverse;}
+      .wizard-label{font-size:10px;}
+      .wizard-nav{align-items:stretch;flex-wrap:wrap;}
+      .wizard-nav-note{width:100%;text-align:center;order:-1;}
+      .btn-step{flex:1;}
       .btn-cancel,.btn-publish{width:100%;justify-content:center;}
     }
   </style>
@@ -288,6 +307,17 @@
     <div class="ai-msg success" id="aiSuccess">Done. Review the fields and adjust before publishing.</div>
   </div>
 
+  <div class="wizard-progress" aria-label="Listing progress">
+    <div class="wizard-progress-top">
+      <div class="wizard-progress-title" id="wizardTitle">Basics</div>
+      <div class="wizard-progress-count" id="wizardCount">Step 1 of 4</div>
+    </div>
+    <div class="wizard-track"><div class="wizard-fill" id="wizardFill"></div></div>
+    <div class="wizard-labels">
+      <div class="wizard-label active">Basics</div><div class="wizard-label">Budget</div><div class="wizard-label">Audience</div><div class="wizard-label">Review</div>
+    </div>
+  </div>
+
   <form id="publishForm" method="POST" action="{{ '/admin/publish' if is_admin_publish else '/publish' }}" enctype="multipart/form-data">
     {% if is_admin_publish %}
     <input type="hidden" name="admin_key" value="{{ admin_key }}">
@@ -295,7 +325,7 @@
     <input type="hidden" name="existing_survey_id" value="{{ existing_survey_id or 0 }}">
 
     <!-- 01 BASIC INFO -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="1">
       <div class="section-head">
         <div class="section-num">01</div>
         <div>
@@ -334,7 +364,7 @@
     </div>
 
     <!-- 02 STUDY DETAILS -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="1">
       <div class="section-head">
         <div class="section-num">02</div>
         <div>
@@ -415,7 +445,7 @@
     </div>
 
     <!-- 03 BUDGET & TIMELINE -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="2" hidden>
       <div class="section-head">
         <div class="section-num">03</div>
         <div>
@@ -501,7 +531,7 @@
     </div>
 
     <!-- 04 TARGET AUDIENCE -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="3" hidden>
       <div class="section-head">
         <div class="section-num">04</div>
         <div>
@@ -797,7 +827,7 @@
 
 
     <!-- 05 QUALITY AUTO FILTER -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="4" hidden>
       <div class="section-head">
         <div class="section-num">05</div>
         <div>
@@ -829,7 +859,7 @@
     </div>
 
     <!-- 06 NICHE REQUIREMENTS -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="3" hidden>
       <div class="section-head">
         <div class="section-num">06</div>
         <div>
@@ -844,7 +874,7 @@
     </div>
 
     {% if is_admin_publish %}
-    <div class="form-section admin-box">
+    <div class="form-section admin-box" data-wizard-step="4" hidden>
       <div class="section-head">
         <div class="section-num">A</div>
         <div>
@@ -859,8 +889,14 @@
     </div>
     {% endif %}
 
+    <div class="wizard-nav">
+      <button type="button" class="btn-step back" id="wizardBack" onclick="changeWizardStep(-1)">Back</button>
+      <div class="wizard-nav-note">Your entries stay in this form while you move between steps.</div>
+      <button type="button" class="btn-step next" id="wizardNext" onclick="changeWizardStep(1)">Continue</button>
+    </div>
+
     <!-- SUBMIT -->
-    <div class="submit-bar">
+    <div class="submit-bar" data-wizard-step="4" hidden>
       <button type="button" class="btn-cancel" onclick="history.back()">Cancel</button>
       {% if not is_admin_publish %}<button type="button" class="btn-save" onclick="saveDraft()">Save draft</button>{% endif %}
       <button type="submit" class="btn-publish" id="submitBtn">
@@ -877,6 +913,45 @@
   const IS_ADMIN_PUBLISH = {{ 'true' if is_admin_publish else 'false' }};
   const ADMIN_KEY = {{ (admin_key or '')|tojson if is_admin_publish else 'null' }};
   const DRAFT_KEY = `insighta_publish_draft_{{ 'admin' if is_admin_publish else 'builtin' if builtin else 'external' }}_{{ existing_survey_id or 0 }}`;
+  const WIZARD_TITLES = ['Basics', 'Budget & timeline', 'Target audience', 'Review & publish'];
+  let currentWizardStep = 1;
+
+  function showWizardStep(step, shouldScroll = true) {
+    currentWizardStep = Math.max(1, Math.min(4, step));
+    document.querySelectorAll('[data-wizard-step]').forEach(section => {
+      section.hidden = Number(section.dataset.wizardStep) !== currentWizardStep;
+    });
+    document.getElementById('wizardBack').style.visibility = currentWizardStep === 1 ? 'hidden' : 'visible';
+    document.getElementById('wizardNext').hidden = currentWizardStep === 4;
+    document.getElementById('wizardTitle').textContent = WIZARD_TITLES[currentWizardStep - 1];
+    document.getElementById('wizardCount').textContent = `Step ${currentWizardStep} of 4`;
+    document.getElementById('wizardFill').style.width = `${currentWizardStep * 25}%`;
+    document.querySelectorAll('.wizard-label').forEach((label, index) => {
+      label.classList.toggle('active', index < currentWizardStep);
+    });
+    if (shouldScroll) document.querySelector('.wizard-progress').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function validateWizardStep(step) {
+    let firstInvalid = null;
+    document.querySelectorAll(`[data-wizard-step="${step}"] [required]`).forEach(el => {
+      if (!String(el.value || '').trim()) {
+        el.closest('.field')?.classList.add('error');
+        if (!firstInvalid) firstInvalid = el;
+      }
+    });
+    if (firstInvalid) {
+      firstInvalid.scrollIntoView({ behavior:'smooth', block:'center' });
+      firstInvalid.focus({ preventScroll:true });
+      return false;
+    }
+    return true;
+  }
+
+  function changeWizardStep(delta) {
+    if (delta > 0 && !validateWizardStep(currentWizardStep)) return;
+    showWizardStep(currentWizardStep + delta);
+  }
 
   // ── INCENTIVE ──
   function pickIncentive(el) {
@@ -1040,12 +1115,14 @@
         okEl.textContent = d.provider ? `Filled with ${d.provider}. Review before publishing.` : 'Done. Review the fields and adjust before publishing.';
       }
       okEl.style.display = 'block';
+      showWizardStep(1, false);
       document.querySelector('.form-section').scrollIntoView({ behavior:'smooth' });
     } catch (error) {
       const fallback = localAiFill(prompt, error.message || 'Request failed');
       applyAiFill(fallback);
       okEl.textContent = 'Filled with local fallback. Review before publishing.';
       okEl.style.display = 'block';
+      showWizardStep(1, false);
       document.querySelector('.form-section').scrollIntoView({ behavior:'smooth' });
     } finally {
       btn.disabled = false; btn.textContent = 'Generate';
@@ -1135,7 +1212,13 @@
         err = true;
       }
     }
-    if (err) { document.querySelector('.field.error')?.scrollIntoView({ behavior:'smooth', block:'center' }); return; }
+    if (err) {
+      const firstError = document.querySelector('.field.error');
+      const errorStep = Number(firstError?.closest('[data-wizard-step]')?.dataset.wizardStep || currentWizardStep);
+      showWizardStep(errorStep, false);
+      firstError?.scrollIntoView({ behavior:'smooth', block:'center' });
+      return;
+    }
     ['target_education_min','target_education_max'].forEach(name => {
       const el = this.querySelector(`select[name="${name}"]`);
       if (el && !el.value) el.removeAttribute('name');
@@ -1149,6 +1232,7 @@
     el.addEventListener('input', () => el.closest('.field')?.classList.remove('error'));
     el.addEventListener('change', () => el.closest('.field')?.classList.remove('error'));
   });
+  showWizardStep(1, false);
   restoreDraft();
 </script>
 <script src="/static/support_chat.js"></script>

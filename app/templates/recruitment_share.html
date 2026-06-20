@@ -183,6 +183,11 @@
       font-weight: 750;
       color: var(--ink-soft);
     }
+    .tag.niche { width:100%; border-radius:8px; border-color:#f3a6a6; background:#fff1f1; color:#8f3030; font-weight:850; line-height:1.45; }
+    .qr-box { margin-top:18px; padding-top:18px; border-top:1px solid var(--line); text-align:center; }
+    .qr-box img { display:block; width:min(190px, 100%); aspect-ratio:1; margin:0 auto 10px; border:1px solid var(--line); border-radius:8px; background:white; padding:8px; }
+    .qr-title { font-size:14px; font-weight:850; color:var(--deep); margin-bottom:4px; }
+    .qr-copy { font-size:12px; line-height:1.45; color:var(--ink-soft); margin-bottom:10px; }
     .fine-print { margin-top: 16px; color: #6f8fa0; font-size: 13px; line-height: 1.55; }
     @media (max-width: 860px) {
       .layout { grid-template-columns: 1fr; margin-top: 24px; }
@@ -249,7 +254,7 @@
           <span class="tag">{{ survey.target_field or "Any field" }}</span>
           <span class="tag">{{ survey.target_status or "Any status" }}</span>
           {% if survey.target_niche_requirements %}
-            <span class="tag">{{ survey.target_niche_requirements }}</span>
+            <span class="tag niche"><strong>Niche requirement:</strong> {{ survey.target_niche_requirements }}</span>
           {% endif %}
         </div>
         <p class="fine-print">Insighta keeps your profile private and uses it to match you with studies. Researchers do not receive your personal contact information unless you choose to participate through their approved study flow.</p>
@@ -299,6 +304,13 @@
           <a class="ghost-link" href="/dashboard">Back to dashboard</a>
         </div>
       {% endif %}
+
+      <div class="qr-box">
+        <div class="qr-title">Share this listing</div>
+        <div class="qr-copy">Scan to open this recruitment page.</div>
+        <img src="/r/{{ survey.share_slug }}/qr.png" alt="QR code for {{ survey.title }}">
+        <a class="ghost-link" href="/r/{{ survey.share_slug }}/qr.png?download=true">Download QR code</a>
+      </div>
     </aside>
   </main>
 

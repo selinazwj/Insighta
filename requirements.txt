@@ -14,3 +14,4 @@ httpx
 openpyxl
 scikit-learn
 numpy
+qrcode[pil]

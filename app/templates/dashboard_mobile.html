@@ -267,6 +267,8 @@
     }
     .card-meta-row { gap: 6px; margin-bottom: 0; align-self: end; }
     .meta-pill { padding: 5px 8px; font-size: 11px; }
+    .niche-pill { width:100%; min-width:0; padding:6px 9px; border-radius:10px; border:1.5px solid #f3a6a6; background:#fff1f1; color:#8f3030; font-size:11px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .niche-pill strong { font-weight:900; }
     .card-footer-row { margin-top: 0; padding-top: 10px; align-self: end; }
     .reward-big { font-size: clamp(22px, 7vw, 28px); }
     .impact-tag { padding: 5px 8px; }
@@ -519,6 +521,12 @@
 
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
   function syncViewToggle() {
     document.getElementById('viewCardsBtn')?.classList.toggle('active', viewMode === 'cards');
     document.getElementById('viewListBtn')?.classList.toggle('active', viewMode === 'list');
@@ -575,6 +583,7 @@
           <div class="card-title">${s.title}</div>
           <div class="card-desc">${s.desc}</div>
           <div class="card-meta-row">
+            ${s.niche ? `<div class="niche-pill"><strong>Niche:</strong> ${escapeHtml(s.niche)}</div>` : ''}
             <div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${s.time}</div>
             <div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ${s.responses}</div>
             ${urgentPill}
@@ -627,7 +636,7 @@
       return `
         <div class="study-row">
           <div class="study-row-top">
-            <div><h3>${s.title}</h3><p>${s.desc}</p></div>
+            <div><h3>${s.title}</h3><p>${s.desc}</p>${s.niche ? `<div class="niche-pill" style="margin-top:8px"><strong>Niche:</strong> ${escapeHtml(s.niche)}</div>` : ''}</div>
             <div class="study-reward">${s.reward}</div>
           </div>
           <div class="study-row-meta">
