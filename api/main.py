@@ -144,8 +144,14 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail").strip().lower()
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+EMAIL_FROM = os.environ.get("EMAIL_FROM") or EMAIL_ADDRESS
+EMAIL_REPLY_TO = os.environ.get("EMAIL_REPLY_TO")
 SUPPORT_ALERT_EMAIL = os.environ.get("SUPPORT_ALERT_EMAIL", "vfsa@bu.edu")
 VERIFICATION_CODE_EXPIRE_MINUTES = 10
+VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS = 60
+VERIFICATION_CODE_MAX_PER_HOUR = 5
 
 # ---------------------------
 # OAuth 2.0 configuration
@@ -164,18 +170,66 @@ LINKEDIN_AUTH_URL = "https://www.linkedin.com/oauth/v2/authorization"
 LINKEDIN_TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
 LINKEDIN_USERINFO_URL = "https://api.linkedin.com/v2/userinfo"
 
-def send_email(to: str, subject: str, body: str):
+def _email_plain_text(body: str) -> str:
+    text_body = re.sub(r"(?i)<br\s*/?>", "\n", body or "")
+    text_body = re.sub(r"(?i)</p\s*>", "\n\n", text_body)
+    text_body = re.sub(r"<[^>]+>", "", text_body)
+    return html.unescape(text_body).strip()
+
+def send_email(to: str, subject: str, body: str, text_body: Optional[str] = None) -> tuple[bool, Optional[str]]:
+    plain_text = text_body or _email_plain_text(body)
+    if EMAIL_PROVIDER == "resend":
+        if not RESEND_API_KEY or not EMAIL_FROM:
+            return False, "Resend email configuration is incomplete"
+        payload = {
+            "from": EMAIL_FROM,
+            "to": [to],
+            "subject": subject,
+            "html": body,
+            "text": plain_text,
+        }
+        if EMAIL_REPLY_TO:
+            payload["reply_to"] = EMAIL_REPLY_TO
+        try:
+            response = httpx.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                    "User-Agent": "Insighta/1.0",
+                },
+                json=payload,
+                timeout=8.0,
+            )
+            if response.is_success:
+                return True, None
+            error = f"Resend returned {response.status_code}: {response.text[:500]}"
+            print(f"Email error: {error}")
+            return False, error
+        except Exception as exc:
+            error = f"Resend request failed: {exc}"
+            print(f"Email error: {error}")
+            return False, error
+
+    if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
+        return False, "Gmail email configuration is incomplete"
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = EMAIL_ADDRESS
         msg["To"] = to
+        if EMAIL_REPLY_TO:
+            msg["Reply-To"] = EMAIL_REPLY_TO
+        msg.attach(MIMEText(plain_text, "plain"))
         msg.attach(MIMEText(body, "html"))
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.sendmail(EMAIL_ADDRESS, to, msg.as_string())
-    except Exception as e:
-        print(f"Email error: {e}")
+        return True, None
+    except Exception as exc:
+        error = f"Gmail SMTP failed: {exc}"
+        print(f"Email error: {error}")
+        return False, error
 
 def send_support_alert_email(user: User, thread: SupportThread, message: SupportMessage):
     if not SUPPORT_ALERT_EMAIL:
@@ -600,8 +654,19 @@ def _mark_previous_codes_used(db: Session, email: str, purpose: str):
     for item in pending_codes:
         item.used_at = now
 
-def _issue_verification_code(db: Session, email: str, purpose: str) -> str:
-    _mark_previous_codes_used(db, email, purpose)
+def _latest_active_verification_code(db: Session, email: str, purpose: str) -> Optional[EmailVerificationCode]:
+    now = datetime.utcnow()
+    return db.query(EmailVerificationCode).filter(
+        EmailVerificationCode.email == email,
+        EmailVerificationCode.purpose == purpose,
+        EmailVerificationCode.used_at.is_(None),
+        EmailVerificationCode.expires_at > now,
+    ).order_by(EmailVerificationCode.created_at.desc()).first()
+
+def _issue_verification_code(db: Session, email: str, purpose: str) -> tuple[str, bool]:
+    existing = _latest_active_verification_code(db, email, purpose)
+    if existing:
+        return existing.code, False
     code = _generate_verification_code()
     db.add(EmailVerificationCode(
         email=email,
@@ -610,7 +675,7 @@ def _issue_verification_code(db: Session, email: str, purpose: str) -> str:
         expires_at=datetime.utcnow() + timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
     ))
     db.commit()
-    return code
+    return code, True
 
 def _consume_verification_code(db: Session, email: str, purpose: str, code: str) -> bool:
     normalized_email = _normalize_email(email)
@@ -625,11 +690,11 @@ def _consume_verification_code(db: Session, email: str, purpose: str, code: str)
         return False
     if record.expires_at < datetime.utcnow():
         return False
-    record.used_at = datetime.utcnow()
+    _mark_previous_codes_used(db, normalized_email, purpose)
     db.commit()
     return True
 
-def _send_verification_email(email: str, purpose: str, code: str):
+def _send_verification_email(email: str, purpose: str, code: str) -> tuple[bool, Optional[str]]:
     if purpose == "register":
         subject = "Insighta registration verification code"
         title = "Verify your email"
@@ -656,10 +721,16 @@ def _send_verification_email(email: str, purpose: str, code: str):
           This code expires in {VERIFICATION_CODE_EXPIRE_MINUTES} minutes. If you did not request this, you can safely ignore it.
         </p>
       </div>
-      <p style="font-size: 12px; color: #8a8a82; margin-top: 20px;">Sent from Insighta: {EMAIL_ADDRESS}</p>
+      <p style="font-size: 12px; color: #8a8a82; margin-top: 20px;">Sent securely by Insighta.</p>
     </div>
     '''
-    send_email(email, subject, body)
+    text_body = (
+        f"Insighta - {title}\n\n{body_text}\n\n"
+        f"Verification code: {code}\n\n"
+        f"This code expires in {VERIFICATION_CODE_EXPIRE_MINUTES} minutes. "
+        "If you did not request this, you can safely ignore it."
+    )
+    return send_email(email, subject, body, text_body=text_body)
 
 
 # ---------------------------
@@ -696,8 +767,42 @@ async def send_auth_code(
     if normalized_purpose == "reset_password" and not existing_user:
         return JSONResponse({"ok": False, "message": "No account found with this email."}, status_code=400)
 
-    code = _issue_verification_code(db, normalized_email, normalized_purpose)
-    _send_verification_email(normalized_email, normalized_purpose, code)
+    now = datetime.utcnow()
+    active_code = _latest_active_verification_code(db, normalized_email, normalized_purpose)
+    if active_code and active_code.created_at and active_code.created_at > now - timedelta(seconds=VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS):
+        wait_seconds = max(1, VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS - int((now - active_code.created_at).total_seconds()))
+        return JSONResponse({
+            "ok": False,
+            "message": f"Please wait {wait_seconds} seconds before requesting another code."
+        }, status_code=429)
+
+    recent_code_count = db.query(EmailVerificationCode).filter(
+        EmailVerificationCode.email == normalized_email,
+        EmailVerificationCode.purpose == normalized_purpose,
+        EmailVerificationCode.created_at >= now - timedelta(hours=1),
+    ).count()
+    if recent_code_count >= VERIFICATION_CODE_MAX_PER_HOUR and not active_code:
+        return JSONResponse({
+            "ok": False,
+            "message": "Too many verification requests. Please try again later."
+        }, status_code=429)
+
+    code, created_new = _issue_verification_code(db, normalized_email, normalized_purpose)
+    sent, send_error = _send_verification_email(normalized_email, normalized_purpose, code)
+    if not sent:
+        if created_new:
+            db.query(EmailVerificationCode).filter(
+                EmailVerificationCode.email == normalized_email,
+                EmailVerificationCode.purpose == normalized_purpose,
+                EmailVerificationCode.code == code,
+                EmailVerificationCode.used_at.is_(None),
+            ).delete(synchronize_session=False)
+            db.commit()
+        print(f"Verification email failed for {_mask_email(normalized_email)}: {send_error}")
+        return JSONResponse({
+            "ok": False,
+            "message": "We could not send the verification email. Please try again in a moment."
+        }, status_code=502)
 
     return JSONResponse({
         "ok": True,
