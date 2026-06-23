@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ survey.title }} | Insighta</title>
+  {% if current_user %}<link rel="stylesheet" href="/static/support_chat.css">{% endif %}
   <style>
     :root {
       --ink: #184e77;
@@ -198,7 +199,7 @@
     }
   </style>
 </head>
-<body>
+<body{% if current_user %} class="participant-support"{% endif %}>
   <header class="topbar">
     <a class="brand" href="{{ brand_href }}" data-brand-action="{{ brand_action }}" onclick="handleBrandNav(event)" aria-label="{{ brand_label }}">
       <span class="brand-mark">i</span>
@@ -364,5 +365,6 @@
       startStudy(targetUrl, slotLabel);
     }
   </script>
+  {% if current_user %}<script src="/static/support_chat.js"></script>{% endif %}
 </body>
 </html>
