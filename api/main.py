@@ -919,11 +919,18 @@ async def google_callback(
             user.oauth_id = google_id
             db.commit()
 
-    redirect_url = _post_auth_url(request, request.cookies.get("participant_app"), welcome=is_new)
+    return_to = _safe_auth_return(request.cookies.get(AUTH_RETURN_COOKIE))
+    redirect_url = _post_auth_url_with_next(
+        request,
+        request.cookies.get("participant_app"),
+        return_to,
+        welcome=is_new,
+    )
     resp = RedirectResponse(redirect_url, status_code=303)
     policy = _cookie_policy(request)
     resp.set_cookie("user_id", str(user.id), **policy)
     resp.delete_cookie("oauth_state", samesite=policy["samesite"], secure=policy["secure"])
+    _clear_auth_return(resp, request)
     return resp
 
 
@@ -1013,11 +1020,18 @@ async def linkedin_callback(
             user.oauth_id = linkedin_id
             db.commit()
 
-    redirect_url = _post_auth_url(request, request.cookies.get("participant_app"), welcome=is_new)
+    return_to = _safe_auth_return(request.cookies.get(AUTH_RETURN_COOKIE))
+    redirect_url = _post_auth_url_with_next(
+        request,
+        request.cookies.get("participant_app"),
+        return_to,
+        welcome=is_new,
+    )
     resp = RedirectResponse(redirect_url, status_code=303)
     policy = _cookie_policy(request)
     resp.set_cookie("user_id", str(user.id), **policy)
     resp.delete_cookie("oauth_state", samesite=policy["samesite"], secure=policy["secure"])
+    _clear_auth_return(resp, request)
     return resp
 
 
