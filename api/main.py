@@ -577,6 +577,31 @@ def _post_auth_url_with_next(
         return "/publisher"
     return _post_auth_url(request, participant_app, welcome=welcome)
 
+
+AUTH_RETURN_COOKIE = "auth_return_to"
+
+
+def _safe_auth_return(*candidates: Optional[str]) -> str:
+    for candidate in candidates:
+        if is_safe_internal_next(candidate):
+            return candidate
+    return ""
+
+
+def _remember_auth_return(response: Response, request: Request, next_url: Optional[str]) -> None:
+    safe_next = _safe_auth_return(next_url)
+    if safe_next:
+        response.set_cookie(
+            AUTH_RETURN_COOKIE,
+            safe_next,
+            max_age=30 * 60,
+            **_cookie_policy(request),
+        )
+
+
+def _clear_auth_return(response: Response, request: Request) -> None:
+    response.delete_cookie(AUTH_RETURN_COOKIE, **_cookie_policy(request))
+
 def _absolute_url(request: Request, path: str) -> str:
     base = str(request.base_url).rstrip("/")
     if not path.startswith("/"):
@@ -1060,6 +1085,7 @@ def login_page(
         _mark_participant_app(response, request)
     elif normalized_role == "researcher":
         _clear_participant_app(response, request)
+    _remember_auth_return(response, request, next)
     return response
 
 @app.post("/login")
@@ -1070,8 +1096,10 @@ def login(
     next: Optional[str] = Form(None),
     role: Optional[str] = Form(None),
     participant_app: Optional[str] = Cookie(None),
+    auth_return_to: Optional[str] = Cookie(None),
     db: Session = Depends(get_db)
 ):
+    next_url = _safe_auth_return(next, auth_return_to)
     normalized_email = _normalize_email(email or "")
     try:
         user = db.query(User).filter(User.email == normalized_email).first()
@@ -1082,7 +1110,7 @@ def login(
             "error": f"Database error: {e}",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
-            "login_next": next if is_safe_internal_next(next) else "",
+            "login_next": next_url,
             "login_role": normalized_role,
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }))
@@ -1094,13 +1122,14 @@ def login(
             "error": "Invalid email or password",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
-            "login_next": next if is_safe_internal_next(next) else "",
+            "login_next": next_url,
             "login_role": normalized_role,
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }))
 
-    response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next, role), status_code=303)
+    response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next_url, role), status_code=303)
     response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
+    _clear_auth_return(response, request)
     if (role or "").strip().lower() == "participant":
         _mark_participant_app(response, request)
     elif (role or "").strip().lower() == "researcher":
@@ -1184,12 +1213,14 @@ def show_register(
         _mark_participant_app(response, request)
     elif normalized_role == "researcher":
         _clear_participant_app(response, request)
+    _remember_auth_return(response, request, register_next)
     return response
 
 @app.post("/register", response_class=HTMLResponse)
 async def do_register(
     request: Request,
     participant_app: Optional[str] = Cookie(None),
+    auth_return_to: Optional[str] = Cookie(None),
     db: Session = Depends(get_db)
 ):
     form = await request.form()
@@ -1198,7 +1229,7 @@ async def do_register(
     password = form.get("password") or ""
     confirm = form.get("confirm") or ""
     verification_code = form.get("verification_code") or ""
-    next_url = form.get("next") or ""
+    next_url = _safe_auth_return(form.get("next"), auth_return_to)
     role = (form.get("role") or "").strip().lower()
     role = role if role in {"participant", "researcher"} else None
 
@@ -1236,6 +1267,7 @@ async def do_register(
 
     response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next_url, role=role, welcome=True), status_code=303)
     response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
+    _clear_auth_return(response, request)
     if role == "participant":
         _mark_participant_app(response, request)
     elif role == "researcher":
