@@ -3182,6 +3182,112 @@ async def admin_publish_survey(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@app.get("/admin/listings/{survey_id}/edit", response_class=HTMLResponse)
+def admin_edit_listing_page(
+    request: Request,
+    survey_id: int,
+    admin_key: str = Query(None),
+    db: Session = Depends(get_db),
+):
+    if not _admin_key_matches(admin_key):
+        raise HTTPException(403, "Unauthorized")
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    survey.current_responses = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed",
+    ).count()
+    admin_user = _get_admin_publisher_user(db)
+    return templates.TemplateResponse("edit_publish.html", {
+        "request": request,
+        "survey": survey,
+        "current_user": admin_user,
+        "is_admin_edit": True,
+        "admin_key": admin_key,
+    })
+
+
+@app.post("/admin/listings/{survey_id}/edit")
+async def admin_edit_listing_post(survey_id: int, request: Request, db: Session = Depends(get_db)):
+    form = await request.form()
+    if not _admin_key_matches(form.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    current_responses = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed",
+    ).count()
+    additional_needed = max(0, _parse_optional_int(form.get("additional_needed")) or 0)
+    incentive_clean = _clean_target(form.get("incentive_type")) or "cash"
+    display_amount_raw = (form.get("admin_display_reward_amount") or "").strip()
+
+    survey.title = (form.get("title") or survey.title or "").strip()
+    survey.description = (form.get("description") or "").strip()
+    survey.form_url = (form.get("form_url") or "").strip()
+    survey.task_type = _clean_target(form.get("task_type")) or "survey"
+    survey.category = _clean_target(form.get("category")) or survey.category
+    survey.estimated_time = _parse_optional_int(form.get("estimated_time")) or survey.estimated_time
+    if survey.status != "published":
+        try:
+            survey.reward_amount = float(form.get("reward_amount") or 0)
+        except (TypeError, ValueError):
+            survey.reward_amount = 0.0
+    survey.target_responses = current_responses + additional_needed
+    survey.urgency_level = _clean_target(form.get("urgency_level"))
+    survey.incentive_type = incentive_clean
+    survey.raffle_prize_type = _clean_target(form.get("raffle_prize_type")) if incentive_clean == "raffle" else None
+    survey.target_age_range = _clean_target(form.get("target_age_range"))
+    survey.target_education_min = _parse_optional_int(form.get("target_education_min"))
+    survey.target_education_max = _parse_optional_int(form.get("target_education_max"))
+    survey.target_field = _clean_target(form.get("target_field"))
+    survey.target_status = _clean_target(form.get("target_status"))
+    survey.target_state = _clean_target(form.get("target_state"))
+    survey.target_language = _clean_target(form.get("target_language"))
+    survey.target_ethnicity = _clean_target(form.get("target_ethnicity"))
+    survey.target_sexual_orientation = _clean_target(form.get("target_sexual_orientation"))
+    survey.target_mental_health_diagnosis = _clean_target(form.get("target_mental_health_diagnosis"))
+    survey.target_physical_health_diagnosis = _clean_target(form.get("target_physical_health_diagnosis"))
+    survey.target_sport_type = _clean_target(form.get("target_sport_type"))
+    survey.target_sport_frequency = _clean_target(form.get("target_sport_frequency"))
+    survey.target_smoking = _clean_target(form.get("target_smoking"))
+    survey.target_cannabis_use = _clean_target(form.get("target_cannabis_use"))
+    survey.target_student_status = _clean_target(form.get("target_student_status"))
+    survey.target_year_in_school = _clean_target(form.get("target_year_in_school"))
+    survey.target_international_domestic = _clean_target(form.get("target_international_domestic"))
+    survey.target_experience_tags = ",".join(form.getlist("target_experience_tags")) or None
+    survey.target_participation_format = _clean_target(form.get("target_participation_format"))
+    survey.target_device = _clean_target(form.get("target_device"))
+    survey.target_income_level = _clean_target(form.get("target_income_level"))
+    survey.target_lifestyle_tags = ",".join(form.getlist("target_lifestyle_tags")) or None
+    survey.target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
+    if display_amount_raw:
+        try:
+            survey.admin_display_reward_amount = max(0.0, float(display_amount_raw))
+        except ValueError:
+            raise HTTPException(400, "Invalid display reward amount")
+    else:
+        survey.admin_display_reward_amount = None
+    _apply_survey_auto_filter_settings(survey, form)
+
+    cover_image = form.get("cover_image")
+    if cover_image is not None and getattr(cover_image, "filename", None):
+        uploads_dir = Path("app/static/uploads")
+        uploads_dir.mkdir(exist_ok=True)
+        unique_filename = f"{uuid.uuid4()}{Path(cover_image.filename).suffix}"
+        file_path = uploads_dir / unique_filename
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(cover_image.file, buffer)
+        survey.image_url = f"/static/uploads/{unique_filename}"
+
+    db.commit()
+    return RedirectResponse("/admin#listings", status_code=303)
+
+
 @app.post("/admin/feedback/{feedback_id}/credit")
 async def grant_credit(feedback_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()

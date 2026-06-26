@@ -168,16 +168,17 @@
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
-  <a href="/publisher" class="sidebar-logo">Insight<span>a</span></a>
+  <a href="{{ '/admin#listings' if is_admin_edit else '/publisher' }}" class="sidebar-logo">Insight<span>a</span></a>
   <nav class="sidebar-nav">
-    <a href="/publisher" class="nav-item active">
+    <a href="{{ '/admin#listings' if is_admin_edit else '/publisher' }}" class="nav-item active">
       <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      My listings
+      {{ 'Admin listings' if is_admin_edit else 'My listings' }}
     </a>
-    <a href="/publisher" class="nav-item">
+    <a href="{{ '/admin#publish' if is_admin_edit else '/publisher' }}" class="nav-item">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       New listing
     </a>
+    {% if not is_admin_edit %}
     <div class="nav-divider"></div>
     <a href="/guide" class="nav-item">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -187,12 +188,13 @@
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Share feedback
     </a>
+    {% endif %}
   </nav>
   <div class="sidebar-user">
-    <a href="/profile" class="user-row">
+    <a href="{{ '/admin#listings' if is_admin_edit else '/profile' }}" class="user-row">
       <div class="user-avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
       <div>
-        <div class="user-name">{{ current_user.username or 'Your profile' }}</div>
+        <div class="user-name">{{ 'Admin edit' if is_admin_edit else (current_user.username or 'Your profile') }}</div>
         <div class="user-email">{{ current_user.email }}</div>
       </div>
     </a>
@@ -203,25 +205,28 @@
 <div class="main">
   <div class="topbar">
     <div class="topbar-left">
-      <a href="/publisher/study/{{ survey.id }}" class="back-btn">
+      <a href="{{ '/admin#listings' if is_admin_edit else '/publisher/study/' ~ survey.id }}" class="back-btn">
         <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        Study detail
+        {{ 'Admin listings' if is_admin_edit else 'Study detail' }}
       </a>
       <div class="topbar-sep"></div>
       <div class="topbar-title">Edit listing</div>
     </div>
     <div class="topbar-right">
-      <button type="button" class="btn-cancel" onclick="history.back()">Cancel</button>
+      <button type="button" class="btn-cancel" onclick="window.location.href='{{ '/admin#listings' if is_admin_edit else '/publisher/study/' ~ survey.id }}'">Cancel</button>
     </div>
   </div>
 
   <div class="content">
   <div class="page-header">
-    <div class="page-kicker">Edit listing</div>
-    <h1>Edit your <strong>survey</strong></h1>
-    <p>Keep listing details, incentives, quality rules, and audience criteria aligned with the publish setup.</p>
+    <div class="page-kicker">{{ 'Admin edit' if is_admin_edit else 'Edit listing' }}</div>
+    <h1>Edit {{ 'demo' if is_admin_edit else 'your' }} <strong>survey</strong></h1>
+    <p>{{ 'Adjust validation listings after publishing, including the participant-facing display reward.' if is_admin_edit else 'Keep listing details, incentives, quality rules, and audience criteria aligned with the publish setup.' }}</p>
   </div>
-  <form method="POST" action="/publisher/edit/{{ survey.id }}" enctype="multipart/form-data">
+  <form method="POST" action="{{ '/admin/listings/' ~ survey.id ~ '/edit' if is_admin_edit else '/publisher/edit/' ~ survey.id }}" enctype="multipart/form-data">
+    {% if is_admin_edit %}
+    <input type="hidden" name="admin_key" value="{{ admin_key }}">
+    {% endif %}
 
     <!-- 01 BASIC INFO -->
     <div class="form-section">
@@ -395,6 +400,17 @@
         <div class="field-hint">Added on top of current {{ survey.current_responses }}</div>
         <input type="number" name="additional_needed" value="{{ survey.target_responses - survey.current_responses }}" min="0" required>
       </div>
+
+      {% if is_admin_edit %}
+      <div class="info-box" style="margin-top:18px;">
+        <strong>Admin display reward</strong>
+        This controls the amount participants see on validation listings. It does not charge Stripe.
+      </div>
+      <div class="field" style="max-width:240px;margin-bottom:16px;">
+        <label>Participant-facing reward ($)</label>
+        <input type="number" name="admin_display_reward_amount" value="{{ '%.2f'|format(survey.admin_display_reward_amount if survey.admin_display_reward_amount is not none else survey.reward_amount) }}" step="0.01" min="0">
+      </div>
+      {% endif %}
 
       <div class="field" style="margin-top:18px;">
         <label>Recruitment timeline</label>
@@ -682,7 +698,7 @@
 
     <!-- SUBMIT -->
     <div class="submit-bar">
-      <button type="button" class="btn-cancel" onclick="history.back()">Cancel</button>
+      <button type="button" class="btn-cancel" onclick="window.location.href='{{ '/admin#listings' if is_admin_edit else '/publisher/study/' ~ survey.id }}'">Cancel</button>
       <button type="submit" class="btn-save">
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         Save changes

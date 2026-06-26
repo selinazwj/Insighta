@@ -454,12 +454,17 @@
       }
       if (!res.ok) throw new Error('Admin verification failed');
       adminKey = key;
+      sessionStorage.setItem('insighta_admin_key', key);
       document.body.classList.remove('locked');
       input.value = '';
       loadFeedbacks();
       loadSupportThreads();
       if (supportPollTimer) clearInterval(supportPollTimer);
       supportPollTimer = setInterval(loadSupportThreads, 8000);
+      if (window.location.hash === '#listings') switchPanel('listings');
+      if (window.location.hash === '#support') switchPanel('support');
+      if (window.location.hash === '#discovery') switchPanel('discovery');
+      if (window.location.hash === '#publish') switchPanel('publish');
     } catch {
       error.textContent = 'Connection error. Try again.';
       error.style.display = 'block';
@@ -527,6 +532,7 @@
         <td>${esc(s.publisher_email || '')}</td>
         <td>${created}</td>
         <td>
+          <button class="btn-refresh" onclick="editListing(${s.id})">Edit</button>
           <button class="btn-refresh" onclick="copyListingLink('${escAttr(s.share_url || '')}')">Copy link</button>
           <button class="danger-btn" onclick="deleteListing(${s.id}, '${escAttr(s.title)}')">Delete</button>
         </td>
@@ -552,6 +558,11 @@
     } catch(err) {
       alert(err.message);
     }
+  }
+
+  function editListing(id) {
+    if (!adminKey) return;
+    window.location.href = `/admin/listings/${id}/edit?admin_key=${encodeURIComponent(adminKey)}`;
   }
 
   async function copyListingLink(url) {
@@ -874,12 +885,19 @@
     selectedThreadId = null;
     if (supportPollTimer) clearInterval(supportPollTimer);
     supportPollTimer = null;
+    sessionStorage.removeItem('insighta_admin_key');
     document.body.classList.add('locked');
     document.getElementById('adminKeyInput').value = '';
   }
 
   // ── INIT ──
-  document.getElementById('adminKeyInput').focus();
+  const storedAdminKey = sessionStorage.getItem('insighta_admin_key');
+  if (storedAdminKey) {
+    document.getElementById('adminKeyInput').value = storedAdminKey;
+    login();
+  } else {
+    document.getElementById('adminKeyInput').focus();
+  }
 </script>
 </body>
 </html>
