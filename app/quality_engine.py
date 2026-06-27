@@ -606,16 +606,30 @@ def _should_run_llm(
     preliminary_score: float,
     survey_reward: float,
 ) -> bool:
+    def env_float(name: str, default: float) -> float:
+        value = _safe_float(os.environ.get(name))
+        return default if value is None else value
+
+    mode = (os.environ.get("QUALITY_LLM_MODE") or "high_risk").strip().lower()
+    if mode in {"off", "disabled", "none"}:
+        return False
+
+    # High-risk mode is the token-efficient default: deterministic checks and
+    # anomaly detection handle normal submissions, while Claude reviews only
+    # ambiguous or suspicious cases. "balanced" restores the broader triggers.
+    if rule_penalty >= env_float("QUALITY_LLM_RULE_PENALTY", 15.0):
+        return True
+    if anomaly_score >= env_float("QUALITY_LLM_ANOMALY_SCORE", 8.0):
+        return True
+    if 50 <= preliminary_score < env_float("QUALITY_LLM_PRELIMINARY_MAX", 80.0):
+        return True
+    if mode != "balanced":
+        return False
+
     text_count = sum(1 for q in question_map.values() if q.question_type == "text")
     if text_count >= 2:
         return True
-    if survey_reward >= 10:
-        return True
-    if rule_penalty >= 15:
-        return True
-    if anomaly_score >= 8:
-        return True
-    if 50 <= preliminary_score < 80:
+    if survey_reward >= env_float("QUALITY_LLM_REWARD_THRESHOLD", 10.0):
         return True
     return False
 
@@ -633,16 +647,33 @@ def _build_semantic_qa_pairs(
     question_map: Dict[int, Question],
     answers_by_qid: Dict[int, Any],
 ) -> List[Dict[str, Any]]:
+    try:
+        max_pairs = max(4, min(24, int(os.environ.get("QUALITY_LLM_MAX_QA_PAIRS", "12"))))
+    except Exception:
+        max_pairs = 12
+
+    ordered_ids = sorted(question_map.keys(), key=lambda i: question_map[i].order_index)
+    text_ids = [qid for qid in ordered_ids if question_map[qid].question_type == "text"]
+    other_ids = [qid for qid in ordered_ids if qid not in text_ids]
+    selected_ids = (text_ids[:8] + other_ids)[:max_pairs]
+    selected_ids.sort(key=lambda i: question_map[i].order_index)
+
     qa_pairs = []
-    for qid in sorted(question_map.keys(), key=lambda i: question_map[i].order_index):
+    for qid in selected_ids:
         q = question_map[qid]
         val = answers_by_qid.get(qid)
         if _is_empty(val):
             continue
+        if isinstance(val, list):
+            compact_answer: Any = [str(item)[:120] for item in val[:10]]
+        elif isinstance(val, dict):
+            compact_answer = {str(k)[:80]: str(v)[:160] for k, v in list(val.items())[:10]}
+        else:
+            compact_answer = str(val)[:600]
         qa_pairs.append({
-            "question": q.question_text,
+            "question": (q.question_text or "")[:180],
             "type": q.question_type,
-            "answer": val,
+            "answer": compact_answer,
         })
     return qa_pairs
 
@@ -690,40 +721,48 @@ def _run_llm_semantic_eval(
         risk, parsed, reasons = _mock_semantic_eval(qa_pairs)
         return risk, parsed, reasons
 
-    prompt = f"""You are a survey quality reviewer. Evaluate the response quality below and return JSON only (no markdown).
-
-Survey title: {survey_title}
-Survey description: {survey_description or 'N/A'}
-
-Response data:
-{json.dumps(qa_pairs, ensure_ascii=False, indent=2)}
-
-Return JSON with these fields:
-{{
-  "semantic_relevance": 1-5,
-  "specificity": 1-5,
-  "clarity": 1-5,
-  "cross_question_conflict": true/false,
-  "semantic_risk": 0-30,
-  "explanation": "Brief explanation in English"
-}}
-
-Higher semantic_risk means lower quality. If cross_question_conflict is true, semantic_risk must be at least 15."""
+    payload = {
+        "survey": {
+            "title": (survey_title or "")[:140],
+            "description": (survey_description or "")[:300],
+        },
+        "qa": qa_pairs,
+    }
+    prompt = (
+        "Review response quality using only this JSON. Return JSON only: "
+        '{"r":1,"s":1,"c":1,"x":false,"risk":0,"why":"under 16 words"}. '
+        "r=relevance, s=specificity, c=clarity (1-5); risk=0-30. "
+        "If x=true, risk must be at least 15. Data:"
+        + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    )
 
     try:
         import anthropic
 
         client = anthropic.Anthropic(api_key=api_key)
+        try:
+            max_tokens = int(os.environ.get("QUALITY_LLM_MAX_TOKENS", "240"))
+        except Exception:
+            max_tokens = 240
         message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=800,
+            model=(os.environ.get("QUALITY_LLM_MODEL") or "claude-haiku-4-5-20251001").strip(),
+            max_tokens=max(160, min(320, max_tokens)),
             messages=[{"role": "user", "content": prompt}],
         )
         raw = message.content[0].text.strip()
         if raw.startswith("```"):
             raw = re.sub(r"^```(?:json)?\n?", "", raw)
             raw = re.sub(r"\n?```$", "", raw)
-        parsed = json.loads(raw)
+        compact = json.loads(raw)
+        parsed = {
+            "semantic_relevance": compact.get("semantic_relevance", compact.get("r")),
+            "specificity": compact.get("specificity", compact.get("s")),
+            "clarity": compact.get("clarity", compact.get("c")),
+            "cross_question_conflict": bool(compact.get("cross_question_conflict", compact.get("x"))),
+            "semantic_risk": compact.get("semantic_risk", compact.get("risk", 0)),
+            "explanation": compact.get("explanation", compact.get("why", "")),
+            "mode": "compact_llm",
+        }
         semantic_risk = float(parsed.get("semantic_risk", 0) or 0)
         semantic_risk = min(30.0, max(0.0, semantic_risk))
         if parsed.get("cross_question_conflict") and semantic_risk < 15:

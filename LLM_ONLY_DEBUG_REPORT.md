@@ -34,7 +34,7 @@ To use real Claude calls, set:
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
-AI_GROWTH_CLAUDE_MODEL=claude-sonnet-4-5
+AI_GROWTH_CLAUDE_MODEL=claude-haiku-4-5-20251001
 ```
 
 If `ANTHROPIC_API_KEY` is not set, the app returns explicit `llm_ok: false` results instead of falling back to any local scoring model.

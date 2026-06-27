@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, UTC
 from pathlib import Path
+import os
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -133,12 +134,10 @@ def test_prediction_core(db, user1, user2, s1, s2):
             "predictions": [
                 {
                     "participant_id": item["participant_id"],
-                    "completion_probability": 0.7 if item["participant_id"] == user1.id else 0.3,
-                    "confidence": "medium",
-                    "top_reasons": ["mock reason"],
-                    "risk_reasons": [],
-                    "recommended_action": "invite",
-                    "ranking_note": "batch",
+                    "p": 0.7 if item["participant_id"] == user1.id else 0.3,
+                    "c": "m",
+                    "pos": ["short_task"],
+                    "risk": [],
                 }
                 for item in payload["participants"]
             ]
@@ -154,12 +153,10 @@ def test_prediction_core(db, user1, user2, s1, s2):
             "recommendations": [
                 {
                     "survey_id": item["survey_id"],
-                    "completion_probability": 0.9 if item["survey_id"] == s1.id else 0.2,
-                    "confidence": "high",
-                    "top_reasons": ["fit"],
-                    "risk_reasons": [],
-                    "recommended_action": "recommend",
-                    "ranking_note": "ranked",
+                    "p": 0.9 if item["survey_id"] == s1.id else 0.2,
+                    "c": "h",
+                    "pos": ["category_fit"],
+                    "risk": [],
                 }
                 for item in payload["surveys"]
             ]
@@ -182,19 +179,29 @@ def test_prediction_core(db, user1, user2, s1, s2):
         })
 
     prediction.summarize_survey_with_claude = fake_summary
-    summary = prediction.survey_prediction_summary(db, s1, force=True)
+    old_summary_mode = os.environ.get("AI_GROWTH_LLM_SUMMARY_MODE")
+    os.environ["AI_GROWTH_LLM_SUMMARY_MODE"] = "llm"
+    try:
+        summary = prediction.survey_prediction_summary(db, s1, force=True)
+    finally:
+        if old_summary_mode is None:
+            os.environ.pop("AI_GROWTH_LLM_SUMMARY_MODE", None)
+        else:
+            os.environ["AI_GROWTH_LLM_SUMMARY_MODE"] = old_summary_mode
     assert summary["completion_probability"] == 0.75
     assert summary["recommended_action"] == "raise visibility"
 
     def fake_preview(payload):
+        assert len(payload["representative_sample"]) <= 6
+        assert payload["pool_summary"]["pool_count"] == 3
         return LLMCallResult(data={
-            "completion_probability": 0.61,
-            "confidence": "low",
-            "segment_label": "Preview",
-            "top_reasons": ["clear"],
-            "risk_reasons": ["small sample"],
-            "recommended_action": "improve desc",
-            "audience_strategy": "broad",
+            "p": 0.61,
+            "c": "l",
+            "segment": "Preview",
+            "pos": ["clear"],
+            "risk": ["small sample"],
+            "action": "improve desc",
+            "audience": "broad",
         })
 
     prediction.preview_survey_with_claude = fake_preview

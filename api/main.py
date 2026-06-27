@@ -70,6 +70,8 @@ BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+_SURVEY_ANALYSIS_CACHE: dict[str, tuple[datetime, dict[str, Any]]] = {}
+
 def no_store_response(response):
     response.headers["Cache-Control"] = "no-store, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -2784,23 +2786,22 @@ async def _anthropic_ai_fill(prompt: str) -> dict:
     allow_expensive_models = (os.environ.get("ALLOW_EXPENSIVE_ANTHROPIC_MODELS") or "").strip().lower() == "true"
     if configured_model and any(name in configured_model.lower() for name in ("opus", "fable")) and not allow_expensive_models:
         raise RuntimeError("ANTHROPIC_AI_FILL_MODEL points to an expensive model. Use Haiku or set ALLOW_EXPENSIVE_ANTHROPIC_MODELS=true explicitly.")
-    model_candidates = [
-        configured_model,
-        "claude-haiku-4-5-20251001",
-        "claude-haiku-4-5",
-        "claude-3-5-haiku-20241022",
-    ]
+    model_candidates = [configured_model, "claude-haiku-4-5-20251001"]
     model_candidates = [m for i, m in enumerate(model_candidates) if m and m not in model_candidates[:i]]
     client = anthropic.Anthropic(api_key=api_key)
-    prompt_text = f"""You are helping a researcher fill out a survey publishing form.
-Based on this description: "{prompt}"
-Return ONLY a valid JSON object with these exact fields, no extra text:
-{{"title": "clear survey title under 10 words", "description": "2-3 sentence description", "category": "one of: research, life, clubs, market, academic, other", "estimated_time": 5, "per_person_gross": 5.00, "target_responses": 100}}"""
+    clean_prompt = re.sub(r"\s+", " ", prompt).strip()[:1200]
+    prompt_text = (
+        "Convert this study description into JSON only. Keep description to 2 short sentences. "
+        "Schema: {\"title\":\"under 10 words\",\"description\":\"...\","
+        "\"category\":\"research|life|clubs|market|academic|other\","
+        "\"estimated_time\":5,\"per_person_gross\":5.0,\"target_responses\":100}. "
+        f"Study: {clean_prompt}"
+    )
     errors = []
     for model in model_candidates:
         try:
             message = client.messages.create(
-                model=model, max_tokens=450,
+                model=model, max_tokens=280,
                 messages=[{"role": "user", "content": prompt_text}]
             )
             result = _parse_ai_fill_json(message.content[0].text)
@@ -2841,51 +2842,28 @@ async def ai_generate_questions(
 ):
     try:
         body = await request.json()
-        prompt = body.get("prompt", "")
+        prompt = re.sub(r"\s+", " ", body.get("prompt", "")).strip()[:1600]
         if not prompt:
             raise HTTPException(400, "Prompt is required")
 
         import anthropic, json as _json
         client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        try:
+            question_count = max(4, min(8, int(body.get("question_count") or 6)))
+        except (TypeError, ValueError):
+            question_count = 6
         message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=2000,
+            model=(os.environ.get("ANTHROPIC_QUESTION_MODEL") or "claude-haiku-4-5-20251001").strip(),
+            max_tokens=max(650, min(1100, 120 + question_count * 120)),
             messages=[{
                 "role": "user",
-                "content": f"""You are helping a researcher design a survey.
-Based on this research goal: "{prompt}"
-
-Generate 6-8 survey questions. Return ONLY a valid JSON array, no extra text:
-[
-  {{
-    "question_text": "What is your current year in school?",
-    "question_type": "single",
-    "options": ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"],
-    "is_required": true,
-    "order_index": 1
-  }},
-  {{
-    "question_text": "How many hours do you sleep on average per night?",
-    "question_type": "scale",
-    "options": null,
-    "is_required": true,
-    "order_index": 2
-  }},
-  {{
-    "question_text": "Describe any sleep difficulties you experience.",
-    "question_type": "text",
-    "options": null,
-    "is_required": false,
-    "order_index": 3
-  }}
-]
-
-Rules:
-- Mix question types: single/multiple for closed, scale for ratings, text for open-ended
-- Keep questions neutral, avoid leading language
-- scale and text questions must have options: null
-- options field is only for single, multiple, dropdown types
-"""
+                "content": (
+                    f"Generate exactly {question_count} neutral survey questions for: {prompt}\n"
+                    "Return JSON array only. Each item: "
+                    "{\"question_text\":\"...\",\"question_type\":\"single|multiple|dropdown|scale|text\","
+                    "\"options\":[\"...\"] or null,\"is_required\":true,\"order_index\":1}. "
+                    "Use mixed types. scale/text options must be null; closed types need concise options."
+                )
             }]
         )
 
@@ -4050,61 +4028,136 @@ async def analyze_survey(
 
     questions = db.query(Question).filter(
         Question.survey_id == survey_id
-    ).order_by(Question.order_index).all()
+    ).order_by(Question.order_index).limit(50).all()
 
-    answers_data = []
-    for q in questions:
-        answers = db.query(Answer).join(Response).filter(
-            Response.survey_id == survey_id,
-            Response.status == "completed",
-            Answer.question_id == q.id
-        ).all()
-        answers_data.append({
-            "question": q.question_text,
-            "type": q.question_type,
-            "answers": [a.answer_value for a in answers]
-        })
-
-    total_responses = db.query(Response).filter(
+    completed_query = db.query(Response).filter(
         Response.survey_id == survey_id,
         Response.status == "completed"
-    ).count()
+    )
+    total_responses = completed_query.count()
+    latest_completed = completed_query.with_entities(func.max(Response.completed_at)).scalar()
 
-    import anthropic, json as _json
+    cache_material = "|".join([
+        str(survey_id),
+        str(total_responses),
+        str(latest_completed or ""),
+        str(survey.title or ""),
+        str(survey.description or ""),
+        str(len(questions)),
+    ])
+    cache_key = hashlib.sha256(cache_material.encode("utf-8")).hexdigest()
+    cached = _SURVEY_ANALYSIS_CACHE.get(cache_key)
+    if cached and cached[0] > datetime.utcnow():
+        payload = dict(cached[1])
+        payload["cached"] = True
+        return JSONResponse(payload)
+
+    all_answers = db.query(Answer).join(Response).filter(
+        Response.survey_id == survey_id,
+        Response.status == "completed",
+    ).all()
+    answers_by_question: dict[int, list[Any]] = {}
+    for answer in all_answers:
+        answers_by_question.setdefault(answer.question_id, []).append(answer.answer_value)
+
+    try:
+        text_sample_limit = max(3, min(20, int(os.environ.get("SURVEY_ANALYSIS_TEXT_SAMPLES", "10"))))
+    except Exception:
+        text_sample_limit = 10
+
+    answers_data = []
+    for question in questions:
+        values = answers_by_question.get(question.id, [])
+        item: dict[str, Any] = {
+            "question": (question.question_text or "")[:180],
+            "type": question.question_type,
+            "answer_count": len(values),
+        }
+        if question.question_type == "text":
+            samples = []
+            seen = set()
+            lengths = []
+            for value in values:
+                text_value = re.sub(r"\s+", " ", str(value or "")).strip()
+                if not text_value:
+                    continue
+                lengths.append(len(text_value))
+                key = text_value.lower()
+                if key in seen or len(samples) >= text_sample_limit:
+                    continue
+                seen.add(key)
+                samples.append(text_value[:320])
+            item["text_samples"] = samples
+            if lengths:
+                item["avg_text_length"] = round(sum(lengths) / len(lengths), 1)
+        elif question.question_type == "scale":
+            numeric_values = []
+            for value in values:
+                try:
+                    numeric_values.append(float(value))
+                except (TypeError, ValueError):
+                    continue
+            counts: dict[str, int] = {}
+            for value in numeric_values:
+                label = str(int(value)) if value.is_integer() else str(value)
+                counts[label] = counts.get(label, 0) + 1
+            item["distribution"] = counts
+            item["average"] = round(sum(numeric_values) / len(numeric_values), 2) if numeric_values else None
+        else:
+            counts: dict[str, int] = {}
+            for value in values:
+                selections = value if isinstance(value, list) else [value]
+                for selection in selections[:20]:
+                    label = re.sub(r"\s+", " ", str(selection or "")).strip()[:120]
+                    if label:
+                        counts[label] = counts.get(label, 0) + 1
+            item["distribution"] = dict(sorted(counts.items(), key=lambda row: row[1], reverse=True)[:20])
+        answers_data.append({k: v for k, v in item.items() if v is not None and v != [] and v != {}})
+
+    import anthropic
     api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
     if not api_key:
         raise HTTPException(503, "AI analysis is not available right now.")
     client = anthropic.Anthropic(api_key=api_key)
+    analysis_payload = {
+        "survey": {
+            "title": (survey.title or "")[:160],
+            "description": (survey.description or "")[:400],
+            "completed_responses": total_responses,
+        },
+        "questions": answers_data,
+    }
+    try:
+        analysis_max_tokens = int(os.environ.get("SURVEY_ANALYSIS_MAX_TOKENS", "750"))
+    except Exception:
+        analysis_max_tokens = 750
     message = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=1500,
+        model=(os.environ.get("SURVEY_ANALYSIS_MODEL") or "claude-haiku-4-5-20251001").strip(),
+        max_tokens=max(450, min(1000, analysis_max_tokens)),
         messages=[{
             "role": "user",
-            "content": f"""You are analyzing survey results for a researcher.
-
-Survey title: {survey.title}
-Survey description: {survey.description}
-Total responses: {total_responses}
-
-Data:
-{_json.dumps(answers_data, ensure_ascii=False, indent=2)}
-
-Please provide:
-1. Key findings (3-5 bullet points with actual numbers)
-2. Notable patterns or trends
-3. Text response themes (if any open-ended questions)
-4. One recommendation for the researcher
-
-Be concise and specific. Use the actual numbers from the data.
-Write in the same language as the survey questions.
-"""
+            "content": (
+                "Analyze this aggregated survey data. Use the survey's language. Be concise and cite actual counts. "
+                "Return four short sections: Key findings (3-5 bullets), Patterns, Text themes, Recommendation. Data:"
+                + json.dumps(analysis_payload, ensure_ascii=False, separators=(",", ":"))
+            )
         }]
     )
 
-    return JSONResponse({
+    response_payload = {
         "analysis": message.content[0].text,
-        "generated_at": datetime.utcnow().isoformat()
-    })
+        "generated_at": datetime.utcnow().isoformat(),
+        "cached": False,
+    }
+    try:
+        cache_hours = max(0, int(os.environ.get("SURVEY_ANALYSIS_CACHE_HOURS", "6")))
+    except Exception:
+        cache_hours = 6
+    if cache_hours:
+        if len(_SURVEY_ANALYSIS_CACHE) > 200:
+            _SURVEY_ANALYSIS_CACHE.clear()
+        _SURVEY_ANALYSIS_CACHE[cache_key] = (datetime.utcnow() + timedelta(hours=cache_hours), response_payload)
+    return JSONResponse(response_payload)
 
 
 # ---------------------------

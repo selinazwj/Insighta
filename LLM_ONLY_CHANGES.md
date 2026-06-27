@@ -13,7 +13,7 @@ This package modifies the uploaded Insighta repository so completion prediction 
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-your-key-here
-AI_GROWTH_CLAUDE_MODEL=claude-sonnet-4-5
+AI_GROWTH_CLAUDE_MODEL=claude-haiku-4-5-20251001
 ```
 
 `requirements.txt` already includes `anthropic`.
@@ -22,10 +22,12 @@ AI_GROWTH_CLAUDE_MODEL=claude-sonnet-4-5
 
 - `/api/surveys/{survey_id}/prediction/me` calls Claude for one participant/survey pair.
 - `/api/surveys/{survey_id}/prediction/respondents` batches candidates through Claude and sorts by Claude probability.
-- `/api/surveys/{survey_id}/prediction/summary` aggregates Claude predictions and asks Claude for publisher-facing advice.
+- `/api/surveys/{survey_id}/prediction/summary` aggregates Claude predictions. Publisher-facing copy is local by default to avoid a second model call; set `AI_GROWTH_LLM_SUMMARY_MODE=llm` to enable Claude-written copy.
 - `/api/prediction/preview` uses Claude for unsaved survey draft preview.
 - `/dashboard` and `/dashboard/mobile` rank surveys by Claude completion probability.
 
 ## No rule model
 
 The old `rule-v0.1` weighted score has been removed from the prediction path. The only probability/recommendation model is Claude. If Claude is not configured or the API request fails, the app returns an explicit `llm_ok: false` response instead of silently falling back to a local score.
+
+See `TOKEN_OPTIMIZATION.md` for the compact schemas, cache settings, quality-review gating, and measured payload reductions.

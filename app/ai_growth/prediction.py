@@ -12,6 +12,7 @@ Anthropic API. Local code is limited to:
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timedelta
 import os
 from types import SimpleNamespace
@@ -52,6 +53,7 @@ def _clamp_probability(value: Any, default: float = 0.0) -> float:
 
 def _clean_confidence(value: Any) -> str:
     value = str(value or "low").strip().lower()
+    value = {"l": "low", "m": "medium", "h": "high"}.get(value, value)
     return value if value in {"low", "medium", "high"} else "low"
 
 
@@ -61,6 +63,50 @@ def _clean_list(value: Any, fallback: Optional[list[str]] = None, limit: int = 5
         value = fallback
     cleaned = [str(x).strip() for x in value if str(x).strip()]
     return cleaned[:limit]
+
+
+POSITIVE_REASON_TEXT = {
+    "short_task": "The task is short enough to reduce completion friction.",
+    "fair_reward": "The reward is reasonable for the expected effort.",
+    "device_fit": "The participant's device and participation format fit the task.",
+    "strong_history": "Observed completion history suggests reliable follow-through.",
+    "category_fit": "Past activity indicates familiarity with this survey category.",
+    "clear_task": "The study description and requirements are relatively clear.",
+    "builtin_flow": "The built-in flow avoids external return-tracking friction.",
+    "active_user": "Recent platform activity suggests the participant is engaged.",
+}
+
+RISK_REASON_TEXT = {
+    "long_task": "The task length may increase abandonment risk.",
+    "low_reward": "The reward may be low relative to the expected effort.",
+    "external_friction": "An external flow may add return-tracking or handoff friction.",
+    "sparse_history": "There is limited behavioral history for a confident estimate.",
+    "device_mismatch": "The participant's device may not fit the task well.",
+    "unclear_task": "The study description or requirements may be unclear.",
+    "narrow_fit": "The eligible audience appears narrow, limiting robust evidence.",
+}
+
+
+def _expand_reason_codes(value: Any, *, risk: bool = False, limit: int = 3) -> list[str]:
+    mapping = RISK_REASON_TEXT if risk else POSITIVE_REASON_TEXT
+    expanded: list[str] = []
+    for item in _clean_list(value, limit=limit):
+        expanded.append(mapping.get(item, item.replace("_", " ").strip()))
+    return expanded
+
+
+def _compact_facts(data: dict) -> dict:
+    """Drop fields that carry no evidence while preserving numeric zero/False."""
+    result: dict = {}
+    for key, value in data.items():
+        if value is None or value == "" or value == [] or value == {}:
+            continue
+        if isinstance(value, dict):
+            value = _compact_facts(value)
+            if not value:
+                continue
+        result[key] = value
+    return result
 
 
 def _now() -> datetime:
@@ -170,14 +216,14 @@ def survey_context_features(db: Session, survey: Survey) -> dict:
     question_count = 0
     question_preview = []
     if (getattr(survey, "form_url", None) or "") == "__builtin__":
-        questions = db.query(Question).filter(Question.survey_id == survey.id).order_by(Question.order_index.asc()).limit(8).all()
+        questions = db.query(Question).filter(Question.survey_id == survey.id).order_by(Question.order_index.asc()).limit(4).all()
         question_count = db.query(Question).filter(Question.survey_id == survey.id).count()
         question_preview = [
             {
                 "order": getattr(q, "order_index", None),
                 "type": getattr(q, "question_type", None),
                 "required": bool(getattr(q, "is_required", True)),
-                "text_preview": (getattr(q, "question_text", "") or "")[:160],
+                "text_preview": (getattr(q, "question_text", "") or "")[:96],
             }
             for q in questions
         ]
@@ -189,7 +235,7 @@ def survey_context_features(db: Session, survey: Survey) -> dict:
     except Exception:
         reward_per_minute = None
 
-    return {
+    return _compact_facts({
         "responses_started_total": started,
         "responses_completed_total": completed,
         "responses_rejected_total": rejected,
@@ -203,29 +249,89 @@ def survey_context_features(db: Session, survey: Survey) -> dict:
         "question_count": question_count,
         "question_preview": question_preview,
         "reward_per_minute_raw": reward_per_minute,
-    }
+    })
 
 
 def _eligibility_context(survey: Survey, user: User) -> dict:
     match = survey_match_result(survey, user, strict=True)
-    return {
+    # Eligible candidates do not need every matched field repeated in the LLM
+    # payload. Only exceptions carry extra evidence.
+    return _compact_facts({
         "eligible": match.eligible,
-        "matched_fields": match.matched_fields,
-        "missing_fields": match.missing_fields,
-        "failed_fields": match.failed_fields,
-        "note": "Eligibility is a local hard filter only; it is not a prediction score.",
+        "missing_fields": match.missing_fields if not match.eligible else [],
+        "failed_fields": match.failed_fields if not match.eligible else [],
+    })
+
+
+def _history_payload(features: dict, *, category_only: bool = False) -> dict:
+    if category_only:
+        return _compact_facts({
+            "category_started": features.get("category_started_total"),
+            "category_completed": features.get("category_completed_total"),
+        })
+    return _compact_facts({
+        "started": features.get("started_total"),
+        "completed": features.get("completed_total"),
+        "rejected": features.get("rejected_total"),
+        "recent_completed_30d": features.get("recent_completed_30d"),
+        "activity_30d": features.get("recent_activity_events_30d"),
+        "category_started": features.get("category_started_total"),
+        "category_completed": features.get("category_completed_total"),
+        "avg_minutes": features.get("avg_completion_minutes_observed"),
+    })
+
+
+def _survey_context_payload(features: dict) -> dict:
+    return _compact_facts({
+        "started": features.get("responses_started_total"),
+        "completed": features.get("responses_completed_total"),
+        "rejected": features.get("responses_rejected_total"),
+        "target": features.get("target_responses"),
+        "current": features.get("current_responses_field"),
+        "jump_clicks": features.get("jump_clicks_total"),
+        "jump_returns": features.get("jump_returns_total"),
+        "jump_completed": features.get("jump_completed_total"),
+        "question_count": features.get("question_count"),
+        "question_preview": features.get("question_preview"),
+        "reward_per_minute": features.get("reward_per_minute_raw"),
+    })
+
+
+def _candidate_payload(survey: Survey, user: User, behavior: dict) -> dict:
+    item = {
+        "participant_id": user.id,
+        "profile": safe_user_payload(user),
+        "behavior": _history_payload(behavior),
     }
+    eligibility = _eligibility_context(survey, user)
+    if not eligibility.get("eligible"):
+        item["eligibility_exception"] = eligibility
+    return item
+
+
+def _survey_candidate_payload(db: Session, survey: Survey, user: User) -> dict:
+    history = user_history_features(db, user, survey)
+    item = {
+        "survey_id": survey.id,
+        "survey": safe_survey_payload(survey),
+        "survey_context": _survey_context_payload(survey_context_features(db, survey)),
+        "category_history": _history_payload(history, category_only=True),
+    }
+    eligibility = _eligibility_context(survey, user)
+    if not eligibility.get("eligible"):
+        item["eligibility_exception"] = eligibility
+    return item
 
 
 def _single_prediction_payload(db: Session, survey: Survey, user: User) -> dict:
+    history = user_history_features(db, user, survey)
     return {
         "task": "predict_completion_for_one_participant",
-        "model_policy": "Claude is the only probability/recommendation model. No local weighted rule score is provided.",
         "survey": safe_survey_payload(survey),
-        "survey_context": survey_context_features(db, survey),
+        "survey_context": _survey_context_payload(survey_context_features(db, survey)),
         "participant_id": user.id,
         "participant_profile": safe_user_payload(user),
-        "participant_behavior": user_history_features(db, user, survey),
+        "participant_behavior": _history_payload(history),
         "eligibility_context": _eligibility_context(survey, user),
     }
 
@@ -233,39 +339,23 @@ def _single_prediction_payload(db: Session, survey: Survey, user: User) -> dict:
 def _participant_batch_payload(db: Session, survey: Survey, users: list[User]) -> dict:
     return {
         "task": "rank_participants_for_one_survey",
-        "model_policy": "Claude is the only probability/recommendation model. No local weighted rule score is provided.",
         "survey": safe_survey_payload(survey),
-        "survey_context": survey_context_features(db, survey),
+        "survey_context": _survey_context_payload(survey_context_features(db, survey)),
         "participants": [
-            {
-                "participant_id": user.id,
-                "profile": safe_user_payload(user),
-                "behavior": user_history_features(db, user, survey),
-                "eligibility_context": _eligibility_context(survey, user),
-                "segment_label": user_segment_label(user),
-            }
+            _candidate_payload(survey, user, user_history_features(db, user, survey))
             for user in users
         ],
     }
 
 
 def _survey_batch_payload(db: Session, surveys: list[Survey], user: User) -> dict:
+    overall_history = user_history_features(db, user, None)
     return {
         "task": "rank_surveys_for_one_participant",
-        "model_policy": "Claude is the only probability/recommendation model. No urgency/date/rule ranking score is provided.",
         "participant_id": user.id,
         "participant_profile": safe_user_payload(user),
-        "participant_behavior_overall": user_history_features(db, user, None),
-        "surveys": [
-            {
-                "survey_id": survey.id,
-                "survey": safe_survey_payload(survey),
-                "survey_context": survey_context_features(db, survey),
-                "participant_behavior_for_category": user_history_features(db, user, survey),
-                "eligibility_context": _eligibility_context(survey, user),
-            }
-            for survey in surveys
-        ],
+        "participant_behavior": _history_payload(overall_history),
+        "surveys": [_survey_candidate_payload(db, survey, user) for survey in surveys],
     }
 
 
@@ -289,25 +379,43 @@ def _unavailable_prediction(survey: Survey, user: User, error: str) -> dict:
 
 def _normalize_llm_prediction(raw: dict, *, survey: Survey, user: User, context: Optional[dict] = None) -> dict:
     context = context or {}
-    probability = _clamp_probability(raw.get("completion_probability"), default=0.0)
+    probability = _clamp_probability(raw.get("completion_probability", raw.get("p")), default=0.0)
+    positive_reasons = _expand_reason_codes(raw.get("top_reasons", raw.get("pos")), risk=False, limit=3)
+    risk_reasons = _expand_reason_codes(raw.get("risk_reasons", raw.get("risk")), risk=True, limit=3)
+    confidence = _clean_confidence(raw.get("confidence", raw.get("c")))
+    recommended_action = str(raw.get("recommended_action", raw.get("action")) or "").strip()
+    ranking_note = str(raw.get("ranking_note", raw.get("note")) or "").strip()
+
+    if not recommended_action:
+        if risk_reasons:
+            recommended_action = "Rank with caution and address the leading completion risk before outreach."
+        elif probability >= 0.7:
+            recommended_action = "Prioritize this match in the next invitation batch."
+        elif probability >= 0.45:
+            recommended_action = "Keep this match in the standard recommendation set."
+        else:
+            recommended_action = "Deprioritize this match unless the candidate pool is limited."
+    if not ranking_note:
+        ranking_note = f"Compact Claude estimate ({confidence} confidence)."
+
     result = {
         "survey_id": getattr(survey, "id", None),
         "participant_id": getattr(user, "id", None),
         "completion_probability": probability,
-        "confidence": _clean_confidence(raw.get("confidence")),
+        "confidence": confidence,
         "segment_label": raw.get("segment_label") or user_segment_label(user),
-        "top_reasons": _clean_list(raw.get("top_reasons"), limit=5),
-        "risk_reasons": _clean_list(raw.get("risk_reasons"), limit=5),
-        "recommended_action": str(raw.get("recommended_action") or "").strip(),
-        "ranking_note": str(raw.get("ranking_note") or "").strip(),
+        "top_reasons": positive_reasons,
+        "risk_reasons": risk_reasons,
+        "recommended_action": recommended_action,
+        "ranking_note": ranking_note,
         "features": {
             "llm_only": True,
             "provider": "anthropic",
             "model": claude_model_name(),
             "raw_context_summary": context,
             "llm_output": {
-                "recommended_action": str(raw.get("recommended_action") or "").strip(),
-                "ranking_note": str(raw.get("ranking_note") or "").strip(),
+                "recommended_action": recommended_action,
+                "ranking_note": ranking_note,
             },
         },
         "model_version": MODEL_VERSION,
@@ -315,9 +423,7 @@ def _normalize_llm_prediction(raw: dict, *, survey: Survey, user: User, context:
         "llm_ok": True,
     }
     if not result["top_reasons"]:
-        result["top_reasons"] = ["Claude identified this as a relevant candidate based on the supplied survey and behavior context."]
-    if not result["recommended_action"]:
-        result["recommended_action"] = "Use this Claude prediction for ranking; collect more completion data to improve future judgments."
+        result["top_reasons"] = ["Claude based the estimate on the supplied task and behavior facts."]
     return result
 
 
@@ -413,10 +519,15 @@ def predict_user_for_survey(db: Session, survey: Survey, user: User, use_cache: 
 
 def candidate_users_for_survey(db: Session, survey: Survey, limit_pool: Optional[int] = None) -> list[User]:
     """Return locally eligible candidates only; no ranking is performed here."""
-    limit_pool = limit_pool or int(os.environ.get("AI_GROWTH_LLM_CANDIDATE_LIMIT", "120"))
+    if limit_pool is None:
+        try:
+            limit_pool = int(os.environ.get("AI_GROWTH_LLM_CANDIDATE_LIMIT", "60"))
+        except Exception:
+            limit_pool = 60
+    limit_pool = max(1, min(500, limit_pool))
     users = db.query(User).filter(User.id != survey.publisher_id).order_by(User.created_at.desc()).limit(limit_pool).all()
     eligible = [user for user in users if survey_match_result(survey, user, strict=True).eligible]
-    return eligible or users
+    return eligible
 
 
 def _extract_items_by_id(data: dict, list_key: str, id_key: str) -> dict[int, dict]:
@@ -534,6 +645,44 @@ def _summary_unavailable(survey: Survey, error: str, candidate_count: int = 0) -
     }
 
 
+def _summary_mode() -> str:
+    mode = (os.environ.get("AI_GROWTH_LLM_SUMMARY_MODE") or "local").strip().lower()
+    return mode if mode in {"local", "llm"} else "local"
+
+
+def _local_summary_guidance(survey: Survey, summary: dict, survey_context: dict) -> tuple[str, str]:
+    """Create dashboard copy without a second LLM call.
+
+    Claude still owns every completion probability and ranking decision. This
+    helper only turns already-computed aggregate facts into concise UI guidance.
+    """
+    duration = int(getattr(survey, "estimated_time", 0) or 0)
+    reward_per_minute = survey_context.get("reward_per_minute_raw")
+    destination = safe_survey_payload(survey).get("destination_type")
+    low_count = int(summary.get("low_probability_count") or 0)
+    candidate_count = int(summary.get("candidate_count") or 0)
+
+    if duration >= 20:
+        action = "Shorten the task or split it into smaller sections before increasing outreach."
+    elif reward_per_minute is not None and float(reward_per_minute) < 0.15:
+        action = "Increase the reward or reduce estimated completion time to improve follow-through."
+    elif destination == "external_or_interview":
+        action = "Clarify the external handoff and completion-return steps before scaling invitations."
+    elif candidate_count and low_count / candidate_count >= 0.5:
+        action = "Broaden non-sensitive targeting or improve the study description before scaling."
+    else:
+        action = "Prioritize the highest-probability candidates and monitor observed completion after launch."
+
+    top_segments = summary.get("top_segments") or []
+    if top_segments:
+        labels = [str(item.get("segment_label") or "").strip() for item in top_segments[:2]]
+        labels = [label for label in labels if label]
+        audience = "Start with " + " and ".join(labels) + ", then expand based on observed completions."
+    else:
+        audience = "Start with active eligible participants, then expand after collecting completion evidence."
+    return action, audience
+
+
 def survey_prediction_summary(db: Session, survey: Survey, force: bool = False) -> dict:
     candidates = candidate_users_for_survey(db, survey)
     predictions = predict_users_for_survey(db, survey, candidates, use_cache=not force)
@@ -589,11 +738,35 @@ def survey_prediction_summary(db: Session, survey: Survey, force: bool = False) 
         "llm_ok": all(bool(p.get("llm_ok")) for p in predictions),
     }
 
+    survey_context = survey_context_features(db, survey)
+    local_action, local_audience = _local_summary_guidance(survey, preliminary_summary, survey_context)
+    preliminary_summary["recommended_action"] = local_action
+    preliminary_summary["audience_strategy"] = local_audience
+
+    # The candidate probabilities and ranking already came from Claude. The
+    # default local mode avoids paying for a second model call merely to rewrite
+    # those aggregates as dashboard copy. Set AI_GROWTH_LLM_SUMMARY_MODE=llm to
+    # restore model-written summaries when desired.
+    if _summary_mode() != "llm":
+        return preliminary_summary
+
     payload = {
         "task": "summarize_survey_prediction",
         "survey": safe_survey_payload(survey),
-        "survey_context": survey_context_features(db, survey),
-        "aggregated_claude_predictions": preliminary_summary,
+        "survey_context": survey_context,
+        "aggregate": {
+            "candidate_count": preliminary_summary["candidate_count"],
+            "completion_probability": preliminary_summary["completion_probability"],
+            "top_candidate_probability": preliminary_summary["top_candidate_probability"],
+            "confidence": preliminary_summary["confidence"],
+            "segment_label": preliminary_summary["segment_label"],
+            "top_segments": preliminary_summary["top_segments"][:3],
+            "top_reasons": preliminary_summary["top_reasons"][:3],
+            "risk_reasons": preliminary_summary["risk_reasons"][:3],
+            "high_probability_count": preliminary_summary["high_probability_count"],
+            "medium_probability_count": preliminary_summary["medium_probability_count"],
+            "low_probability_count": preliminary_summary["low_probability_count"],
+        },
         "top_prediction_examples": sorted(
             [
                 {
@@ -607,7 +780,7 @@ def survey_prediction_summary(db: Session, survey: Survey, force: bool = False) 
             ],
             key=lambda x: x.get("completion_probability") or 0.0,
             reverse=True,
-        )[:10],
+        )[:4],
     }
     llm_summary = summarize_survey_with_claude(payload)
     if llm_summary.error or not llm_summary.data:
@@ -616,13 +789,13 @@ def survey_prediction_summary(db: Session, survey: Survey, force: bool = False) 
         return preliminary_summary
 
     data = llm_summary.data
-    preliminary_summary["completion_probability"] = _clamp_probability(data.get("completion_probability"), avg_prob)
-    preliminary_summary["confidence"] = _clean_confidence(data.get("confidence") or preliminary_summary["confidence"])
-    preliminary_summary["segment_label"] = str(data.get("segment_label") or preliminary_summary["segment_label"])
-    preliminary_summary["top_reasons"] = _clean_list(data.get("top_reasons"), preliminary_summary.get("top_reasons", []), limit=5)
-    preliminary_summary["risk_reasons"] = _clean_list(data.get("risk_reasons"), preliminary_summary.get("risk_reasons", []), limit=5)
-    preliminary_summary["recommended_action"] = str(data.get("recommended_action") or "").strip()
-    preliminary_summary["audience_strategy"] = str(data.get("audience_strategy") or "").strip()
+    preliminary_summary["completion_probability"] = _clamp_probability(data.get("completion_probability", data.get("p")), avg_prob)
+    preliminary_summary["confidence"] = _clean_confidence(data.get("confidence", data.get("c")) or preliminary_summary["confidence"])
+    preliminary_summary["segment_label"] = str(data.get("segment_label", data.get("segment")) or preliminary_summary["segment_label"])
+    preliminary_summary["top_reasons"] = _clean_list(data.get("top_reasons", data.get("pos")), preliminary_summary.get("top_reasons", []), limit=3)
+    preliminary_summary["risk_reasons"] = _clean_list(data.get("risk_reasons", data.get("risk")), preliminary_summary.get("risk_reasons", []), limit=3)
+    preliminary_summary["recommended_action"] = str(data.get("recommended_action", data.get("action")) or local_action).strip()
+    preliminary_summary["audience_strategy"] = str(data.get("audience_strategy", data.get("audience")) or local_audience).strip()
     return preliminary_summary
 
 
@@ -643,24 +816,51 @@ def preview_summary_from_payload(db: Session, payload: dict) -> dict:
     survey.status = payload.get("status") or "draft"
     survey.published_at = None
 
-    users = db.query(User).order_by(User.created_at.desc()).limit(80).all()
+    try:
+        pool_limit = max(10, min(100, int(os.environ.get("AI_GROWTH_LLM_PREVIEW_POOL_LIMIT", "60"))))
+    except Exception:
+        pool_limit = 60
+    try:
+        sample_limit = max(3, min(12, int(os.environ.get("AI_GROWTH_LLM_PREVIEW_SAMPLE_SIZE", "6"))))
+    except Exception:
+        sample_limit = 6
+    users = db.query(User).order_by(User.created_at.desc()).limit(pool_limit).all()
+
+    eligibility = [(user, _eligibility_context(survey, user)) for user in users]
+    eligible_users = [user for user, context in eligibility if context.get("eligible")]
+    representative_users = (eligible_users or users)[:sample_limit]
+
+    def distribution(attribute: str, limit: int = 6) -> dict[str, int]:
+        values = [str(getattr(user, attribute, "") or "").strip() for user in users]
+        counts = Counter(value for value in values if value)
+        return dict(counts.most_common(limit))
+
+    segment_counts = Counter(user_segment_label(user) for user in users)
     participant_sample = [
         {
-            "participant_id": user.id,
             "profile": safe_user_payload(user),
-            "behavior_overall": user_history_features(db, user, None),
-            "eligibility_context": _eligibility_context(survey, user),
-            "segment_label": user_segment_label(user),
+            "behavior": _compact_facts(user_history_features(db, user, None)),
         }
-        for user in users
+        for user in representative_users
     ]
+    pool_summary = _compact_facts({
+        "pool_count": len(users),
+        "eligible_count": len(eligible_users),
+        "sample_count": len(participant_sample),
+        "top_segments": dict(segment_counts.most_common(6)),
+        "age_ranges": distribution("age_range"),
+        "education_levels": distribution("education_level"),
+        "fields": distribution("field"),
+        "statuses": distribution("status"),
+        "devices": distribution("device_type"),
+        "languages": distribution("language"),
+    })
 
     llm_result = preview_survey_with_claude({
         "task": "preview_unsaved_survey",
         "survey_draft": safe_survey_payload(survey),
-        "candidate_sample_count": len(participant_sample),
-        "candidate_sample": participant_sample,
-        "model_policy": "Claude is the only preview model. No local weighted rule score is provided.",
+        "pool_summary": pool_summary,
+        "representative_sample": participant_sample,
     })
     if llm_result.error or not llm_result.data:
         return {
@@ -682,13 +882,13 @@ def preview_summary_from_payload(db: Session, payload: dict) -> dict:
         "survey_id": None,
         "model_version": MODEL_VERSION,
         "candidate_count": len(users),
-        "completion_probability": _clamp_probability(data.get("completion_probability"), 0.0),
-        "confidence": _clean_confidence(data.get("confidence")),
-        "segment_label": str(data.get("segment_label") or "Preview audience"),
-        "top_reasons": _clean_list(data.get("top_reasons"), limit=5),
-        "risk_reasons": _clean_list(data.get("risk_reasons"), limit=5),
-        "recommended_action": str(data.get("recommended_action") or "").strip(),
-        "audience_strategy": str(data.get("audience_strategy") or "").strip(),
+        "completion_probability": _clamp_probability(data.get("completion_probability", data.get("p")), 0.0),
+        "confidence": _clean_confidence(data.get("confidence", data.get("c"))),
+        "segment_label": str(data.get("segment_label", data.get("segment")) or "Preview audience"),
+        "top_reasons": _clean_list(data.get("top_reasons", data.get("pos")), limit=3),
+        "risk_reasons": _clean_list(data.get("risk_reasons", data.get("risk")), limit=3),
+        "recommended_action": str(data.get("recommended_action", data.get("action")) or "").strip(),
+        "audience_strategy": str(data.get("audience_strategy", data.get("audience")) or "").strip(),
         "llm_ok": True,
     }
 

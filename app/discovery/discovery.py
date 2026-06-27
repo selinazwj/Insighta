@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from datetime import datetime, timedelta
 from typing import Any
 
 from .models import Channel, Criteria, DiscoveryResult
@@ -13,49 +14,88 @@ except Exception:  # pragma: no cover - incomplete local installs should not bre
     anthropic = None
 
 
-DEFAULT_MODEL = "claude-sonnet-4-5"
+DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+
+_DISCOVERY_CACHE: dict[str, tuple[datetime, dict[str, Any]]] = {}
 
 
-SYSTEM_PROMPT = """You are Insighta's internal Channel Discovery Engine.
-
-Product rule:
-Discover where target populations congregate and how to approach them through trusted gatekeepers.
-Never scrape individuals, harvest personal contact information, infer private identities, or output personal contact data.
-
-Return only JSON matching this shape:
+SYSTEM_PROMPT = """Find compliant recruitment channels through public pages and trusted gatekeepers.
+Never output personal contacts, scrape individuals, or infer private identities.
+Return JSON only:
 {
-  "summary": "short operator-facing summary",
+  "summary": "under 30 words",
   "channels": [
     {
-      "name": "channel name",
+      "name": "name",
       "channel_type": "clinic|org|registry|forum|campus|community|other",
-      "url": "official/public page URL",
-      "contact_url": "best URL for compliant outreach, moderator contact, org contact, or posting rules",
-      "location": "location or online",
-      "population_fit": "why this channel matches the criteria",
-      "access_method": "compliant gatekeeper/public-posting approach",
-      "compliant_contact": "short table-ready contact method, e.g. org partnership, clinic referral, moderator-approved opt-in post",
-      "compliance_notes": "IRB/platform-safe notes",
-      "estimated_reach": "public size/activity estimate when available",
-      "scale_activity": "member count, rating, event cadence, clinic/group volume, or directory breadth",
-      "local_fit": "table-ready fit for local/in-person criteria, e.g. Boston in-person group, online but not geo-concentrated",
-      "evidence": ["short public evidence/source notes"],
-      "tags": ["gatekeeper_outreach", "public_posting", "no_personal_data"]
+      "url": "official/public URL",
+      "contact_url": "public outreach/rules URL",
+      "location": "...",
+      "population_fit": "under 20 words",
+      "access_method": "under 20 words",
+      "compliant_contact": "under 10 words",
+      "compliance_notes": "under 18 words",
+      "estimated_reach": "short public estimate",
+      "scale_activity": "short activity signal",
+      "local_fit": "short fit note",
+      "evidence": ["max 2 short notes"],
+      "tags": ["max 3 short tags"]
     }
   ],
-  "warnings": ["gaps, uncertainty, or missing exact counts"]
+  "warnings": ["max 2 short gaps"]
 }
-
-Prioritize real clinics, community orgs, registries, campus offices, advocacy groups, and moderated forums.
-For every channel, include a concrete official or public URL when one exists.
-Format the result so operators can render it as a table with columns: channel, type, scale_activity, local_fit, compliant_contact, URL.
-Do not include individual people, personal emails, personal phone numbers, or private profiles."""
+Return at most 5 strong channels. Prefer official clinics, organizations, registries,
+campus offices, advocacy groups, and moderated forums. Include public URLs when available."""
 
 
 def _criteria_payload(criteria: Criteria) -> dict[str, Any]:
     if hasattr(criteria, "model_dump"):
-        return criteria.model_dump()
-    return criteria.dict()
+        data = criteria.model_dump(exclude_none=True)
+    else:
+        data = criteria.dict(exclude_none=True)
+    if data.get("notes"):
+        data["notes"] = str(data["notes"])[:400]
+    if data.get("study_topic"):
+        data["study_topic"] = str(data["study_topic"])[:200]
+    data["population"] = str(data.get("population") or "")[:240]
+    return data
+
+
+def _cache_key(criteria: Criteria) -> str:
+    return json.dumps(_criteria_payload(criteria), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _cache_hours() -> int:
+    try:
+        return max(0, int(os.environ.get("CHANNEL_DISCOVERY_CACHE_HOURS", "12")))
+    except Exception:
+        return 12
+
+
+def _safe_int_env(name: str, default: int, minimum: int, maximum: int) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except Exception:
+        value = default
+    return max(minimum, min(maximum, value))
+
+
+def _cached_discovery(criteria: Criteria) -> DiscoveryResult | None:
+    cached = _DISCOVERY_CACHE.get(_cache_key(criteria))
+    if not cached or cached[0] <= datetime.utcnow():
+        return None
+    return DiscoveryResult(**cached[1])
+
+
+def _store_discovery(result: DiscoveryResult) -> None:
+    hours = _cache_hours()
+    if hours <= 0:
+        return
+    if hasattr(result, "model_dump"):
+        data = result.model_dump()
+    else:
+        data = result.dict()
+    _DISCOVERY_CACHE[_cache_key(result.criteria)] = (datetime.utcnow() + timedelta(hours=hours), data)
 
 
 def _message_to_text(message: Any) -> str:
@@ -292,6 +332,11 @@ def _normalize_result(data: dict[str, Any], criteria: Criteria, source: str) -> 
 
 
 def discover(criteria: Criteria) -> DiscoveryResult:
+    cached = _cached_discovery(criteria)
+    if cached is not None:
+        cached.source = f"{cached.source}_cache"
+        return cached
+
     if anthropic is None or not os.environ.get("ANTHROPIC_API_KEY"):
         return DiscoveryResult(
             criteria=criteria,
@@ -305,17 +350,21 @@ def discover(criteria: Criteria) -> DiscoveryResult:
     try:
         message = client.messages.create(
             model=os.environ.get("CHANNEL_DISCOVERY_MODEL", DEFAULT_MODEL),
-            max_tokens=int(os.environ.get("CHANNEL_DISCOVERY_MAX_TOKENS", "2600")),
+            max_tokens=_safe_int_env("CHANNEL_DISCOVERY_MAX_TOKENS", 1400, 400, 2600),
             temperature=0.1,
             system=SYSTEM_PROMPT,
-            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 8}],
+            tools=[{
+                "type": "web_search_20250305",
+                "name": "web_search",
+                "max_uses": _safe_int_env("CHANNEL_DISCOVERY_MAX_SEARCHES", 4, 1, 8),
+            }],
             messages=[
                 {
                     "role": "user",
-                    "content": (
-                        "Find ranked recruitment channels for this research study. "
-                        "Return compliant gatekeeper/public-posting options only.\n\n"
-                        + json.dumps(_criteria_payload(criteria), ensure_ascii=False)
+                    "content": json.dumps(
+                        _criteria_payload(criteria),
+                        ensure_ascii=False,
+                        separators=(",", ":"),
                     ),
                 }
             ],
@@ -343,4 +392,7 @@ def discover(criteria: Criteria) -> DiscoveryResult:
     if not result.channels:
         result.channels = _offline_channels(criteria)
         result.warnings.append("Live discovery returned no valid channels; offline fallback channels included.")
+    else:
+        result.channels = result.channels[:5]
+        _store_discovery(result)
     return result
