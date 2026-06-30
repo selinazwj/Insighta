@@ -35,6 +35,51 @@
     .submit:hover{background:var(--green-d)}
     .note{font-size:12px;line-height:1.5;color:var(--ink3);margin-top:14px;text-align:center}
     @media(max-width:560px){.card{padding:26px 20px}.row{grid-template-columns:1fr}h1{font-size:30px}}
+    {% if participant_app %}
+    :root{
+      --lime:#d9ed92; --lime2:#b5e48c; --lime3:#99d98c;
+      --em:#76c893; --teal:#34a0a4; --teal2:#168aad;
+      --ocean:#1a759f; --yale:#184e77;
+      --green:var(--teal); --green-d:var(--teal2); --green-l:#eefbf7;
+      --ink:#12324a; --ink2:#2f5f6d; --ink3:#5f8390;
+      --bg:#fcfff5; --bg2:#f4fbdf; --line:#b8e9ad;
+    }
+    body{
+      background:
+        radial-gradient(circle at 16% 12%, rgba(217,237,146,.78), rgba(217,237,146,0) 28%),
+        radial-gradient(circle at 88% 18%, rgba(82,182,154,.28), rgba(82,182,154,0) 24%),
+        linear-gradient(145deg,#fcfff5 0%,#eefbf7 100%);
+    }
+    .card{
+      border:2px solid var(--line);
+      border-radius:24px;
+      box-shadow:0 7px 0 var(--em), 0 24px 60px rgba(24,78,119,.12);
+    }
+    .brand{font-weight:900;color:var(--yale)}
+    .brand img{border-radius:10px;box-shadow:0 3px 0 var(--lime2)}
+    .eyebrow{color:var(--teal2);letter-spacing:0;font-weight:900}
+    h1{font-family:var(--sans);font-weight:900;letter-spacing:0;color:var(--ink)}
+    .copy,label,.note{font-weight:700;color:var(--ink2)}
+    input{
+      border:2px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      font-weight:800;
+    }
+    input:focus{border-color:var(--teal);box-shadow:0 0 0 4px rgba(52,160,164,.14)}
+    .submit{
+      border:2px solid var(--yale);
+      border-radius:16px;
+      background:var(--teal);
+      box-shadow:0 5px 0 var(--yale);
+      transition:transform .1s, box-shadow .1s, background .15s;
+    }
+    .submit:hover{background:var(--teal2);transform:translateY(2px);box-shadow:0 3px 0 var(--yale)}
+    @media(max-width:560px){
+      body{display:block;padding:18px 14px;min-height:100svh}
+      .card{min-height:calc(100svh - 36px);display:flex;flex-direction:column;justify-content:center}
+    }
+    {% endif %}
   </style>
 </head>
 <body>
@@ -44,8 +89,8 @@
       <span>Insighta</span>
     </a>
     <div class="eyebrow">One last step</div>
-    <h1>Tell us who you are.</h1>
-    <p class="copy">Add your name and username before entering Insighta. This keeps accounts clear for support, verification, and study tracking.</p>
+    <h1>{% if participant_app %}Set up your study profile.{% else %}Tell us who you are.{% endif %}</h1>
+    <p class="copy">{% if participant_app %}Add the basics first. You can finish the detailed participant profile after you enter your dashboard.{% else %}Add your name and username before entering Insighta. This keeps accounts clear for support, verification, and study tracking.{% endif %}</p>
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
     <form method="POST" action="/complete-profile">
       <input type="hidden" name="next" value="{{ next or '' }}">

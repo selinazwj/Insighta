@@ -1335,6 +1335,7 @@ def get_current_user(
 def complete_profile_get(
     request: Request,
     next: Optional[str] = None,
+    participant_app: Optional[str] = Cookie(None),
     current_user: User = Depends(get_current_user),
 ):
     return_to = next if is_safe_internal_next(next) else ""
@@ -1345,12 +1346,14 @@ def complete_profile_get(
         "current_user": current_user,
         "next": return_to,
         "error": None,
+        "participant_app": _should_use_participant_app(request, participant_app),
     }))
 
 
 @app.post("/complete-profile", response_class=HTMLResponse)
 async def complete_profile_post(
     request: Request,
+    participant_app: Optional[str] = Cookie(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1366,13 +1369,14 @@ async def complete_profile_post(
             "current_user": current_user,
             "next": return_to,
             "error": "Please fill in your first name, last name, and username.",
+            "participant_app": _should_use_participant_app(request, participant_app),
         }))
 
     current_user.first_name = first_name
     current_user.last_name = last_name
     current_user.username = username
     db.commit()
-    return RedirectResponse(return_to or _post_auth_url(request), status_code=303)
+    return RedirectResponse(return_to or _post_auth_url(request, participant_app), status_code=303)
 
 
 @app.get("/r/{share_slug}", response_class=HTMLResponse)
