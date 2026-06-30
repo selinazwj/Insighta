@@ -82,6 +82,8 @@ Base.metadata.create_all(bind=engine)
 def ensure_user_profile_columns():
     columns = {col["name"] for col in inspect(engine).get_columns("users")}
     profile_columns = {
+        "first_name": "VARCHAR",
+        "last_name": "VARCHAR",
         "phone_number": "VARCHAR",
         "birth_year": "VARCHAR",
         "birth_month": "VARCHAR",
@@ -578,6 +580,26 @@ def _post_auth_url_with_next(
     return _post_auth_url(request, participant_app, welcome=welcome)
 
 
+def _needs_identity_onboarding(user: User) -> bool:
+    return not all([
+        (getattr(user, "first_name", None) or "").strip(),
+        (getattr(user, "last_name", None) or "").strip(),
+        (getattr(user, "username", None) or "").strip(),
+    ])
+
+
+def _identity_onboarding_url(return_to: Optional[str] = None) -> str:
+    safe_return = return_to if is_safe_internal_next(return_to) and return_to != "/complete-profile" else ""
+    qs = urlencode({"next": safe_return}) if safe_return else ""
+    return f"/complete-profile?{qs}" if qs else "/complete-profile"
+
+
+def _post_auth_or_onboarding_url(user: User, final_url: str) -> str:
+    if _needs_identity_onboarding(user):
+        return _identity_onboarding_url(final_url)
+    return final_url
+
+
 AUTH_RETURN_COOKIE = "auth_return_to"
 
 
@@ -920,12 +942,13 @@ async def google_callback(
             db.commit()
 
     return_to = _safe_auth_return(request.cookies.get(AUTH_RETURN_COOKIE))
-    redirect_url = _post_auth_url_with_next(
+    final_url = _post_auth_url_with_next(
         request,
         request.cookies.get("participant_app"),
         return_to,
         welcome=is_new,
     )
+    redirect_url = _post_auth_or_onboarding_url(user, final_url)
     resp = RedirectResponse(redirect_url, status_code=303)
     policy = _cookie_policy(request)
     resp.set_cookie("user_id", str(user.id), **policy)
@@ -1021,12 +1044,13 @@ async def linkedin_callback(
             db.commit()
 
     return_to = _safe_auth_return(request.cookies.get(AUTH_RETURN_COOKIE))
-    redirect_url = _post_auth_url_with_next(
+    final_url = _post_auth_url_with_next(
         request,
         request.cookies.get("participant_app"),
         return_to,
         welcome=is_new,
     )
+    redirect_url = _post_auth_or_onboarding_url(user, final_url)
     resp = RedirectResponse(redirect_url, status_code=303)
     policy = _cookie_policy(request)
     resp.set_cookie("user_id", str(user.id), **policy)
@@ -1141,7 +1165,8 @@ def login(
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }))
 
-    response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next_url, role), status_code=303)
+    final_url = _post_auth_url_with_next(request, participant_app, next_url, role)
+    response = RedirectResponse(_post_auth_or_onboarding_url(user, final_url), status_code=303)
     response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
     _clear_auth_return(response, request)
     if (role or "").strip().lower() == "participant":
@@ -1279,7 +1304,8 @@ async def do_register(
     db.commit()
     db.refresh(user)
 
-    response = RedirectResponse(_post_auth_url_with_next(request, participant_app, next_url, role=role, welcome=True), status_code=303)
+    final_url = _post_auth_url_with_next(request, participant_app, next_url, role=role, welcome=True)
+    response = RedirectResponse(_post_auth_or_onboarding_url(user, final_url), status_code=303)
     response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
     _clear_auth_return(response, request)
     if role == "participant":
@@ -1303,6 +1329,51 @@ def get_current_user(
     if not user:
         raise HTTPException(401, "User not found")
     return user
+
+
+@app.get("/complete-profile", response_class=HTMLResponse)
+def complete_profile_get(
+    request: Request,
+    next: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+):
+    return_to = next if is_safe_internal_next(next) else ""
+    if not _needs_identity_onboarding(current_user):
+        return RedirectResponse(return_to or _post_auth_url(request), status_code=303)
+    return no_store_response(templates.TemplateResponse("complete_profile.html", {
+        "request": request,
+        "current_user": current_user,
+        "next": return_to,
+        "error": None,
+    }))
+
+
+@app.post("/complete-profile", response_class=HTMLResponse)
+async def complete_profile_post(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    form = await request.form()
+    first_name = (form.get("first_name") or "").strip()
+    last_name = (form.get("last_name") or "").strip()
+    username = (form.get("username") or "").strip()
+    return_to = form.get("next") if is_safe_internal_next(form.get("next")) else ""
+
+    if not first_name or not last_name or not username:
+        return no_store_response(templates.TemplateResponse("complete_profile.html", {
+            "request": request,
+            "current_user": current_user,
+            "next": return_to,
+            "error": "Please fill in your first name, last name, and username.",
+        }))
+
+    current_user.first_name = first_name
+    current_user.last_name = last_name
+    current_user.username = username
+    db.commit()
+    return RedirectResponse(return_to or _post_auth_url(request), status_code=303)
+
 
 @app.get("/r/{share_slug}", response_class=HTMLResponse)
 def recruitment_share_page(
@@ -2642,6 +2713,10 @@ async def profile_post(
     form = await request.form()
     if not _should_use_participant_app(request, participant_app):
         current_user.username = (form.get("username") or "").strip() or None
+        if "first_name" in form:
+            current_user.first_name = (form.get("first_name") or "").strip() or None
+        if "last_name" in form:
+            current_user.last_name = (form.get("last_name") or "").strip() or None
         current_user.email = (form.get("email") or "").strip()
         if "phone_number" in form:
             current_user.phone_number = (form.get("phone_number") or "").strip() or None
@@ -2659,6 +2734,10 @@ async def profile_post(
     lifestyle_list = _list_with_other(form.getlist("lifestyle_tags"), form.get("lifestyle_tags_other"))
 
     current_user.username = form.get("username")
+    if "first_name" in form:
+        current_user.first_name = (form.get("first_name") or "").strip() or None
+    if "last_name" in form:
+        current_user.last_name = (form.get("last_name") or "").strip() or None
     current_user.email = form.get("email") or ""
     if "phone_number" in form:
         current_user.phone_number = (form.get("phone_number") or "").strip() or None

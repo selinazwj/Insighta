@@ -93,6 +93,12 @@
     .form-footer { text-align: center; margin-top: 20px; font-size: 14px; color: var(--ink-muted); }
     .form-footer a { color: var(--green); font-weight: 600; text-decoration: none; }
     .form-footer a:hover { text-decoration: underline; }
+    .quick-auth { margin: 16px 0 12px; }
+    .quick-auth-note { display: flex; align-items: center; gap: 10px; color: var(--ink-muted); font-size: 12px; margin-bottom: 10px; }
+    .quick-auth-note::before, .quick-auth-note::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+    .btn-google { height: 42px; border: 0.5px solid var(--line2); border-radius: 20px; background: var(--paper); color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; font-size: 14px; font-weight: 700; }
+    .btn-google:hover { border-color: var(--green-m); background: var(--paper-warm); }
+    .google-mark { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #4285f4; background: #fff; border: 1px solid var(--line); }
 
     /* MODAL */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(26,26,24,0.5); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; animation: fadeIn 0.25s ease; }
@@ -314,7 +320,7 @@
     </div>
   </div>
   <div class="panel-footer">
-    <p>Already have an account? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in →</a></p>
+    <p>Already have an account, or want to use Google? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in or continue with Google →</a></p>
   </div>
 </div>
 
@@ -369,7 +375,14 @@
         </div>
 
         <button type="button" class="btn-next" onclick="goToStep2()">Continue →</button>
-        <p class="form-footer">Already have an account? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in</a></p>
+        <div class="quick-auth">
+          <div class="quick-auth-note">or</div>
+          <a class="btn-google" href="/auth/google">
+            <span class="google-mark">G</span>
+            Sign in or create account with Google
+          </a>
+        </div>
+        <p class="form-footer">Already have an account, or prefer Google? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in or use Google</a></p>
       </div>
 
       <!-- STEP 2: Password -->

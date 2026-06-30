@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete Profile - Insighta</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green:#3b7c4f; --green-d:#2a5c39; --green-l:#e8f2eb;
+      --ink:#1a1a18; --ink2:#4a4a44; --ink3:#8a8a82;
+      --bg:#ffffff; --bg2:#fafaf8; --line:#e8e3d8;
+      --red:#c53030; --red-l:#fff5f5; --red-b:#fed7d7;
+      --serif:'DM Serif Display',Georgia,serif;
+      --sans:'DM Sans',system-ui,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;font-family:var(--sans);background:linear-gradient(135deg,#f7fbf8 0%,#fdfcf8 100%);color:var(--ink);display:grid;place-items:center;padding:24px}
+    .card{width:min(480px,100%);background:var(--bg);border:1px solid var(--line);border-radius:18px;padding:34px;box-shadow:0 24px 70px rgba(26,26,24,.08)}
+    .brand{display:flex;align-items:center;gap:10px;margin-bottom:28px;font-weight:800;color:var(--ink);text-decoration:none}
+    .brand img{width:30px;height:30px;border-radius:8px}
+    .eyebrow{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
+    h1{font-family:var(--serif);font-size:34px;line-height:1.05;font-weight:400;margin-bottom:10px}
+    .copy{font-size:14px;line-height:1.6;color:var(--ink3);margin-bottom:24px}
+    .error{background:var(--red-l);border:1px solid var(--red-b);color:var(--red);border-radius:10px;padding:11px 13px;font-size:13px;font-weight:700;margin-bottom:16px}
+    .field{margin-bottom:14px}
+    label{display:block;font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:7px}
+    input{width:100%;height:46px;border:1px solid var(--line);border-radius:10px;padding:0 13px;font-family:var(--sans);font-size:15px;color:var(--ink);background:var(--bg2)}
+    input:focus{outline:none;border-color:var(--green);background:#fff;box-shadow:0 0 0 3px rgba(59,124,79,.1)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .submit{width:100%;height:48px;border:0;border-radius:10px;background:var(--green);color:#fff;font-family:var(--sans);font-size:15px;font-weight:800;cursor:pointer;margin-top:8px}
+    .submit:hover{background:var(--green-d)}
+    .note{font-size:12px;line-height:1.5;color:var(--ink3);margin-top:14px;text-align:center}
+    @media(max-width:560px){.card{padding:26px 20px}.row{grid-template-columns:1fr}h1{font-size:30px}}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <a class="brand" href="/">
+      <img src="/static/favicon.png" alt="Insighta">
+      <span>Insighta</span>
+    </a>
+    <div class="eyebrow">One last step</div>
+    <h1>Tell us who you are.</h1>
+    <p class="copy">Add your name and username before entering Insighta. This keeps accounts clear for support, verification, and study tracking.</p>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="POST" action="/complete-profile">
+      <input type="hidden" name="next" value="{{ next or '' }}">
+      <div class="row">
+        <div class="field">
+          <label>First name</label>
+          <input name="first_name" autocomplete="given-name" required value="{{ current_user.first_name or '' }}">
+        </div>
+        <div class="field">
+          <label>Last name</label>
+          <input name="last_name" autocomplete="family-name" required value="{{ current_user.last_name or '' }}">
+        </div>
+      </div>
+      <div class="field">
+        <label>Username</label>
+        <input name="username" autocomplete="nickname" required value="{{ current_user.username or '' }}" placeholder="How you want to appear in Insighta">
+      </div>
+      <button class="submit" type="submit">Continue</button>
+    </form>
+    <div class="note">You can update these later from your profile.</div>
+  </main>
+</body>
+</html>
