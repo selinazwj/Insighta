@@ -203,9 +203,7 @@
     </a>
     <div class="top-actions">
       <button class="ghost-link" type="button" onclick="copyShareLink()">Copy link</button>
-      {% if current_user %}
-        <a class="ghost-link" href="{{ dashboard_url }}">Participant dashboard</a>
-      {% else %}
+      {% if not current_user %}
         <a class="ghost-link" href="{{ login_url }}">Sign in</a>
       {% endif %}
     </div>
