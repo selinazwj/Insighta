@@ -293,9 +293,6 @@
           {% endif %}
 
           <button class="btn" type="button" onclick="copyShareLink('/r/{{ s.share_slug }}')">Share link</button>
-          {% if s.status in ['published', 'closed'] %}
-          <a class="btn" href="/r/{{ s.share_slug }}/qr.png?download=true">QR code</a>
-          {% endif %}
           <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
             <button class="btn">Edit</button>
           </form>
@@ -375,9 +372,6 @@
           {% else %}<button class="btn btn-disabled">Close</button>{% endif %}
 
           <button class="btn" type="button" onclick="copyShareLink('/r/{{ s.share_slug }}')">Share link</button>
-          {% if s.status in ['published', 'closed'] %}
-          <a class="btn" href="/r/{{ s.share_slug }}/qr.png?download=true">QR code</a>
-          {% endif %}
           <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
             <button class="btn">Edit</button>
           </form>

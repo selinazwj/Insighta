@@ -285,13 +285,6 @@
           <div><div class="action-label">Share link</div><div class="action-desc">Copy the public recruitment page for this listing.</div></div>
           <button type="button" class="action-btn primary" onclick="copyShareLink()">Copy link</button>
         </div>
-        {% if survey.status in ['published', 'closed'] %}
-        <div class="action-row">
-          <div><div class="action-label">QR code</div><div class="action-desc">Download a scannable code for flyers, posters, and social posts.</div></div>
-          <a class="action-btn" href="/r/{{ survey.share_slug }}/qr.png?download=true">Download</a>
-        </div>
-        {% endif %}
-
         {% if survey.status == 'draft' %}
         <div class="action-row">
           <div><div class="action-label">Publish</div><div class="action-desc">Make this study visible to participants.</div></div>
