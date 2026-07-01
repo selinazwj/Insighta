@@ -1619,12 +1619,18 @@ async def record_client_event(
     event_name = (body.get("event_name") or "").strip().lower()
     if not event_name:
         raise HTTPException(400, "event_name is required")
+    anonymous_id = (body.get("anonymous_id") or "").strip()
+    if current_user and anonymous_id:
+        db.query(UserEvent).filter(
+            UserEvent.anonymous_id == anonymous_id[:120],
+            UserEvent.user_id.is_(None),
+        ).update({"user_id": current_user.id}, synchronize_session=False)
     _record_user_event(
         db,
         request,
         event_name,
         user=current_user,
-        anonymous_id=body.get("anonymous_id"),
+        anonymous_id=anonymous_id,
         target_type=body.get("target_type"),
         target_id=body.get("target_id"),
         page_path=body.get("page_path"),
@@ -3936,10 +3942,14 @@ async def admin_analytics(
     for event in recent:
         user = users.get(event.user_id)
         survey = survey_map.get(int(event.target_id)) if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit() else None
+        guest_suffix = (event.anonymous_id or "")[-4:].upper()
+        actor_label = user.email if user else (f"Guest visitor #{guest_suffix}" if guest_suffix else "Guest visitor")
         recent_activity.append({
             "id": event.id,
             "event_name": event.event_name,
-            "user": user.email if user else (event.anonymous_id or "Anonymous"),
+            "user": actor_label,
+            "actor_type": "user" if user else "guest",
+            "anonymous_id": event.anonymous_id,
             "target_type": event.target_type,
             "target_id": event.target_id,
             "target_label": survey.title if survey else None,

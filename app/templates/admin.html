@@ -643,7 +643,9 @@
   }
 
   function activityLabel(item) {
-    const user = `<strong>${esc(item.user || 'Anonymous')}</strong>`;
+    const actor = item.actor_type === 'guest'
+      ? `<strong>${esc(item.user || 'Guest visitor')}</strong> <span style="color:var(--ink4);font-weight:600;">guest</span>`
+      : `<strong>${esc(item.user || 'Logged-in user')}</strong>`;
     const names = {
       listing_viewed: 'viewed a listing',
       study_card_viewed: 'saw a study card',
@@ -655,7 +657,7 @@
       login_success: 'signed in',
       signup_completed: 'signed up',
     };
-    return `${user} ${names[item.event_name] || esc(item.event_name || 'did something')}`;
+    return `${actor} ${names[item.event_name] || esc(item.event_name || 'did something')}`;
   }
 
   function fmtNum(n) {
