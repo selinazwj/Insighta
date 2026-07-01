@@ -331,6 +331,10 @@ A few things we want you to know upfront:
 * We only work with studies that have proper ethical (IRB) approval.
 * We'll never share your information without your consent.
 
+Here's some research that you can start off with:
+BU CARD STOP study for Social Anxiety: https://insightaco.org/r/Ta29WANH7J
+Paid research study on time and memory: https://insightaco.org/r/940DVmCuNO
+
 If you ever have questions, feel free to use our chat box and connect to our team member directly.
 Now, please explore around!
 
