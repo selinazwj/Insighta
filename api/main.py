@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from app.database import engine, get_db, SessionLocal
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage
+from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent
 from app.quality_engine import (
     anthropic_api_key_configured,
     batch_anomaly_scores_for_features,
@@ -144,6 +144,28 @@ def ensure_response_tracking_columns():
                 conn.execute(text(f"ALTER TABLE responses ADD COLUMN {name} {column_type}"))
 
 ensure_response_tracking_columns()
+
+def ensure_user_event_table():
+    id_type = "SERIAL PRIMARY KEY" if engine.dialect.name == "postgresql" else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    metadata_type = "JSONB" if engine.dialect.name == "postgresql" else "JSON"
+    with engine.begin() as conn:
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS user_events (
+                id {id_type},
+                user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+                anonymous_id VARCHAR NULL,
+                event_name VARCHAR NOT NULL,
+                target_type VARCHAR NULL,
+                target_id VARCHAR NULL,
+                page_path TEXT NULL,
+                metadata_json {metadata_type} NULL,
+                user_agent TEXT NULL,
+                client_ip VARCHAR NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+
+ensure_user_event_table()
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
@@ -413,6 +435,68 @@ async def _send_survey_start_followup_after_delay(response_id: int, dashboard_ur
         _send_survey_start_followup_email(db, response_id, dashboard_url)
     finally:
         db.close()
+
+
+def _client_ip(request: Request) -> Optional[str]:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()[:120]
+    if request.client:
+        return request.client.host[:120]
+    return None
+
+
+def _safe_event_metadata(metadata: Any) -> dict:
+    if not isinstance(metadata, dict):
+        return {}
+    allowed = {}
+    for key, value in metadata.items():
+        if key in {"password", "token", "verification_code", "answers", "content"}:
+            continue
+        safe_key = str(key)[:80]
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            allowed[safe_key] = value if not isinstance(value, str) else value[:500]
+        elif isinstance(value, list):
+            allowed[safe_key] = [str(item)[:120] for item in value[:20]]
+        elif isinstance(value, dict):
+            allowed[safe_key] = {str(k)[:80]: str(v)[:200] for k, v in list(value.items())[:20]}
+        else:
+            allowed[safe_key] = str(value)[:200]
+    return allowed
+
+
+def _record_user_event(
+    db: Session,
+    request: Request,
+    event_name: str,
+    user: Optional[User] = None,
+    user_id: Optional[int] = None,
+    anonymous_id: Optional[str] = None,
+    target_type: Optional[str] = None,
+    target_id: Optional[Any] = None,
+    page_path: Optional[str] = None,
+    metadata: Optional[dict] = None,
+) -> Optional[UserEvent]:
+    clean_name = (event_name or "").strip().lower()[:80]
+    if not clean_name:
+        return None
+    resolved_user_id = user.id if user else user_id
+    path = (page_path or request.url.path)[:500]
+    if request.url.query and not page_path:
+        path = f"{path}?{request.url.query}"[:500]
+    event = UserEvent(
+        user_id=resolved_user_id,
+        anonymous_id=(anonymous_id or "")[:120] or None,
+        event_name=clean_name,
+        target_type=(target_type or "")[:80] or None,
+        target_id=str(target_id)[:120] if target_id is not None else None,
+        page_path=path,
+        metadata_json=_safe_event_metadata(metadata or {}),
+        user_agent=(request.headers.get("user-agent") or "")[:800] or None,
+        client_ip=_client_ip(request),
+    )
+    db.add(event)
+    return event
 
 
 router = APIRouter()
@@ -1342,6 +1426,8 @@ def login(
         _post_auth_or_onboarding_url(user, final_url, role=role, participant_app=participant_app),
         status_code=303,
     )
+    _record_user_event(db, request, "login_success", user=user, metadata={"role": role or "", "next": next_url or ""})
+    db.commit()
     response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
     _clear_auth_return(response, request)
     if (role or "").strip().lower() == "participant":
@@ -1478,6 +1564,8 @@ async def do_register(
     db.add(user)
     db.commit()
     db.refresh(user)
+    _record_user_event(db, request, "signup_completed", user=user, metadata={"role": role or "", "next": next_url or ""})
+    db.commit()
 
     final_url = _post_auth_url_with_next(request, participant_app, next_url, role=role, welcome=True)
     response = RedirectResponse(
@@ -1507,6 +1595,43 @@ def get_current_user(
     if not user:
         raise HTTPException(401, "User not found")
     return user
+
+
+@app.post("/api/events")
+async def record_client_event(
+    request: Request,
+    user_id: str = Cookie(None),
+    db: Session = Depends(get_db),
+):
+    raw = await request.body()
+    try:
+        body = json.loads(raw.decode("utf-8")) if raw else {}
+    except Exception:
+        body = {}
+
+    current_user = None
+    if user_id:
+        try:
+            current_user = db.query(User).filter(User.id == int(user_id)).first()
+        except Exception:
+            current_user = None
+
+    event_name = (body.get("event_name") or "").strip().lower()
+    if not event_name:
+        raise HTTPException(400, "event_name is required")
+    _record_user_event(
+        db,
+        request,
+        event_name,
+        user=current_user,
+        anonymous_id=body.get("anonymous_id"),
+        target_type=body.get("target_type"),
+        target_id=body.get("target_id"),
+        page_path=body.get("page_path"),
+        metadata=body.get("metadata") if isinstance(body.get("metadata"), dict) else {},
+    )
+    db.commit()
+    return JSONResponse({"success": True})
 
 
 @app.get("/complete-profile", response_class=HTMLResponse)
@@ -1614,6 +1739,17 @@ def recruitment_share_page(
     brand_action = "back" if from_participant_app else ("dashboard" if current_user else "none")
     brand_href = dashboard_path if brand_action == "dashboard" else "#"
     brand_label = "Back to dashboard" if from_participant_app else ("Dashboard" if current_user else "Insighta")
+    _record_user_event(
+        db,
+        request,
+        "listing_viewed",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        page_path=next_path,
+        metadata={"study_title": survey.title, "source": from_ or "share_link"},
+    )
+    db.commit()
     return templates.TemplateResponse("recruitment_share.html", {
         "request": request,
         "survey": survey,
@@ -1989,6 +2125,14 @@ def dashboard(
 
     pending_earnings = getattr(current_user, 'pending_earnings', 0.0) or 0.0
     total_withdrawn = getattr(current_user, 'total_withdrawn', 0.0) or 0.0
+    _record_user_event(
+        db,
+        request,
+        "dashboard_opened",
+        user=current_user,
+        metadata={"matched_count": len(surveys_data), "surface": "desktop"},
+    )
+    db.commit()
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -2167,6 +2311,14 @@ def dashboard_mobile(
         Response.participant_id == current_user.id,
         Response.status == "completed",
     ).count()
+    _record_user_event(
+        db,
+        request,
+        "dashboard_opened",
+        user=current_user,
+        metadata={"matched_count": len(surveys_data), "surface": "mobile"},
+    )
+    db.commit()
 
     return templates.TemplateResponse("dashboard_mobile.html", {
         "request": request,
@@ -2277,6 +2429,20 @@ async def start_survey(
             response.id,
             _absolute_url(request, "/dashboard"),
         )
+    _record_user_event(
+        db,
+        request,
+        "survey_started",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={
+            "study_title": survey.title,
+            "booking_slot": booking_slot or "",
+            "task_type": _normalize_task_type(getattr(survey, "task_type", None)),
+        },
+    )
+    db.commit()
 
     return {"message": "Survey started successfully"}
 
@@ -2284,6 +2450,7 @@ async def start_survey(
 @app.post("/surveys/{survey_id}/complete")
 def complete_survey(
     survey_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -2328,6 +2495,19 @@ def complete_survey(
                 </div>
                 """
             )
+        _record_user_event(
+            db,
+            request,
+            "survey_completed",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            metadata={
+                "study_title": survey.title,
+                "task_type": _normalize_task_type(getattr(survey, "task_type", None)),
+                "reward_amount": survey.reward_amount,
+            },
+        )
 
     db.commit()
     return RedirectResponse(url="/dashboard", status_code=302)
@@ -3658,6 +3838,130 @@ async def admin_list_listings(
             "share_url": _survey_share_url(request, db, s),
         })
     return JSONResponse(result)
+
+
+@app.get("/admin/analytics")
+async def admin_analytics(
+    request: Request,
+    admin_key: str = Query(None),
+    days: int = Query(30),
+    db: Session = Depends(get_db),
+):
+    if not _admin_key_matches(admin_key):
+        raise HTTPException(403, "Unauthorized")
+    days = max(1, min(days, 180))
+    since = datetime.utcnow() - timedelta(days=days)
+
+    events = db.query(UserEvent).filter(UserEvent.created_at >= since).order_by(UserEvent.created_at.desc()).limit(20000).all()
+    event_counts: dict[str, int] = {}
+    unique_people = set()
+    for event in events:
+        event_counts[event.event_name] = event_counts.get(event.event_name, 0) + 1
+        if event.user_id:
+            unique_people.add(f"u:{event.user_id}")
+        elif event.anonymous_id:
+            unique_people.add(f"a:{event.anonymous_id}")
+
+    completed_total = db.query(Response).filter(
+        Response.status == "completed",
+        Response.completed_at.isnot(None),
+        Response.completed_at >= since,
+    ).count()
+    response_started_total = db.query(Response).filter(Response.started_at >= since).count()
+    starts_total = max(event_counts.get("survey_started", 0), response_started_total)
+    start_to_complete = round((completed_total / starts_total) * 100, 1) if starts_total else 0
+
+    surveys = db.query(Survey).order_by(Survey.created_at.desc()).limit(200).all()
+    survey_ids = [s.id for s in surveys]
+    response_rows = []
+    if survey_ids:
+        response_rows = db.query(Response).filter(Response.survey_id.in_(survey_ids)).all()
+
+    event_by_survey: dict[str, dict[str, Any]] = {}
+    for event in events:
+        if event.target_type != "survey" or not event.target_id:
+            continue
+        bucket = event_by_survey.setdefault(event.target_id, {
+            "views": 0,
+            "unique_viewers": set(),
+            "starts": 0,
+            "unique_starters": set(),
+        })
+        actor = f"u:{event.user_id}" if event.user_id else f"a:{event.anonymous_id or event.client_ip or event.id}"
+        if event.event_name in {"listing_viewed", "study_card_viewed"}:
+            bucket["views"] += 1
+            bucket["unique_viewers"].add(actor)
+        elif event.event_name == "survey_started":
+            bucket["starts"] += 1
+            bucket["unique_starters"].add(actor)
+
+    responses_by_survey: dict[int, dict[str, int]] = {}
+    for response in response_rows:
+        bucket = responses_by_survey.setdefault(response.survey_id, {"responses": 0, "completed": 0})
+        bucket["responses"] += 1
+        if response.status == "completed":
+            bucket["completed"] += 1
+
+    listing_funnel = []
+    for survey in surveys:
+        event_bucket = event_by_survey.get(str(survey.id), {})
+        response_bucket = responses_by_survey.get(survey.id, {"responses": 0, "completed": 0})
+        views = int(event_bucket.get("views", 0) or 0)
+        starts = max(int(event_bucket.get("starts", 0) or 0), int(response_bucket.get("responses", 0) or 0))
+        completed = int(response_bucket.get("completed", 0) or 0)
+        listing_funnel.append({
+            "id": survey.id,
+            "title": survey.title,
+            "status": survey.status,
+            "views": views,
+            "unique_viewers": len(event_bucket.get("unique_viewers", set())),
+            "starts": starts,
+            "unique_starters": len(event_bucket.get("unique_starters", set())),
+            "completed": completed,
+            "start_rate": round((starts / views) * 100, 1) if views else None,
+            "completion_rate": round((completed / starts) * 100, 1) if starts else None,
+            "created_at": survey.created_at.isoformat() if survey.created_at else None,
+        })
+    listing_funnel.sort(key=lambda item: (item["views"], item["starts"], item["completed"], item["id"]), reverse=True)
+
+    recent = events[:80]
+    user_ids = {event.user_id for event in recent if event.user_id}
+    users = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    recent_survey_ids = []
+    for event in recent:
+        if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit():
+            recent_survey_ids.append(int(event.target_id))
+    survey_map = {s.id: s for s in db.query(Survey).filter(Survey.id.in_(set(recent_survey_ids))).all()} if recent_survey_ids else {}
+    recent_activity = []
+    for event in recent:
+        user = users.get(event.user_id)
+        survey = survey_map.get(int(event.target_id)) if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit() else None
+        recent_activity.append({
+            "id": event.id,
+            "event_name": event.event_name,
+            "user": user.email if user else (event.anonymous_id or "Anonymous"),
+            "target_type": event.target_type,
+            "target_id": event.target_id,
+            "target_label": survey.title if survey else None,
+            "page_path": event.page_path,
+            "metadata": event.metadata_json or {},
+            "created_at": event.created_at.isoformat() if event.created_at else None,
+        })
+
+    return JSONResponse({
+        "overview": {
+            "days": days,
+            "total_events": len(events),
+            "unique_people": len(unique_people),
+            "listing_views": event_counts.get("listing_viewed", 0) + event_counts.get("study_card_viewed", 0),
+            "start_clicks": starts_total,
+            "completed_surveys": completed_total,
+            "start_to_complete_rate": start_to_complete,
+        },
+        "event_counts": event_counts,
+        "listing_funnel": listing_funnel[:100],
+        "recent_activity": recent_activity,
+    })
 
 
 @app.post("/admin/listings/{survey_id}/delete")

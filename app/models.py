@@ -201,6 +201,27 @@ class Response(Base):
 
 
 # ======================
+# Product analytics events
+# ======================
+class UserEvent(Base):
+    __tablename__ = "user_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    anonymous_id = Column(String, nullable=True, index=True)
+    event_name = Column(String, nullable=False, index=True)
+    target_type = Column(String, nullable=True, index=True)
+    target_id = Column(String, nullable=True, index=True)
+    page_path = Column(Text, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
+    user_agent = Column(Text, nullable=True)
+    client_ip = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    user = relationship("User", backref="events")
+
+
+# ======================
 # Feedback
 # ======================
 class Feedback(Base):

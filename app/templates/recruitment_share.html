@@ -352,6 +352,16 @@
       startStudy(targetUrl, slotLabel);
     }
   </script>
+  <script>
+    window.INSIGHTA_TRACKING = {
+      surface: 'recruitment_share',
+      targetType: 'survey',
+      targetId: '{{ survey.id }}',
+      studyTitle: {{ survey.title | tojson }},
+      metadata: { share_slug: {{ survey.share_slug | tojson }} }
+    };
+  </script>
+  <script src="/static/insighta_events.js"></script>
   {% if current_user %}<script src="/static/support_chat.js"></script>{% endif %}
 </body>
 </html>

@@ -78,6 +78,24 @@
     .stat-n.green{color:var(--green);}
     .stat-n.amber{color:#c05621;}
     .stat-l{font-size:12px;color:var(--ink3);font-weight:500;}
+    .analytics-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:0.5px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg);margin-bottom:20px;}
+    .analytics-card{padding:18px 18px;border-right:0.5px solid var(--line);}
+    .analytics-card:last-child{border-right:none;}
+    .analytics-num{font-size:24px;font-weight:300;letter-spacing:-.8px;color:var(--ink);margin-bottom:3px;}
+    .analytics-label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;}
+    .analytics-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,.8fr);gap:18px;align-items:start;}
+    .analytics-box{background:var(--bg);border:0.5px solid var(--line);border-radius:10px;overflow:hidden;}
+    .analytics-head{padding:14px 16px;border-bottom:0.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    .analytics-title{font-size:13px;font-weight:700;color:var(--ink);}
+    .analytics-sub{font-size:12px;color:var(--ink3);}
+    .activity-list{display:flex;flex-direction:column;}
+    .activity-item{padding:12px 16px;border-bottom:0.5px solid var(--line);}
+    .activity-item:last-child{border-bottom:none;}
+    .activity-main{font-size:12px;color:var(--ink2);line-height:1.45;}
+    .activity-main strong{color:var(--ink);font-weight:700;}
+    .activity-meta{font-size:11px;color:var(--ink4);margin-top:4px;}
+    .rate-good{color:var(--green);font-weight:700;}
+    .rate-empty{color:var(--ink4);}
 
     /* ── FILTER TABS ── */
     .filter-tabs{display:flex;gap:2px;margin-bottom:16px;flex-wrap:wrap;}
@@ -196,6 +214,8 @@
     @media(max-width:860px){
       .sidebar{display:none;}
       .stats{grid-template-columns:1fr 1fr;}
+      .analytics-grid{grid-template-columns:1fr 1fr;}
+      .analytics-layout{grid-template-columns:1fr;}
       .support-layout{grid-template-columns:1fr;height:auto;}
       .form-grid{grid-template-columns:1fr;}
     }
@@ -224,6 +244,10 @@
     <button class="nav-item active" id="nav-overview" onclick="switchPanel('overview')">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
       Overview
+    </button>
+    <button class="nav-item" id="nav-analytics" onclick="switchPanel('analytics')">
+      <svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5"/><rect x="12" y="7" width="3" height="9"/><rect x="17" y="9" width="3" height="7"/></svg>
+      Analytics
     </button>
     <button class="nav-item" id="nav-feedback" onclick="switchPanel('feedback')">
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -304,6 +328,43 @@
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Listings</div>
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Review uploaded studies and delete test listings from admin.</div>
         <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ANALYTICS PANEL ── -->
+  <div class="panel" id="panel-analytics">
+    <div class="analytics-grid" id="analyticsCards">
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Total events</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Unique users</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Listing views</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Starts</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Completed</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Start to complete</div></div>
+    </div>
+    <div class="analytics-layout">
+      <div class="analytics-box">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">Listing funnel</div>
+            <div class="analytics-sub">Views, starts, and completions by study over the last 30 days.</div>
+          </div>
+          <button class="btn-refresh" onclick="loadAnalytics()">Refresh</button>
+        </div>
+        <div id="analyticsFunnel">
+          <div class="empty"><div class="empty-sub">Open this panel to load analytics.</div></div>
+        </div>
+      </div>
+      <div class="analytics-box">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">Recent activity</div>
+            <div class="analytics-sub">Readable user journey events.</div>
+          </div>
+        </div>
+        <div id="analyticsActivity" class="activity-list">
+          <div class="empty"><div class="empty-sub">No activity loaded.</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -428,12 +489,13 @@
   let currentFilter = 'all';
   let supportThreads = [];
   let listings = [];
+  let analytics = null;
   let selectedThreadId = null;
   let supportPollTimer = null;
   let currentPanel = 'overview';
 
   // ── PANEL SWITCH ──
-  const PANEL_TITLES = { overview:'Overview', feedback:'Feedback review', support:'Support inbox', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
+  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', feedback:'Feedback review', support:'Support inbox', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
 
   async function login() {
     const input = document.getElementById('adminKeyInput');
@@ -459,8 +521,10 @@
       input.value = '';
       loadFeedbacks();
       loadSupportThreads();
+      loadAnalytics();
       if (supportPollTimer) clearInterval(supportPollTimer);
       supportPollTimer = setInterval(loadSupportThreads, 8000);
+      if (window.location.hash === '#analytics') switchPanel('analytics');
       if (window.location.hash === '#listings') switchPanel('listings');
       if (window.location.hash === '#support') switchPanel('support');
       if (window.location.hash === '#discovery') switchPanel('discovery');
@@ -481,6 +545,7 @@
     if (id === 'feedback') loadFeedbacks();
     if (id === 'support')  loadSupportThreads();
     if (id === 'listings') loadListings();
+    if (id === 'analytics') loadAnalytics();
     if (id === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
 
@@ -488,12 +553,113 @@
     if (currentPanel === 'feedback') loadFeedbacks();
     else if (currentPanel === 'support') loadSupportThreads();
     else if (currentPanel === 'listings') loadListings();
+    else if (currentPanel === 'analytics') loadAnalytics();
     else if (currentPanel === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
 
   function openAdminPublish() {
     if (!adminKey) return;
     window.location.href = `/admin/publish?admin_key=${encodeURIComponent(adminKey)}`;
+  }
+
+  // ── ANALYTICS ──
+  async function loadAnalytics() {
+    const cards = document.getElementById('analyticsCards');
+    const funnel = document.getElementById('analyticsFunnel');
+    const activity = document.getElementById('analyticsActivity');
+    if (!adminKey || !cards) return;
+    funnel.innerHTML = '<div class="empty"><div class="empty-sub">Loading funnel...</div></div>';
+    activity.innerHTML = '<div class="empty"><div class="empty-sub">Loading activity...</div></div>';
+    try {
+      const res = await fetch(`/admin/analytics?admin_key=${encodeURIComponent(adminKey)}&days=30`, { cache:'no-store' });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Failed to load analytics');
+      analytics = await res.json();
+      renderAnalytics();
+    } catch(err) {
+      funnel.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message)}</div></div>`;
+      activity.innerHTML = '<div class="empty"><div class="empty-sub">Analytics unavailable.</div></div>';
+    }
+  }
+
+  function renderAnalytics() {
+    if (!analytics) return;
+    const o = analytics.overview || {};
+    const cardData = [
+      [fmtNum(o.total_events), 'Total events'],
+      [fmtNum(o.unique_people), 'Unique users'],
+      [fmtNum(o.listing_views), 'Listing views'],
+      [fmtNum(o.start_clicks), 'Starts'],
+      [fmtNum(o.completed_surveys), 'Completed'],
+      [`${Number(o.start_to_complete_rate || 0).toFixed(1)}%`, 'Start to complete'],
+    ];
+    document.getElementById('analyticsCards').innerHTML = cardData.map(([num,label]) => `
+      <div class="analytics-card"><div class="analytics-num">${esc(num)}</div><div class="analytics-label">${esc(label)}</div></div>
+    `).join('');
+    renderAnalyticsFunnel(analytics.listing_funnel || []);
+    renderAnalyticsActivity(analytics.recent_activity || []);
+  }
+
+  function renderAnalyticsFunnel(rows) {
+    const wrap = document.getElementById('analyticsFunnel');
+    const useful = rows.filter(r => (r.views || r.starts || r.completed));
+    if (!useful.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-title">No funnel data yet</div><div class="empty-sub">Data will appear after users view or start listings.</div></div>';
+      return;
+    }
+    const body = useful.slice(0, 60).map(r => {
+      const startRate = r.start_rate == null ? '<span class="rate-empty">—</span>' : `<span class="rate-good">${Number(r.start_rate).toFixed(1)}%</span>`;
+      const completionRate = r.completion_rate == null ? '<span class="rate-empty">—</span>' : `<span class="rate-good">${Number(r.completion_rate).toFixed(1)}%</span>`;
+      return `<tr>
+        <td><div class="listing-title">${esc(r.title)}</div><div class="listing-desc">${esc(r.status || '')}</div></td>
+        <td>${fmtNum(r.views)}</td>
+        <td>${fmtNum(r.unique_viewers)}</td>
+        <td>${fmtNum(r.starts)}</td>
+        <td>${fmtNum(r.completed)}</td>
+        <td>${startRate}</td>
+        <td>${completionRate}</td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>Study</th><th>Views</th><th>Unique viewers</th><th>Starts</th><th>Completed</th><th>Start rate</th><th>Completion rate</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>`;
+  }
+
+  function renderAnalyticsActivity(items) {
+    const wrap = document.getElementById('analyticsActivity');
+    if (!items.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-sub">No recent activity yet.</div></div>';
+      return;
+    }
+    wrap.innerHTML = items.slice(0, 50).map(item => {
+      const label = activityLabel(item);
+      const when = item.created_at ? new Date(item.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+      const target = item.target_label ? ` · ${esc(item.target_label)}` : '';
+      return `<div class="activity-item">
+        <div class="activity-main">${label}${target}</div>
+        <div class="activity-meta">${esc(when)} · ${esc(item.page_path || '')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function activityLabel(item) {
+    const user = `<strong>${esc(item.user || 'Anonymous')}</strong>`;
+    const names = {
+      listing_viewed: 'viewed a listing',
+      study_card_viewed: 'saw a study card',
+      survey_started: 'clicked Start',
+      survey_completed: 'completed a study',
+      dashboard_opened: 'opened participant dashboard',
+      page_viewed: 'opened a page',
+      page_hidden: 'left a page',
+      login_success: 'signed in',
+      signup_completed: 'signed up',
+    };
+    return `${user} ${names[item.event_name] || esc(item.event_name || 'did something')}`;
+  }
+
+  function fmtNum(n) {
+    return Number(n || 0).toLocaleString('en-US');
   }
 
   // ── LISTINGS ──
@@ -882,6 +1048,7 @@
     adminKey = '';
     allFeedbacks = [];
     supportThreads = [];
+    analytics = null;
     selectedThreadId = null;
     if (supportPollTimer) clearInterval(supportPollTimer);
     supportPollTimer = null;
