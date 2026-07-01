@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case, inspect, text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case, inspect, text, or_
 from pathlib import Path
 from typing import Any, List, Optional
 from datetime import datetime, timedelta, timezone, date, time
@@ -4055,6 +4055,149 @@ async def admin_analytics(
         "event_counts": event_counts,
         "listing_funnel": listing_funnel[:100],
         "recent_activity": recent_activity,
+    })
+
+
+def _admin_event_actor(event: UserEvent, users: dict[int, User]) -> dict[str, str]:
+    user = users.get(event.user_id)
+    if user:
+        label = user.email or user.username or f"User #{user.id}"
+        return {"label": label, "type": "user", "email": user.email or "", "username": user.username or ""}
+    guest_suffix = (event.anonymous_id or event.client_ip or str(event.id or ""))[-4:].upper()
+    label = f"Guest visitor #{guest_suffix}" if guest_suffix else "Guest visitor"
+    return {"label": label, "type": "guest", "email": "", "username": ""}
+
+
+def _admin_event_payload(event: UserEvent, users: dict[int, User], survey_map: dict[int, Survey]) -> dict[str, Any]:
+    survey = survey_map.get(int(event.target_id)) if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit() else None
+    actor = _admin_event_actor(event, users)
+    return {
+        "id": event.id,
+        "event_name": event.event_name,
+        "user": actor["label"],
+        "actor_type": actor["type"],
+        "user_email": actor["email"],
+        "username": actor["username"],
+        "user_id": event.user_id,
+        "anonymous_id": event.anonymous_id,
+        "target_type": event.target_type,
+        "target_id": event.target_id,
+        "target_label": survey.title if survey else None,
+        "page_path": event.page_path,
+        "metadata": event.metadata_json or {},
+        "created_at": event.created_at.isoformat() if event.created_at else None,
+    }
+
+
+@app.get("/admin/activity")
+async def admin_activity(
+    request: Request,
+    admin_key: str = Query(None),
+    survey_id: Optional[int] = Query(None),
+    event_name: str = Query(""),
+    q: str = Query(""),
+    limit: int = Query(100),
+    offset: int = Query(0),
+    db: Session = Depends(get_db),
+):
+    if not _admin_key_matches(admin_key):
+        raise HTTPException(403, "Unauthorized")
+
+    limit = max(20, min(limit, 500))
+    offset = max(0, offset)
+    event_name = (event_name or "").strip()
+    q = (q or "").strip()
+
+    surveys = db.query(Survey).order_by(Survey.created_at.desc()).limit(1000).all()
+    survey_options = [{
+        "id": survey.id,
+        "title": survey.title,
+        "status": survey.status,
+        "created_at": survey.created_at.isoformat() if survey.created_at else None,
+    } for survey in surveys]
+
+    query = db.query(UserEvent)
+    if survey_id:
+        query = query.filter(UserEvent.target_type == "survey", UserEvent.target_id == str(survey_id))
+    if event_name:
+        query = query.filter(UserEvent.event_name == event_name)
+    if q:
+        like = f"%{q}%"
+        matching_users = db.query(User.id).filter(or_(User.email.ilike(like), User.username.ilike(like))).limit(500).all()
+        matching_user_ids = [row[0] for row in matching_users]
+        conditions = [
+            UserEvent.anonymous_id.ilike(like),
+            UserEvent.client_ip.ilike(like),
+            UserEvent.page_path.ilike(like),
+        ]
+        if matching_user_ids:
+            conditions.append(UserEvent.user_id.in_(matching_user_ids))
+        query = query.filter(or_(*conditions))
+
+    total = query.count()
+    events = query.order_by(UserEvent.created_at.desc()).offset(offset).limit(limit).all()
+
+    user_ids = {event.user_id for event in events if event.user_id}
+    survey_ids = {
+        int(event.target_id)
+        for event in events
+        if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit()
+    }
+    users = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    survey_map = {s.id: s for s in db.query(Survey).filter(Survey.id.in_(survey_ids)).all()} if survey_ids else {}
+    activity = [_admin_event_payload(event, users, survey_map) for event in events]
+
+    people = []
+    if survey_id:
+        survey_events = db.query(UserEvent).filter(
+            UserEvent.target_type == "survey",
+            UserEvent.target_id == str(survey_id),
+        ).order_by(UserEvent.created_at.asc()).limit(20000).all()
+        survey_user_ids = {event.user_id for event in survey_events if event.user_id}
+        survey_users = {u.id: u for u in db.query(User).filter(User.id.in_(survey_user_ids)).all()} if survey_user_ids else {}
+        grouped: dict[str, dict[str, Any]] = {}
+        view_events = {"listing_viewed", "study_card_viewed", "page_viewed"}
+        start_events = {"survey_started"}
+        complete_events = {"survey_completed"}
+        for event in survey_events:
+            actor_key = f"u:{event.user_id}" if event.user_id else f"a:{event.anonymous_id or event.client_ip or event.id}"
+            actor = _admin_event_actor(event, survey_users)
+            bucket = grouped.setdefault(actor_key, {
+                "user": actor["label"],
+                "actor_type": actor["type"],
+                "user_email": actor["email"],
+                "username": actor["username"],
+                "user_id": event.user_id,
+                "anonymous_id": event.anonymous_id,
+                "first_opened_at": None,
+                "first_started_at": None,
+                "completed_at": None,
+                "last_event_at": None,
+                "event_count": 0,
+                "last_event_name": None,
+            })
+            bucket["event_count"] += 1
+            bucket["last_event_at"] = event.created_at.isoformat() if event.created_at else None
+            bucket["last_event_name"] = event.event_name
+            if event.event_name in view_events and not bucket["first_opened_at"]:
+                bucket["first_opened_at"] = event.created_at.isoformat() if event.created_at else None
+            if event.event_name in start_events and not bucket["first_started_at"]:
+                bucket["first_started_at"] = event.created_at.isoformat() if event.created_at else None
+            if event.event_name in complete_events and not bucket["completed_at"]:
+                bucket["completed_at"] = event.created_at.isoformat() if event.created_at else None
+        people = sorted(
+            grouped.values(),
+            key=lambda item: item.get("last_event_at") or "",
+            reverse=True,
+        )
+
+    return JSONResponse({
+        "surveys": survey_options,
+        "events": activity,
+        "people": people,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
     })
 
 
