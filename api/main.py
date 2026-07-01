@@ -3892,6 +3892,7 @@ async def admin_analytics(
             "unique_viewers": set(),
             "starts": 0,
             "unique_starters": set(),
+            "completed": 0,
         })
         actor = f"u:{event.user_id}" if event.user_id else f"a:{event.anonymous_id or event.client_ip or event.id}"
         if event.event_name in {"listing_viewed", "study_card_viewed"}:
@@ -3900,27 +3901,43 @@ async def admin_analytics(
         elif event.event_name == "survey_started":
             bucket["starts"] += 1
             bucket["unique_starters"].add(actor)
+        elif event.event_name == "survey_completed":
+            bucket["completed"] += 1
 
     responses_by_survey: dict[int, dict[str, int]] = {}
+
+    def in_analytics_window(value) -> bool:
+        if not value:
+            return False
+        if getattr(value, "tzinfo", None):
+            value = value.replace(tzinfo=None)
+        return value >= since
+
     for response in response_rows:
         bucket = responses_by_survey.setdefault(response.survey_id, {"responses": 0, "completed": 0})
-        bucket["responses"] += 1
-        if response.status == "completed":
+        started_in_window = in_analytics_window(response.started_at)
+        completed_in_window = in_analytics_window(response.completed_at)
+        if started_in_window:
+            bucket["responses"] += 1
+        if completed_in_window or (started_in_window and response.status == "completed"):
             bucket["completed"] += 1
 
     listing_funnel = []
     for survey in surveys:
         event_bucket = event_by_survey.get(str(survey.id), {})
         response_bucket = responses_by_survey.get(survey.id, {"responses": 0, "completed": 0})
-        views = int(event_bucket.get("views", 0) or 0)
+        tracked_views = int(event_bucket.get("views", 0) or 0)
         starts = max(int(event_bucket.get("starts", 0) or 0), int(response_bucket.get("responses", 0) or 0))
-        completed = int(response_bucket.get("completed", 0) or 0)
+        completed = max(int(event_bucket.get("completed", 0) or 0), int(response_bucket.get("completed", 0) or 0))
+        views = max(tracked_views, starts)
+        unique_viewers = max(len(event_bucket.get("unique_viewers", set())), len(event_bucket.get("unique_starters", set())))
         listing_funnel.append({
             "id": survey.id,
             "title": survey.title,
             "status": survey.status,
             "views": views,
-            "unique_viewers": len(event_bucket.get("unique_viewers", set())),
+            "tracked_views": tracked_views,
+            "unique_viewers": unique_viewers,
             "starts": starts,
             "unique_starters": len(event_bucket.get("unique_starters", set())),
             "completed": completed,
