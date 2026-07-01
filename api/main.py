@@ -3935,12 +3935,32 @@ async def admin_analytics(
         elif event.anonymous_id:
             unique_people.add(f"a:{event.anonymous_id}")
 
-    completed_total = db.query(Response).filter(
-        Response.status == "completed",
-        Response.completed_at.isnot(None),
-        Response.completed_at >= since,
-    ).count()
-    response_started_total = db.query(Response).filter(Response.started_at >= since).count()
+    def in_analytics_window(value) -> bool:
+        if not value:
+            return False
+        if getattr(value, "tzinfo", None):
+            value = value.replace(tzinfo=None)
+        return value >= since
+
+    def response_counts_in_window(response: Response) -> tuple[bool, bool]:
+        started_in_window = in_analytics_window(response.started_at)
+        # Older rows may not have timestamps even though their status is useful.
+        if not response.started_at:
+            started_in_window = response.status in {"started", "completed"}
+        completed_in_window = in_analytics_window(response.completed_at)
+        if not response.completed_at and response.status == "completed":
+            completed_in_window = started_in_window
+        return started_in_window, completed_in_window
+
+    all_response_rows = db.query(Response).all()
+    response_started_total = 0
+    completed_total = 0
+    for response in all_response_rows:
+        started_in_window, completed_in_window = response_counts_in_window(response)
+        if started_in_window:
+            response_started_total += 1
+        if completed_in_window:
+            completed_total += 1
     starts_total = max(event_counts.get("survey_started", 0), response_started_total)
     start_to_complete = round((completed_total / starts_total) * 100, 1) if starts_total else 0
 
@@ -3973,20 +3993,12 @@ async def admin_analytics(
 
     responses_by_survey: dict[int, dict[str, int]] = {}
 
-    def in_analytics_window(value) -> bool:
-        if not value:
-            return False
-        if getattr(value, "tzinfo", None):
-            value = value.replace(tzinfo=None)
-        return value >= since
-
     for response in response_rows:
         bucket = responses_by_survey.setdefault(response.survey_id, {"responses": 0, "completed": 0})
-        started_in_window = in_analytics_window(response.started_at)
-        completed_in_window = in_analytics_window(response.completed_at)
+        started_in_window, completed_in_window = response_counts_in_window(response)
         if started_in_window:
             bucket["responses"] += 1
-        if completed_in_window or (started_in_window and response.status == "completed"):
+        if completed_in_window:
             bucket["completed"] += 1
 
     listing_funnel = []
