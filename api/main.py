@@ -84,6 +84,8 @@ def ensure_user_profile_columns():
     profile_columns = {
         "first_name": "VARCHAR",
         "last_name": "VARCHAR",
+        "welcome_email_sent_at": "TIMESTAMP",
+        "welcome_email_role": "VARCHAR",
         "phone_number": "VARCHAR",
         "birth_year": "VARCHAR",
         "birth_month": "VARCHAR",
@@ -264,6 +266,94 @@ def send_support_alert_email(user: User, thread: SupportThread, message: Support
         </div>
         """,
     )
+
+
+def _welcome_email_role(role: Optional[str], return_to: Optional[str], participant_app: Optional[str]) -> str:
+    normalized = (role or "").strip().lower()
+    if normalized in {"participant", "researcher"}:
+        return normalized
+    safe_return = return_to or ""
+    if participant_app == "1" or safe_return.startswith(("/dashboard", "/r/", "/surveys/")):
+        return "participant"
+    return "researcher"
+
+
+def _send_welcome_followup_email(user: User, role: str) -> tuple[bool, Optional[str]]:
+    first_name = (getattr(user, "first_name", None) or getattr(user, "username", None) or "there").strip()
+    escaped_first = html.escape(first_name)
+    role = "researcher" if role == "researcher" else "participant"
+
+    if role == "researcher":
+        subject = "Welcome to Insighta - let's get your study staffed"
+        text_body = f"""Hi {first_name},
+
+Welcome to Insighta, and thanks for signing up.
+
+We help researchers reach the right participants, especially for studies targeting niche or hard-to-reach populations, where general panels tend to fall short. You focus on the research; we handle finding and matching qualified participants through channels they already trust.
+
+Here's how to get started:
+1. Tell us about your study: your target population, criteria, sample size, and timeline.
+2. We'll map where those participants are and bring you a first batch to review.
+3. You only move forward with the ones who fit.
+
+The fastest way to begin is a quick 15-minute call so we can understand your study and show you exactly how we'd reach your participants. You can grab a time here: https://calendly.com/yuhan-wei-2001-oh-h/30min
+Or just reply to this email with a few details about your study, and we'll take it from there.
+
+Looking forward to helping you recruit,
+The Insighta Team"""
+        body = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 22px; color: #1a1a18; line-height: 1.65;">
+          <h2 style="margin:0 0 18px;color:#184e77;">Welcome to Insighta</h2>
+          <p>Hi {escaped_first},</p>
+          <p>Welcome to Insighta, and thanks for signing up.</p>
+          <p>We help researchers reach the right participants, especially for studies targeting niche or hard-to-reach populations, where general panels tend to fall short. You focus on the research; we handle finding and matching qualified participants through channels they already trust.</p>
+          <p><strong>Here's how to get started:</strong></p>
+          <ol>
+            <li>Tell us about your study: your target population, criteria, sample size, and timeline.</li>
+            <li>We'll map where those participants are and bring you a first batch to review.</li>
+            <li>You only move forward with the ones who fit.</li>
+          </ol>
+          <p>The fastest way to begin is a quick 15-minute call so we can understand your study and show you exactly how we'd reach your participants. You can grab a time here: <a href="https://calendly.com/yuhan-wei-2001-oh-h/30min">https://calendly.com/yuhan-wei-2001-oh-h/30min</a></p>
+          <p>Or just reply to this email with a few details about your study, and we'll take it from there.</p>
+          <p>Looking forward to helping you recruit,<br>The Insighta Team</p>
+        </div>
+        """
+        return send_email(user.email, subject, body, text_body=text_body)
+
+    subject = "Welcome to Insighta! Here's what happens next"
+    text_body = f"""Hi {first_name},
+
+Thanks for joining Insighta. You're all set.
+
+Here's what happens now: when a study matches your profile, we'll email you with the details: what it's about, what's involved, the time commitment, and any compensation. You're never automatically signed up for anything. You decide, study by study, whether it's a fit for you.
+
+A few things we want you to know upfront:
+* We only work with studies that have proper ethical (IRB) approval.
+* We'll never share your information without your consent.
+
+If you ever have questions, feel free to use our chat box and connect to our team member directly.
+Now, please explore around!
+
+Warmly,
+The Insighta Team"""
+    body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 22px; color: #1a1a18; line-height: 1.65;">
+      <h2 style="margin:0 0 18px;color:#168aad;">Welcome to Insighta!</h2>
+      <p>Hi {escaped_first},</p>
+      <p>Thanks for joining Insighta. You're all set.</p>
+      <p>Here's what happens now: when a study matches your profile, we'll email you with the details: what it's about, what's involved, the time commitment, and any compensation. You're never automatically signed up for anything. You decide, study by study, whether it's a fit for you.</p>
+      <p><strong>A few things we want you to know upfront:</strong></p>
+      <ul>
+        <li>We only work with studies that have proper ethical (IRB) approval.</li>
+        <li>We'll never share your information without your consent.</li>
+      </ul>
+      <p>If you ever have questions, feel free to use our chat box and connect to our team member directly.</p>
+      <p>Now, please explore around!</p>
+      <p>Warmly,<br>The Insighta Team</p>
+    </div>
+    """
+    return send_email(user.email, subject, body, text_body=text_body)
+
 
 router = APIRouter()
 
@@ -588,15 +678,29 @@ def _needs_identity_onboarding(user: User) -> bool:
     ])
 
 
-def _identity_onboarding_url(return_to: Optional[str] = None) -> str:
+def _identity_onboarding_url(return_to: Optional[str] = None, role: Optional[str] = None) -> str:
     safe_return = return_to if is_safe_internal_next(return_to) and return_to != "/complete-profile" else ""
-    qs = urlencode({"next": safe_return}) if safe_return else ""
+    normalized_role = role if role in {"participant", "researcher"} else ""
+    query = {}
+    if safe_return:
+        query["next"] = safe_return
+    if normalized_role:
+        query["role"] = normalized_role
+    qs = urlencode(query) if query else ""
     return f"/complete-profile?{qs}" if qs else "/complete-profile"
 
 
-def _post_auth_or_onboarding_url(user: User, final_url: str) -> str:
+def _post_auth_or_onboarding_url(
+    user: User,
+    final_url: str,
+    role: Optional[str] = None,
+    participant_app: Optional[str] = None,
+) -> str:
     if _needs_identity_onboarding(user):
-        return _identity_onboarding_url(final_url)
+        return _identity_onboarding_url(
+            final_url,
+            _welcome_email_role(role, final_url, participant_app),
+        )
     return final_url
 
 
@@ -948,7 +1052,11 @@ async def google_callback(
         return_to,
         welcome=is_new,
     )
-    redirect_url = _post_auth_or_onboarding_url(user, final_url)
+    redirect_url = _post_auth_or_onboarding_url(
+        user,
+        final_url,
+        participant_app=request.cookies.get("participant_app"),
+    )
     resp = RedirectResponse(redirect_url, status_code=303)
     policy = _cookie_policy(request)
     resp.set_cookie("user_id", str(user.id), **policy)
@@ -1050,7 +1158,11 @@ async def linkedin_callback(
         return_to,
         welcome=is_new,
     )
-    redirect_url = _post_auth_or_onboarding_url(user, final_url)
+    redirect_url = _post_auth_or_onboarding_url(
+        user,
+        final_url,
+        participant_app=request.cookies.get("participant_app"),
+    )
     resp = RedirectResponse(redirect_url, status_code=303)
     policy = _cookie_policy(request)
     resp.set_cookie("user_id", str(user.id), **policy)
@@ -1166,7 +1278,10 @@ def login(
         }))
 
     final_url = _post_auth_url_with_next(request, participant_app, next_url, role)
-    response = RedirectResponse(_post_auth_or_onboarding_url(user, final_url), status_code=303)
+    response = RedirectResponse(
+        _post_auth_or_onboarding_url(user, final_url, role=role, participant_app=participant_app),
+        status_code=303,
+    )
     response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
     _clear_auth_return(response, request)
     if (role or "").strip().lower() == "participant":
@@ -1305,7 +1420,10 @@ async def do_register(
     db.refresh(user)
 
     final_url = _post_auth_url_with_next(request, participant_app, next_url, role=role, welcome=True)
-    response = RedirectResponse(_post_auth_or_onboarding_url(user, final_url), status_code=303)
+    response = RedirectResponse(
+        _post_auth_or_onboarding_url(user, final_url, role=role, participant_app=participant_app),
+        status_code=303,
+    )
     response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
     _clear_auth_return(response, request)
     if role == "participant":
@@ -1335,6 +1453,7 @@ def get_current_user(
 def complete_profile_get(
     request: Request,
     next: Optional[str] = None,
+    role: Optional[str] = None,
     participant_app: Optional[str] = Cookie(None),
     current_user: User = Depends(get_current_user),
 ):
@@ -1345,6 +1464,7 @@ def complete_profile_get(
         "request": request,
         "current_user": current_user,
         "next": return_to,
+        "role": _welcome_email_role(role, return_to, participant_app),
         "error": None,
         "participant_app": _should_use_participant_app(request, participant_app),
     }))
@@ -1362,12 +1482,14 @@ async def complete_profile_post(
     last_name = (form.get("last_name") or "").strip()
     username = (form.get("username") or "").strip()
     return_to = form.get("next") if is_safe_internal_next(form.get("next")) else ""
+    welcome_role = _welcome_email_role(form.get("role"), return_to, participant_app)
 
     if not first_name or not last_name or not username:
         return no_store_response(templates.TemplateResponse("complete_profile.html", {
             "request": request,
             "current_user": current_user,
             "next": return_to,
+            "role": welcome_role,
             "error": "Please fill in your first name, last name, and username.",
             "participant_app": _should_use_participant_app(request, participant_app),
         }))
@@ -1375,6 +1497,13 @@ async def complete_profile_post(
     current_user.first_name = first_name
     current_user.last_name = last_name
     current_user.username = username
+    if not getattr(current_user, "welcome_email_sent_at", None):
+        sent, error = _send_welcome_followup_email(current_user, welcome_role)
+        if sent:
+            current_user.welcome_email_sent_at = datetime.utcnow()
+            current_user.welcome_email_role = welcome_role
+        elif error:
+            print(f"Welcome email error for user {current_user.id}: {error}")
     db.commit()
     return RedirectResponse(return_to or _post_auth_url(request, participant_app), status_code=303)
 

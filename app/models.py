@@ -64,6 +64,8 @@ class User(Base):
     stripe_onboarding_complete = Column(String, default="false")
     pending_earnings = Column(Float, default=0.0)
     total_withdrawn = Column(Float, default=0.0)
+    welcome_email_sent_at = Column(DateTime, nullable=True)
+    welcome_email_role = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 

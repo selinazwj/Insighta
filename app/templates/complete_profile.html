@@ -94,6 +94,7 @@
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
     <form method="POST" action="/complete-profile">
       <input type="hidden" name="next" value="{{ next or '' }}">
+      <input type="hidden" name="role" value="{{ role or '' }}">
       <div class="row">
         <div class="field">
           <label>First name</label>
