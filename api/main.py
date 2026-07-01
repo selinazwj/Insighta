@@ -207,8 +207,34 @@ def _email_plain_text(body: str) -> str:
     text_body = re.sub(r"<[^>]+>", "", text_body)
     return html.unescape(text_body).strip()
 
+def _email_brand_header() -> str:
+    logo_url = f"{BASE_URL.rstrip('/')}/static/favicon.png"
+    return f"""
+    <div style="max-width:620px;margin:0 auto;padding:24px 22px 0;font-family:Arial,sans-serif;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-bottom:1px solid #eeece6;padding-bottom:16px;">
+        <tr>
+          <td width="48" style="padding:0 10px 16px 0;vertical-align:middle;">
+            <img src="{html.escape(logo_url, quote=True)}" alt="Insighta" width="40" height="40" style="display:block;width:40px;height:40px;object-fit:contain;border:0;">
+          </td>
+          <td style="padding:0 0 16px 0;vertical-align:middle;font-size:22px;font-weight:700;letter-spacing:-0.3px;color:#184e77;line-height:1;font-family:Arial,sans-serif;">Insighta</td>
+        </tr>
+      </table>
+    </div>
+    """
+
+def _with_email_brand_header(body: str) -> str:
+    if "data-insighta-email-brand" in (body or ""):
+        return body
+    return f"""
+    <div data-insighta-email-brand="1" style="margin:0;padding:0;background:#ffffff;">
+      {_email_brand_header()}
+      {body or ""}
+    </div>
+    """
+
 def send_email(to: str, subject: str, body: str, text_body: Optional[str] = None) -> tuple[bool, Optional[str]]:
     plain_text = text_body or _email_plain_text(body)
+    html_body = _with_email_brand_header(body)
     if EMAIL_PROVIDER == "resend":
         if not RESEND_API_KEY or not EMAIL_FROM:
             return False, "Resend email configuration is incomplete"
@@ -216,7 +242,7 @@ def send_email(to: str, subject: str, body: str, text_body: Optional[str] = None
             "from": EMAIL_FROM,
             "to": [to],
             "subject": subject,
-            "html": body,
+            "html": html_body,
             "text": plain_text,
         }
         if EMAIL_REPLY_TO:
@@ -252,7 +278,7 @@ def send_email(to: str, subject: str, body: str, text_body: Optional[str] = None
         if EMAIL_REPLY_TO:
             msg["Reply-To"] = EMAIL_REPLY_TO
         msg.attach(MIMEText(plain_text, "plain"))
-        msg.attach(MIMEText(body, "html"))
+        msg.attach(MIMEText(html_body, "html"))
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.sendmail(EMAIL_ADDRESS, to, msg.as_string())
