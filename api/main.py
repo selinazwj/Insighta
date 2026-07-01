@@ -4058,8 +4058,11 @@ async def admin_analytics(
     })
 
 
-def _admin_event_actor(event: UserEvent, users: dict[int, User]) -> dict[str, str]:
-    user = users.get(event.user_id)
+def _admin_event_actor(event: UserEvent, users: dict[int, User], anonymous_user_ids: Optional[dict[str, int]] = None) -> dict[str, str]:
+    inferred_user_id = None
+    if not event.user_id and event.anonymous_id and anonymous_user_ids:
+        inferred_user_id = anonymous_user_ids.get(event.anonymous_id)
+    user = users.get(event.user_id or inferred_user_id)
     if user:
         label = user.email or user.username or f"User #{user.id}"
         return {"label": label, "type": "user", "email": user.email or "", "username": user.username or ""}
@@ -4068,9 +4071,10 @@ def _admin_event_actor(event: UserEvent, users: dict[int, User]) -> dict[str, st
     return {"label": label, "type": "guest", "email": "", "username": ""}
 
 
-def _admin_event_payload(event: UserEvent, users: dict[int, User], survey_map: dict[int, Survey]) -> dict[str, Any]:
+def _admin_event_payload(event: UserEvent, users: dict[int, User], survey_map: dict[int, Survey], anonymous_user_ids: Optional[dict[str, int]] = None) -> dict[str, Any]:
     survey = survey_map.get(int(event.target_id)) if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit() else None
-    actor = _admin_event_actor(event, users)
+    inferred_user_id = anonymous_user_ids.get(event.anonymous_id) if anonymous_user_ids and event.anonymous_id else None
+    actor = _admin_event_actor(event, users, anonymous_user_ids)
     return {
         "id": event.id,
         "event_name": event.event_name,
@@ -4078,7 +4082,7 @@ def _admin_event_payload(event: UserEvent, users: dict[int, User], survey_map: d
         "actor_type": actor["type"],
         "user_email": actor["email"],
         "username": actor["username"],
-        "user_id": event.user_id,
+        "user_id": event.user_id or inferred_user_id,
         "anonymous_id": event.anonymous_id,
         "target_type": event.target_type,
         "target_id": event.target_id,
@@ -4087,6 +4091,21 @@ def _admin_event_payload(event: UserEvent, users: dict[int, User], survey_map: d
         "metadata": event.metadata_json or {},
         "created_at": event.created_at.isoformat() if event.created_at else None,
     }
+
+
+def _anonymous_user_map(db: Session, anonymous_ids: set[str]) -> dict[str, int]:
+    clean_ids = {value for value in anonymous_ids if value}
+    if not clean_ids:
+        return {}
+    rows = db.query(UserEvent.anonymous_id, UserEvent.user_id).filter(
+        UserEvent.anonymous_id.in_(clean_ids),
+        UserEvent.user_id.isnot(None),
+    ).order_by(UserEvent.created_at.desc()).limit(5000).all()
+    result: dict[str, int] = {}
+    for anonymous_id, user_id in rows:
+        if anonymous_id and user_id and anonymous_id not in result:
+            result[anonymous_id] = user_id
+    return result
 
 
 @app.get("/admin/activity")
@@ -4137,7 +4156,9 @@ async def admin_activity(
     total = query.count()
     events = query.order_by(UserEvent.created_at.desc()).offset(offset).limit(limit).all()
 
+    anonymous_user_ids = _anonymous_user_map(db, {event.anonymous_id for event in events if event.anonymous_id})
     user_ids = {event.user_id for event in events if event.user_id}
+    user_ids.update(anonymous_user_ids.values())
     survey_ids = {
         int(event.target_id)
         for event in events
@@ -4145,7 +4166,7 @@ async def admin_activity(
     }
     users = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
     survey_map = {s.id: s for s in db.query(Survey).filter(Survey.id.in_(survey_ids)).all()} if survey_ids else {}
-    activity = [_admin_event_payload(event, users, survey_map) for event in events]
+    activity = [_admin_event_payload(event, users, survey_map, anonymous_user_ids) for event in events]
 
     people = []
     if survey_id:
@@ -4153,21 +4174,26 @@ async def admin_activity(
             UserEvent.target_type == "survey",
             UserEvent.target_id == str(survey_id),
         ).order_by(UserEvent.created_at.asc()).limit(20000).all()
+        survey_anonymous_user_ids = _anonymous_user_map(db, {event.anonymous_id for event in survey_events if event.anonymous_id})
+        response_rows = db.query(Response).filter(Response.survey_id == survey_id).all()
         survey_user_ids = {event.user_id for event in survey_events if event.user_id}
+        survey_user_ids.update(survey_anonymous_user_ids.values())
+        survey_user_ids.update({response.participant_id for response in response_rows if response.participant_id})
         survey_users = {u.id: u for u in db.query(User).filter(User.id.in_(survey_user_ids)).all()} if survey_user_ids else {}
         grouped: dict[str, dict[str, Any]] = {}
         view_events = {"listing_viewed", "study_card_viewed", "page_viewed"}
         start_events = {"survey_started"}
         complete_events = {"survey_completed"}
         for event in survey_events:
-            actor_key = f"u:{event.user_id}" if event.user_id else f"a:{event.anonymous_id or event.client_ip or event.id}"
-            actor = _admin_event_actor(event, survey_users)
+            inferred_user_id = survey_anonymous_user_ids.get(event.anonymous_id) if event.anonymous_id else None
+            actor_key = f"u:{event.user_id or inferred_user_id}" if (event.user_id or inferred_user_id) else f"a:{event.anonymous_id or event.client_ip or event.id}"
+            actor = _admin_event_actor(event, survey_users, survey_anonymous_user_ids)
             bucket = grouped.setdefault(actor_key, {
                 "user": actor["label"],
                 "actor_type": actor["type"],
                 "user_email": actor["email"],
                 "username": actor["username"],
-                "user_id": event.user_id,
+                "user_id": event.user_id or inferred_user_id,
                 "anonymous_id": event.anonymous_id,
                 "first_opened_at": None,
                 "first_started_at": None,
@@ -4185,6 +4211,36 @@ async def admin_activity(
                 bucket["first_started_at"] = event.created_at.isoformat() if event.created_at else None
             if event.event_name in complete_events and not bucket["completed_at"]:
                 bucket["completed_at"] = event.created_at.isoformat() if event.created_at else None
+
+        for response in response_rows:
+            user = survey_users.get(response.participant_id)
+            actor_key = f"u:{response.participant_id}" if response.participant_id else f"response:{response.id}"
+            bucket = grouped.setdefault(actor_key, {
+                "user": (user.email or user.username or f"User #{user.id}") if user else f"User #{response.participant_id}",
+                "actor_type": "user",
+                "user_email": user.email if user else "",
+                "username": user.username if user else "",
+                "user_id": response.participant_id,
+                "anonymous_id": None,
+                "first_opened_at": None,
+                "first_started_at": None,
+                "completed_at": None,
+                "last_event_at": None,
+                "event_count": 0,
+                "last_event_name": None,
+            })
+            started_at = response.started_at.isoformat() if response.started_at else None
+            completed_at = response.completed_at.isoformat() if response.completed_at else None
+            if started_at and not bucket["first_started_at"]:
+                bucket["first_started_at"] = started_at
+            if completed_at and not bucket["completed_at"]:
+                bucket["completed_at"] = completed_at
+            latest_at = completed_at or started_at
+            if latest_at and (not bucket["last_event_at"] or latest_at > bucket["last_event_at"]):
+                bucket["last_event_at"] = latest_at
+                bucket["last_event_name"] = "survey_completed" if completed_at else "survey_started"
+            if response.id and bucket["event_count"] == 0:
+                bucket["event_count"] = 1
         people = sorted(
             grouped.values(),
             key=lambda item: item.get("last_event_at") or "",
