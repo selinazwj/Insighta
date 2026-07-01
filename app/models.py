@@ -192,6 +192,8 @@ class Response(Base):
     user_agent = Column(String, nullable=True)
     device_fingerprint = Column(String, nullable=True)
     booking_slot = Column(String, nullable=True)
+    start_followup_scheduled_at = Column(DateTime(timezone=True), nullable=True)
+    start_followup_sent_at = Column(DateTime(timezone=True), nullable=True)
 
     survey = relationship("Survey", back_populates="responses")
     participant = relationship("User", back_populates="responses")

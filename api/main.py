@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query
+from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -22,13 +22,14 @@ import json
 import stripe
 import smtplib
 import httpx
+import asyncio
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from app.database import engine, get_db
+from app.database import engine, get_db, SessionLocal
 from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage
 from app.quality_engine import (
     anthropic_api_key_configured,
@@ -134,6 +135,8 @@ def ensure_response_tracking_columns():
         "user_agent": "VARCHAR",
         "device_fingerprint": "VARCHAR",
         "booking_slot": "TEXT",
+        "start_followup_scheduled_at": "TIMESTAMP",
+        "start_followup_sent_at": "TIMESTAMP",
     }
     with engine.begin() as conn:
         for name, column_type in response_columns.items():
@@ -357,6 +360,59 @@ The Insighta Team"""
     </div>
     """
     return send_email(user.email, subject, body, text_body=text_body)
+
+
+def _send_survey_start_followup_email(db: Session, response_id: int, dashboard_url: str) -> None:
+    response = db.query(Response).filter(Response.id == response_id).first()
+    if not response or getattr(response, "start_followup_sent_at", None):
+        return
+
+    participant = db.query(User).filter(User.id == response.participant_id).first()
+    survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+    if not participant or not participant.email or not survey:
+        return
+
+    first_name = (getattr(participant, "first_name", None) or getattr(participant, "username", None) or "there").strip()
+    study_name = (survey.title or "the study").strip()
+    escaped_first = html.escape(first_name)
+    escaped_study = html.escape(study_name)
+    escaped_dashboard = html.escape(dashboard_url, quote=True)
+    subject = "How did the survey go?"
+    text_body = f"""Hi {first_name},
+
+We saw you started the {study_name} survey, just checking in: did you manage to finish it?
+
+If you already submitted it, wonderful. Thank you for taking the time! If you stopped partway through, no worries at all. You can pick up right where you left off from your dashboard whenever you're ready: {dashboard_url}
+
+If something wasn't clear, or you have any questions about the study, just reply to this email and a real person will help. No rush, and no pressure.
+
+Warmly,
+The Insighta Team"""
+    body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 22px; color: #1a1a18; line-height: 1.65;">
+      <h2 style="margin:0 0 18px;color:#168aad;">How did the survey go?</h2>
+      <p>Hi {escaped_first},</p>
+      <p>We saw you started the <strong>{escaped_study}</strong> survey, just checking in: did you manage to finish it?</p>
+      <p>If you already submitted it, wonderful. Thank you for taking the time! If you stopped partway through, no worries at all. You can pick up right where you left off from your dashboard whenever you're ready: <a href="{escaped_dashboard}">dashboard</a>.</p>
+      <p>If something wasn't clear, or you have any questions about the study, just reply to this email and a real person will help. No rush, and no pressure.</p>
+      <p>Warmly,<br>The Insighta Team</p>
+    </div>
+    """
+    sent, error = send_email(participant.email, subject, body, text_body=text_body)
+    if sent:
+        response.start_followup_sent_at = datetime.utcnow()
+        db.commit()
+    elif error:
+        print(f"Survey start follow-up email error for response {response_id}: {error}")
+
+
+async def _send_survey_start_followup_after_delay(response_id: int, dashboard_url: str) -> None:
+    await asyncio.sleep(5 * 60)
+    db = SessionLocal()
+    try:
+        _send_survey_start_followup_email(db, response_id, dashboard_url)
+    finally:
+        db.close()
 
 
 router = APIRouter()
@@ -2173,6 +2229,7 @@ def get_dashboard_stats(
 async def start_survey(
     survey_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -2190,12 +2247,36 @@ async def start_survey(
     except Exception:
         booking_slot = None
 
-    if not existing:
-        db.add(Response(survey_id=survey_id, participant_id=current_user.id, status="started", booking_slot=booking_slot or None))
+    should_schedule_followup = False
+    response = existing
+
+    if not response:
+        response = Response(
+            survey_id=survey_id,
+            participant_id=current_user.id,
+            status="started",
+            booking_slot=booking_slot or None,
+            start_followup_scheduled_at=datetime.utcnow(),
+        )
+        db.add(response)
         db.commit()
+        db.refresh(response)
+        should_schedule_followup = True
     elif booking_slot:
-        existing.booking_slot = booking_slot
+        response.booking_slot = booking_slot
         db.commit()
+
+    if response and not response.start_followup_sent_at and not response.start_followup_scheduled_at:
+        response.start_followup_scheduled_at = datetime.utcnow()
+        db.commit()
+        should_schedule_followup = True
+
+    if should_schedule_followup:
+        background_tasks.add_task(
+            _send_survey_start_followup_after_delay,
+            response.id,
+            _absolute_url(request, "/dashboard"),
+        )
 
     return {"message": "Survey started successfully"}
 
