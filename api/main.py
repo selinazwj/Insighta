@@ -181,6 +181,8 @@ SUPPORT_ALERT_EMAIL = os.environ.get("SUPPORT_ALERT_EMAIL", "vfsa@bu.edu")
 VERIFICATION_CODE_EXPIRE_MINUTES = 10
 VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS = 60
 VERIFICATION_CODE_MAX_PER_HOUR = 5
+SURVEY_START_FOLLOWUP_DELAY_MINUTES = int(os.environ.get("SURVEY_START_FOLLOWUP_DELAY_MINUTES", "5"))
+SURVEY_START_FOLLOWUP_POLL_SECONDS = int(os.environ.get("SURVEY_START_FOLLOWUP_POLL_SECONDS", "60"))
 
 # ---------------------------
 # OAuth 2.0 configuration
@@ -429,12 +431,51 @@ The Insighta Team"""
 
 
 async def _send_survey_start_followup_after_delay(response_id: int, dashboard_url: str) -> None:
-    await asyncio.sleep(5 * 60)
+    await asyncio.sleep(SURVEY_START_FOLLOWUP_DELAY_MINUTES * 60)
     db = SessionLocal()
     try:
         _send_survey_start_followup_email(db, response_id, dashboard_url)
     finally:
         db.close()
+
+
+def _send_due_survey_start_followups(limit: int = 25) -> int:
+    db = SessionLocal()
+    sent_count = 0
+    try:
+        due_before = datetime.utcnow() - timedelta(minutes=SURVEY_START_FOLLOWUP_DELAY_MINUTES)
+        due_responses = db.query(Response).filter(
+            Response.start_followup_scheduled_at.isnot(None),
+            Response.start_followup_sent_at.is_(None),
+            Response.start_followup_scheduled_at <= due_before,
+        ).order_by(Response.start_followup_scheduled_at.asc()).limit(limit).all()
+        dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
+        for response in due_responses:
+            before_sent = response.start_followup_sent_at
+            _send_survey_start_followup_email(db, response.id, dashboard_url)
+            db.refresh(response)
+            if not before_sent and response.start_followup_sent_at:
+                sent_count += 1
+        return sent_count
+    finally:
+        db.close()
+
+
+async def _survey_start_followup_worker() -> None:
+    await asyncio.sleep(10)
+    while True:
+        try:
+            sent_count = _send_due_survey_start_followups()
+            if sent_count:
+                print(f"Survey start follow-up worker sent {sent_count} email(s)")
+        except Exception as exc:
+            print(f"Survey start follow-up worker error: {exc}")
+        await asyncio.sleep(SURVEY_START_FOLLOWUP_POLL_SECONDS)
+
+
+@app.on_event("startup")
+async def start_survey_followup_worker() -> None:
+    asyncio.create_task(_survey_start_followup_worker())
 
 
 def _client_ip(request: Request) -> Optional[str]:

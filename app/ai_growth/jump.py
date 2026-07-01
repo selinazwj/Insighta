@@ -41,11 +41,18 @@ def get_or_create_response(db: Session, survey: Survey, user: User) -> Response:
         Response.participant_id == user.id,
     ).first()
     if not response:
-        response = Response(survey_id=survey.id, participant_id=user.id, status="started")
+        response = Response(
+            survey_id=survey.id,
+            participant_id=user.id,
+            status="started",
+            start_followup_scheduled_at=datetime.utcnow(),
+        )
         db.add(response)
         db.flush()
     elif response.status not in {"completed", "rejected"}:
         response.status = "started"
+        if not getattr(response, "start_followup_sent_at", None) and not getattr(response, "start_followup_scheduled_at", None):
+            response.start_followup_scheduled_at = datetime.utcnow()
     return response
 
 
