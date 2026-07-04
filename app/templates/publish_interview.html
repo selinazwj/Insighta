@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Publish In-person Study — Insighta</title>
+  <title>{{ 'Publish Online Interview' if is_online_interview else 'Publish In-person Study' }} — Insighta</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="apple-touch-icon" href="/static/favicon.png">
   <meta name="theme-color" content="#ffffff">
@@ -234,7 +234,7 @@
         My listings
       </a>
       <div class="topbar-sep"></div>
-      <div class="topbar-title">Publish in-person study</div>
+      <div class="topbar-title">Publish {{ 'online interview' if is_online_interview else 'in-person study' }}</div>
     </div>
     <div class="topbar-right">
       <button type="button" class="btn-cancel" onclick="window.location.href='/publisher'">Cancel</button>
@@ -244,9 +244,9 @@
 <div class="container">
 
   <div class="page-header">
-    <div class="type-badge">In-person study</div>
-    <h1>Post an <em>in-person study</em></h1>
-    <p>Find the right participants for live sessions, lab visits, field studies, or on-site research.</p>
+    <div class="type-badge">{{ 'Online interview' if is_online_interview else 'In-person study' }}</div>
+    <h1>Post an <em>{{ 'online interview' if is_online_interview else 'in-person study' }}</em></h1>
+    <p>{{ 'Find the right participants for remote interviews, video calls, and live online research sessions.' if is_online_interview else 'Find the right participants for live sessions, lab visits, field studies, or on-site research.' }}</p>
   </div>
 
   <div class="wizard-progress" aria-label="Listing progress">
@@ -263,16 +263,16 @@
     <div class="form-section" data-wizard-step="1">
       <div class="section-header">
         <div class="section-icon">01</div>
-        <div><h2>Basic Information</h2><p>What your in-person study is about</p></div>
+        <div><h2>Basic Information</h2><p>What your {{ 'online interview' if is_online_interview else 'in-person study' }} is about</p></div>
       </div>
       <div class="form-group">
         <label>Study Title *</label>
-        <input type="text" name="title" placeholder="e.g., In-person usability study for a campus app" required>
+        <input type="text" name="title" placeholder="{{ 'e.g., 45-minute online interview about student wellness apps' if is_online_interview else 'e.g., In-person usability study for a campus app' }}" required>
       </div>
       <div class="form-group">
         <label>Description *</label>
-        <div class="label-desc">Explain what the in-person session is about and what participants can expect</div>
-        <textarea name="description" placeholder="We're conducting 30-minute in-person sessions to understand how students use campus services..." required style="min-height: 120px;"></textarea>
+        <div class="label-desc">Explain what the {{ 'online interview' if is_online_interview else 'in-person session' }} is about and what participants can expect</div>
+        <textarea name="description" placeholder="{{ 'We are conducting live online interviews to understand student experiences...' if is_online_interview else 'We are conducting 30-minute in-person sessions to understand how students use campus services...' }}" required style="min-height: 120px;"></textarea>
       </div>
       <div class="form-group">
         <label>Category *</label>
@@ -292,11 +292,11 @@
     <div class="form-section" data-wizard-step="2" hidden>
       <div class="section-header">
         <div class="section-icon">02</div>
-        <div><h2>In-person study details</h2><p>Location, duration, and scheduling</p></div>
+        <div><h2>{{ 'Online interview details' if is_online_interview else 'In-person study details' }}</h2><p>{{ 'Call format, duration, and scheduling' if is_online_interview else 'Location, duration, and scheduling' }}</p></div>
       </div>
 
-      <input type="hidden" name="interview_format" id="formatInput" value="in_person">
-      <input type="hidden" name="target_participation_format" value="In-person study">
+      <input type="hidden" name="interview_format" id="formatInput" value="{{ 'online' if is_online_interview else 'in_person' }}">
+      <input type="hidden" name="target_participation_format" value="{{ 'Video interview' if is_online_interview else 'In-person study' }}">
 
       <div class="form-row" style="margin-bottom: 20px;">
         <div class="form-group">
@@ -328,7 +328,13 @@
         </div>
       </div>
 
-      <div class="form-group" id="locationRow">
+      <div class="form-group" id="onlineLinkRow" {% if not is_online_interview %}style="display:none;"{% endif %}>
+        <label>Online meeting or booking link</label>
+        <div class="label-desc">Optional. Add Zoom, Teams, Calendly, or another link participants should use after choosing a time.</div>
+        <input type="url" name="scheduling_link" placeholder="https://zoom.us/j/... or https://calendly.com/...">
+      </div>
+
+      <div class="form-group" id="locationRow" {% if is_online_interview %}style="display:none;"{% endif %}>
         <label>In-person location</label>
         <div class="label-desc">Where will the in-person session take place?</div>
         <input type="text" name="interview_location" placeholder="e.g. Questrom School of Business, Room 315, Boston, MA">
@@ -384,7 +390,7 @@
 
       <div class="raffle-box" id="volunteerBox">
         <strong>Volunteer recruitment fee</strong>
-        Volunteer in-person listings do not pay participants per session. We charge $1 per 10 target participants to cover recruitment and verification.
+        Volunteer {{ 'online interview' if is_online_interview else 'in-person' }} listings do not pay participants per session. We charge $1 per 10 target participants to cover recruitment and verification.
       </div>
 
       <div id="budgetSection">
@@ -720,6 +726,8 @@
     const val = el.dataset.value;
     document.getElementById('formatInput').value = val;
     document.getElementById('locationRow').style.display = val === 'in_person' ? 'block' : 'none';
+    const onlineRow = document.getElementById('onlineLinkRow');
+    if (onlineRow) onlineRow.style.display = val === 'online' ? 'block' : 'none';
   }
 
   // ── Incentive → show/hide budget ─────────────────────────

@@ -202,13 +202,13 @@
       <div class="ov-section">
         <div class="ov-section-title">Study details</div>
         <div class="ov-grid">
-          <div class="ov-item"><div class="ov-label">Type</div><div class="ov-value">{{ 'In-person study' if survey.task_type == 'interview' else 'Survey' }}</div></div>
+          <div class="ov-item"><div class="ov-label">Type</div><div class="ov-value">{{ 'Online interview' if survey.task_type == 'interview' and survey.target_participation_format == 'Video interview' else ('In-person study' if survey.task_type == 'interview' else 'Survey') }}</div></div>
           <div class="ov-item"><div class="ov-label">Category</div><div class="ov-value">{{ survey.category | capitalize }}</div></div>
           <div class="ov-item"><div class="ov-label">Estimated time</div><div class="ov-value">{{ survey.estimated_time }} min</div></div>
           <div class="ov-item"><div class="ov-label">Reward per person</div><div class="ov-value">${{ survey.reward_amount }}</div></div>
           <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">Overview</div><div class="ov-value">{{ survey.target_niche_requirements or 'Everyone' }}</div></div>
           {% if survey.form_url and survey.form_url != '__builtin__' %}
-          <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">{{ 'Calendly / booking link' if survey.task_type == 'interview' else 'Survey link' }}</div><div class="ov-value"><a href="{{ survey.form_url }}" target="_blank">{{ survey.form_url[:60] }}{% if survey.form_url|length > 60 %}…{% endif %}</a></div></div>
+          <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">{{ 'Meeting / booking link' if survey.task_type == 'interview' else 'Survey link' }}</div><div class="ov-value"><a href="{{ survey.form_url }}" target="_blank">{{ survey.form_url[:60] }}{% if survey.form_url|length > 60 %}…{% endif %}</a></div></div>
           {% endif %}
         </div>
       </div>

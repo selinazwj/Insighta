@@ -2984,8 +2984,18 @@ async def calculate_price(request: Request, current_user: User = Depends(get_cur
 # ---------------------------
 
 @app.get("/publish_interview", response_class=HTMLResponse)
-def publish_interview_page(request: Request, current_user: User = Depends(get_current_user)):
-    return templates.TemplateResponse("publish_interview.html", {"request": request, "current_user": current_user})
+def publish_interview_page(
+    request: Request,
+    mode: str = Query("in_person"),
+    current_user: User = Depends(get_current_user),
+):
+    is_online = (mode or "").strip().lower() in {"online", "remote", "video"}
+    return templates.TemplateResponse("publish_interview.html", {
+        "request": request,
+        "current_user": current_user,
+        "is_online_interview": is_online,
+        "interview_mode": "online" if is_online else "in_person",
+    })
 
 @app.post("/publish_interview")
 async def publish_interview(

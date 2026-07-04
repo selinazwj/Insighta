@@ -173,12 +173,22 @@
         </button>
       </form>
 
-      <!-- Interview -->
+      <!-- In-person study -->
       <a href="/publish_interview" class="type-card">
         <div class="type-card-icon icon-interview">🎙️</div>
         <div class="type-card-text">
-          <div class="type-card-title">Interview</div>
-          <div class="type-card-desc">Schedule 1-on-1 or group sessions for qualitative research.</div>
+          <div class="type-card-title">In-person study</div>
+          <div class="type-card-desc">Schedule lab visits, field studies, or on-site sessions.</div>
+        </div>
+        <div class="type-card-arrow">→</div>
+      </a>
+
+      <!-- Online interview -->
+      <a href="/publish_interview?mode=online" class="type-card">
+        <div class="type-card-icon icon-interview">🎙️</div>
+        <div class="type-card-text">
+          <div class="type-card-title">Online interview</div>
+          <div class="type-card-desc">Schedule live remote interviews or video sessions.</div>
         </div>
         <div class="type-card-arrow">→</div>
       </a>
@@ -342,7 +352,7 @@
             {% endif %}
             / session
           </span>
-          <span style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#7c3aed; background:rgba(124,58,237,0.08); padding:3px 10px; border-radius:100px;">🎙️ Interview</span>
+          <span style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#7c3aed; background:rgba(124,58,237,0.08); padding:3px 10px; border-radius:100px;">{{ 'Online interview' if s.target_participation_format == 'Video interview' else 'In-person study' }}</span>
         </div>
         <div class="progress-row">
           <div class="progress-bar"><div class="progress-fill" data-pct="{{ pct }}" style="background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div>

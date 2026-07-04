@@ -218,7 +218,7 @@
       <article class="hero">
         <div class="poster {% if survey.image_url %}has-image{% endif %}" {% if survey.image_url %}style="background-image:url('{{ survey.image_url }}')"{% endif %}>
           <div class="poster-title">
-            <span class="eyebrow">{{ "In-person study" if is_interview else "Research study" }}</span>
+            <span class="eyebrow">{{ "Online interview" if is_interview and survey.target_participation_format == "Video interview" else ("In-person study" if is_interview else "Research study") }}</span>
             <h1>{{ survey.title }}</h1>
           </div>
         </div>
