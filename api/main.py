@@ -3000,7 +3000,7 @@ async def publish_interview(
         target_lifestyle_tags=",".join(lifestyle_list) if lifestyle_list else None,
         target_niche_requirements=_clean_target(form.get("target_niche_requirements")),
         availability_slots=availability_slots,
-        status="draft", published_at=None, closed_at=None,
+        status="published", published_at=datetime.utcnow(), closed_at=None,
     )
     _ensure_survey_share_slug(db, survey)
     db.add(survey); db.commit()
