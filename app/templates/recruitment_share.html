@@ -172,6 +172,8 @@
       font: 750 14px var(--sans);
       cursor: pointer;
     }
+    .slot-btn:hover { border-color: var(--teal); background: #f6fffb; }
+    .slot-btn[disabled] { opacity: .45; cursor: not-allowed; background: #f5f5f3; color: #8a8a82; }
     .details { padding: 24px 28px; margin-top: 24px; }
     .details h2 { margin: 0 0 14px; font-size: 20px; letter-spacing: 0; }
     .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -284,7 +286,8 @@
           <div class="slots">
             {% for slot in availability_slots %}
               {% set slot_label = slot.label | default(slot) %}
-              <button class="slot-btn" type="button" onclick='bookSlot({{ slot_label | tojson }})'>{{ slot_label }}</button>
+              {% set is_booked = slot_label in booked_slots %}
+              <button class="slot-btn" type="button" {% if is_booked %}disabled{% else %}onclick='bookSlot({{ slot_label | tojson }})'{% endif %}>{{ slot_label }}{% if is_booked %} · booked{% endif %}</button>
             {% endfor %}
           </div>
         {% endif %}
@@ -337,13 +340,21 @@
 
     async function startStudy(targetUrl, bookingSlot) {
       try {
-        await fetch('/surveys/{{ survey.id }}/start', {
+        const res = await fetch('/surveys/{{ survey.id }}/start', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           credentials: 'same-origin',
           body: JSON.stringify({booking_slot: bookingSlot || ''})
         });
-      } catch {}
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          alert(data.detail || 'Could not save this time. Please choose another slot.');
+          return;
+        }
+      } catch {
+        alert('Could not save this time. Please try again.');
+        return;
+      }
       window.location.href = targetUrl || '/dashboard';
     }
 

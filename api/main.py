@@ -456,6 +456,68 @@ The Insighta Team"""
         print(f"Survey start follow-up email error for response {response_id}: {error}")
 
 
+def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: User, booking_slot: str) -> None:
+    if not booking_slot or _normalize_task_type(getattr(survey, "task_type", None)) != "interview":
+        return
+    publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+    study_url = f"{BASE_URL.rstrip('/')}/publisher/study/{survey.id}"
+    dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
+    location = getattr(survey, "interview_location", None) or "The researcher will share the exact location."
+    participant_name = participant.first_name or participant.username or participant.email
+    if participant.email:
+        send_email(
+            participant.email,
+            f"[Insighta] Your time is booked for {survey.title}",
+            f"""
+            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:28px 22px;color:#1a1a18;line-height:1.6;">
+              <h2 style="margin:0 0 10px;font-size:22px;">Your study time is booked</h2>
+              <p>Hi {html.escape(participant_name)},</p>
+              <p>You booked a time for <strong>{html.escape(survey.title)}</strong>.</p>
+              <div style="background:#f5f3ee;border-radius:10px;padding:16px 18px;margin:18px 0;">
+                <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Time</div>
+                <div style="font-size:17px;font-weight:700;margin-bottom:10px;">{html.escape(booking_slot)}</div>
+                <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Location</div>
+                <div style="font-size:15px;">{html.escape(location)}</div>
+              </div>
+              <p>If something changes, reply to this email and a real person will help.</p>
+              <p><a href="{dashboard_url}" style="color:#3b7c4f;font-weight:700;">Back to your dashboard</a></p>
+            </div>
+            """
+        )
+    if publisher and publisher.email:
+        send_email(
+            publisher.email,
+            f"[Insighta] New in-person booking: {survey.title}",
+            f"""
+            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:28px 22px;color:#1a1a18;line-height:1.6;">
+              <h2 style="margin:0 0 10px;font-size:22px;">New participant booking</h2>
+              <p><strong>{html.escape(participant.email)}</strong> booked a time for <strong>{html.escape(survey.title)}</strong>.</p>
+              <div style="background:#f5f3ee;border-radius:10px;padding:16px 18px;margin:18px 0;">
+                <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Time</div>
+                <div style="font-size:17px;font-weight:700;margin-bottom:10px;">{html.escape(booking_slot)}</div>
+                <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Participant</div>
+                <div style="font-size:15px;">{html.escape(participant.email)}</div>
+              </div>
+              <p><a href="{study_url}" style="color:#3b7c4f;font-weight:700;">Open schedule in Insighta</a></p>
+            </div>
+            """
+        )
+
+
+def _send_booking_confirmation_emails_for_response(response_id: int, booking_slot: str) -> None:
+    db = SessionLocal()
+    try:
+        response = db.query(Response).filter(Response.id == response_id).first()
+        if not response:
+            return
+        survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+        participant = db.query(User).filter(User.id == response.participant_id).first()
+        if survey and participant:
+            _send_booking_confirmation_emails(db, survey, participant, booking_slot)
+    finally:
+        db.close()
+
+
 async def _send_survey_start_followup_after_delay(response_id: int, dashboard_url: str) -> None:
     await asyncio.sleep(SURVEY_START_FOLLOWUP_DELAY_MINUTES * 60)
     db = SessionLocal()
@@ -1805,6 +1867,14 @@ def recruitment_share_page(
     display_reward = getattr(survey, "admin_display_reward_amount", None)
     if display_reward is None:
         display_reward = survey.reward_amount
+    booked_slots = [
+        row[0] for row in db.query(Response.booking_slot).filter(
+            Response.survey_id == survey.id,
+            Response.booking_slot.isnot(None),
+            Response.participant_id != (current_user.id if current_user else 0),
+        ).all()
+        if row[0]
+    ]
 
     next_path = f"/r/{share_slug}"
     dashboard_path = _participant_dashboard_url(request)
@@ -1829,6 +1899,7 @@ def recruitment_share_page(
         "current_user": current_user,
         "user_response": user_response,
         "availability_slots": availability_slots,
+        "booked_slots": booked_slots,
         "display_reward": display_reward,
         "share_url": _absolute_url(request, next_path),
         "login_url": f"/login?{urlencode({'role': 'participant', 'next': next_path})}",
@@ -1950,6 +2021,53 @@ def publisher_dashboard(
             "current_user": current_user
         }
     )
+
+
+@app.get("/publisher/schedule", response_class=HTMLResponse)
+def publisher_schedule(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    interviews = db.query(Survey).filter(
+        Survey.publisher_id == current_user.id,
+        Survey.task_type == "interview",
+    ).order_by(Survey.created_at.desc()).all()
+    schedule_items = []
+    for survey in interviews:
+        availability_slots = []
+        if getattr(survey, "availability_slots", None):
+            try:
+                parsed_slots = json.loads(survey.availability_slots)
+                if isinstance(parsed_slots, list):
+                    availability_slots = parsed_slots
+            except Exception:
+                availability_slots = []
+        rows = db.query(Response, User).join(User, User.id == Response.participant_id).filter(
+            Response.survey_id == survey.id,
+            Response.booking_slot.isnot(None),
+        ).order_by(Response.started_at.desc()).all()
+        bookings = [{
+            "participant": user.email,
+            "participant_name": user.username or user.email,
+            "slot": response.booking_slot,
+            "status": response.status,
+            "started_at": response.started_at,
+        } for response, user in rows]
+        booked_set = {item["slot"] for item in bookings if item.get("slot")}
+        schedule_items.append({
+            "survey": survey,
+            "availability_slots": availability_slots,
+            "bookings": bookings,
+            "booked_set": booked_set,
+            "open_count": max(len(availability_slots) - len(booked_set), 0),
+        })
+    return templates.TemplateResponse("publisher_schedule.html", {
+        "request": request,
+        "current_user": current_user,
+        "schedule_items": schedule_items,
+    })
+
 
 @app.get("/publisher/study/{survey_id}", response_class=HTMLResponse)
 def publisher_study(
@@ -2473,7 +2591,17 @@ async def start_survey(
         booking_slot = None
 
     should_schedule_followup = False
+    should_send_booking_email = False
     response = existing
+
+    if booking_slot and _normalize_task_type(getattr(survey, "task_type", None)) == "interview":
+        conflicting_booking = db.query(Response).filter(
+            Response.survey_id == survey_id,
+            Response.booking_slot == booking_slot,
+            Response.participant_id != current_user.id,
+        ).first()
+        if conflicting_booking:
+            raise HTTPException(409, "That time was just booked. Please choose another available time.")
 
     if not response:
         response = Response(
@@ -2487,7 +2615,9 @@ async def start_survey(
         db.commit()
         db.refresh(response)
         should_schedule_followup = True
+        should_send_booking_email = bool(booking_slot)
     elif booking_slot:
+        should_send_booking_email = response.booking_slot != booking_slot
         response.booking_slot = booking_slot
         db.commit()
 
@@ -2516,6 +2646,9 @@ async def start_survey(
         },
     )
     db.commit()
+
+    if should_send_booking_email and booking_slot:
+        background_tasks.add_task(_send_booking_confirmation_emails_for_response, response.id, booking_slot)
 
     return {"message": "Survey started successfully"}
 
