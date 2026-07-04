@@ -172,29 +172,6 @@
     .quote-attr { font-size: 12px; color: var(--ink3); font-weight: 500; display: flex; align-items: center; gap: 8px; }
     .quote-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
 
-    /* ── CTA SPLIT ── */
-    .cta-section { border-bottom: 0.5px solid var(--line); }
-    .cta-grid { display: grid; grid-template-columns: 1fr 1fr; }
-    .cta-card { padding: 56px 56px; }
-    .cta-card.dark { background: var(--ink); border-right: 0.5px solid #333; }
-    .cta-card.light { background: var(--bg2); }
-    .cta-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; margin-bottom: 20px; display: inline-block; }
-    .dark .cta-badge { background: rgba(255,255,255,.08); color: rgba(255,255,255,.5); }
-    .light .cta-badge { background: var(--green-l); color: var(--green); }
-    .cta-h { font-size: 28px; font-weight: 300; letter-spacing: -0.5px; line-height: 1.2; margin-bottom: 12px; }
-    .dark .cta-h { color: #fff; }
-    .light .cta-h { color: var(--ink); }
-    .dark .cta-h strong { font-weight: 700; color: #fff; }
-    .light .cta-h strong { font-weight: 700; color: var(--ink); }
-    .cta-p { font-size: 13px; line-height: 1.7; margin-bottom: 28px; }
-    .dark .cta-p { color: rgba(255,255,255,.45); }
-    .light .cta-p { color: var(--ink3); }
-    .cta-btn { font-size: 13px; font-weight: 600; padding: 11px 22px; border-radius: 20px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: opacity .15s; }
-    .cta-btn:hover { opacity: .85; }
-    .dark .cta-btn { background: #fff; color: var(--ink); }
-    .light .cta-btn { background: var(--green); color: #fff; }
-    .cta-btn svg { width: 13px; height: 13px; }
-
     /* ── FOOTER ── */
     .footer { padding: 32px 48px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; border-top: 0.5px solid var(--line); }
     .footer-logo { font-size: 14px; font-weight: 600; color: var(--ink2); }
@@ -285,9 +262,6 @@
         radial-gradient(circle at 86% 18%, rgba(217,237,146,.9), rgba(217,237,146,0) 20%),
         linear-gradient(110deg, rgba(252,255,245,.92), rgba(244,251,223,.8) 48%, rgba(82,182,154,.22));
     }
-    body.participant-mode .cta-card.dark {
-      background: #184e77;
-    }
     body.participant-mode .role-tab.active {
       background: var(--green-d);
     }
@@ -301,8 +275,7 @@
     body.participant-mode .btn-hero,
     body.participant-mode .btn-hero-ghost,
     body.participant-mode .hero-stat,
-    body.participant-mode .section,
-    body.participant-mode .cta-section {
+    body.participant-mode .section {
       font-family: var(--sans);
       letter-spacing: 0;
     }
@@ -359,9 +332,6 @@
       .feature-card:nth-child(2n) { border-right: none; }
       .feature-card:nth-child(n+4) { border-bottom: none; }
       .quote-inner { grid-template-columns: 1fr; }
-      .cta-grid { grid-template-columns: 1fr; }
-      .cta-card.dark { border-right: none; border-bottom: 0.5px solid #333; }
-      .cta-card { padding: 40px 28px; }
       .footer { padding: 24px; }
       .quote-section { padding: 56px 24px; }
     }
@@ -547,30 +517,6 @@
     </div>
   </div>
 </div>
-
-<!-- CTA SPLIT -->
-<section class="cta-section">
-  <div class="cta-grid">
-    <div class="cta-card dark">
-      <div class="cta-badge">For researchers</div>
-      <h3 class="cta-h">Find participants.<br><strong>Do better research.</strong></h3>
-      <p class="cta-p">Stop begging your group chat. Publish your study in minutes and reach participants who actually fit your criteria — with real incentives to show up.</p>
-      <a href="#" class="cta-btn" onclick="openModal('signup', 'researcher'); return false;">
-        Start as researcher
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-    <div class="cta-card light">
-      <div class="cta-badge">For participants</div>
-      <h3 class="cta-h">Contribute.<br><strong>Get paid for real.</strong></h3>
-      <p class="cta-p">Your voice matters to real researchers. Get matched to studies that fit who you are, show up on your schedule, and earn money doing it.</p>
-      <a href="#" class="cta-btn" onclick="openModal('signup', 'participant'); return false;">
-        Join as participant
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-  </div>
-</section>
 
 <!-- FOOTER -->
 <footer class="footer">
