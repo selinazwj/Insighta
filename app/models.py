@@ -110,6 +110,8 @@ class Survey(Base):
     target_lifestyle_tags = Column(String, nullable=True)
     target_niche_requirements = Column(String, nullable=True)
     availability_slots = Column(String, nullable=True)
+    session_count = Column(Integer, nullable=True)
+    sessions_per_week = Column(Integer, nullable=True)
     urgency_level = Column(String, nullable=True)
     incentive_type = Column(String, nullable=True)
     raffle_prize_type = Column(String, nullable=True)

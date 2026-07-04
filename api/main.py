@@ -116,6 +116,8 @@ def ensure_survey_listing_columns():
         "target_niche_requirements": "VARCHAR",
         "raffle_prize_type": "VARCHAR",
         "availability_slots": "TEXT",
+        "session_count": "INTEGER",
+        "sessions_per_week": "INTEGER",
         "admin_display_reward_amount": "FLOAT",
         "share_slug": "VARCHAR",
         "quality_auto_filter_enabled": "BOOLEAN DEFAULT false",
@@ -459,6 +461,7 @@ The Insighta Team"""
 def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: User, booking_slot: str) -> None:
     if not booking_slot or _normalize_task_type(getattr(survey, "task_type", None)) != "interview":
         return
+    booking_label = _booking_slots_label(booking_slot)
     publisher = db.query(User).filter(User.id == survey.publisher_id).first()
     study_url = f"{BASE_URL.rstrip('/')}/publisher/study/{survey.id}"
     dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
@@ -475,7 +478,7 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
               <p>You booked a time for <strong>{html.escape(survey.title)}</strong>.</p>
               <div style="background:#f5f3ee;border-radius:10px;padding:16px 18px;margin:18px 0;">
                 <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Time</div>
-                <div style="font-size:17px;font-weight:700;margin-bottom:10px;">{html.escape(booking_slot)}</div>
+                <div style="font-size:17px;font-weight:700;margin-bottom:10px;">{html.escape(booking_label)}</div>
                 <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Location</div>
                 <div style="font-size:15px;">{html.escape(location)}</div>
               </div>
@@ -494,7 +497,7 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
               <p><strong>{html.escape(participant.email)}</strong> booked a time for <strong>{html.escape(survey.title)}</strong>.</p>
               <div style="background:#f5f3ee;border-radius:10px;padding:16px 18px;margin:18px 0;">
                 <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Time</div>
-                <div style="font-size:17px;font-weight:700;margin-bottom:10px;">{html.escape(booking_slot)}</div>
+                <div style="font-size:17px;font-weight:700;margin-bottom:10px;">{html.escape(booking_label)}</div>
                 <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Participant</div>
                 <div style="font-size:15px;">{html.escape(participant.email)}</div>
               </div>
@@ -816,6 +819,35 @@ def _device_matches(target: Optional[str], user_val: Optional[str]) -> bool:
     if user_val.strip().lower() == "any":
         return True
     return target.strip().lower() == user_val.strip().lower()
+
+def _parse_booking_slots(value: Optional[str]) -> list[str]:
+    raw = (value or "").strip()
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return [str(item).strip() for item in parsed if str(item).strip()]
+        if isinstance(parsed, str):
+            return [parsed.strip()] if parsed.strip() else []
+    except Exception:
+        pass
+    return [raw]
+
+def _serialize_booking_slots(slots: list[str]) -> Optional[str]:
+    cleaned = []
+    seen = set()
+    for slot in slots:
+        label = str(slot or "").strip()
+        if label and label not in seen:
+            cleaned.append(label)
+            seen.add(label)
+    if not cleaned:
+        return None
+    return cleaned[0] if len(cleaned) == 1 else json.dumps(cleaned)
+
+def _booking_slots_label(value: Optional[str]) -> str:
+    return "; ".join(_parse_booking_slots(value))
 
 
 # ---------------------------
@@ -1869,14 +1901,13 @@ def recruitment_share_page(
     display_reward = getattr(survey, "admin_display_reward_amount", None)
     if display_reward is None:
         display_reward = survey.reward_amount
-    booked_slots = [
-        row[0] for row in db.query(Response.booking_slot).filter(
+    booked_slots = []
+    for row in db.query(Response.booking_slot).filter(
             Response.survey_id == survey.id,
             Response.booking_slot.isnot(None),
             Response.participant_id != (current_user.id if current_user else 0),
-        ).all()
-        if row[0]
-    ]
+        ).all():
+        booked_slots.extend(_parse_booking_slots(row[0]))
 
     next_path = f"/r/{share_slug}"
     dashboard_path = _participant_dashboard_url(request)
@@ -2052,11 +2083,14 @@ def publisher_schedule(
         bookings = [{
             "participant": user.email,
             "participant_name": user.username or user.email,
-            "slot": response.booking_slot,
+            "slot": _booking_slots_label(response.booking_slot),
+            "slots": _parse_booking_slots(response.booking_slot),
             "status": response.status,
             "started_at": response.started_at,
         } for response, user in rows]
-        booked_set = {item["slot"] for item in bookings if item.get("slot")}
+        booked_set = set()
+        for item in bookings:
+            booked_set.update(item.get("slots") or [])
         schedule_items.append({
             "survey": survey,
             "availability_slots": availability_slots,
@@ -2104,7 +2138,8 @@ def publisher_study(
         booking_rows = [
             {
                 "participant": user.email,
-                "slot": response.booking_slot,
+                "slot": _booking_slots_label(response.booking_slot),
+                "slots": _parse_booking_slots(response.booking_slot),
                 "status": response.status,
                 "started_at": response.started_at,
             }
@@ -2219,7 +2254,10 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "is_skipped": response_status == "skipped",
         "status": response_status,
         "booking_slot": getattr(user_response, "booking_slot", None) if user_response else None,
+        "booking_slots": _parse_booking_slots(getattr(user_response, "booking_slot", None)) if user_response else [],
         "availability_slots": availability_slots,
+        "session_count": getattr(s, "session_count", None),
+        "sessions_per_week": getattr(s, "sessions_per_week", None),
         "urgency": getattr(s, 'urgency_level', None) or 'flexible',
         "incentive_type": getattr(s, 'incentive_type', None),
     }
@@ -2485,7 +2523,10 @@ def dashboard_mobile(
             "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
             "is_completed": is_completed,
             "booking_slot": getattr(user_response, "booking_slot", None) if user_response else None,
+            "booking_slots": _parse_booking_slots(getattr(user_response, "booking_slot", None)) if user_response else [],
             "availability_slots": availability_slots,
+            "session_count": getattr(s, "session_count", None),
+            "sessions_per_week": getattr(s, "sessions_per_week", None),
             "urgency": getattr(s, 'urgency_level', None) or 'flexible',
             "incentive_type": getattr(s, 'incentive_type', None),
             "completion_probability": llm_rec.get("completion_probability"),
@@ -2585,24 +2626,32 @@ async def start_survey(
     existing = db.query(Response).filter(
         Response.survey_id == survey_id, Response.participant_id == current_user.id
     ).first()
-    booking_slot = None
+    booking_slots = []
     try:
         body = await request.json()
-        booking_slot = (body.get("booking_slot") or "").strip() if isinstance(body, dict) else None
+        if isinstance(body, dict):
+            if isinstance(body.get("booking_slots"), list):
+                booking_slots = [str(item).strip() for item in body.get("booking_slots") if str(item).strip()]
+            else:
+                booking_slots = _parse_booking_slots((body.get("booking_slot") or "").strip())
     except Exception:
-        booking_slot = None
+        booking_slots = []
+    booking_slot = _serialize_booking_slots(booking_slots)
 
     should_schedule_followup = False
     should_send_booking_email = False
     response = existing
 
-    if booking_slot and _normalize_task_type(getattr(survey, "task_type", None)) == "interview":
-        conflicting_booking = db.query(Response).filter(
+    if booking_slots and _normalize_task_type(getattr(survey, "task_type", None)) == "interview":
+        existing_bookings = db.query(Response).filter(
             Response.survey_id == survey_id,
-            Response.booking_slot == booking_slot,
+            Response.booking_slot.isnot(None),
             Response.participant_id != current_user.id,
-        ).first()
-        if conflicting_booking:
+        ).all()
+        taken_slots = set()
+        for existing_booking in existing_bookings:
+            taken_slots.update(_parse_booking_slots(existing_booking.booking_slot))
+        if any(slot in taken_slots for slot in booking_slots):
             raise HTTPException(409, "That time was just booked. Please choose another available time.")
 
     if not response:
@@ -2610,7 +2659,7 @@ async def start_survey(
             survey_id=survey_id,
             participant_id=current_user.id,
             status="started",
-            booking_slot=booking_slot or None,
+            booking_slot=booking_slot,
             start_followup_scheduled_at=datetime.utcnow(),
         )
         db.add(response)
@@ -2643,7 +2692,8 @@ async def start_survey(
         target_id=survey.id,
         metadata={
             "study_title": survey.title,
-            "booking_slot": booking_slot or "",
+            "booking_slot": _booking_slots_label(booking_slot) if booking_slot else "",
+            "booking_slots": booking_slots,
             "task_type": _normalize_task_type(getattr(survey, "task_type", None)),
         },
     )
@@ -2963,6 +3013,8 @@ async def publish_interview(
         availability_slots = None
     incentive_clean = _clean_target(incentive_type) or "cash"
     is_no_pay = incentive_clean in ("raffle", "volunteer")
+    session_count = max(_parse_optional_int(form.get("session_count")) or 1, 1)
+    sessions_per_week = _parse_optional_int(form.get("sessions_per_week"))
     try:
         per_person_value = float(per_person_gross) if str(per_person_gross or "").strip() else 0.0
     except (TypeError, ValueError):
@@ -2973,7 +3025,7 @@ async def publish_interview(
         publisher_id=current_user.id, title=title, description=description,
         form_url=scheduling_link or "", task_type="interview", category=category,
         estimated_time=estimated_time, reward_amount=reward, per_person_gross=reward,
-        total_budget=round(reward * target_responses, 2), commission_rate=0.0, payment_status="paid",
+        total_budget=round(reward * target_responses * session_count, 2), commission_rate=0.0, payment_status="paid",
         target_responses=target_responses, urgency_level=_clean_target(urgency_level),
         incentive_type=incentive_clean,
         raffle_prize_type=_clean_target(form.get("raffle_prize_type")) if incentive_clean == "raffle" else None,
@@ -3002,6 +3054,8 @@ async def publish_interview(
         target_lifestyle_tags=",".join(lifestyle_list) if lifestyle_list else None,
         target_niche_requirements=_clean_target(form.get("target_niche_requirements")),
         availability_slots=availability_slots,
+        session_count=session_count,
+        sessions_per_week=sessions_per_week,
         status="published", published_at=datetime.utcnow(), closed_at=None,
     )
     _ensure_survey_share_slug(db, survey)

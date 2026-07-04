@@ -315,6 +315,18 @@
           <input type="number" name="target_responses" placeholder="e.g. 10" min="1" required>
         </div>
       </div>
+      <div class="form-row" style="margin-bottom: 20px;">
+        <div class="form-group">
+          <label>Total sessions per participant</label>
+          <div class="label-desc">How many times should each participant attend in total?</div>
+          <input type="number" name="session_count" placeholder="e.g. 2" min="1">
+        </div>
+        <div class="form-group">
+          <label>Sessions per week</label>
+          <div class="label-desc">Optional. For example, enter 2 if participants come twice per week.</div>
+          <input type="number" name="sessions_per_week" placeholder="e.g. 2" min="1">
+        </div>
+      </div>
 
       <div class="form-group" id="locationRow">
         <label>In-person location</label>
@@ -741,6 +753,7 @@
 
   function updateCommission() {
     const target = parseInt(document.querySelector('input[name="target_responses"]').value) || 0;
+    const sessionCount = Math.max(parseInt(document.querySelector('input[name="session_count"]').value, 10) || 1, 1);
     const incentive = document.getElementById('incentiveInput').value;
     const multiplier = getTimelineMultiplier();
     if (incentive === 'volunteer') {
@@ -759,11 +772,11 @@
     let ppg = parseFloat(perPersonInput.value) || 0;
     let total = parseFloat(totalBudgetInput.value) || 0;
     if (!ppg && !total) { document.getElementById('commissionBox').style.display = 'none'; return; }
-    if (ppg && target && !totalBudgetInput.matches(':focus')) { total = ppg * target; totalBudgetInput.value = total.toFixed(2); }
-    else if (total && target && !perPersonInput.matches(':focus')) { ppg = total / target; perPersonInput.value = ppg.toFixed(2); }
+    if (ppg && target && !totalBudgetInput.matches(':focus')) { total = ppg * target * sessionCount; totalBudgetInput.value = total.toFixed(2); }
+    else if (total && target && !perPersonInput.matches(':focus')) { ppg = total / (target * sessionCount); perPersonInput.value = ppg.toFixed(2); }
     if (!ppg || !target) { document.getElementById('commissionBox').style.display = 'none'; return; }
     const rate = getRate(ppg);
-    const totalPay = ppg * target * multiplier;
+    const totalPay = ppg * target * sessionCount * multiplier;
     document.getElementById('dispPerPerson').textContent = `$${ppg.toFixed(2)}`;
     document.getElementById('dispFeeRate').textContent = `${Math.round(rate * 100)}%`;
     document.getElementById('dispFee').textContent = `-$${(ppg * rate).toFixed(2)}`;
@@ -777,6 +790,7 @@
   perPersonInput.addEventListener('input', updateCommission);
   totalBudgetInput.addEventListener('input', updateCommission);
   document.querySelector('input[name="target_responses"]').addEventListener('input', updateCommission);
+  document.querySelector('input[name="session_count"]').addEventListener('input', updateCommission);
 
   // ── Urgency ───────────────────────────────────────────────
   function selectUrgency(el) {
