@@ -798,13 +798,15 @@ def _tags_match(target_tags: Optional[str], user_tags: Optional[str]) -> bool:
     return bool(target_set & user_set)
 
 def _participation_format_matches(target: Optional[str], user_val: Optional[str]) -> bool:
-    if _is_empty(target) or (target and target.strip().lower() == "both"):
+    target_clean = (target or "").strip().lower()
+    user_clean = (user_val or "").strip().lower()
+    if _is_empty(target) or target_clean in {"both", "any format", "hybrid"}:
         return True
-    if not user_val:
-        return False
-    if user_val.strip().lower() == "both":
+    if not user_clean:
         return True
-    return target.strip().lower() == user_val.strip().lower()
+    if user_clean in {"both", "any format", "hybrid"}:
+        return True
+    return target_clean == user_clean
 
 def _device_matches(target: Optional[str], user_val: Optional[str]) -> bool:
     if _is_empty(target) or (target and target.strip().lower() == "any"):
