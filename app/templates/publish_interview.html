@@ -805,6 +805,9 @@
   document.getElementById('interviewForm').addEventListener('submit', function() {
     rebuildSlotLabels();
     document.getElementById('availabilitySlots').value = JSON.stringify(availabilitySlots);
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+      if (!String(input.value || '').trim() && !input.required) input.disabled = true;
+    });
   });
   document.querySelector('select[name="estimated_time"]').addEventListener('change', function() {
     rebuildSlotLabels();

@@ -2942,7 +2942,7 @@ async def publish_interview(
     interview_format: str = Form("video"), scheduling_link: Optional[str] = Form(None),
     availability_notes: Optional[str] = Form(None), interview_location: Optional[str] = Form(None),
     urgency_level: Optional[str] = Form(None), deadline_date: Optional[str] = Form(None),
-    incentive_type: Optional[str] = Form(None), per_person_gross: Optional[float] = Form(None),
+    incentive_type: Optional[str] = Form(None), per_person_gross: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
@@ -2961,7 +2961,11 @@ async def publish_interview(
         availability_slots = None
     incentive_clean = _clean_target(incentive_type) or "cash"
     is_no_pay = incentive_clean in ("raffle", "volunteer")
-    reward = 0.0 if is_no_pay else (per_person_gross or 0.0)
+    try:
+        per_person_value = float(per_person_gross) if str(per_person_gross or "").strip() else 0.0
+    except (TypeError, ValueError):
+        per_person_value = 0.0
+    reward = 0.0 if is_no_pay else per_person_value
 
     survey = Survey(
         publisher_id=current_user.id, title=title, description=description,
