@@ -414,6 +414,54 @@ The Insighta Team"""
     return send_email(user.email, subject, body, text_body=text_body)
 
 
+def _send_reward_setup_reminder_email(user: User) -> tuple[bool, Optional[str]]:
+    if not user.email:
+        return False, "Missing user email"
+    first_name = (user.first_name or user.username or "there").strip()
+    escaped_first = html.escape(first_name)
+    profile_url = f"{BASE_URL.rstrip('/')}/profile"
+    stripe_url = f"{BASE_URL.rstrip('/')}/connect/onboard"
+    subject = "Complete your Insighta profile and payout setup"
+    text_body = f"""Hi {first_name},
+
+Quick reminder from Insighta: to make sure rewards can be matched, reviewed, and paid correctly, please complete your Insighta profile.
+
+If you participate in paid studies, you will also need to connect Stripe before rewards can be paid out. This helps us send approved rewards securely.
+
+What to do next:
+1. Complete or update your profile: {profile_url}
+2. If you are participating in paid studies, connect Stripe payouts: {stripe_url}
+3. Keep your contact information current so we can reach you about study matches, bookings, and rewards.
+
+Rewards are not issued automatically. Insighta reviews study participation and eligibility before releasing approved rewards.
+
+Warmly,
+The Insighta Team"""
+    body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 22px; color: #1a1a18; line-height: 1.65;">
+      <h2 style="margin:0 0 18px;color:#168aad;">Complete your profile and payout setup</h2>
+      <p>Hi {escaped_first},</p>
+      <p>Quick reminder from Insighta: to make sure rewards can be matched, reviewed, and paid correctly, please complete your Insighta profile.</p>
+      <p>If you participate in paid studies, you will also need to connect Stripe before rewards can be paid out. This helps us send approved rewards securely.</p>
+      <div style="background:#f6fbf8;border:1px solid rgba(24,78,119,0.12);border-radius:10px;padding:16px 18px;margin:18px 0;">
+        <p style="margin:0 0 8px;font-weight:700;color:#184e77;">What to do next</p>
+        <ol style="margin:0;padding-left:20px;">
+          <li>Complete or update your profile.</li>
+          <li>If you are participating in paid studies, connect Stripe payouts.</li>
+          <li>Keep your contact information current so we can reach you about study matches, bookings, and rewards.</li>
+        </ol>
+      </div>
+      <p>
+        <a href="{profile_url}" style="display:inline-block;background:#168aad;color:#fff;text-decoration:none;border-radius:8px;padding:11px 16px;font-weight:700;margin-right:8px;">Complete profile</a>
+        <a href="{stripe_url}" style="display:inline-block;background:#184e77;color:#fff;text-decoration:none;border-radius:8px;padding:11px 16px;font-weight:700;">Connect Stripe</a>
+      </p>
+      <p style="font-size:13px;color:#5a8297;">Rewards are not issued automatically. Insighta reviews study participation and eligibility before releasing approved rewards.</p>
+      <p>Warmly,<br>The Insighta Team</p>
+    </div>
+    """
+    return send_email(user.email, subject, body, text_body=text_body)
+
+
 def _send_survey_start_followup_email(db: Session, response_id: int, dashboard_url: str) -> None:
     response = db.query(Response).filter(Response.id == response_id).first()
     if not response or getattr(response, "start_followup_sent_at", None):
@@ -3849,6 +3897,47 @@ async def admin_verify(request: Request):
     if not _admin_key_matches(body.get("admin_key")):
         raise HTTPException(403, "Unauthorized")
     return JSONResponse({"success": True})
+
+
+@app.post("/admin/users/reward-reminder-email")
+async def admin_reward_reminder_email(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+    dry_run = bool(body.get("dry_run", True))
+    users = db.query(User).filter(User.email.isnot(None)).order_by(User.created_at.desc()).all()
+    recipients: list[User] = []
+    seen_emails = set()
+    for user in users:
+        normalized = _normalize_email(user.email or "")
+        if not normalized or "@" not in normalized or normalized in seen_emails:
+            continue
+        seen_emails.add(normalized)
+        recipients.append(user)
+    if dry_run:
+        return JSONResponse({
+            "dry_run": True,
+            "recipient_count": len(recipients),
+        })
+
+    sent_count = 0
+    failures = []
+    for user in recipients:
+        sent, error = _send_reward_setup_reminder_email(user)
+        if sent:
+            sent_count += 1
+        else:
+            failures.append({
+                "email": user.email,
+                "error": error or "Unknown email error",
+            })
+    return JSONResponse({
+        "dry_run": False,
+        "recipient_count": len(recipients),
+        "sent_count": sent_count,
+        "failed_count": len(failures),
+        "failures": failures[:20],
+    })
 
 
 @app.post("/admin/api/ai-fill")

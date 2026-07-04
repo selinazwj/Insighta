@@ -351,6 +351,11 @@
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Track who opened, started, and completed each listing.</div>
         <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
       </div>
+      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;">
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Email reminder</div>
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Email all users to complete their profile and connect Stripe before rewards.</div>
+        <button id="rewardReminderBtn" class="btn-refresh" style="margin-top:10px;" onclick="sendRewardReminder()">Send reminder</button>
+      </div>
     </div>
   </div>
 
@@ -638,6 +643,43 @@
   function openAdminPublish() {
     if (!adminKey) return;
     window.location.href = `/admin/publish?admin_key=${encodeURIComponent(adminKey)}`;
+  }
+
+  async function sendRewardReminder() {
+    if (!adminKey) return;
+    const btn = document.getElementById('rewardReminderBtn');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Checking...';
+    try {
+      const preview = await fetch('/admin/users/reward-reminder-email', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, dry_run: true })
+      });
+      if (!preview.ok) throw new Error((await preview.json().catch(()=>({}))).detail || 'Could not preview recipients');
+      const data = await preview.json();
+      const count = data.recipient_count || 0;
+      if (!count) {
+        alert('No users with valid email addresses found.');
+        return;
+      }
+      if (!confirm(`Send the profile and Stripe reminder email to ${count} user${count === 1 ? '' : 's'}?`)) return;
+      btn.textContent = 'Sending...';
+      const res = await fetch('/admin/users/reward-reminder-email', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, dry_run: false })
+      });
+      const result = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(result.detail || 'Could not send reminder emails');
+      alert(`Reminder sent to ${result.sent_count || 0}/${result.recipient_count || count} user${(result.recipient_count || count) === 1 ? '' : 's'}.${result.failed_count ? ` Failed: ${result.failed_count}.` : ''}`);
+    } catch(err) {
+      alert(err.message || 'Reminder email failed.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   }
 
   // ── ANALYTICS ──
