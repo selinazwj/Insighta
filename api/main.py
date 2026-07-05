@@ -1030,6 +1030,14 @@ def _needs_identity_onboarding(user: User) -> bool:
         (getattr(user, "first_name", None) or "").strip(),
         (getattr(user, "last_name", None) or "").strip(),
         (getattr(user, "username", None) or "").strip(),
+        (getattr(user, "birth_year", None) or "").strip(),
+        (getattr(user, "birth_month", None) or "").strip(),
+        (getattr(user, "education_level", None) or "").strip(),
+        (getattr(user, "field", None) or "").strip(),
+        (getattr(user, "status", None) or "").strip(),
+        (getattr(user, "current_province", None) or getattr(user, "state", None) or "").strip(),
+        (getattr(user, "language", None) or "").strip(),
+        (getattr(user, "participation_format", None) or "").strip(),
     ])
 
 
@@ -1717,6 +1725,7 @@ def show_register(
             "register_step": 1,
             "register_role": normalized_role,
             "register_next": register_next,
+            "register_values": {},
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }
     ))
@@ -1743,6 +1752,19 @@ async def do_register(
     next_url = _safe_auth_return(form.get("next"), auth_return_to)
     role = (form.get("role") or "").strip().lower()
     role = role if role in {"participant", "researcher"} else None
+    register_values = {
+        "first_name": (form.get("first_name") or "").strip(),
+        "last_name": (form.get("last_name") or "").strip(),
+        "username": (form.get("username") or "").strip(),
+        "birth_year": (form.get("birth_year") or "").strip(),
+        "birth_month": (form.get("birth_month") or "").strip(),
+        "education_level": (form.get("education_level") or "").strip(),
+        "field": (form.get("field") or "").strip(),
+        "status": (form.get("status") or "").strip(),
+        "current_province": (form.get("current_province") or "").strip(),
+        "language": (form.get("language") or "").strip(),
+        "participation_format": (form.get("participation_format") or "").strip(),
+    }
 
     def reg_error(msg, step: int = 1):
         response = no_store_response(templates.TemplateResponse("register.html", {
@@ -1752,6 +1774,7 @@ async def do_register(
             "register_step": step,
             "register_role": role or "",
             "register_next": next_url if is_safe_internal_next(next_url) else "",
+            "register_values": register_values,
             "participant_app": _auth_uses_participant_app(request, role, participant_app),
         }))
         if role == "researcher":
@@ -1762,6 +1785,25 @@ async def do_register(
     if password != confirm: return reg_error("Passwords do not match.", step=2)
     pw_error = _validate_registration_password(password)
     if pw_error: return reg_error(pw_error, step=2)
+    required_demo_fields = {
+        "first_name": "First name is required.",
+        "last_name": "Last name is required.",
+        "username": "Username is required.",
+        "birth_year": "Birth year is required.",
+        "birth_month": "Birth month is required.",
+        "education_level": "Education level is required.",
+        "field": "Field or major is required.",
+        "status": "Current status is required.",
+        "current_province": "Current state is required.",
+        "language": "Primary language is required.",
+        "participation_format": "Participation preference is required.",
+    }
+    for field_name, message in required_demo_fields.items():
+        if not register_values.get(field_name):
+            return reg_error(message, step=2)
+    derived_age_range = _age_range_from_birth_date(register_values["birth_year"], register_values["birth_month"])
+    if not derived_age_range:
+        return reg_error("Please enter a valid birth year and month. Participants must be 18 or older.", step=2)
     if db.query(User).filter(User.email == email).first():
         return reg_error("Email already exists.")
     if not _consume_verification_code(db, email, "register", verification_code):
@@ -1771,6 +1813,20 @@ async def do_register(
         email=email,
         password=pwd_context.hash(password),
         phone_number=phone_number or None,
+        first_name=register_values["first_name"],
+        last_name=register_values["last_name"],
+        username=register_values["username"],
+        birth_year=register_values["birth_year"],
+        birth_month=register_values["birth_month"],
+        age_range=derived_age_range,
+        education_level=register_values["education_level"],
+        field=register_values["field"],
+        status=register_values["status"],
+        current_country="United States",
+        current_province=register_values["current_province"],
+        state=register_values["current_province"],
+        language=register_values["language"],
+        participation_format=register_values["participation_format"],
     )
     db.add(user)
     db.commit()
@@ -1883,22 +1939,55 @@ async def complete_profile_post(
     first_name = (form.get("first_name") or "").strip()
     last_name = (form.get("last_name") or "").strip()
     username = (form.get("username") or "").strip()
+    birth_year = (form.get("birth_year") or "").strip()
+    birth_month = (form.get("birth_month") or "").strip()
+    education_level = (form.get("education_level") or "").strip()
+    field = (form.get("field") or "").strip()
+    status = (form.get("status") or "").strip()
+    current_province = (form.get("current_province") or "").strip()
+    language = (form.get("language") or "").strip()
+    participation_format = (form.get("participation_format") or "").strip()
     return_to = form.get("next") if is_safe_internal_next(form.get("next")) else ""
     welcome_role = _welcome_email_role(form.get("role"), return_to, participant_app)
 
-    if not first_name or not last_name or not username:
+    required_values = [
+        first_name, last_name, username, birth_year, birth_month, education_level,
+        field, status, current_province, language, participation_format
+    ]
+    if not all(required_values):
         return no_store_response(templates.TemplateResponse("complete_profile.html", {
             "request": request,
             "current_user": current_user,
             "next": return_to,
             "role": welcome_role,
-            "error": "Please fill in your first name, last name, and username.",
+            "error": "Please fill in all required profile basics.",
+            "participant_app": _should_use_participant_app(request, participant_app),
+        }))
+    derived_age_range = _age_range_from_birth_date(birth_year, birth_month)
+    if not derived_age_range:
+        return no_store_response(templates.TemplateResponse("complete_profile.html", {
+            "request": request,
+            "current_user": current_user,
+            "next": return_to,
+            "role": welcome_role,
+            "error": "Please enter a valid birth year and month. Participants must be 18 or older.",
             "participant_app": _should_use_participant_app(request, participant_app),
         }))
 
     current_user.first_name = first_name
     current_user.last_name = last_name
     current_user.username = username
+    current_user.birth_year = birth_year
+    current_user.birth_month = birth_month
+    current_user.age_range = derived_age_range
+    current_user.education_level = education_level
+    current_user.field = field
+    current_user.status = status
+    current_user.current_country = "United States"
+    current_user.current_province = current_province
+    current_user.state = current_province
+    current_user.language = language
+    current_user.participation_format = participation_format
     if not getattr(current_user, "welcome_email_sent_at", None):
         sent, error = _send_welcome_followup_email(current_user, welcome_role)
         if sent:
