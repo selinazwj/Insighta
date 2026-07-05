@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Insighta">
+  <meta name="theme-color" content="#d9ed92">
+  <title>Insighta Participants</title>
+  <link rel="icon" href="/static/favicon.png">
+  <style>
+    :root {
+      --lime-cream: #d9ed92;
+      --light-green: #b5e48c;
+      --light-green-2: #99d98c;
+      --emerald: #76c893;
+      --ocean-mist: #52b69a;
+      --tropical-teal: #34a0a4;
+      --bondi-blue: #168aad;
+      --cerulean: #1a759f;
+      --baltic-blue: #1e6091;
+      --yale-blue: #184e77;
+      --ink: #123344;
+      --muted: #4f7180;
+      --paper: rgba(255, 255, 255, 0.74);
+      --line: rgba(24, 78, 119, 0.13);
+      --shadow: 0 24px 60px rgba(24, 78, 119, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #f8fff3;
+      letter-spacing: 0;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      z-index: -2;
+      background:
+        linear-gradient(122deg, rgba(217, 237, 146, 0.92), rgba(181, 228, 140, 0.52) 26%, rgba(82, 182, 154, 0.42) 48%, rgba(22, 138, 173, 0.34) 72%, rgba(24, 78, 119, 0.18)),
+        linear-gradient(36deg, rgba(255, 255, 255, 0.82), rgba(153, 217, 140, 0.28), rgba(26, 117, 159, 0.22));
+      background-size: 240% 240%, 190% 190%;
+      animation: gradientFlow 13s ease-in-out infinite alternate;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: -10%;
+      z-index: -1;
+      background:
+        linear-gradient(78deg, transparent 0 18%, rgba(255, 255, 255, 0.36) 30%, transparent 44% 100%),
+        linear-gradient(158deg, transparent 0 54%, rgba(217, 237, 146, 0.36) 66%, transparent 80% 100%);
+      background-size: 180% 180%;
+      animation: sweepBands 16s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes gradientFlow {
+      0% {
+        background-position: 0% 22%, 100% 70%;
+      }
+      50% {
+        background-position: 72% 58%, 42% 28%;
+      }
+      100% {
+        background-position: 100% 78%, 0% 40%;
+      }
+    }
+
+    @keyframes sweepBands {
+      from {
+        background-position: 0% 50%;
+        transform: translate3d(-2%, -1%, 0) scale(1.02);
+      }
+      to {
+        background-position: 100% 50%;
+        transform: translate3d(2%, 1%, 0) scale(1.05);
+      }
+    }
+
+    .page {
+      width: min(100%, 480px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: max(18px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 48px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--yale-blue);
+      font-weight: 900;
+      font-size: 1.05rem;
+      text-decoration: none;
+    }
+
+    .brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      box-shadow: 0 8px 18px rgba(24, 78, 119, 0.14);
+    }
+
+    .signin {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 16px;
+      border: 1px solid rgba(24, 78, 119, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      color: var(--yale-blue);
+      font-weight: 800;
+      font-size: 0.9rem;
+      text-decoration: none;
+      backdrop-filter: blur(16px);
+    }
+
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+      padding: 8px 0 18px;
+    }
+
+    .headline {
+      margin: 0;
+      color: var(--yale-blue);
+      font-size: clamp(2.65rem, 14vw, 4.45rem);
+      line-height: 0.92;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .headline span {
+      display: block;
+      color: var(--tropical-teal);
+    }
+
+    .intro {
+      margin: 0;
+      max-width: 34ch;
+      color: var(--ink);
+      font-size: 1.08rem;
+      line-height: 1.55;
+      font-weight: 650;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(22px);
+      padding: 18px;
+    }
+
+    .cta-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .primary-cta,
+    .secondary-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 54px;
+      border-radius: 18px;
+      font-size: 1rem;
+      font-weight: 900;
+      text-decoration: none;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .primary-cta {
+      color: white;
+      background: linear-gradient(135deg, var(--tropical-teal), var(--cerulean));
+      box-shadow: 0 16px 28px rgba(26, 117, 159, 0.24);
+    }
+
+    .secondary-cta {
+      color: var(--yale-blue);
+      background: rgba(255, 255, 255, 0.58);
+      border: 1px solid rgba(24, 78, 119, 0.13);
+    }
+
+    .primary-cta:active,
+    .secondary-cta:active,
+    .signin:active {
+      transform: scale(0.98);
+    }
+
+    .chips {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      min-height: 74px;
+      border-radius: 16px;
+      padding: 11px 8px;
+      background: rgba(255, 255, 255, 0.48);
+      border: 1px solid rgba(24, 78, 119, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--yale-blue);
+      font-size: 0.78rem;
+      font-weight: 850;
+      line-height: 1.25;
+    }
+
+    .note {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      font-weight: 650;
+    }
+
+    .researcher-note {
+      border-top: 1px solid rgba(24, 78, 119, 0.1);
+      padding-top: 14px;
+      color: rgba(18, 51, 68, 0.78);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .researcher-note a {
+      color: var(--cerulean);
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    @media (min-width: 720px) {
+      .page {
+        width: min(100%, 760px);
+        padding-inline: 34px;
+      }
+
+      .hero {
+        align-items: center;
+        text-align: center;
+      }
+
+      .intro {
+        margin-inline: auto;
+      }
+
+      .panel {
+        width: min(100%, 520px);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar" aria-label="Insighta participant entry">
+      <a class="brand" href="/participant" aria-label="Insighta participant home">
+        <img src="/static/favicon.png" alt="">
+        <span>Insighta</span>
+      </a>
+      <a class="signin" href="/login?role=participant">Sign in</a>
+    </header>
+
+    <section class="hero">
+      <div>
+        <h1 class="headline">Studies that <span>fit you.</span></h1>
+        <p class="intro">Build your profile once, then choose research studies that match your background, schedule, and interests.</p>
+      </div>
+
+      <div class="panel">
+        <div class="cta-stack">
+          <a class="primary-cta" href="/register?role=participant">Create participant account</a>
+          <a class="secondary-cta" href="/login?role=participant">I already have an account</a>
+        </div>
+
+        <div class="chips" aria-label="Participant benefits">
+          <div class="chip">Matched to your profile</div>
+          <div class="chip">Choose study by study</div>
+          <div class="chip">Rewards after approval</div>
+        </div>
+
+        <p class="note">You are never automatically signed up for a study. Insighta sends matches, and you decide what feels right.</p>
+      </div>
+    </section>
+
+    <footer class="researcher-note">
+      Researcher? Please access Insighta from a computer at <a href="/">the main site</a>.
+    </footer>
+  </main>
+</body>
+</html>

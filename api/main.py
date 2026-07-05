@@ -1550,10 +1550,15 @@ def index(request: Request):
 
 @app.get("/participant")
 def participant_app_entry(request: Request, user_id: str = Cookie(None)):
-    target_url = "/login?role=participant"
     if user_id:
-        target_url = _participant_dashboard_url(request)
-    response = RedirectResponse(target_url, status_code=302)
+        response = RedirectResponse(_participant_dashboard_url(request), status_code=302)
+    else:
+        response = no_store_response(
+            templates.TemplateResponse(
+                "participant_landing.html",
+                {"request": request}
+            )
+        )
     _mark_participant_app(response, request)
     return response
 
