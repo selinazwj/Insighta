@@ -327,7 +327,7 @@
     </div>
   </div>
 
-  <form id="publishForm" method="POST" action="{{ '/admin/publish' if is_admin_publish else '/publish' }}" enctype="multipart/form-data">
+  <form id="publishForm" method="POST" action="{{ '/admin/publish' if is_admin_publish else '/publish' }}" enctype="multipart/form-data" novalidate>
     {% if is_admin_publish %}
     <input type="hidden" name="admin_key" value="{{ admin_key }}">
     {% endif %}
@@ -1067,6 +1067,7 @@
   function validateWizardStep(step) {
     let firstInvalid = null;
     document.querySelectorAll(`[data-wizard-step="${step}"] [required]`).forEach(el => {
+      if (el.disabled || el.closest('[hidden]') || el.offsetParent === null) return;
       if (!String(el.value || '').trim()) {
         el.closest('.field')?.classList.add('error');
         if (!firstInvalid) firstInvalid = el;
@@ -1351,8 +1352,10 @@
   // ── VALIDATION ──
   document.getElementById('publishForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    syncAdminStudyType();
     let err = false;
     this.querySelectorAll('[required]').forEach(el => {
+      if (el.disabled || el.closest('[hidden]') || el.offsetParent === null) return;
       if (!el.value.trim()) {
         el.closest('.field')?.classList.add('error');
         err = true;

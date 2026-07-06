@@ -911,6 +911,14 @@ def _parse_optional_int(v) -> Optional[int]:
     except (ValueError, TypeError):
         return None
 
+def _parse_optional_float(v) -> Optional[float]:
+    if v is None or (isinstance(v, str) and not v.strip()):
+        return None
+    try:
+        return float(v)
+    except (ValueError, TypeError):
+        return None
+
 def _normalize_task_type(value: Optional[str]) -> str:
     return "interview" if value == "interview" else "survey"
 
@@ -4821,7 +4829,7 @@ async def publish_survey(
     request: Request,
     title: str = Form(...), description: str = Form(...), form_url: str = Form(...),
     task_type: str = Form("survey"), category: str = Form(...), estimated_time: int = Form(...),
-    per_person_gross: Optional[float] = Form(None), total_budget: Optional[float] = Form(None),
+    per_person_gross: Optional[str] = Form(None), total_budget: Optional[str] = Form(None),
     target_responses: int = Form(...), urgency_level: str = Form(None), incentive_type: str = Form(None),
     target_age_range: str = Form(None), target_field: str = Form(None), target_status: str = Form(None),
     target_state: str = Form(None), target_language: str = Form(None), target_ethnicity: str = Form(None),
@@ -4885,12 +4893,14 @@ async def publish_survey(
         ppg = 0.0; rate = 0.0; reward = 0.0
         total = volunteer_platform_fee(target_responses)
     else:
-        if admin_publish and not per_person_gross and not total_budget:
+        per_person_gross_value = _parse_optional_float(per_person_gross)
+        total_budget_value = _parse_optional_float(total_budget)
+        if admin_publish and not per_person_gross_value and not total_budget_value:
             ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
-        elif per_person_gross is not None and float(per_person_gross) > 0:
-            ppg = float(per_person_gross)
-        elif total_budget and float(total_budget) > 0:
-            ppg = float(total_budget) / (int(target_responses) * session_count)
+        elif per_person_gross_value is not None and per_person_gross_value > 0:
+            ppg = per_person_gross_value
+        elif total_budget_value is not None and total_budget_value > 0:
+            ppg = total_budget_value / (int(target_responses) * session_count)
         else: ppg = 5.0
         if not (admin_publish and ppg == 0.0):
             rate, reward = calculate_commission(ppg)
