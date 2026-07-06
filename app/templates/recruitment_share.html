@@ -298,8 +298,8 @@
         <div class="cta-stack">
           {% if is_builtin %}
             <button class="btn btn-primary" type="button" onclick="startStudy('/surveys/{{ survey.id }}/take')">Start study</button>
-          {% elif survey.form_url %}
-            <button class="btn btn-primary" type="button" onclick="startStudy('{{ survey.form_url }}')">Start study</button>
+          {% elif external_start_url %}
+            <button class="btn btn-primary" type="button" onclick="startStudy('{{ external_start_url }}')">Start study</button>
           {% else %}
             <button class="btn btn-primary" type="button" onclick="startStudy('/dashboard')">{% if is_interview and availability_slots and not has_external_start_link and not is_online_interview %}Save selected time{% else %}Save my interest{% endif %}</button>
           {% endif %}
@@ -371,7 +371,7 @@
     }
 
     function bookSlot(slotLabel) {
-      const targetUrl = {{ (survey.form_url if survey.form_url and survey.form_url != "__builtin__" else "/dashboard") | tojson }};
+      const targetUrl = {{ (external_start_url if external_start_url else "/dashboard") | tojson }};
       startStudy(targetUrl, slotLabel);
     }
 

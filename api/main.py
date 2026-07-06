@@ -922,16 +922,41 @@ def _parse_optional_float(v) -> Optional[float]:
 def _normalize_task_type(value: Optional[str]) -> str:
     return "interview" if value == "interview" else "survey"
 
-def _survey_has_external_start_link(survey: Survey) -> bool:
+RESEARCH_PARTICIPATION_DEMO_TITLE = "Understand the Motivations and Barriers to Participating in Online Surveys and Research Studies"
+RESEARCH_PARTICIPATION_DEMO_CALENDLY_URL = "https://calendly.com/vfsa-bu/understanding-research-participation"
+
+def _compact_text(value: Optional[str]) -> str:
+    return "".join((value or "").split()).lower()
+
+def _is_research_participation_demo_survey(survey: Survey) -> bool:
+    compact_title = _compact_text(getattr(survey, "title", None))
+    return (
+        compact_title == _compact_text(RESEARCH_PARTICIPATION_DEMO_TITLE)
+        or (
+            "motivation" in compact_title
+            and "barrier" in compact_title
+            and "onlinesurveys" in compact_title
+            and "researchstudies" in compact_title
+        )
+    )
+
+def _survey_external_start_url(survey: Survey) -> str:
+    if _is_research_participation_demo_survey(survey):
+        return RESEARCH_PARTICIPATION_DEMO_CALENDLY_URL
     form_url = (getattr(survey, "form_url", None) or "").strip()
-    return bool(form_url and form_url != "__builtin__")
+    return form_url if form_url and form_url != "__builtin__" else ""
+
+def _survey_has_external_start_link(survey: Survey) -> bool:
+    return bool(_survey_external_start_url(survey))
 
 def _is_online_interview_survey(survey: Survey) -> bool:
     task_type = _normalize_task_type(getattr(survey, "task_type", None))
     if task_type != "interview":
         return False
+    if _is_research_participation_demo_survey(survey):
+        return True
     participation_format = (getattr(survey, "target_participation_format", None) or "").strip().lower()
-    form_url = (getattr(survey, "form_url", None) or "").strip().lower()
+    form_url = _survey_external_start_url(survey).lower()
     return (
         participation_format in {"video interview", "online interview", "remote live session"}
         or "calendly.com" in form_url
@@ -2125,6 +2150,7 @@ def recruitment_share_page(
         "is_interview": _normalize_task_type(getattr(survey, "task_type", None)) == "interview",
         "is_online_interview": _is_online_interview_survey(survey),
         "has_external_start_link": _survey_has_external_start_link(survey),
+        "external_start_url": _survey_external_start_url(survey),
     })
 
 @app.get("/r/{share_slug}/qr.png")
@@ -2404,7 +2430,7 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "clubs": "/static/fb.jpg", "market": "/static/habit.png",
         "academic": "/static/r2.jpg", "other": "/static/food.jpeg"
     }
-    form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
+    form_link = _survey_external_start_url(s)
     response_status = user_response.status if user_response else None
     display_reward = getattr(s, "admin_display_reward_amount", None)
     if display_reward is None:
@@ -2684,7 +2710,7 @@ def dashboard_mobile(
             Response.survey_id == s.id, Response.participant_id == current_user.id
         ).first()
         is_completed = user_response and user_response.status == "completed"
-        form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
+        form_link = _survey_external_start_url(s)
         display_reward = getattr(s, "admin_display_reward_amount", None)
         if display_reward is None:
             display_reward = s.reward_amount
@@ -4735,9 +4761,9 @@ async def admin_reset_research_participation_demo(request: Request, db: Session 
     if not _admin_key_matches(body.get("admin_key")):
         raise HTTPException(403, "Unauthorized")
 
-    title = "Understand the Motivations and Barriers to Participating in Online Surveys and Research Studies"
-    calendly_url = "https://calendly.com/vfsa-bu/understanding-research-participation"
-    title_compact = "".join(title.split()).lower()
+    title = RESEARCH_PARTICIPATION_DEMO_TITLE
+    calendly_url = RESEARCH_PARTICIPATION_DEMO_CALENDLY_URL
+    title_compact = _compact_text(title)
     candidates = db.query(Survey).filter(
         Survey.title.ilike("%Motivations%"),
         Survey.title.ilike("%Barriers%"),
@@ -4745,7 +4771,7 @@ async def admin_reset_research_participation_demo(request: Request, db: Session 
     ).order_by(Survey.created_at.desc()).all()
     existing = []
     for survey in candidates:
-        survey_title_compact = "".join((survey.title or "").split()).lower()
+        survey_title_compact = _compact_text(survey.title)
         if survey_title_compact == title_compact or (
             "motivation" in survey_title_compact
             and "barrier" in survey_title_compact
