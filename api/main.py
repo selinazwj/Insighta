@@ -116,6 +116,7 @@ def ensure_survey_listing_columns():
         "target_niche_requirements": "VARCHAR",
         "raffle_prize_type": "VARCHAR",
         "availability_slots": "TEXT",
+        "interview_location": "VARCHAR",
         "session_count": "INTEGER",
         "sessions_per_week": "INTEGER",
         "admin_display_reward_amount": "FLOAT",
@@ -3224,6 +3225,7 @@ async def publish_interview(
         target_lifestyle_tags=",".join(lifestyle_list) if lifestyle_list else None,
         target_niche_requirements=_clean_target(form.get("target_niche_requirements")),
         availability_slots=availability_slots,
+        interview_location=_clean_target(interview_location),
         session_count=session_count,
         sessions_per_week=sessions_per_week,
         status="published", published_at=datetime.utcnow(), closed_at=None,
@@ -4845,6 +4847,30 @@ async def publish_survey(
     target_lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
     target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
     existing_survey_id = int(form.get("existing_survey_id") or 0)
+    raw_task_type = (task_type or form.get("task_type") or "survey").strip()
+    is_online_interview = raw_task_type in {"online_interview", "remote_interview"}
+    is_in_person_study = raw_task_type in {"in_person_study", "in_person"}
+    is_interview_listing = raw_task_type == "interview" or is_online_interview or is_in_person_study
+    normalized_task_type = "interview" if is_interview_listing else raw_task_type
+    if is_online_interview:
+        target_participation_format = "Video interview"
+    elif is_in_person_study:
+        target_participation_format = "In-person study"
+    session_count = max(_parse_optional_int(form.get("session_count")) or 1, 1)
+    sessions_per_week = _parse_optional_int(form.get("sessions_per_week"))
+    availability_slots = (form.get("availability_slots") or "").strip()
+    if availability_slots:
+        try:
+            parsed_slots = json.loads(availability_slots)
+            availability_slots = json.dumps(parsed_slots if isinstance(parsed_slots, list) else [])
+        except Exception:
+            availability_slots = None
+    else:
+        availability_slots = None
+    scheduling_link = (form.get("scheduling_link") or "").strip()
+    interview_location = _clean_target(form.get("interview_location"))
+    if is_interview_listing:
+        form_url = scheduling_link or form_url or ""
 
     is_builtin = (form_url == "__builtin__")
     incentive_clean = _clean_target(incentive_type) or "cash"
@@ -4864,11 +4890,11 @@ async def publish_survey(
         elif per_person_gross is not None and float(per_person_gross) > 0:
             ppg = float(per_person_gross)
         elif total_budget and float(total_budget) > 0:
-            ppg = float(total_budget) / int(target_responses)
+            ppg = float(total_budget) / (int(target_responses) * session_count)
         else: ppg = 5.0
         if not (admin_publish and ppg == 0.0):
             rate, reward = calculate_commission(ppg)
-            total = round(ppg * int(target_responses), 2)
+            total = round(ppg * int(target_responses) * session_count, 2)
     total = round(total * timeline_multiplier(urgency_level), 2)
 
     image_url = None
@@ -4888,6 +4914,8 @@ async def publish_survey(
             raise HTTPException(404, "Survey not found")
         survey.title = title
         survey.description = description
+        survey.form_url = form_url
+        survey.task_type = normalized_task_type
         survey.category = category
         survey.estimated_time = estimated_time
         survey.reward_amount = reward
@@ -4923,6 +4951,10 @@ async def publish_survey(
         survey.target_income_level = _clean_target(target_income_level)
         survey.target_lifestyle_tags = target_lifestyle_tags
         survey.target_niche_requirements = target_niche_requirements
+        survey.availability_slots = availability_slots if is_interview_listing else None
+        survey.interview_location = interview_location if is_interview_listing else None
+        survey.session_count = session_count if is_interview_listing else None
+        survey.sessions_per_week = sessions_per_week if is_interview_listing else None
         survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish else None
         _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
@@ -4931,7 +4963,7 @@ async def publish_survey(
     else:
         survey = Survey(
             publisher_id=current_user.id, title=title, description=description, form_url=form_url,
-            task_type=task_type, category=category, estimated_time=estimated_time,
+            task_type=normalized_task_type, category=category, estimated_time=estimated_time,
             reward_amount=reward, per_person_gross=ppg, total_budget=total, commission_rate=rate,
             payment_status="unpaid" if not is_no_pay else "paid",
             target_responses=target_responses, urgency_level=_clean_target(urgency_level),
@@ -4956,6 +4988,10 @@ async def publish_survey(
             target_income_level=_clean_target(target_income_level),
             target_lifestyle_tags=target_lifestyle_tags,
             target_niche_requirements=target_niche_requirements,
+            availability_slots=availability_slots if is_interview_listing else None,
+            interview_location=interview_location if is_interview_listing else None,
+            session_count=session_count if is_interview_listing else None,
+            sessions_per_week=sessions_per_week if is_interview_listing else None,
             admin_display_reward_amount=admin_display_reward_amount if admin_publish else None,
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
