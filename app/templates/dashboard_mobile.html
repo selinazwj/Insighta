@@ -737,7 +737,8 @@
   async function doTake(id, link, isBuiltIn) {
     const s = activeSurveys.find(x => x.id === id) || allSurveys.find(x => x.id === id);
     let bookingSlot = null;
-    if (s && s.type === 'interview' && Array.isArray(s.availability_slots) && s.availability_slots.length) {
+    const hasExternalLink = !!(link && link !== '__builtin__');
+    if (s && s.type === 'interview' && !hasExternalLink && Array.isArray(s.availability_slots) && s.availability_slots.length) {
       bookingSlot = pickSlotMobile(s);
       if (!bookingSlot) return;
       s.booking_slots = Array.isArray(bookingSlot) ? bookingSlot : [bookingSlot];

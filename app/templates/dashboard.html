@@ -461,7 +461,8 @@
   async function doTake(id, link, isBuiltIn, e) {
     burst(e);
     const s = surveys.find(x => x.id === id);
-    if (s && s.type === 'interview' && Array.isArray(s.availability_slots) && s.availability_slots.length) {
+    const hasExternalLink = !!(link && link !== '__builtin__');
+    if (s && s.type === 'interview' && !hasExternalLink && Array.isArray(s.availability_slots) && s.availability_slots.length) {
       openSlotModal(s, link, isBuiltIn);
       return;
     }

@@ -922,16 +922,33 @@ def _parse_optional_float(v) -> Optional[float]:
 def _normalize_task_type(value: Optional[str]) -> str:
     return "interview" if value == "interview" else "survey"
 
+def _survey_has_external_start_link(survey: Survey) -> bool:
+    form_url = (getattr(survey, "form_url", None) or "").strip()
+    return bool(form_url and form_url != "__builtin__")
+
+def _is_online_interview_survey(survey: Survey) -> bool:
+    task_type = _normalize_task_type(getattr(survey, "task_type", None))
+    if task_type != "interview":
+        return False
+    participation_format = (getattr(survey, "target_participation_format", None) or "").strip().lower()
+    form_url = (getattr(survey, "form_url", None) or "").strip().lower()
+    return (
+        participation_format in {"video interview", "online interview", "remote live session"}
+        or "calendly.com" in form_url
+        or "zoom.us" in form_url
+        or "meet.google.com" in form_url
+    )
+
 def _participant_study_type_label(survey: Survey) -> Optional[str]:
     task_type = _normalize_task_type(getattr(survey, "task_type", None))
     if task_type == "interview":
-        return "Online interview" if getattr(survey, "target_participation_format", None) == "Video interview" else "In-person study"
+        return "Online interview" if _is_online_interview_survey(survey) else "In-person study"
     return None
 
 def _participant_study_action_label(survey: Survey) -> str:
     task_type = _normalize_task_type(getattr(survey, "task_type", None))
     if task_type == "interview":
-        return "Schedule interview" if getattr(survey, "target_participation_format", None) == "Video interview" else "Book time"
+        return "Schedule interview" if _is_online_interview_survey(survey) else "Book time"
     return "Take study"
 
 def _clean_target(val: Optional[str]) -> str:
@@ -2106,6 +2123,8 @@ def recruitment_share_page(
         "brand_label": brand_label,
         "is_builtin": survey.form_url == "__builtin__",
         "is_interview": _normalize_task_type(getattr(survey, "task_type", None)) == "interview",
+        "is_online_interview": _is_online_interview_survey(survey),
+        "has_external_start_link": _survey_has_external_start_link(survey),
     })
 
 @app.get("/r/{share_slug}/qr.png")
@@ -4718,7 +4737,22 @@ async def admin_reset_research_participation_demo(request: Request, db: Session 
 
     title = "Understand the Motivations and Barriers to Participating in Online Surveys and Research Studies"
     calendly_url = "https://calendly.com/vfsa-bu/understanding-research-participation"
-    existing = db.query(Survey).filter(Survey.title == title).order_by(Survey.created_at.desc()).all()
+    title_compact = "".join(title.split()).lower()
+    candidates = db.query(Survey).filter(
+        Survey.title.ilike("%Motivations%"),
+        Survey.title.ilike("%Barriers%"),
+        Survey.title.ilike("%Research%"),
+    ).order_by(Survey.created_at.desc()).all()
+    existing = []
+    for survey in candidates:
+        survey_title_compact = "".join((survey.title or "").split()).lower()
+        if survey_title_compact == title_compact or (
+            "motivation" in survey_title_compact
+            and "barrier" in survey_title_compact
+            and "onlinesurveys" in survey_title_compact
+            and "researchstudies" in survey_title_compact
+        ):
+            existing.append(survey)
     source = existing[0] if existing else None
     admin_user = _get_admin_publisher_user(db)
 
@@ -4758,8 +4792,8 @@ async def admin_reset_research_participation_demo(request: Request, db: Session 
         "share_slug": getattr(source, "share_slug", None),
         "incentive_type": getattr(source, "incentive_type", None) or "cash",
         "raffle_prize_type": getattr(source, "raffle_prize_type", None),
-        "session_count": getattr(source, "session_count", None) or 1,
-        "sessions_per_week": getattr(source, "sessions_per_week", None),
+        "session_count": None,
+        "sessions_per_week": None,
     }
     if source_data["admin_display_reward_amount"] is None:
         source_data["admin_display_reward_amount"] = source_data["reward_amount"]
@@ -4816,6 +4850,7 @@ async def admin_reset_research_participation_demo(request: Request, db: Session 
         share_slug=source_data["share_slug"],
         session_count=source_data["session_count"],
         sessions_per_week=source_data["sessions_per_week"],
+        availability_slots=None,
     )
     db.add(survey)
     if not survey.share_slug:
