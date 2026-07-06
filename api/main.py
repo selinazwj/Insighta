@@ -913,6 +913,18 @@ def _parse_optional_int(v) -> Optional[int]:
 def _normalize_task_type(value: Optional[str]) -> str:
     return "interview" if value == "interview" else "survey"
 
+def _participant_study_type_label(survey: Survey) -> Optional[str]:
+    task_type = _normalize_task_type(getattr(survey, "task_type", None))
+    if task_type == "interview":
+        return "Online interview" if getattr(survey, "target_participation_format", None) == "Video interview" else "In-person study"
+    return None
+
+def _participant_study_action_label(survey: Survey) -> str:
+    task_type = _normalize_task_type(getattr(survey, "task_type", None))
+    if task_type == "interview":
+        return "Schedule interview" if getattr(survey, "target_participation_format", None) == "Video interview" else "Book time"
+    return "Take study"
+
 def _clean_target(val: Optional[str]) -> str:
     return '' if not val or val.strip().lower() == 'all' else val
 
@@ -2386,6 +2398,9 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "link": form_link,
         "share_path": _survey_share_path(db, s, commit=True),
         "type": _normalize_task_type(getattr(s, "task_type", None)),
+        "format": getattr(s, "target_participation_format", None),
+        "type_label": _participant_study_type_label(s),
+        "action_label": _participant_study_action_label(s),
         "category": s.category,
         "time": f"{s.estimated_time} min",
         "reward": f"${display_reward:.2f}",
@@ -2659,6 +2674,9 @@ def dashboard_mobile(
             "link": form_link,
             "share_path": _survey_share_path(db, s, commit=True),
             "type": _normalize_task_type(getattr(s, "task_type", None)),
+            "format": getattr(s, "target_participation_format", None),
+            "type_label": _participant_study_type_label(s),
+            "action_label": _participant_study_action_label(s),
             "category": s.category, "time": f"{s.estimated_time} min",
             "reward": f"${display_reward:.2f}",
             "responses": f"{completed_cnt}/{s.target_responses}",

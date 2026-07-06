@@ -597,9 +597,9 @@
       ? `<button class="btn-skip" onclick="doModify(${s.id})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Undo</button>`
       : isBuiltIn
         ? `<button class="btn-skip" onclick="doSkip()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skip</button>
-           <button class="btn-take" onclick="openRecruitmentPage('${safeSharePath}')">${s.type === 'interview' ? 'Book time' : 'Take Survey'} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`
+           <button class="btn-take" onclick="openRecruitmentPage('${safeSharePath}')">${s.action_label || (s.type === 'interview' ? 'Book time' : 'Take study')} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`
         : `<button class="btn-skip" onclick="doSkip()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skip</button>
-           <button class="btn-take" onclick="openRecruitmentPage('${safeSharePath}')">${s.type === 'interview' ? 'Book time' : 'Take Survey'} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+           <button class="btn-take" onclick="openRecruitmentPage('${safeSharePath}')">${s.action_label || (s.type === 'interview' ? 'Book time' : 'Take study')} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
            <button class="btn-mark" onclick="doComplete(${s.id})">Mark done</button>`;
 
     wrap.innerHTML = `
@@ -607,7 +607,7 @@
         ${s3 ? `<div class="survey-card card-back-2"></div>` : ''}
         ${s2 ? `<div class="survey-card card-back-1"></div>` : ''}
         <div class="survey-card card-front" id="frontCard">
-          <div class="card-cat">${cap(s.category)}</div>
+          <div class="card-cat">${s.type_label || cap(s.category)}</div>
           <div class="card-title">${s.title}</div>
           <div class="card-desc">${s.desc}</div>
           <div class="card-meta-row">
@@ -660,7 +660,7 @@
       const safeSharePath = (s.share_path || `/r/${s.share_slug || ''}`).replace(/'/g, "\\'");
       const action = s.is_completed
         ? `<button class="list-secondary" onclick="doModify(${s.id})">Undo</button>`
-        : `<button class="list-primary" onclick="openRecruitmentPage('${safeSharePath}')">${s.type === 'interview' ? 'Book time' : 'Take study'}</button>`;
+        : `<button class="list-primary" onclick="openRecruitmentPage('${safeSharePath}')">${s.action_label || (s.type === 'interview' ? 'Book time' : 'Take study')}</button>`;
       const done = s.is_completed ? `<span>Completed</span>` : '';
       return `
         <div class="study-row">
@@ -669,7 +669,7 @@
             <div class="study-reward">${s.reward}</div>
           </div>
           <div class="study-row-meta">
-            <span>${cap(s.category)}</span><span>${s.time}</span>${s.type === 'interview' && s.session_count ? `<span>${s.session_count} session${Number(s.session_count) === 1 ? '' : 's'}${s.sessions_per_week ? ` · ${s.sessions_per_week}/week` : ''}</span>` : ''}<span>${spotsLabel(s.responses)}</span>${done}
+            <span>${s.type_label || cap(s.category)}</span><span>${s.time}</span>${s.type === 'interview' && s.session_count ? `<span>${s.session_count} session${Number(s.session_count) === 1 ? '' : 's'}${s.sessions_per_week ? ` · ${s.sessions_per_week}/week` : ''}</span>` : ''}<span>${spotsLabel(s.responses)}</span>${done}
           </div>
           <div class="study-row-actions">
             <button class="list-secondary" onclick="doSkip()">Skip</button>

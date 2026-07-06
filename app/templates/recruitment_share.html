@@ -235,7 +235,7 @@
             </div>
             <div class="meta">
               <div class="meta-label">Format</div>
-              <div class="meta-value">{{ "In person" if is_interview else "Survey" }}</div>
+              <div class="meta-value">{{ "Online interview" if is_interview and survey.target_participation_format == "Video interview" else ("In person" if is_interview else "Survey") }}</div>
             </div>
             <div class="meta">
               <div class="meta-label">Target spots</div>
