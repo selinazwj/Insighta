@@ -543,7 +543,10 @@
       <div style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:18px;">
         Use the same survey publishing form as researchers, plus one admin-only field for the reward amount participants see. This skips Stripe and marks the listing as an admin demo.
       </div>
-      <button class="btn-run" onclick="openAdminPublish()">Create demo listing</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-run" onclick="openAdminPublish()">Create demo listing</button>
+        <button class="btn-refresh" id="resetResearchDemoBtn" onclick="resetResearchParticipationDemo()">Reset research participation demo</button>
+      </div>
     </div>
   </div>
 
@@ -643,6 +646,31 @@
   function openAdminPublish() {
     if (!adminKey) return;
     window.location.href = `/admin/publish?admin_key=${encodeURIComponent(adminKey)}`;
+  }
+
+  async function resetResearchParticipationDemo() {
+    if (!adminKey) return;
+    if (!confirm('Delete and rebuild the research participation listing as an online interview with the Calendly start link?')) return;
+    const btn = document.getElementById('resetResearchDemoBtn');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Resetting...';
+    try {
+      const res = await fetch('/admin/listings/reset-research-participation-demo', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ admin_key: adminKey })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not reset listing');
+      alert(`Rebuilt listing. Start link: ${data.created?.start_url || 'Calendly link saved'}`);
+      if (currentPanel === 'listings') loadListings();
+    } catch (error) {
+      alert(error.message || 'Could not reset listing');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   }
 
   async function sendRewardReminder() {
