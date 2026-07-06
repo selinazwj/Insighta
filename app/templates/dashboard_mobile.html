@@ -246,8 +246,10 @@
       to { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(.2); }
     }
 
-    .card-stack { height: min(54vh, 360px); min-height: 278px; }
-    .survey-card { height: 100%; min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 8px; }
+    .card-stack { height: auto; min-height: 0; }
+    .survey-card { height: auto; min-height: 0; overflow: visible; display: flex; flex-direction: column; gap: 10px; }
+    .card-front { position: relative; }
+    .card-back-1, .card-back-2 { inset: 0; height: 100%; min-height: 100%; pointer-events: none; }
     .card-cat { align-self: start; margin-bottom: 0; }
     .card-title {
       min-height: 0;
@@ -261,37 +263,52 @@
     .card-desc {
       min-height: 0;
       display: -webkit-box;
-      -webkit-line-clamp: 4;
+      -webkit-line-clamp: 6;
       -webkit-box-orient: vertical;
       overflow: hidden;
       margin-bottom: 0;
     }
     .card-meta-row { gap: 6px; margin-bottom: 0; align-self: end; }
     .meta-pill { padding: 5px 8px; font-size: 11px; }
-    .niche-pill { width:100%; min-width:0; padding:6px 9px; border-radius:10px; border:1.5px solid #f3a6a6; background:#fff1f1; color:#8f3030; font-size:11px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .niche-pill { width:100%; min-width:0; padding:6px 9px; border-radius:10px; border:1.5px solid #f3a6a6; background:#fff1f1; color:#8f3030; font-size:11px; font-weight:800; white-space:normal; overflow-wrap:anywhere; }
     .niche-pill strong { font-weight:900; }
     .card-footer-row { margin-top: 0; padding-top: 10px; align-self: end; }
     .reward-big { font-size: clamp(22px, 7vw, 28px); }
     .impact-tag { padding: 5px 8px; }
-    .card-actions { flex-shrink: 0; }
+    .card-actions { flex-shrink: 0; flex-wrap: wrap; }
+    .card-actions .btn-take { flex: 1 1 100%; order: -1; }
+    .card-actions .btn-skip,
+    .card-actions .btn-mark,
+    .card-actions .btn-back-card { flex: 1 1 calc(50% - 6px); min-width: 0; }
     @media (min-height: 820px) {
-      .card-stack { height: min(50vh, 390px); }
-      .card-desc { -webkit-line-clamp: 5; }
+      .card-desc { -webkit-line-clamp: 8; }
     }
     @media (max-height: 720px) {
       .impact-banner { margin-top: 10px; margin-bottom: 8px; padding: 10px 12px; }
       .impact-icon { width: 36px; height: 36px; }
-      .card-stack { height: 252px; min-height: 252px; }
       .survey-card { padding: 15px; gap: 6px; }
       .card-title { -webkit-line-clamp: 2; }
-      .card-desc { -webkit-line-clamp: 2; }
+      .card-desc { -webkit-line-clamp: 5; }
       .card-actions button { padding: 11px 8px; }
     }
     @media (max-height: 640px) {
-      .card-stack { height: 226px; min-height: 226px; }
-      .survey-card { grid-template-rows: auto auto minmax(0, 1fr) auto; }
-      .card-meta-row { display: none; }
+      .card-desc { -webkit-line-clamp: 4; }
       .impact-tag { display: none; }
+    }
+    @media (max-width: 370px) {
+      .card-stack-wrap, #homeContent { padding-left: 12px !important; padding-right: 12px !important; }
+      .section-row { padding-left: 14px; padding-right: 12px; gap: 10px; }
+      .section-label { font-size: 11px; }
+      .view-toggle button { min-width: 48px; padding-left: 8px; padding-right: 8px; }
+      .survey-card { padding: 14px; border-radius: 18px; }
+      .card-title { font-size: 17px; }
+      .card-footer-row { align-items: flex-start; gap: 10px; }
+      .impact-tag { white-space: normal; text-align: center; }
+      .study-row-top { flex-direction: column; gap: 4px; }
+      .study-reward { white-space: normal; }
+      .study-row-actions { flex-wrap: wrap; }
+      .study-row-actions .list-primary,
+      .study-row-actions .list-secondary { flex: 1 1 100%; }
     }
 
   </style>
