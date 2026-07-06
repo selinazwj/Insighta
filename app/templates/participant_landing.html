@@ -43,6 +43,7 @@
       background: #f8fff3;
       letter-spacing: 0;
       overflow-x: hidden;
+      min-height: 100dvh;
     }
 
     body::before {
@@ -100,7 +101,7 @@
       padding: max(18px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
-      gap: 22px;
+      gap: 16px;
     }
 
     .topbar {
@@ -149,17 +150,18 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 20px;
-      padding: 8px 0 18px;
+      gap: 18px;
+      padding: 4px 0 14px;
     }
 
     .headline {
       margin: 0;
       color: var(--yale-blue);
-      font-size: clamp(2.65rem, 14vw, 4.45rem);
-      line-height: 0.92;
+      font-size: clamp(2.35rem, 12.5vw, 4.1rem);
+      line-height: 0.95;
       font-weight: 950;
       letter-spacing: 0;
+      overflow-wrap: anywhere;
     }
 
     .headline span {
@@ -171,18 +173,18 @@
       margin: 0;
       max-width: 34ch;
       color: var(--ink);
-      font-size: 1.08rem;
-      line-height: 1.55;
+      font-size: 1rem;
+      line-height: 1.48;
       font-weight: 650;
     }
 
     .panel {
       border: 1px solid var(--line);
-      border-radius: 28px;
+      border-radius: 24px;
       background: var(--paper);
       box-shadow: var(--shadow);
       backdrop-filter: blur(22px);
-      padding: 18px;
+      padding: 16px;
     }
 
     .cta-stack {
@@ -195,12 +197,14 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 54px;
-      border-radius: 18px;
-      font-size: 1rem;
+      min-height: 52px;
+      border-radius: 16px;
+      padding: 0 14px;
+      font-size: 0.96rem;
       font-weight: 900;
       text-decoration: none;
       transition: transform 180ms ease, box-shadow 180ms ease;
+      text-align: center;
     }
 
     .primary-cta {
@@ -222,16 +226,16 @@
     }
 
     .chips {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-top: 16px;
     }
 
     .chip {
-      min-height: 74px;
-      border-radius: 16px;
-      padding: 11px 8px;
+      min-height: 38px;
+      border-radius: 999px;
+      padding: 8px 11px;
       background: rgba(255, 255, 255, 0.48);
       border: 1px solid rgba(24, 78, 119, 0.1);
       display: flex;
@@ -239,15 +243,16 @@
       justify-content: center;
       text-align: center;
       color: var(--yale-blue);
-      font-size: 0.78rem;
+      font-size: 0.74rem;
       font-weight: 850;
       line-height: 1.25;
+      flex: 1 1 calc(50% - 8px);
     }
 
     .note {
       margin: 14px 0 0;
       color: var(--muted);
-      font-size: 0.88rem;
+      font-size: 0.84rem;
       line-height: 1.45;
       font-weight: 650;
     }
@@ -285,6 +290,55 @@
 
       .panel {
         width: min(100%, 520px);
+      }
+    }
+
+    @media (max-width: 380px) {
+      .page {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .headline {
+        font-size: clamp(2.2rem, 11.8vw, 3rem);
+      }
+
+      .intro {
+        font-size: 0.95rem;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+
+      .primary-cta,
+      .secondary-cta {
+        min-height: 48px;
+        font-size: 0.9rem;
+      }
+    }
+
+    @media (max-height: 720px) {
+      .page {
+        min-height: auto;
+      }
+
+      .hero {
+        justify-content: flex-start;
+        gap: 14px;
+        padding-bottom: 6px;
+      }
+
+      .topbar {
+        min-height: 42px;
+      }
+
+      .headline {
+        font-size: clamp(2.1rem, 11.5vw, 3rem);
+      }
+
+      .researcher-note {
+        margin-top: 2px;
       }
     }
 
