@@ -738,7 +738,14 @@
     const s = activeSurveys.find(x => x.id === id) || allSurveys.find(x => x.id === id);
     let bookingSlot = null;
     const hasExternalLink = !!(link && link !== '__builtin__');
-    if (s && s.type === 'interview' && !hasExternalLink && Array.isArray(s.availability_slots) && s.availability_slots.length) {
+    const format = ((s && s.format) || '').toLowerCase();
+    const typeLabel = ((s && s.type_label) || '').toLowerCase();
+    const isOnlineInterview = s && s.type === 'interview' && (
+      typeLabel.includes('online') ||
+      ['video interview', 'online interview', 'remote live session'].includes(format) ||
+      String(link || '').toLowerCase().includes('calendly.com')
+    );
+    if (s && s.type === 'interview' && !hasExternalLink && !isOnlineInterview && Array.isArray(s.availability_slots) && s.availability_slots.length) {
       bookingSlot = pickSlotMobile(s);
       if (!bookingSlot) return;
       s.booking_slots = Array.isArray(bookingSlot) ? bookingSlot : [bookingSlot];

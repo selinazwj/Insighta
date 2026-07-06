@@ -462,7 +462,14 @@
     burst(e);
     const s = surveys.find(x => x.id === id);
     const hasExternalLink = !!(link && link !== '__builtin__');
-    if (s && s.type === 'interview' && !hasExternalLink && Array.isArray(s.availability_slots) && s.availability_slots.length) {
+    const format = ((s && s.format) || '').toLowerCase();
+    const typeLabel = ((s && s.type_label) || '').toLowerCase();
+    const isOnlineInterview = s && s.type === 'interview' && (
+      typeLabel.includes('online') ||
+      ['video interview', 'online interview', 'remote live session'].includes(format) ||
+      String(link || '').toLowerCase().includes('calendly.com')
+    );
+    if (s && s.type === 'interview' && !hasExternalLink && !isOnlineInterview && Array.isArray(s.availability_slots) && s.availability_slots.length) {
       openSlotModal(s, link, isBuiltIn);
       return;
     }
