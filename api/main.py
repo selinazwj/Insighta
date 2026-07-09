@@ -802,6 +802,71 @@ def _field_matches(target: Optional[str], user_val: Optional[str]) -> bool:
         return False
     return target.strip().lower() == user_val.strip().lower()
 
+FIELD_RELEVANCE_ALIASES = {
+    "computer science & engineering": ["computer science", "engineering", "software", "developer", "coding", "programming", "technology", "tech"],
+    "data science / ai": ["data science", "data", "ai", "artificial intelligence", "machine learning", "ml", "analytics", "algorithm"],
+    "business & economics": ["business", "economics", "finance", "entrepreneurship", "startup", "management", "consumer", "market"],
+    "marketing / design": ["marketing", "design", "brand", "ux", "user experience", "product", "advertising", "creative"],
+    "medicine & healthcare": ["medicine", "healthcare", "health", "clinical", "patient", "care", "medical", "public health"],
+    "psychology / neuroscience": ["psychology", "neuroscience", "mental health", "behavior", "cognition", "brain", "wellness"],
+    "natural sciences": ["biology", "chemistry", "physics", "environment", "science", "lab", "ecology"],
+    "social sciences": ["social science", "sociology", "anthropology", "political science", "community", "society", "policy"],
+    "education": ["education", "teaching", "learning", "school", "student", "classroom", "curriculum"],
+    "law / public policy": ["law", "legal", "policy", "government", "civic", "regulation", "justice"],
+    "arts & humanities": ["arts", "humanities", "history", "literature", "philosophy", "culture", "music", "theater"],
+    "communications / media": ["communications", "media", "journalism", "social media", "content", "creator", "news"],
+    "architecture / design": ["architecture", "urban", "built environment", "space", "housing", "design"],
+}
+
+def _text_relevance_score(needles: list[str], haystack: str) -> float:
+    if not needles or not haystack:
+        return 0.0
+    haystack = haystack.lower()
+    hits = sum(1 for needle in needles if needle and needle.lower() in haystack)
+    if hits <= 0:
+        return 0.0
+    return min(0.75, 0.25 + hits * 0.15)
+
+def _field_relevance_score(survey: Survey, user: User) -> float:
+    user_field = (getattr(user, "field", None) or "").strip()
+    if not user_field:
+        return 0.0
+    survey_target = (getattr(survey, "target_field", None) or "").strip()
+    user_field_clean = user_field.lower()
+    survey_target_clean = survey_target.lower()
+    if survey_target_clean and survey_target_clean != "all":
+        if survey_target_clean == user_field_clean:
+            return 1.0
+        aliases = FIELD_RELEVANCE_ALIASES.get(user_field_clean, [])
+        if survey_target_clean in aliases or any(term in survey_target_clean for term in aliases):
+            return 0.85
+        return 0.0
+
+    aliases = FIELD_RELEVANCE_ALIASES.get(user_field_clean, [])
+    user_terms = [user_field_clean] + aliases
+    survey_text = " ".join([
+        getattr(survey, "title", None) or "",
+        getattr(survey, "description", None) or "",
+        getattr(survey, "category", None) or "",
+        getattr(survey, "target_niche_requirements", None) or "",
+        getattr(survey, "participant_benefits", None) or "",
+    ])
+    score = _text_relevance_score(user_terms, survey_text)
+
+    interest_text = (getattr(user, "profile_description", None) or "").strip()
+    if interest_text:
+        interest_terms = [
+            token for token in re.findall(r"[A-Za-z][A-Za-z+/#-]{3,}", interest_text.lower())
+            if token not in {"with", "that", "this", "from", "about", "study", "research", "interested"}
+        ][:12]
+        score = max(score, min(0.6, _text_relevance_score(interest_terms, survey_text)))
+    return round(score, 4)
+
+def _recommendation_sort_score(survey: Survey, user: User, recommendation: dict) -> float:
+    completion_probability = float((recommendation or {}).get("completion_probability") or 0.0)
+    field_fit = _field_relevance_score(survey, user)
+    return round((completion_probability * 0.75) + (field_fit * 0.25), 4)
+
 def _age_matches(target: Optional[str], user: User) -> bool:
     if _is_empty(target):
         return True
@@ -2535,12 +2600,11 @@ def dashboard(
 
     matched = [s for s in all_published if survey_matches(s)]
 
-    # LLM-only recommendation ranking: Claude provides completion_probability.
-    # Urgency/date are no longer used as the recommendation score.
+    # Blend Claude's completion estimate with field/major relevance from the participant profile.
     recommendation_map = recommend_surveys_for_user(db, matched, current_user, use_cache=True)
     matched.sort(
         key=lambda s: (
-            float(recommendation_map.get(s.id, {}).get("completion_probability") or 0.0),
+            _recommendation_sort_score(s, current_user, recommendation_map.get(s.id, {})),
             s.published_at.timestamp() if s.published_at else 0,
         ),
         reverse=True,
@@ -2555,6 +2619,8 @@ def dashboard(
         payload = _participant_survey_payload(s, db, current_user, user_response)
         payload.update({
             "completion_probability": llm_rec.get("completion_probability"),
+            "field_fit_score": _field_relevance_score(s, current_user),
+            "recommendation_score": _recommendation_sort_score(s, current_user, llm_rec),
             "ai_confidence": llm_rec.get("confidence"),
             "why_recommended": (llm_rec.get("top_reasons") or [])[:3],
             "risk_reasons": (llm_rec.get("risk_reasons") or [])[:3],
@@ -2698,12 +2764,11 @@ def dashboard_mobile(
 
     matched = [s for s in all_published if survey_matches(s)]
 
-    # LLM-only recommendation ranking for mobile: Claude provides completion_probability.
-    # Urgency/date are no longer used as the recommendation score.
+    # Blend Claude's completion estimate with field/major relevance from the participant profile.
     recommendation_map = recommend_surveys_for_user(db, matched, current_user, use_cache=True)
     matched.sort(
         key=lambda s: (
-            float(recommendation_map.get(s.id, {}).get("completion_probability") or 0.0),
+            _recommendation_sort_score(s, current_user, recommendation_map.get(s.id, {})),
             s.published_at.timestamp() if s.published_at else 0,
         ),
         reverse=True,
@@ -2760,6 +2825,8 @@ def dashboard_mobile(
             "urgency": getattr(s, 'urgency_level', None) or 'flexible',
             "incentive_type": getattr(s, 'incentive_type', None),
             "completion_probability": llm_rec.get("completion_probability"),
+            "field_fit_score": _field_relevance_score(s, current_user),
+            "recommendation_score": _recommendation_sort_score(s, current_user, llm_rec),
             "ai_confidence": llm_rec.get("confidence"),
             "why_recommended": (llm_rec.get("top_reasons") or [])[:3],
             "risk_reasons": (llm_rec.get("risk_reasons") or [])[:3],
