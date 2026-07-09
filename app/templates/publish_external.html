@@ -923,6 +923,20 @@
         <label>Niche criteria <span style="font-weight:400;color:var(--ink3);">(optional)</span></label>
         <textarea name="target_niche_requirements" placeholder="e.g. First-generation college students in California who have used a budgeting app in the past 6 months."></textarea>
       </div>
+      <div class="sub-label">Additional participant benefits <span style="font-weight:400;text-transform:none;letter-spacing:0;">(besides payment)</span></div>
+      <div class="section-sub" style="margin-bottom:10px;">Highlight non-monetary reasons someone may want to join. These will appear on the participant-facing study card.</div>
+      <div class="check-grid" style="margin-bottom:14px;">
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Free trial / product access" onchange="syncCheck(this)"> Free trial / product access</label>
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Social impact" onchange="syncCheck(this)"> Social impact</label>
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Networking" onchange="syncCheck(this)"> Networking</label>
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Learn about yourself" onchange="syncCheck(this)"> Learn about yourself</label>
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Early access to a new tool" onchange="syncCheck(this)"> Early access to a new tool</label>
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Contribute to science" onchange="syncCheck(this)"> Contribute to science</label>
+      </div>
+      <div class="field">
+        <label>Other benefit <span style="font-weight:400;color:var(--ink3);">(optional)</span></label>
+        <input type="text" name="participant_benefits_other" placeholder="e.g. Free coaching session, certificate, community invite">
+      </div>
     </div>
 
     {% if is_admin_publish %}

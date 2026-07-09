@@ -114,6 +114,7 @@ def ensure_survey_listing_columns():
         "target_income_level": "VARCHAR",
         "target_lifestyle_tags": "VARCHAR",
         "target_niche_requirements": "VARCHAR",
+        "participant_benefits": "VARCHAR",
         "raffle_prize_type": "VARCHAR",
         "availability_slots": "TEXT",
         "interview_location": "VARCHAR",
@@ -978,6 +979,19 @@ def _participant_study_action_label(survey: Survey) -> str:
 
 def _clean_target(val: Optional[str]) -> str:
     return '' if not val or val.strip().lower() == 'all' else val
+
+def _join_form_list_with_other(values: list[str], other_value: Optional[str]) -> Optional[str]:
+    cleaned = []
+    seen = set()
+    for value in values:
+        item = str(value or "").strip()
+        if item and item.lower() != "all" and item not in seen:
+            cleaned.append(item)
+            seen.add(item)
+    other = (other_value or "").strip()
+    if other and other not in seen:
+        cleaned.append(other)
+    return "; ".join(cleaned) if cleaned else None
 
 
 def _normalize_excel_header(value: Optional[str]) -> str:
@@ -2449,6 +2463,7 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "title": s.title,
         "desc": s.description,
         "niche": getattr(s, "target_niche_requirements", None),
+        "benefits": getattr(s, "participant_benefits", None),
         "link": form_link,
         "share_path": _survey_share_path(db, s, commit=True),
         "type": _normalize_task_type(getattr(s, "task_type", None)),
@@ -2725,6 +2740,7 @@ def dashboard_mobile(
         surveys_data.append({
             "id": s.id, "title": s.title, "desc": s.description,
             "niche": getattr(s, "target_niche_requirements", None),
+            "benefits": getattr(s, "participant_benefits", None),
             "link": form_link,
             "share_path": _survey_share_path(db, s, commit=True),
             "type": _normalize_task_type(getattr(s, "task_type", None)),
@@ -5040,6 +5056,10 @@ async def publish_survey(
     lifestyle_list = form.getlist("target_lifestyle_tags")
     target_lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
     target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
+    participant_benefits = _join_form_list_with_other(
+        form.getlist("participant_benefits"),
+        form.get("participant_benefits_other")
+    )
     existing_survey_id = int(form.get("existing_survey_id") or 0)
     raw_task_type = (task_type or form.get("task_type") or "survey").strip()
     is_online_interview = raw_task_type in {"online_interview", "remote_interview"}
@@ -5147,6 +5167,7 @@ async def publish_survey(
         survey.target_income_level = _clean_target(target_income_level)
         survey.target_lifestyle_tags = target_lifestyle_tags
         survey.target_niche_requirements = target_niche_requirements
+        survey.participant_benefits = participant_benefits
         survey.availability_slots = availability_slots if is_interview_listing else None
         survey.interview_location = interview_location if is_interview_listing else None
         survey.session_count = session_count if is_interview_listing else None
@@ -5184,6 +5205,7 @@ async def publish_survey(
             target_income_level=_clean_target(target_income_level),
             target_lifestyle_tags=target_lifestyle_tags,
             target_niche_requirements=target_niche_requirements,
+            participant_benefits=participant_benefits,
             availability_slots=availability_slots if is_interview_listing else None,
             interview_location=interview_location if is_interview_listing else None,
             session_count=session_count if is_interview_listing else None,

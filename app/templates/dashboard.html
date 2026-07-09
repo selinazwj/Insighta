@@ -162,6 +162,8 @@
     .card-desc { font-size:13px; color:var(--ink3); line-height:1.5; font-weight:500; }
     .niche-callout { margin-top:9px; padding:8px 10px; border-radius:8px; border:1.5px solid #f3a6a6; background:#fff1f1; color:#8f3030; font-size:12px; font-weight:700; line-height:1.45; }
     .niche-callout strong { font-weight:900; margin-right:4px; }
+    .benefit-callout { margin-top:8px; padding:8px 10px; border-radius:8px; border:1.5px solid #99d98c; background:#f2fbec; color:#245f46; font-size:12px; font-weight:700; line-height:1.45; }
+    .benefit-callout strong { font-weight:900; margin-right:4px; }
     .card-reward {
       text-align:right; flex-shrink:0;
     }
@@ -432,6 +434,7 @@
             <div class="card-title">${s.title}</div>
             <div class="card-desc">${s.desc}</div>
             ${s.niche ? `<div class="niche-callout"><strong>Niche:</strong>${escapeHtml(s.niche)}</div>` : ''}
+            ${s.benefits ? `<div class="benefit-callout"><strong>Extra benefits:</strong>${escapeHtml(s.benefits)}</div>` : ''}
           </div>
           <div class="card-reward">
             <div class="reward-amt">${s.reward}</div>

@@ -109,6 +109,7 @@ class Survey(Base):
     target_income_level = Column(String, nullable=True)
     target_lifestyle_tags = Column(String, nullable=True)
     target_niche_requirements = Column(String, nullable=True)
+    participant_benefits = Column(String, nullable=True)
     availability_slots = Column(String, nullable=True)
     interview_location = Column(String, nullable=True)
     session_count = Column(Integer, nullable=True)

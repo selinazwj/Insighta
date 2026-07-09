@@ -518,6 +518,22 @@
         <div class="label-desc">Add any very specific criteria we should consider during review or manual matching.</div>
         <textarea name="target_niche_requirements" placeholder="e.g. First-generation college students in California who have used budgeting apps in the past 6 months."></textarea>
       </div>
+      <div class="form-group" style="margin-top: 18px;">
+        <label>Additional participant benefits</label>
+        <div class="label-desc">Besides payment, what might participants value? These will appear on the participant-facing study card.</div>
+        <div class="checkbox-group">
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Free trial / product access" onchange="updateCheckbox(this)"> Free trial / product access</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Social impact" onchange="updateCheckbox(this)"> Social impact</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Networking" onchange="updateCheckbox(this)"> Networking</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Learn about yourself" onchange="updateCheckbox(this)"> Learn about yourself</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Early access to a new tool" onchange="updateCheckbox(this)"> Early access to a new tool</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Contribute to science" onchange="updateCheckbox(this)"> Contribute to science</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Other benefit <span style="font-weight:400;color:var(--ink-muted);">(optional)</span></label>
+        <input type="text" name="participant_benefits_other" placeholder="e.g. Free coaching session, certificate, community invite">
+      </div>
     </div>
 
     <div class="wizard-nav">
