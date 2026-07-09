@@ -453,7 +453,7 @@
           <label>In-person location</label>
           <input type="text" name="interview_location" placeholder="e.g. Boston University, Questrom Room 315">
         </div>
-        <div class="field">
+        <div class="field" id="adminBookableTimesField">
           <label>Bookable times</label>
           <div class="field-hint">Add every slot participants can choose. Leave empty if you want them to use the link above.</div>
           <div class="slot-editor">
@@ -986,17 +986,30 @@
     const interviewBox = document.getElementById('adminInterviewFields');
     const meetingField = document.getElementById('adminMeetingLinkField');
     const locationField = document.getElementById('adminLocationField');
+    const bookableTimesField = document.getElementById('adminBookableTimesField');
     const linkField = document.getElementById('surveyLinkField');
     const formUrl = document.getElementById('formUrlInput');
+    const formUrlLabel = document.getElementById('formUrlLabel');
     const formatSelect = document.getElementById('participationFormatSelect');
 
     if (interviewBox) interviewBox.style.display = interview ? 'block' : 'none';
-    if (meetingField) meetingField.style.display = online ? 'block' : 'none';
+    if (meetingField) meetingField.style.display = 'none';
     if (locationField) locationField.style.display = inPerson ? 'block' : 'none';
-    if (linkField) linkField.style.display = interview ? 'none' : 'block';
+    if (bookableTimesField) bookableTimesField.style.display = inPerson ? 'block' : 'none';
+    if (linkField) linkField.style.display = inPerson ? 'none' : 'block';
     if (formUrl) {
-      formUrl.required = !interview;
-      if (interview) formUrl.closest('.field')?.classList.remove('error');
+      formUrl.required = !inPerson;
+      if (online) {
+        formUrl.placeholder = 'https://calendly.com/... or https://zoom.us/j/...';
+      } else {
+        formUrl.placeholder = 'https://your-survey-link.com/...';
+      }
+      if (inPerson) formUrl.closest('.field')?.classList.remove('error');
+    }
+    if (formUrlLabel) {
+      formUrlLabel.innerHTML = online
+        ? 'Survey / Calendly / meeting link <span style="color:var(--red)">*</span>'
+        : 'Survey link <span style="color:var(--red)">*</span>';
     }
     if (formatSelect) {
       if (online) formatSelect.value = 'Video interview';
