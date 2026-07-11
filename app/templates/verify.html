@@ -195,6 +195,19 @@
     .code-hint.success { color: var(--accent); }
     .code-hint.error { color: #c53030; }
 
+    /* ive added these for verification — LinkedIn option (phase 2b) */
+    .or-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--ink-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+    .or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+    .btn-linkedin {
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 13px 28px; margin-bottom: 12px;
+      background: #0a66c2; color: white; border: none; border-radius: 10px;
+      font-family: var(--sans); font-size: 15px; font-weight: 600;
+      text-decoration: none; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-linkedin:hover { background: #084d94; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(10,102,194,0.25); }
+    .btn-linkedin svg { width: 18px; height: 18px; fill: currentColor; }
+
     @media (max-width: 480px) {
       .card { padding: 40px 24px; }
     }
@@ -220,8 +233,8 @@
   {% else %}
   <h1>Verify yourself</h1>
   <p class="subtitle">
-    To claim your payout, verify your identity with a one-time<br>
-    code we'll send to your email. This takes just a moment.
+    To claim your payout, verify your identity below.<br>
+    This takes just a moment.
   </p>
 
   {% if error %}
@@ -242,6 +255,14 @@
 
     <button type="submit" class="btn-primary">Verify & Claim Payout →</button>
   </form>
+
+  <div class="or-divider">or</div>
+
+  <!-- ive added this for verification — LinkedIn OAuth (phase 2b) -->
+  <a href="/verify/linkedin" class="btn-linkedin">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14zm1.78 13.02H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg>
+    Verify with LinkedIn
+  </a>
 
   <a href="/participant" class="btn-secondary">Back to Dashboard</a>
   {% endif %}

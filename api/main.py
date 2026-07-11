@@ -2192,10 +2192,15 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
 # ---------------------------
 
 @app.get("/verify", response_class=HTMLResponse)
-def verify_page(request: Request, current_user: User = Depends(get_current_user)):
-    # ive added this for verification — shows the OTP verification page
+def verify_page(
+    request: Request,
+    verify_error: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+):
+    # ive added this for verification — shows the OTP + LinkedIn verification page
     return no_store_response(templates.TemplateResponse("verify.html", {
-        "request": request, "current_user": current_user, "error": None,
+        "request": request, "current_user": current_user, "error": verify_error,
+        "linkedin_enabled": bool(LINKEDIN_CLIENT_ID),
     }))
 
 
@@ -2231,6 +2236,91 @@ def verify_user(
         current_user.verified_at = datetime.utcnow()
         db.commit()
     return RedirectResponse("/participant", status_code=303)
+
+
+# ---------------------------
+# LinkedIn identity verification (phase 2b)
+# ---------------------------
+
+@app.get("/verify/linkedin")
+def verify_linkedin_start(request: Request, current_user: User = Depends(get_current_user)):
+    # ive added this for verification — start LinkedIn OAuth in verify mode for the logged in user
+    if not LINKEDIN_CLIENT_ID:
+        return RedirectResponse("/verify?verify_error=LinkedIn+verification+is+not+configured+yet.", status_code=302)
+    if getattr(current_user, "verification_status", "unverified") == "verified":
+        return RedirectResponse("/verify", status_code=302)
+    state = secrets.token_urlsafe(16)
+    params = urlencode({
+        "response_type": "code",
+        "client_id": LINKEDIN_CLIENT_ID,
+        "redirect_uri": f"{BASE_URL}/verify/linkedin/callback",
+        "state": state,
+        "scope": "openid profile email",
+    })
+    response = RedirectResponse(f"{LINKEDIN_AUTH_URL}?{params}", status_code=302)
+    # separate cookie from the login flow so the two dont clash
+    response.set_cookie("verify_oauth_state", state, max_age=300, **_cookie_policy(request))
+    return response
+
+
+@app.get("/verify/linkedin/callback")
+async def verify_linkedin_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # ive added this for verification — LinkedIn came back, mark the logged in user verified tier_2
+    if error:
+        return RedirectResponse("/verify?verify_error=LinkedIn+verification+was+cancelled.", status_code=302)
+
+    stored_state = request.cookies.get("verify_oauth_state")
+    if not state or state != stored_state:
+        return RedirectResponse("/verify?verify_error=Invalid+state.+Please+try+again.", status_code=302)
+
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(
+            LINKEDIN_TOKEN_URL,
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": f"{BASE_URL}/verify/linkedin/callback",
+                "client_id": LINKEDIN_CLIENT_ID,
+                "client_secret": LINKEDIN_CLIENT_SECRET,
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return RedirectResponse("/verify?verify_error=LinkedIn+token+exchange+failed.", status_code=302)
+
+        userinfo_resp = await client.get(
+            LINKEDIN_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        userinfo = userinfo_resp.json()
+
+    linkedin_id = str(userinfo.get("sub", ""))
+    if not linkedin_id:
+        return RedirectResponse("/verify?verify_error=Could+not+read+your+LinkedIn+profile.", status_code=302)
+
+    # link the linkedin id if the account doesnt have an oauth provider yet
+    if not current_user.oauth_provider:
+        current_user.oauth_provider = "linkedin"
+        current_user.oauth_id = linkedin_id
+    # LinkedIn confirms a professional identity so we mark tier_2 (OTP stays tier_3)
+    current_user.verification_status = "verified"
+    current_user.verified_tier = "tier_2"
+    current_user.verified_at = datetime.utcnow()
+    db.commit()
+
+    policy = _cookie_policy(request)
+    resp = RedirectResponse("/verify", status_code=303)
+    resp.delete_cookie("verify_oauth_state", samesite=policy["samesite"], secure=policy["secure"])
+    return resp
 
 
 # ---------------------------
