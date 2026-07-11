@@ -50,6 +50,14 @@ from app.payouts import (
     release_response_payout,
     return_response_to_review,
 )
+# ive added this for phase 4 — bot defense (rate limits, captcha, honeypot)
+from app.bot_defense import (
+    check_rate_limit,
+    client_ip,
+    make_captcha,
+    verify_captcha,
+    honeypot_triggered,
+)
 from app.verification.routes import router as verification_router
 from app.ai_growth.routes import router as ai_growth_router
 from app.ai_growth.security import is_safe_internal_next
@@ -653,12 +661,20 @@ async def check_email_exists(email: str, db: Session = Depends(get_db)):
 
 @app.post("/auth/send-code")
 async def send_auth_code(
+    request: Request,
     email: str = Form(...),
     purpose: str = Form(...),
     db: Session = Depends(get_db)
 ):
     normalized_email = _normalize_email(email)
     normalized_purpose = (purpose or "").strip().lower()
+
+    # ive added this for phase 4 — stop bots hammering the email sender
+    ip = client_ip(request)
+    if not check_rate_limit(f"send-code:ip:{ip}", max_hits=8, window_seconds=600):
+        return JSONResponse({"ok": False, "message": "Too many requests. Please wait a few minutes and try again."}, status_code=429)
+    if normalized_email and not check_rate_limit(f"send-code:email:{normalized_email}", max_hits=5, window_seconds=600):
+        return JSONResponse({"ok": False, "message": "Too many codes requested for this email. Please wait a few minutes."}, status_code=429)
 
     if not normalized_email:
         return JSONResponse({"ok": False, "message": "Please enter your email address first."}, status_code=400)
@@ -944,6 +960,20 @@ def login(
     db: Session = Depends(get_db)
 ):
     normalized_email = _normalize_email(email or "")
+
+    # ive added this for phase 4 — slow down password guessing per ip
+    if not check_rate_limit(f"login:ip:{client_ip(request)}", max_hits=10, window_seconds=300):
+        normalized_role = role if role in {"participant", "researcher"} else ""
+        return no_store_response(templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Too many login attempts. Please wait a few minutes and try again.",
+            "success": None, "reset_error": None, "reset_success": None,
+            "reset_open": False, "login_email": normalized_email, "reset_email": "",
+            "login_next": next if is_safe_internal_next(next) else "",
+            "login_role": normalized_role,
+            "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
+        }))
+
     try:
         user = db.query(User).filter(User.email == normalized_email).first()
     except Exception as e:
@@ -1039,6 +1069,8 @@ def show_register(
     participant_app: Optional[str] = Cookie(None)
 ):
     normalized_role = role if role in {"participant", "researcher"} else ""
+    # ive added this for phase 4 — every register page load gets a fresh captcha
+    captcha_question, captcha_token = make_captcha()
     response = no_store_response(templates.TemplateResponse(
         "register.html",
         {
@@ -1046,6 +1078,7 @@ def show_register(
             "register_step": 1,
             "register_role": normalized_role,
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
+            "captcha_question": captcha_question, "captcha_token": captcha_token,
         }
     ))
     if normalized_role == "participant":
@@ -1071,6 +1104,8 @@ async def do_register(
     role = role if role in {"participant", "researcher"} else None
 
     def reg_error(msg, step: int = 1):
+        # phase 4 — reissue a fresh captcha with every error page
+        new_question, new_token = make_captcha()
         response = no_store_response(templates.TemplateResponse("register.html", {
             "request": request, "error": msg, "register_email": email,
             "register_phone": phone_number,
@@ -1078,10 +1113,20 @@ async def do_register(
             "register_step": step,
             "register_role": role or "",
             "participant_app": _auth_uses_participant_app(request, role, participant_app),
+            "captcha_question": new_question, "captcha_token": new_token,
         }))
         if role == "researcher":
             _clear_participant_app(response, request)
         return response
+
+    # ive added these for phase 4 — bot checks before we even validate the form
+    if honeypot_triggered(form):
+        # dont tell the bot what went wrong
+        return reg_error("Something went wrong. Please try again.")
+    if not check_rate_limit(f"register:ip:{client_ip(request)}", max_hits=5, window_seconds=600):
+        return reg_error("Too many attempts. Please wait a few minutes and try again.")
+    if not verify_captcha(form.get("captcha_token"), form.get("captcha_answer")):
+        return reg_error("Wrong answer to the anti-bot check. Please try again.", step=3)
 
     if not email: return reg_error("Email is required.")
     if password != confirm: return reg_error("Passwords do not match.", step=2)
@@ -2234,6 +2279,9 @@ def verify_send_code(current_user: User = Depends(get_current_user), db: Session
     # ive added this for verification — sends an OTP to the logged in users own email
     if getattr(current_user, "verification_status", "unverified") == "verified":
         return JSONResponse({"ok": False, "message": "You are already verified."}, status_code=400)
+    # phase 4 — dont let one user spam the mailer
+    if not check_rate_limit(f"verify-send:user:{current_user.id}", max_hits=5, window_seconds=600):
+        return JSONResponse({"ok": False, "message": "Too many codes requested. Please wait a few minutes."}, status_code=429)
     code = _issue_verification_code(db, current_user.email, "verify_identity")
     _send_verification_email(current_user.email, "verify_identity", code)
     return JSONResponse({
@@ -2251,6 +2299,12 @@ def verify_user(
 ):
     # ive added this for verification — checks the OTP then marks user verified tier_3
     if getattr(current_user, "verification_status", "unverified") != "verified":
+        # phase 4 — a 6 digit code is brute-forceable, so cap the attempts hard
+        if not check_rate_limit(f"verify-otp:user:{current_user.id}", max_hits=5, window_seconds=600):
+            return no_store_response(templates.TemplateResponse("verify.html", {
+                "request": request, "current_user": current_user,
+                "error": "Too many attempts. Please wait a few minutes and request a new code.",
+            }))
         if not _consume_verification_code(db, current_user.email, "verify_identity", verification_code):
             return no_store_response(templates.TemplateResponse("verify.html", {
                 "request": request, "current_user": current_user,
@@ -2286,6 +2340,10 @@ async def verify_id_upload(
     if _tier_rank(getattr(current_user, "verified_tier", None)) <= 1 and \
        getattr(current_user, "verification_status", "unverified") == "verified":
         return RedirectResponse("/verify", status_code=303)
+
+    # phase 4 — uploads are heavy, keep them rare per user
+    if not check_rate_limit(f"id-upload:user:{current_user.id}", max_hits=5, window_seconds=3600):
+        return RedirectResponse("/verify?verify_error=Too+many+upload+attempts.+Please+try+again+later.", status_code=303)
 
     suffix = Path(id_document.filename or "").suffix.lower()
     if suffix not in ID_DOC_ALLOWED_SUFFIXES:

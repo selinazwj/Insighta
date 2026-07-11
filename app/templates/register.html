@@ -332,6 +332,10 @@
 
     <form method="POST" action="/register" id="registerForm">
       <input type="hidden" name="role" value="{{ register_role or '' }}">
+      <!-- ive added this for phase 4 — honeypot: humans never see it, bots autofill it -->
+      <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
+        style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;" aria-hidden="true">
+      <input type="hidden" name="captcha_token" value="{{ captcha_token or '' }}">
 
       <!-- STEP 1: Email + Verification -->
       <div class="step {% if register_step|default(1) == 1 %}active{% endif %}" id="step1">
@@ -434,6 +438,14 @@
               <option value="other">Other</option>
             </optgroup>
           </select>
+        </div>
+
+        <!-- ive added this for phase 4 — quick math captcha so bots cant mass register -->
+        <div class="form-group">
+          <label>Quick check: what is {{ captcha_question }}? <span class="badge-required">Required</span></label>
+          <input type="text" name="captcha_answer" id="captchaAnswer" inputmode="numeric"
+            placeholder="Your answer" maxlength="3" required>
+          <div class="field-note">This helps us keep bots out.</div>
         </div>
 
         <button type="button" class="btn-next" onclick="requestConsent()">Create Account →</button>
@@ -620,13 +632,15 @@
     const confirm = document.getElementById('confirm').value;
     let hasError = false;
 
-    ['password', 'confirm'].forEach(id => {
+    // ive added occupation + captcha here for phase 4 — theyre on step 3 with this button
+    ['password', 'confirm', 'occupation', 'captchaAnswer'].forEach(id => {
       const el = document.getElementById(id);
       if (!el.value.trim()) {
         el.style.borderColor = '#ef4444';
         el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
         hasError = true;
         el.addEventListener('input', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
+        el.addEventListener('change', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
       } else {
         el.style.borderColor = '';
         el.style.boxShadow = '';
