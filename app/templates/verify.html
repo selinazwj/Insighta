@@ -208,6 +208,20 @@
     .btn-linkedin:hover { background: #084d94; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(10,102,194,0.25); }
     .btn-linkedin svg { width: 18px; height: 18px; fill: currentColor; }
 
+    /* ive added these for verification — ID upload (phase 2c) + tier tags (phase 3) */
+    .tier-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 8px; border-radius: 100px; background: var(--paper-warm); border: 1px solid var(--line); color: var(--ink-muted); vertical-align: middle; margin-left: 6px; }
+    .id-upload-row { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }
+    .id-upload-row input[type="file"] {
+      flex: 1; padding: 12px 14px; font-family: var(--sans); font-size: 13px; color: var(--ink-soft);
+      border: 1px dashed var(--line); border-radius: 10px; background: var(--paper-warm); cursor: pointer;
+    }
+    .id-upload-row input[type="file"]::file-selector-button {
+      font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--accent);
+      background: white; border: 1px solid var(--line); border-radius: 8px;
+      padding: 6px 12px; margin-right: 10px; cursor: pointer;
+    }
+    .upgrade-title { font-size: 13px; font-weight: 700; color: var(--ink-soft); text-align: left; margin-bottom: 10px; }
+
     @media (max-width: 480px) {
       .card { padding: 40px 24px; }
     }
@@ -224,10 +238,37 @@
     Your identity has been verified.<br>
     You can now withdraw your earnings.
   </p>
+
+  {% if error %}
+  <div class="error-box">{{ error }}</div>
+  {% endif %}
+
   <div class="info-box">
     <div class="label">Verification status</div>
     <div class="message">✓ Verified ({{ current_user.verified_tier or 'tier_3' }})</div>
   </div>
+
+  <!-- ive added this for phase 3 — verified users can upgrade to a stronger tier -->
+  {% if can_upgrade_linkedin or can_upgrade_id %}
+  <div class="upgrade-title">Upgrade your verification to unlock stricter studies:</div>
+
+  {% if can_upgrade_linkedin %}
+  <a href="/verify/linkedin" class="btn-linkedin">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14zm1.78 13.02H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg>
+    Verify with LinkedIn <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 2</span>
+  </a>
+  {% endif %}
+
+  {% if can_upgrade_id %}
+  <form method="POST" action="/verify/id-upload" enctype="multipart/form-data">
+    <div class="id-upload-row">
+      <input type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" required>
+    </div>
+    <button type="submit" class="btn-primary">Upload ID Document <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 1</span></button>
+  </form>
+  {% endif %}
+  {% endif %}
+
   <a href="/participant" class="btn-secondary">Back to Dashboard</a>
 
   {% else %}
@@ -253,7 +294,7 @@
     </div>
     <div class="code-hint" id="codeHint">Click "Send Code" to get a code at your email.</div>
 
-    <button type="submit" class="btn-primary">Verify & Claim Payout →</button>
+    <button type="submit" class="btn-primary">Verify & Claim Payout → <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 3</span></button>
   </form>
 
   <div class="or-divider">or</div>
@@ -261,8 +302,18 @@
   <!-- ive added this for verification — LinkedIn OAuth (phase 2b) -->
   <a href="/verify/linkedin" class="btn-linkedin">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14zm1.78 13.02H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg>
-    Verify with LinkedIn
+    Verify with LinkedIn <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 2</span>
   </a>
+
+  <div class="or-divider">or</div>
+
+  <!-- ive added this for phase 2c — upload an ID document for the strongest tier -->
+  <form method="POST" action="/verify/id-upload" enctype="multipart/form-data">
+    <div class="id-upload-row">
+      <input type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" required>
+    </div>
+    <button type="submit" class="btn-primary">Upload ID Document <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 1</span></button>
+  </form>
 
   <a href="/participant" class="btn-secondary">Back to Dashboard</a>
   {% endif %}

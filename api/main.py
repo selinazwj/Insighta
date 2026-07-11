@@ -1790,16 +1790,21 @@ def get_notifications(
 
     # ive added this for verification — tell the researcher if the participant is verified
     # so they can decide before approving payout (we warn but still allow)
+    # phase 3 — the warning is now tier aware: being verified isnt enough,
+    # the participants tier has to actually satisfy the surveys required tier
     def _verify_info(n):
         survey = db.query(Survey).filter(Survey.id == n.survey_id).first()
         participant = db.query(User).filter(User.id == n.participant_id).first()
-        requires = bool(survey and survey.required_verification_tier in ("tier_1", "tier_2"))
+        required_tier = survey.required_verification_tier if survey else None
+        requires = bool(required_tier in ("tier_1", "tier_2"))
         status = getattr(participant, "verification_status", "unverified") or "unverified"
-        return requires, status
+        participant_tier = getattr(participant, "verified_tier", None)
+        satisfied = status == "verified" and _tier_satisfies(participant_tier, required_tier)
+        return requires, status, participant_tier, required_tier, satisfied
 
     payload = []
     for n in notifs:
-        requires_verification, participant_verification_status = _verify_info(n)
+        requires_verification, verification_status, participant_tier, required_tier, satisfied = _verify_info(n)
         payload.append({
             "id": n.id,
             "participant_email": n.participant_email,
@@ -1808,8 +1813,10 @@ def get_notifications(
             "status": n.status,
             "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else "",
             "requires_verification": requires_verification,
-            "participant_verification_status": participant_verification_status,
-            "verification_warning": requires_verification and participant_verification_status != "verified",
+            "participant_verification_status": verification_status,
+            "participant_verified_tier": participant_tier,
+            "required_verification_tier": required_tier,
+            "verification_warning": requires_verification and not satisfied,
         })
     return JSONResponse(payload)
 
@@ -2191,16 +2198,34 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
 # Identity verification
 # ---------------------------
 
+# ive added this for phase 3 — tier ranking, tier_1 is the strongest
+# a users tier satisfies a survey requirement when its rank is <= the required rank
+TIER_RANK = {"tier_1": 1, "tier_2": 2, "tier_3": 3}
+
+
+def _tier_rank(tier: Optional[str]) -> int:
+    return TIER_RANK.get(tier or "", 99)
+
+
+def _tier_satisfies(user_tier: Optional[str], required_tier: Optional[str]) -> bool:
+    return _tier_rank(user_tier) <= TIER_RANK.get(required_tier or "tier_3", 3)
+
+
 @app.get("/verify", response_class=HTMLResponse)
 def verify_page(
     request: Request,
     verify_error: Optional[str] = None,
     current_user: User = Depends(get_current_user),
 ):
-    # ive added this for verification — shows the OTP + LinkedIn verification page
+    # ive added this for verification — shows the OTP + LinkedIn + ID upload page
+    is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
+    user_rank = _tier_rank(getattr(current_user, "verified_tier", None)) if is_verified else 99
     return no_store_response(templates.TemplateResponse("verify.html", {
         "request": request, "current_user": current_user, "error": verify_error,
         "linkedin_enabled": bool(LINKEDIN_CLIENT_ID),
+        # phase 3 — verified users can still upgrade to a stronger tier
+        "can_upgrade_linkedin": user_rank > 2,
+        "can_upgrade_id": user_rank > 1,
     }))
 
 
@@ -2239,6 +2264,52 @@ def verify_user(
 
 
 # ---------------------------
+# ID document verification (phase 2c)
+# ---------------------------
+
+ID_DOC_ALLOWED_SUFFIXES = {".jpg", ".jpeg", ".png", ".pdf"}
+ID_DOC_MAX_BYTES = 10 * 1024 * 1024  # 10MB
+# ive put ID documents OUTSIDE app/static on purpose — static is publicly served
+# and identity documents must never be downloadable by URL
+ID_DOC_DIR = Path("uploads/id_documents")
+
+
+@app.post("/verify/id-upload")
+async def verify_id_upload(
+    request: Request,
+    id_document: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # ive added this for phase 2c — participant uploads an ID document for tier_1
+    # placeholder: we store the file and auto-approve; real review/OCR comes later
+    if _tier_rank(getattr(current_user, "verified_tier", None)) <= 1 and \
+       getattr(current_user, "verification_status", "unverified") == "verified":
+        return RedirectResponse("/verify", status_code=303)
+
+    suffix = Path(id_document.filename or "").suffix.lower()
+    if suffix not in ID_DOC_ALLOWED_SUFFIXES:
+        return RedirectResponse("/verify?verify_error=Please+upload+a+JPG,+PNG+or+PDF+of+your+ID.", status_code=303)
+
+    contents = await id_document.read()
+    if len(contents) > ID_DOC_MAX_BYTES:
+        return RedirectResponse("/verify?verify_error=File+too+large.+Maximum+size+is+10MB.", status_code=303)
+    if not contents:
+        return RedirectResponse("/verify?verify_error=The+uploaded+file+is+empty.", status_code=303)
+
+    ID_DOC_DIR.mkdir(parents=True, exist_ok=True)
+    unique_filename = f"user{current_user.id}_{uuid.uuid4().hex}{suffix}"
+    (ID_DOC_DIR / unique_filename).write_bytes(contents)
+
+    current_user.id_document_path = str(ID_DOC_DIR / unique_filename)
+    current_user.verification_status = "verified"
+    current_user.verified_tier = "tier_1"
+    current_user.verified_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse("/verify", status_code=303)
+
+
+# ---------------------------
 # LinkedIn identity verification (phase 2b)
 # ---------------------------
 
@@ -2247,7 +2318,9 @@ def verify_linkedin_start(request: Request, current_user: User = Depends(get_cur
     # ive added this for verification — start LinkedIn OAuth in verify mode for the logged in user
     if not LINKEDIN_CLIENT_ID:
         return RedirectResponse("/verify?verify_error=LinkedIn+verification+is+not+configured+yet.", status_code=302)
-    if getattr(current_user, "verification_status", "unverified") == "verified":
+    # phase 3 — allow upgrades: only skip if the user already holds tier_2 or better
+    if getattr(current_user, "verification_status", "unverified") == "verified" and \
+       _tier_rank(getattr(current_user, "verified_tier", None)) <= 2:
         return RedirectResponse("/verify", status_code=302)
     state = secrets.token_urlsafe(16)
     params = urlencode({
@@ -2312,8 +2385,10 @@ async def verify_linkedin_callback(
         current_user.oauth_provider = "linkedin"
         current_user.oauth_id = linkedin_id
     # LinkedIn confirms a professional identity so we mark tier_2 (OTP stays tier_3)
+    # phase 3 — never downgrade someone who already holds tier_1
+    if _tier_rank(getattr(current_user, "verified_tier", None)) > 2:
+        current_user.verified_tier = "tier_2"
     current_user.verification_status = "verified"
-    current_user.verified_tier = "tier_2"
     current_user.verified_at = datetime.utcnow()
     db.commit()
 

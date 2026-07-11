@@ -48,6 +48,8 @@ class User(Base):
     verification_status = Column(String, default="unverified")
     verified_at = Column(DateTime, nullable=True)
     verified_tier = Column(String, nullable=True)
+    # ive added this for phase 2c — where the uploaded ID document lives (private dir, not static)
+    id_document_path = Column(String, nullable=True)
 
     # Student segmentation
     student_status = Column(String, nullable=True)

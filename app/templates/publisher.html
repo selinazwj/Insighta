@@ -495,11 +495,17 @@
       const rejectActive = n.status === 'rejected';
       const decided = acceptActive || rejectActive;
       // ive added this for verification — warn the researcher if this survey needs verification
+      // phase 3 — tier aware: distinguish "not verified" from "verified but tier too low"
+      const tierLabel = t => t ? ('Tier ' + String(t).replace('tier_', '')) : '';
       let verifyHtml = '';
       if (n.requires_verification) {
-        verifyHtml = n.verification_warning
-          ? `<div class="notif-verify warn">⚠ Participant not verified</div>`
-          : `<div class="notif-verify ok">✓ Participant verified</div>`;
+        if (!n.verification_warning) {
+          verifyHtml = `<div class="notif-verify ok">✓ Participant verified (${tierLabel(n.participant_verified_tier)})</div>`;
+        } else if (n.participant_verification_status === 'verified') {
+          verifyHtml = `<div class="notif-verify warn">⚠ Verified ${tierLabel(n.participant_verified_tier)} — survey needs ${tierLabel(n.required_verification_tier)}</div>`;
+        } else {
+          verifyHtml = `<div class="notif-verify warn">⚠ Participant not verified</div>`;
+        }
       }
       const actionHtml = `<div class="notif-actions">
         <button class="notif-accept ${acceptActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'accept')">
