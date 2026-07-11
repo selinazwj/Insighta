@@ -1368,6 +1368,13 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         except Exception:
             availability_slots = []
 
+    # ive added this for verification — tell the participant up front if this
+    # study needs a stronger verification tier than they currently hold
+    required_tier = getattr(s, "required_verification_tier", None) or "tier_3"
+    is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
+    user_tier = getattr(current_user, "verified_tier", None) if is_verified else None
+    verification_satisfied = _tier_satisfies(user_tier, required_tier)
+
     return {
         "id": s.id,
         "title": s.title,
@@ -1387,6 +1394,8 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "availability_slots": availability_slots,
         "urgency": getattr(s, 'urgency_level', None) or 'flexible',
         "incentive_type": getattr(s, 'incentive_type', None),
+        "required_verification_tier": required_tier,
+        "verification_satisfied": verification_satisfied,
     }
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -1797,7 +1806,19 @@ def complete_survey(
             )
 
     db.commit()
-    return RedirectResponse(url="/dashboard", status_code=302)
+
+    # ive added this for verification — tell the frontend to send the
+    # participant to /verify if this survey needs a tier they dont hold yet
+    required_tier = getattr(survey, "required_verification_tier", None) or "tier_3"
+    is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
+    user_tier = getattr(current_user, "verified_tier", None) if is_verified else None
+    needs_verification = not _tier_satisfies(user_tier, required_tier)
+
+    return JSONResponse({
+        "message": "completed",
+        "needs_verification": needs_verification,
+        "required_verification_tier": required_tier,
+    })
 
 
 @app.post("/surveys/{survey_id}/modify")
@@ -2260,13 +2281,20 @@ def _tier_satisfies(user_tier: Optional[str], required_tier: Optional[str]) -> b
 def verify_page(
     request: Request,
     verify_error: Optional[str] = None,
+    needs_tier: Optional[str] = None,
     current_user: User = Depends(get_current_user),
 ):
     # ive added this for verification — shows the OTP + LinkedIn + ID upload page
     is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
     user_rank = _tier_rank(getattr(current_user, "verified_tier", None)) if is_verified else 99
+    # phase 4 (participant nudge) — needs_tier comes from the survey completion
+    # redirect, tells the participant WHY theyre being sent here
+    notice = None
+    if needs_tier in TIER_RANK:
+        notice = f"This study requires Tier {TIER_RANK[needs_tier]} verification to receive your payout. Verify below to continue."
     return no_store_response(templates.TemplateResponse("verify.html", {
         "request": request, "current_user": current_user, "error": verify_error,
+        "notice": notice,
         "linkedin_enabled": bool(LINKEDIN_CLIENT_ID),
         # phase 3 — verified users can still upgrade to a stronger tier
         "can_upgrade_linkedin": user_rank > 2,
@@ -4027,7 +4055,18 @@ async def submit_answers(
 
     db.commit()
     mark_latest_jump_completed_for_response(db, r)
-    body = {"message": "submitted successfully"}
+
+    # ive added this for verification — same check as /complete, for built-in surveys
+    required_tier = getattr(survey, "required_verification_tier", None) or "tier_3"
+    is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
+    user_tier = getattr(current_user, "verified_tier", None) if is_verified else None
+    needs_verification = not _tier_satisfies(user_tier, required_tier)
+
+    body = {
+        "message": "submitted successfully",
+        "needs_verification": needs_verification,
+        "required_verification_tier": required_tier,
+    }
     if quality_payload:
         body["quality"] = quality_payload
     return JSONResponse(body)

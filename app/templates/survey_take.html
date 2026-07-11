@@ -343,6 +343,13 @@
       });
 
       if (!res.ok) throw new Error('Submit failed');
+      // ive added this for phase 4 (participant nudge) — send them to /verify if this
+      // study needed a stronger tier than they currently hold
+      const data = await res.json().catch(() => ({}));
+      if (data.needs_verification) {
+        window.location.href = '/verify?needs_tier=' + encodeURIComponent(data.required_verification_tier || 'tier_3');
+        return;
+      }
       window.location.href = '/dashboard?submitted=1';
     } catch(e) {
       btn.disabled = false;

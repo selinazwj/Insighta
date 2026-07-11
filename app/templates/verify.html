@@ -172,6 +172,18 @@
       text-align: left;
     }
 
+    /* ive added this for phase 4 (participant nudge) — neutral notice, not an error */
+    .notice-box {
+      background: #fef9e7;
+      color: #92400e;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      border: 1px solid #f5d47a;
+      text-align: left;
+    }
+
     /* OTP flow */
     .code-row { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }
     .code-row input {
@@ -231,6 +243,11 @@
 
 <div class="card">
   <div class="shield-icon">🛡️</div>
+
+  <!-- ive added this for phase 4 (participant nudge) — shown in either branch below -->
+  {% if notice %}
+  <div class="notice-box">{{ notice }}</div>
+  {% endif %}
 
   {% if current_user.verification_status == 'verified' %}
   <h1>You're verified</h1>

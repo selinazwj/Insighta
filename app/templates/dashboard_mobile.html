@@ -551,6 +551,10 @@
     const urgentPill = s.urgency === 'within_1_week'
       ? `<div class="meta-pill" style="color:#c05621;background:rgba(192,86,33,.08);border-color:rgba(192,86,33,.2)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Urgent</div>`
       : '';
+    // ive added this for verification — nudge pill if this study needs a stronger tier
+    const verifyPill = s.verification_satisfied === false
+      ? `<div class="meta-pill" style="color:#92400e;background:#FEF3C7;border-color:#f5d47a"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Verify to get paid</div>`
+      : '';
 
     const backAction = cardHistory.length
       ? `<button class="btn-back-card" onclick="goBackCard()">Back</button>`
@@ -577,6 +581,7 @@
             <div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${s.time}</div>
             <div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ${s.responses}</div>
             ${urgentPill}
+            ${verifyPill}
           </div>
           <div class="card-footer-row">
             <div><div class="reward-big">${s.reward}</div><div class="reward-lbl">cash reward</div></div>
@@ -630,6 +635,7 @@
           </div>
           <div class="study-row-meta">
             <span>${cap(s.category)}</span><span>${s.time}</span><span>${s.responses}</span>${done}
+            ${s.verification_satisfied === false ? '<span>🔒 Verify to get paid</span>' : ''}
           </div>
           <div class="study-row-actions">
             <button class="list-secondary" onclick="doSkip()">Skip</button>
@@ -702,6 +708,13 @@
   async function doComplete(id) {
     const res = await fetch(`/surveys/${id}/complete`, { method: 'POST', credentials: 'same-origin' }).catch(()=>null);
     if (res && res.ok) {
+      // ive added this for phase 4 (participant nudge) — send them to /verify if this
+      // study needed a stronger tier than they currently hold
+      const data = await res.json().catch(() => null);
+      if (data && data.needs_verification) {
+        window.location.href = '/verify?needs_tier=' + encodeURIComponent(data.required_verification_tier || 'tier_3');
+        return;
+      }
       const s = activeSurveys.find(x => x.id === id);
       if (s) s.is_completed = true;
       advanceFromCurrent('right', updateStats);
