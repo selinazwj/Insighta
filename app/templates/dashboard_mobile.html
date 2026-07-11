@@ -608,7 +608,7 @@
       <div class="card-stack">
         ${s3 ? `<div class="survey-card card-back-2"></div>` : ''}
         ${s2 ? `<div class="survey-card card-back-1"></div>` : ''}
-        <div class="survey-card card-front" id="frontCard">
+        <div class="survey-card card-front" id="frontCard" data-study-id="${s.id}">
           <div class="card-cat">${s.type_label || cap(s.category)}</div>
           <div class="card-title">${s.title}</div>
           <div class="card-desc">${s.desc}</div>
@@ -629,6 +629,26 @@
       <div class="swipe-dots">${dots(remaining.length)}</div>
       <div class="card-actions">${backAction}${actions}</div>
     `;
+    if (window.insightaTrack && s) {
+      if (!window._mobileImpressed) window._mobileImpressed = new Set();
+      const key = 'mobile-' + s.id;
+      if (!window._mobileImpressed.has(key)) {
+        window._mobileImpressed.add(key);
+        const matchScore = s.match_pct ? (s.match_pct / 100).toFixed(2) : null;
+        window.insightaTrack('study_impression', {
+          target_type: 'survey',
+          target_id: s.id,
+          metadata: {
+            source: 'Recommendation',
+            surface: 'participant_dashboard_mobile',
+            study_title: s.title || '',
+            match_score: matchScore,
+            position: cardIdx + 1,
+            user_role: 'participant',
+          }
+        });
+      }
+    }
     initSwipe();
   }
 
@@ -697,6 +717,19 @@
   function doSkip() { advanceFromCurrent('left'); }
 
   function openRecruitmentPage(path) {
+    const s = activeSurveys[cardIdx];
+    if (window.insightaTrack && s) {
+      window.insightaTrack('study_click', {
+        target_type: 'survey',
+        target_id: s.id,
+        metadata: {
+          source: 'Dashboard',
+          surface: 'participant_dashboard_mobile',
+          study_title: s.title || '',
+          user_role: 'participant',
+        }
+      });
+    }
     if (!path) { window.location.href = '/dashboard/mobile'; return; }
     const url = new URL(path, window.location.origin);
     url.searchParams.set('from', 'participant');
@@ -879,7 +912,7 @@
   buildEarningsHistory();
 </script>
 <script>
-  window.INSIGHTA_TRACKING = { surface: 'participant_dashboard_mobile' };
+  window.INSIGHTA_TRACKING = { surface: 'participant_dashboard_mobile', source: 'Dashboard', userRole: 'participant' };
 </script>
 <script src="/static/insighta_events.js"></script>
 <script src="/static/support_chat.js"></script>

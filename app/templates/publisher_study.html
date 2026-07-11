@@ -393,6 +393,13 @@
   async function copyShareLink() {
     try {
       await navigator.clipboard.writeText(SHARE_URL);
+      if (window.insightaTrack) {
+        window.insightaTrack('study_shared', {
+          target_type: 'survey',
+          target_id: SURVEY_ID,
+          metadata: { source: 'Study details', surface: 'publisher_study', user_role: 'researcher' }
+        });
+      }
       alert('Share link copied.');
     } catch {
       prompt('Copy this link', SHARE_URL);
@@ -437,6 +444,10 @@
     } catch { alert('Unavailable.'); }
   }
 </script>
+<script>
+  window.INSIGHTA_TRACKING = { surface: 'publisher_study', source: 'Publisher', userRole: 'researcher' };
+</script>
+<script src="/static/insighta_events.js"></script>
 <script src="/static/support_chat.js"></script>
 </body>
 </html>

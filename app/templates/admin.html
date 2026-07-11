@@ -104,10 +104,34 @@
     .activity-controls select:focus,
     .activity-controls input:focus{outline:none;border-color:var(--green);}
     .activity-stack{display:flex;flex-direction:column;gap:16px;}
-    .event-pill{display:inline-flex;align-items:center;border:0.5px solid var(--line2);border-radius:999px;padding:2px 8px;background:var(--bg3);color:var(--ink2);font-size:11px;font-weight:700;white-space:nowrap;}
+    .activity-stack .analytics-box{overflow:visible;}
+    .activity-stack .table-wrap{overflow:visible;}
+    .event-pill{position:relative;display:inline-flex;align-items:center;border:0.5px solid var(--line2);border-radius:999px;padding:2px 8px;background:var(--bg3);color:var(--ink2);font-size:11px;font-weight:700;white-space:nowrap;}
     .event-pill.view{background:var(--green-l);border-color:var(--green-m);color:var(--green);}
     .event-pill.start{background:var(--amber-l);border-color:#fde68a;color:#92400e;}
     .event-pill.complete{background:#eefcf3;border-color:#bbf7d0;color:#15803d;}
+    .event-pill.click{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;}
+    .event-pill.review{background:#fdf4ff;border-color:#f5d0fe;color:#7e22ce;}
+    .event-pill.has-tip{cursor:help;}
+    .event-pill.has-tip::before{
+      content:'';position:absolute;left:50%;top:calc(100% + 2px);transform:translateX(-50%);
+      border:6px solid transparent;border-bottom-color:var(--bg);
+      opacity:0;pointer-events:none;transition:opacity .15s;z-index:31;
+      filter:drop-shadow(0 -1px 0 rgba(0,0,0,.04));
+    }
+    .event-pill.has-tip::after{
+      content:attr(data-tip);
+      position:absolute;left:50%;top:calc(100% + 13px);transform:translateX(-50%);
+      width:max-content;max-width:200px;padding:6px 8px;border-radius:8px;
+      background:var(--bg);color:var(--ink2);font-size:10px;font-weight:500;line-height:1.35;
+      white-space:normal;text-align:left;
+      box-shadow:0 6px 18px rgba(26,26,24,.08), 0 1px 4px rgba(26,26,24,.05);
+      opacity:0;pointer-events:none;transition:opacity .15s ease, transform .15s ease;
+      z-index:30;
+    }
+    .event-pill.has-tip:hover::before,
+    .event-pill.has-tip:hover::after{opacity:1;}
+    .event-pill.has-tip:hover::after{transform:translateX(-50%) translateY(2px);}
     .load-more-wrap{padding:14px 16px;border-top:0.5px solid var(--line);text-align:center;}
 
     /* ── FILTER TABS ── */
@@ -404,14 +428,21 @@
       </select>
       <select id="activityEvent" onchange="loadActivity(true)">
         <option value="">All events</option>
-        <option value="listing_viewed">Listing opened</option>
-        <option value="study_card_viewed">Study card viewed</option>
-        <option value="survey_started">Start clicked</option>
-        <option value="survey_completed">Survey completed</option>
-        <option value="page_viewed">Page opened</option>
-        <option value="page_hidden">Page left</option>
-        <option value="login_success">Login</option>
-        <option value="signup_completed">Signup</option>
+        <option value="page_view">Page View</option>
+        <option value="page_exit">Page Exit</option>
+        <option value="study_impression">Study Impression</option>
+        <option value="study_click">Study Clicked</option>
+        <option value="study_start">Start Clicked</option>
+        <option value="study_complete">Study Completed</option>
+        <option value="sign_up">Sign Up</option>
+        <option value="login">Login</option>
+        <option value="profile_update">Profile Update</option>
+        <option value="study_created">Study Created</option>
+        <option value="study_published">Study Published</option>
+        <option value="participant_approved">Participant Approved</option>
+        <option value="participant_rejected">Participant Rejected</option>
+        <option value="listing_view">Listing View</option>
+        <option value="study_shared">Study Shared</option>
       </select>
       <input id="activitySearch" placeholder="Search email, guest ID, or page..." onkeydown="if(event.key==='Enter') loadActivity(true)">
       <button class="btn-run" onclick="loadActivity(true)">Search</button>
@@ -795,15 +826,30 @@
       ? `<strong>${esc(item.user || 'Guest visitor')}</strong> <span style="color:var(--ink4);font-weight:600;">guest</span>`
       : `<strong>${esc(item.user || 'Logged-in user')}</strong>`;
     const names = {
+      listing_view: 'viewed a listing',
       listing_viewed: 'viewed a listing',
-      study_card_viewed: 'saw a study card',
+      study_impression: 'saw a study',
+      study_card_viewed: 'saw a study',
+      study_click: 'clicked Take study',
+      study_start: 'clicked Start',
       survey_started: 'clicked Start',
+      study_complete: 'completed a study',
       survey_completed: 'completed a study',
-      dashboard_opened: 'opened participant dashboard',
-      page_viewed: 'opened a page',
-      page_hidden: 'left a page',
-      login_success: 'signed in',
+      sign_up: 'signed up',
       signup_completed: 'signed up',
+      login: 'signed in',
+      login_success: 'signed in',
+      profile_update: 'updated profile',
+      study_created: 'created a study',
+      study_published: 'published a study',
+      participant_approved: 'approved a participant',
+      participant_rejected: 'rejected a participant',
+      study_shared: 'shared a study',
+      page_view: 'opened a page',
+      page_viewed: 'opened a page',
+      page_exit: 'left a page',
+      page_hidden: 'left a page',
+      dashboard_opened: 'opened participant dashboard',
     };
     return `${actor} ${names[item.event_name] || esc(item.event_name || 'did something')}`;
   }
@@ -882,7 +928,7 @@
       <td>${formatActivityTime(p.first_opened_at)}</td>
       <td>${formatActivityTime(p.first_started_at)}</td>
       <td>${formatActivityTime(p.completed_at)}</td>
-      <td>${formatActivityTime(p.last_event_at)}<br><span class="event-pill ${eventPillClass(p.last_event_name)}">${esc(eventNameLabel(p.last_event_name))}</span></td>
+        <td>${formatActivityTime(p.last_event_at)}<br>${eventPillHtml(p.last_event_name)}</td>
       <td>${fmtNum(p.event_count)}</td>
     </tr>`).join('');
     wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
@@ -898,21 +944,24 @@
       return;
     }
     const body = rows.map(item => {
-      const details = activityDetails(item);
+      const details = item.details || activityDetails(item);
+      const userLabel = item.username || item.user_email || (item.actor_type === 'guest' ? (item.anonymous_id || 'Guest') : item.user);
       return `<tr>
         <td>${formatActivityTime(item.created_at)}</td>
         <td>
           <div class="listing-title">${esc(item.user)}</div>
-          <div class="listing-desc">${esc(item.actor_type === 'guest' ? (item.anonymous_id || 'Guest') : (item.username || item.user_email || ''))}</div>
+          <div class="listing-desc">${esc(userLabel)}</div>
         </td>
-        <td><span class="event-pill ${eventPillClass(item.event_name)}">${esc(eventNameLabel(item.event_name))}</span></td>
+        <td>${esc(item.role || '—')}</td>
+        <td>${eventPillHtml(item.event_name)}</td>
         <td>${esc(item.target_label || (item.target_type === 'survey' ? `Survey #${item.target_id}` : ''))}</td>
         <td>${esc(item.page_path || '')}</td>
+        <td>${esc(item.source || '—')}</td>
         <td>${esc(details)}</td>
       </tr>`;
     }).join('');
     wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
-      <thead><tr><th>Time</th><th>User</th><th>Event</th><th>Study</th><th>Page</th><th>Details</th></tr></thead>
+      <thead><tr><th>Time</th><th>User</th><th>Role</th><th>Event</th><th>Study</th><th>Page</th><th>Source</th><th>Details</th></tr></thead>
       <tbody>${body}</tbody>
     </table></div>
     <div class="activity-meta" style="padding:10px 16px;border-top:0.5px solid var(--line);">Showing ${fmtNum(rows.length)} of ${fmtNum(total)} events.</div>`;
@@ -925,25 +974,83 @@
     loadActivity(true);
   }
 
+  function eventTooltip(name) {
+    const tips = {
+      page_view: 'User opens any page.',
+      page_exit: 'User leaves the current page.',
+      study_impression: 'Study is shown to the user.',
+      study_click: 'User clicks Take study on a study card.',
+      study_start: 'User clicks Start Study to begin questionnaire or interview.',
+      study_complete: 'User submits questionnaire or completes study task.',
+      sign_up: 'User creates an Insighta account.',
+      login: 'User signs in to the platform.',
+      profile_update: 'User updates profile information.',
+      study_created: 'Researcher creates a new study project.',
+      study_published: 'Researcher publishes a study so participants can see it.',
+      participant_approved: 'Researcher approves a participant submission.',
+      participant_rejected: 'Researcher rejects a participant submission.',
+      listing_view: 'User opens a public recruitment link.',
+      study_shared: 'Researcher copies or shares a recruitment link.',
+    };
+    const aliases = {
+      page_viewed: 'page_view',
+      page_hidden: 'page_exit',
+      study_card_viewed: 'study_impression',
+      survey_started: 'study_start',
+      survey_completed: 'study_complete',
+      signup_completed: 'sign_up',
+      login_success: 'login',
+      listing_viewed: 'listing_view',
+      dashboard_opened: 'page_view',
+    };
+    const key = aliases[name] || name;
+    return tips[key] || '';
+  }
+
+  function eventPillHtml(name) {
+    const label = eventNameLabel(name);
+    const tip = eventTooltip(name);
+    const cls = `event-pill ${eventPillClass(name)}${tip ? ' has-tip' : ''}`;
+    const tipAttr = tip ? ` data-tip="${escAttr(tip)}"` : '';
+    return `<span class="${cls}"${tipAttr}>${esc(label)}</span>`;
+  }
+
   function eventNameLabel(name) {
     const labels = {
-      listing_viewed: 'Listing opened',
-      study_card_viewed: 'Card viewed',
-      survey_started: 'Start clicked',
-      survey_completed: 'Completed',
-      dashboard_opened: 'Dashboard opened',
-      page_viewed: 'Page opened',
-      page_hidden: 'Page left',
+      page_view: 'Page View',
+      page_viewed: 'Page View',
+      page_exit: 'Page Exit',
+      page_hidden: 'Page Exit',
+      study_impression: 'Study Impression',
+      study_card_viewed: 'Study Impression',
+      study_click: 'Study Clicked',
+      study_start: 'Start Clicked',
+      survey_started: 'Start Clicked',
+      study_complete: 'Study Completed',
+      survey_completed: 'Study Completed',
+      sign_up: 'Sign Up',
+      signup_completed: 'Sign Up',
+      login: 'Login',
       login_success: 'Login',
-      signup_completed: 'Signup',
+      profile_update: 'Profile Update',
+      study_created: 'Study Created',
+      study_published: 'Study Published',
+      participant_approved: 'Participant Approved',
+      participant_rejected: 'Participant Rejected',
+      listing_view: 'Listing View',
+      listing_viewed: 'Listing View',
+      study_shared: 'Study Shared',
+      dashboard_opened: 'Page View',
     };
-    return labels[name] || name || 'Event';
+    return labels[name] || (name || 'Event').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
 
   function eventPillClass(name) {
-    if (['listing_viewed','study_card_viewed','page_viewed'].includes(name)) return 'view';
-    if (name === 'survey_started') return 'start';
-    if (name === 'survey_completed') return 'complete';
+    if (['listing_view','listing_viewed','study_impression','study_card_viewed','page_view','page_viewed','dashboard_opened'].includes(name)) return 'view';
+    if (['study_click'].includes(name)) return 'click';
+    if (['study_start','survey_started'].includes(name)) return 'start';
+    if (['study_complete','survey_completed'].includes(name)) return 'complete';
+    if (['participant_approved','participant_rejected'].includes(name)) return 'review';
     return '';
   }
 
@@ -955,11 +1062,19 @@
   function activityDetails(item) {
     const meta = item.metadata || {};
     const pieces = [];
-    if (meta.source) pieces.push(`source: ${meta.source}`);
-    if (meta.referrer) pieces.push(`referrer: ${meta.referrer}`);
-    if (meta.href) pieces.push(meta.href);
-    if (meta.title && meta.title !== item.target_label) pieces.push(meta.title);
-    return pieces.slice(0, 3).join(' · ');
+    if (meta.match_score !== undefined && meta.match_score !== null && meta.match_score !== '') {
+      pieces.push(`Match score: ${meta.match_score}`);
+    }
+    if (meta.position !== undefined && meta.position !== null && meta.position !== '') {
+      pieces.push(`Position: ${meta.position}`);
+    }
+    if (meta.reward_amount !== undefined && meta.reward_amount !== null && meta.reward_amount !== '') {
+      pieces.push(`Reward: $${meta.reward_amount}`);
+    }
+    if (meta.participant_email) pieces.push(meta.participant_email);
+    if (meta.button) pieces.push(`Button: ${meta.button}`);
+    if (!pieces.length && meta.referrer) pieces.push(`referrer: ${meta.referrer}`);
+    return pieces.slice(0, 4).join(', ') || '—';
   }
 
   // ── LISTINGS ──
@@ -1360,10 +1475,15 @@
   }
 
   // ── INIT ──
+  const urlAdminKey = new URLSearchParams(window.location.search).get('admin_key');
   const storedAdminKey = sessionStorage.getItem('insighta_admin_key');
-  if (storedAdminKey) {
-    document.getElementById('adminKeyInput').value = storedAdminKey;
-    login();
+  const initialAdminKey = (urlAdminKey || storedAdminKey || '').trim();
+  if (initialAdminKey) {
+    document.getElementById('adminKeyInput').value = initialAdminKey;
+    login().then(() => {
+      const hash = (window.location.hash || '').replace('#', '');
+      if (hash) switchPanel(hash);
+    });
   } else {
     document.getElementById('adminKeyInput').focus();
   }

@@ -7,6 +7,8 @@
     localStorage.setItem(storageKey, anonymousId);
   }
 
+  const impressed = new Set();
+
   function payload(eventName, extra) {
     const data = Object.assign({
       event_name: eventName,
@@ -16,6 +18,7 @@
         title: document.title || '',
         referrer: document.referrer || '',
         surface: config.surface || '',
+        user_role: config.userRole || config.role || '',
       }
     }, extra || {});
     data.metadata = Object.assign({}, data.metadata || {}, (extra && extra.metadata) || {});
@@ -39,28 +42,50 @@
 
   window.insightaTrack = send;
 
-  send('page_viewed', {
+  send('page_view', {
     target_type: config.targetType || null,
     target_id: config.targetId || null,
-    metadata: config.metadata || {}
+    metadata: Object.assign({ source: config.source || config.surface || '' }, config.metadata || {})
   });
 
   if (config.listingId) {
-    send('study_card_viewed', {
+    send('study_impression', {
       target_type: 'survey',
       target_id: config.listingId,
-      metadata: Object.assign({ study_title: config.studyTitle || '' }, config.metadata || {})
+      metadata: Object.assign({
+        study_title: config.studyTitle || '',
+        source: config.source || config.surface || 'Listing'
+      }, config.metadata || {})
     });
   }
+
+  window.insightaObserveStudyCards = function (selector, metaFn) {
+    if (!window.IntersectionObserver) return;
+    const nodes = document.querySelectorAll(selector);
+    if (!nodes.length) return;
+    const observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.5) return;
+        const el = entry.target;
+        const key = el.getAttribute('data-study-id') || el.id || '';
+        if (!key || impressed.has(key)) return;
+        impressed.add(key);
+        const extra = typeof metaFn === 'function' ? (metaFn(el) || {}) : {};
+        send('study_impression', extra);
+        observer.unobserve(el);
+      });
+    }, { threshold: [0.5] });
+    nodes.forEach(function (node) { observer.observe(node); });
+  };
 
   let hiddenSent = false;
   function markHidden() {
     if (hiddenSent) return;
     hiddenSent = true;
-    send('page_hidden', {
+    send('page_exit', {
       target_type: config.targetType || null,
       target_id: config.targetId || null,
-      metadata: config.metadata || {}
+      metadata: Object.assign({ source: config.source || config.surface || '' }, config.metadata || {})
     }, true);
   }
   window.addEventListener('pagehide', markHidden);
