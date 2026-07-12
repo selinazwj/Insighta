@@ -241,6 +241,29 @@
 </head>
 <body>
 
+{# ive made the ID upload a macro too — it now goes through an admin review queue #}
+{% macro id_upload_block() %}
+  {% if id_review_status == 'pending' %}
+  <div class="info-box">
+    <div class="label">ID document</div>
+    <div class="message">⏳ Your ID is under review. We'll grant Tier 1 once an admin approves it — usually within a day.</div>
+  </div>
+  {% else %}
+  {% if id_review_status == 'rejected' %}
+  <div class="info-box" style="border-color:#fed7d7;background:#fff5f5;">
+    <div class="label" style="color:#c53030;">ID document</div>
+    <div class="message" style="color:#c53030;">Your previous ID was rejected. Please upload a clearer photo of a valid ID.</div>
+  </div>
+  {% endif %}
+  <form method="POST" action="/verify/id-upload" enctype="multipart/form-data">
+    <div class="id-upload-row">
+      <input type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" required>
+    </div>
+    <button type="submit" class="btn-primary">Upload ID Document <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 1</span></button>
+  </form>
+  {% endif %}
+{% endmacro %}
+
 {# ive made the email-verify step a macro so both branches share one copy #}
 {% macro email_verify_form() %}
   <!-- ive added the email input for the email-domain feature — verify a specific address -->
@@ -310,12 +333,7 @@
   {% endif %}
 
   {% if can_upgrade_id %}
-  <form method="POST" action="/verify/id-upload" enctype="multipart/form-data">
-    <div class="id-upload-row">
-      <input type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" required>
-    </div>
-    <button type="submit" class="btn-primary">Upload ID Document <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 1</span></button>
-  </form>
+  {{ id_upload_block() }}
   {% endif %}
   {% endif %}
 
@@ -346,12 +364,7 @@
   <div class="or-divider">or</div>
 
   <!-- ive added this for phase 2c — upload an ID document for the strongest tier -->
-  <form method="POST" action="/verify/id-upload" enctype="multipart/form-data">
-    <div class="id-upload-row">
-      <input type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" required>
-    </div>
-    <button type="submit" class="btn-primary">Upload ID Document <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 1</span></button>
-  </form>
+  {{ id_upload_block() }}
 
   <a href="/participant" class="btn-secondary">Back to Dashboard</a>
   {% endif %}

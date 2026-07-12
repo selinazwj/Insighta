@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -2348,6 +2348,8 @@ def _render_verify(request, current_user, *, error=None, notice=None, needs_doma
         # phase 3 — verified users can still upgrade to a stronger tier
         "can_upgrade_linkedin": user_rank > 2,
         "can_upgrade_id": user_rank > 1,
+        # ID review queue — show under-review / rejected states instead of the form
+        "id_review_status": getattr(current_user, "id_review_status", None),
     }))
 
 
@@ -2452,11 +2454,14 @@ async def verify_id_upload(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # ive added this for phase 2c — participant uploads an ID document for tier_1
-    # placeholder: we store the file and auto-approve; real review/OCR comes later
+    # ive reworked this for the ID review queue — uploads no longer auto-approve.
+    # the document goes to an admin queue and tier_1 is only granted on approval.
+    # any tier the user already holds (e.g. tier_3 via OTP) stays untouched meanwhile.
     if _tier_rank(getattr(current_user, "verified_tier", None)) <= 1 and \
        getattr(current_user, "verification_status", "unverified") == "verified":
         return RedirectResponse("/verify", status_code=303)
+    if getattr(current_user, "id_review_status", None) == "pending":
+        return RedirectResponse("/verify?verify_error=Your+ID+is+already+under+review.+Please+wait+for+the+decision.", status_code=303)
 
     # phase 4 — uploads are heavy, keep them rare per user
     if not check_rate_limit(f"id-upload:user:{current_user.id}", max_hits=5, window_seconds=3600):
@@ -2477,11 +2482,75 @@ async def verify_id_upload(
     (ID_DOC_DIR / unique_filename).write_bytes(contents)
 
     current_user.id_document_path = str(ID_DOC_DIR / unique_filename)
-    current_user.verification_status = "verified"
-    current_user.verified_tier = "tier_1"
-    current_user.verified_at = datetime.utcnow()
+    current_user.id_review_status = "pending"
+    current_user.id_uploaded_at = datetime.utcnow()
     db.commit()
     return RedirectResponse("/verify", status_code=303)
+
+
+# ---------------------------
+# Admin ID review queue
+# ---------------------------
+
+@app.get("/admin/id-reviews", response_class=HTMLResponse)
+def admin_id_reviews(request: Request, admin_key: str = Query(None), db: Session = Depends(get_db)):
+    # ive added this — the admin queue that reviews uploaded ID documents
+    if not _admin_key_matches(admin_key):
+        raise HTTPException(403, "Unauthorized")
+    pending = db.query(User).filter(User.id_review_status == "pending").order_by(User.id_uploaded_at.asc()).all()
+    decided = db.query(User).filter(User.id_review_status.in_(["approved", "rejected"])).order_by(User.id_uploaded_at.desc()).limit(20).all()
+    return templates.TemplateResponse("admin_id_reviews.html", {
+        "request": request, "admin_key": admin_key,
+        "pending": pending, "decided": decided,
+    })
+
+
+@app.get("/admin/id-document/{user_id}")
+def admin_view_id_document(user_id: int, admin_key: str = Query(None), db: Session = Depends(get_db)):
+    # ive added this — the ONLY way to view an ID doc, gated by the admin key.
+    # the uploads dir is deliberately not web-served, so this route is the door.
+    if not _admin_key_matches(admin_key):
+        raise HTTPException(403, "Unauthorized")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.id_document_path:
+        raise HTTPException(404, "No document for this user")
+    doc_path = Path(user.id_document_path)
+    # safety: only ever serve files that live inside the ID documents dir
+    if doc_path.resolve().parent != ID_DOC_DIR.resolve() or not doc_path.exists():
+        raise HTTPException(404, "Document not found")
+    return FileResponse(doc_path)
+
+
+@app.post("/admin/id-reviews/{user_id}/approve")
+async def admin_approve_id(user_id: int, request: Request, db: Session = Depends(get_db)):
+    # ive added this — admin approved the ID, grant tier_1
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or user.id_review_status != "pending":
+        raise HTTPException(404, "No pending review for this user")
+    user.id_review_status = "approved"
+    user.verification_status = "verified"
+    user.verified_tier = "tier_1"
+    user.verified_at = datetime.utcnow()
+    db.commit()
+    return JSONResponse({"ok": True, "status": "approved"})
+
+
+@app.post("/admin/id-reviews/{user_id}/reject")
+async def admin_reject_id(user_id: int, request: Request, db: Session = Depends(get_db)):
+    # ive added this — admin rejected the ID; participant keeps any existing tier
+    # and can upload a new document
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or user.id_review_status != "pending":
+        raise HTTPException(404, "No pending review for this user")
+    user.id_review_status = "rejected"
+    db.commit()
+    return JSONResponse({"ok": True, "status": "rejected"})
 
 
 # ---------------------------
