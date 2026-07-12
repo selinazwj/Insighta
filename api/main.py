@@ -2306,6 +2306,14 @@ def _verified_email_for(user: User) -> str:
     return getattr(user, "verified_email", None) or getattr(user, "email", "") or ""
 
 
+def _domains_pretty(domains: list) -> str:
+    """['bu.edu','gmail.com'] -> '@bu.edu or @gmail.com' for friendly messages"""
+    tagged = ["@" + d for d in domains]
+    if len(tagged) <= 1:
+        return tagged[0] if tagged else ""
+    return ", ".join(tagged[:-1]) + " or " + tagged[-1]
+
+
 def _verification_satisfies(user: User, survey: Survey) -> bool:
     """
     single source of truth: does this user satisfy this surveys verification rule?
@@ -2366,6 +2374,7 @@ def verify_page(
 @app.post("/verify/send-code")
 def verify_send_code(
     email: Optional[str] = Form(None),
+    needs_domains: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -2374,6 +2383,11 @@ def verify_send_code(
     target_email = _normalize_email(email or "") or current_user.email
     if not target_email or "@" not in target_email:
         return JSONResponse({"ok": False, "message": "Please enter a valid email address first."}, status_code=400)
+    # ive added this so we dont even send a code to a wrong-domain email — the
+    # study restricts which domains count, so tell them right away
+    domains = _normalize_domains(needs_domains)
+    if domains and _email_domain(target_email) not in domains:
+        return JSONResponse({"ok": False, "message": f"This study only accepts emails ending in {_domains_pretty(domains)}. Please enter one of those."}, status_code=400)
     # phase 4 — dont let one user spam the mailer
     if not check_rate_limit(f"verify-send:user:{current_user.id}", max_hits=5, window_seconds=600):
         return JSONResponse({"ok": False, "message": "Too many codes requested. Please wait a few minutes."}, status_code=429)
@@ -2390,18 +2404,24 @@ def verify_user(
     request: Request,
     verification_code: str = Form(...),
     email: Optional[str] = Form(None),
+    needs_domains: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     # ive added this for verification — checks the OTP for the given email, then
     # records verified_email so domain-restricted studies can check it
     target_email = _normalize_email(email or "") or current_user.email
+    # ive added this so a wrong-domain email is rejected here, not silently later
+    domains = _normalize_domains(needs_domains)
+    if domains and _email_domain(target_email) not in domains:
+        return _render_verify(request, current_user, needs_domains=needs_domains, prefill_email=target_email,
+            error=f"This study only accepts emails ending in {_domains_pretty(domains)}. Please verify one of those addresses.")
     # phase 4 — a 6 digit code is brute-forceable, so cap the attempts hard
     if not check_rate_limit(f"verify-otp:user:{current_user.id}", max_hits=5, window_seconds=600):
-        return _render_verify(request, current_user, prefill_email=target_email,
+        return _render_verify(request, current_user, needs_domains=needs_domains, prefill_email=target_email,
             error="Too many attempts. Please wait a few minutes and request a new code.")
     if not _consume_verification_code(db, target_email, "verify_identity", verification_code):
-        return _render_verify(request, current_user, prefill_email=target_email,
+        return _render_verify(request, current_user, needs_domains=needs_domains, prefill_email=target_email,
             error="Invalid or expired verification code. Please request a new one.")
     # they proved ownership of target_email
     current_user.verified_email = target_email
