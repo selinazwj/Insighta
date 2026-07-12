@@ -351,7 +351,7 @@
       // study needed a stronger tier than they currently hold
       const data = await res.json().catch(() => null);
       if (data && data.needs_verification) {
-        window.location.href = '/verify?needs_tier=' + encodeURIComponent(data.required_verification_tier || 'tier_3');
+        window.location.href = '/verify?needs_tier=' + encodeURIComponent(data.required_verification_tier || 'tier_3') + (data.required_email_domains ? '&needs_domains=' + encodeURIComponent(data.required_email_domains) : '');
         return;
       }
       const s = surveys.find(x => x.id === id);

@@ -50,6 +50,9 @@ class User(Base):
     verified_tier = Column(String, nullable=True)
     # ive added this for phase 2c — where the uploaded ID document lives (private dir, not static)
     id_document_path = Column(String, nullable=True)
+    # ive added this for the email-domain feature — the email the participant proved via OTP
+    # (may differ from their account email, e.g. they verified their @bu.edu address)
+    verified_email = Column(String, nullable=True)
 
     # Student segmentation
     student_status = Column(String, nullable=True)
@@ -106,6 +109,9 @@ class Survey(Base):
     # ive added these so researchers pick who can fill the survey
     required_occupation = Column(String, nullable=True)
     required_verification_tier = Column(String, default="tier_3")
+    # ive added this for the email-domain feature — comma separated allowed domains
+    # (no @, lowercase) e.g. "bu.edu,gmail.com". blank means any email is fine
+    required_email_domains = Column(String, nullable=True)
     
     # Extended targeting fields
     target_student_status = Column(String, nullable=True)

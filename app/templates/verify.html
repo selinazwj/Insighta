@@ -241,8 +241,29 @@
 </head>
 <body>
 
+{# ive made the email-verify step a macro so both branches share one copy #}
+{% macro email_verify_form() %}
+  <!-- ive added the email input for the email-domain feature — verify a specific address -->
+  <form method="POST" action="/verify" id="verifyForm">
+    <input type="email" name="email" id="verifyEmail" value="{{ prefill_email or '' }}"
+      placeholder="you@example.com" autocomplete="email" required
+      style="width:100%;height:48px;padding:0 14px;border:1px solid var(--line);border-radius:10px;font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--paper-warm);margin-bottom:10px;">
+    <div class="code-row">
+      <input type="text" name="verification_code" id="verificationCode"
+        placeholder="6-digit code" maxlength="6" autocomplete="one-time-code"
+        inputmode="numeric" required>
+      <button type="button" class="btn-send-code" id="btnSendCode" onclick="sendVerifyCode()">
+        Send Code
+      </button>
+    </div>
+    <div class="code-hint" id="codeHint">Enter the email you want to verify, then click "Send Code".</div>
+    <button type="submit" class="btn-primary">Verify &amp; Claim Payout &rarr; <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 3</span></button>
+  </form>
+{% endmacro %}
+
 <div class="card">
-  <div class="shield-icon">🛡️</div>
+  <!-- ive replaced the shield emoji with the insighta logo -->
+  <img src="/static/favicon.png" alt="Insighta" style="height:44px;display:block;margin:0 auto 28px;">
 
   <!-- ive added this for phase 4 (participant nudge) — shown in either branch below -->
   {% if notice %}
@@ -250,10 +271,13 @@
   {% endif %}
 
   {% if current_user.verification_status == 'verified' %}
-  <h1>You're verified</h1>
+  <h1>{% if show_email_verify %}One more step{% else %}You're verified{% endif %}</h1>
   <p class="subtitle">
-    Your identity has been verified.<br>
-    You can now withdraw your earnings.
+    {% if show_email_verify %}
+    You're verified, but this study needs a specific email.<br>Verify it below to receive your payout.
+    {% else %}
+    Your identity has been verified.<br>You can now withdraw your earnings.
+    {% endif %}
   </p>
 
   {% if error %}
@@ -262,8 +286,12 @@
 
   <div class="info-box">
     <div class="label">Verification status</div>
-    <div class="message">✓ Verified ({{ current_user.verified_tier or 'tier_3' }})</div>
+    <div class="message">✓ Verified ({{ current_user.verified_tier or 'tier_3' }}){% if current_user.verified_email %} — {{ current_user.verified_email }}{% endif %}</div>
   </div>
+
+  {% if show_email_verify %}
+  {{ email_verify_form() }}
+  {% endif %}
 
   <!-- ive added this for phase 3 — verified users can upgrade to a stronger tier -->
   {% if can_upgrade_linkedin or can_upgrade_id %}
@@ -299,20 +327,8 @@
   <div class="error-box">{{ error }}</div>
   {% endif %}
 
-  <!-- ive added this for verification — OTP step (phase 2a) -->
-  <form method="POST" action="/verify" id="verifyForm">
-    <div class="code-row">
-      <input type="text" name="verification_code" id="verificationCode"
-        placeholder="6-digit code" maxlength="6" autocomplete="one-time-code"
-        inputmode="numeric" required>
-      <button type="button" class="btn-send-code" id="btnSendCode" onclick="sendVerifyCode()">
-        Send Code
-      </button>
-    </div>
-    <div class="code-hint" id="codeHint">Click "Send Code" to get a code at your email.</div>
-
-    <button type="submit" class="btn-primary">Verify & Claim Payout → <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 3</span></button>
-  </form>
+  <!-- ive added this for verification — OTP step (phase 2a) + email field -->
+  {{ email_verify_form() }}
 
   <div class="or-divider">or</div>
 
@@ -337,14 +353,21 @@
 </div>
 
 <script>
-  // ive added this for verification — request an OTP to the logged in users email
+  // ive added this for verification — request an OTP to the email theyre proving
   async function sendVerifyCode() {
     const btn = document.getElementById('btnSendCode');
     const hint = document.getElementById('codeHint');
+    const emailEl = document.getElementById('verifyEmail');
+    const email = emailEl ? emailEl.value.trim() : '';
+    if (!email) { hint.textContent = 'Please enter an email address first.'; hint.className = 'code-hint error'; return; }
     btn.disabled = true; btn.textContent = 'Sending...';
     hint.textContent = ''; hint.className = 'code-hint';
     try {
-      const res = await fetch('/verify/send-code', { method: 'POST' });
+      const res = await fetch('/verify/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ email })
+      });
       const data = await res.json();
       if (data.ok) {
         hint.textContent = data.message; hint.className = 'code-hint success';

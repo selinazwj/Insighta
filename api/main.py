@@ -1369,11 +1369,9 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
             availability_slots = []
 
     # ive added this for verification — tell the participant up front if this
-    # study needs a stronger verification tier than they currently hold
+    # study needs a stronger tier or a specific email domain they dont have yet
     required_tier = getattr(s, "required_verification_tier", None) or "tier_3"
-    is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
-    user_tier = getattr(current_user, "verified_tier", None) if is_verified else None
-    verification_satisfied = _tier_satisfies(user_tier, required_tier)
+    verification_satisfied = _verification_satisfies(current_user, s)
 
     return {
         "id": s.id,
@@ -1395,6 +1393,7 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "urgency": getattr(s, 'urgency_level', None) or 'flexible',
         "incentive_type": getattr(s, 'incentive_type', None),
         "required_verification_tier": required_tier,
+        "required_email_domains": getattr(s, "required_email_domains", None) or "",
         "verification_satisfied": verification_satisfied,
     }
 
@@ -1807,17 +1806,16 @@ def complete_survey(
 
     db.commit()
 
-    # ive added this for verification — tell the frontend to send the
-    # participant to /verify if this survey needs a tier they dont hold yet
+    # ive added this for verification — tell the frontend to send the participant
+    # to /verify if this survey needs a tier or email domain they dont have yet
     required_tier = getattr(survey, "required_verification_tier", None) or "tier_3"
-    is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
-    user_tier = getattr(current_user, "verified_tier", None) if is_verified else None
-    needs_verification = not _tier_satisfies(user_tier, required_tier)
+    needs_verification = not _verification_satisfies(current_user, survey)
 
     return JSONResponse({
         "message": "completed",
         "needs_verification": needs_verification,
         "required_verification_tier": required_tier,
+        "required_email_domains": getattr(survey, "required_email_domains", None) or "",
     })
 
 
@@ -1856,21 +1854,21 @@ def get_notifications(
 
     # ive added this for verification — tell the researcher if the participant is verified
     # so they can decide before approving payout (we warn but still allow)
-    # phase 3 — the warning is now tier aware: being verified isnt enough,
-    # the participants tier has to actually satisfy the surveys required tier
+    # phase 3 — tier aware; email-domain feature — also domain aware, all via the helper
     def _verify_info(n):
         survey = db.query(Survey).filter(Survey.id == n.survey_id).first()
         participant = db.query(User).filter(User.id == n.participant_id).first()
         required_tier = survey.required_verification_tier if survey else None
-        requires = bool(required_tier in ("tier_1", "tier_2"))
+        domains = _normalize_domains(getattr(survey, "required_email_domains", None) if survey else None)
+        requires = bool(required_tier in ("tier_1", "tier_2")) or bool(domains)
         status = getattr(participant, "verification_status", "unverified") or "unverified"
         participant_tier = getattr(participant, "verified_tier", None)
-        satisfied = status == "verified" and _tier_satisfies(participant_tier, required_tier)
-        return requires, status, participant_tier, required_tier, satisfied
+        satisfied = bool(survey and participant and _verification_satisfies(participant, survey))
+        return requires, status, participant_tier, required_tier, domains, satisfied
 
     payload = []
     for n in notifs:
-        requires_verification, verification_status, participant_tier, required_tier, satisfied = _verify_info(n)
+        requires_verification, verification_status, participant_tier, required_tier, domains, satisfied = _verify_info(n)
         payload.append({
             "id": n.id,
             "participant_email": n.participant_email,
@@ -1882,6 +1880,7 @@ def get_notifications(
             "participant_verification_status": verification_status,
             "participant_verified_tier": participant_tier,
             "required_verification_tier": required_tier,
+            "required_email_domains": ", ".join(domains) if domains else "",
             "verification_warning": requires_verification and not satisfied,
         })
     return JSONResponse(payload)
@@ -2070,6 +2069,7 @@ async def publish_interview(
     urgency_level: Optional[str] = Form(None), deadline_date: Optional[str] = Form(None),
     incentive_type: Optional[str] = Form(None), per_person_gross: Optional[float] = Form(None),
     required_occupation: str = Form(None), required_verification_tier: str = Form(None),
+    required_email_domains: str = Form(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
@@ -2124,6 +2124,7 @@ async def publish_interview(
         target_niche_requirements=_clean_target(form.get("target_niche_requirements")),
         required_occupation=_clean_target(required_occupation),
         required_verification_tier=_clean_target(required_verification_tier) or "tier_3",
+        required_email_domains=",".join(_normalize_domains(required_email_domains)) or None,
         availability_slots=availability_slots,
         status="draft", published_at=None, closed_at=None,
     )
@@ -2277,24 +2278,64 @@ def _tier_satisfies(user_tier: Optional[str], required_tier: Optional[str]) -> b
     return _tier_rank(user_tier) <= TIER_RANK.get(required_tier or "tier_3", 3)
 
 
-@app.get("/verify", response_class=HTMLResponse)
-def verify_page(
-    request: Request,
-    verify_error: Optional[str] = None,
-    needs_tier: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
-):
-    # ive added this for verification — shows the OTP + LinkedIn + ID upload page
+# ive added these for the email-domain feature
+def _email_domain(email: Optional[str]) -> str:
+    """pull the domain part of an email, lowercased. 'A@BU.edu' -> 'bu.edu'"""
+    if not email or "@" not in email:
+        return ""
+    return email.strip().lower().rsplit("@", 1)[-1]
+
+
+def _normalize_domains(raw: Optional[str]) -> list:
+    """
+    turn a researchers free-text box into a clean list of domains.
+    accepts commas/spaces and a leading @, so '@BU.edu, gmail.com' -> ['bu.edu','gmail.com']
+    """
+    if not raw:
+        return []
+    out = []
+    for part in re.split(r"[,\s]+", raw.strip()):
+        part = part.strip().lower().lstrip("@")
+        if part and part not in out:
+            out.append(part)
+    return out
+
+
+def _verified_email_for(user: User) -> str:
+    """the email a user has proven — the one they OTP'd, else their account email"""
+    return getattr(user, "verified_email", None) or getattr(user, "email", "") or ""
+
+
+def _verification_satisfies(user: User, survey: Survey) -> bool:
+    """
+    single source of truth: does this user satisfy this surveys verification rule?
+    checks tier AND (if set) that the users proven email is at an allowed domain.
+    """
+    if getattr(user, "verification_status", "unverified") != "verified":
+        return False
+    required_tier = getattr(survey, "required_verification_tier", None) or "tier_3"
+    if not _tier_satisfies(getattr(user, "verified_tier", None), required_tier):
+        return False
+    domains = _normalize_domains(getattr(survey, "required_email_domains", None))
+    if domains and _email_domain(_verified_email_for(user)) not in domains:
+        return False
+    return True
+
+
+def _render_verify(request, current_user, *, error=None, notice=None, needs_domains=None, prefill_email=None):
+    # ive added this helper so the GET page and every error rerender share one context
     is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
     user_rank = _tier_rank(getattr(current_user, "verified_tier", None)) if is_verified else 99
-    # phase 4 (participant nudge) — needs_tier comes from the survey completion
-    # redirect, tells the participant WHY theyre being sent here
-    notice = None
-    if needs_tier in TIER_RANK:
-        notice = f"This study requires Tier {TIER_RANK[needs_tier]} verification to receive your payout. Verify below to continue."
+    domains = _normalize_domains(needs_domains)
+    # show the email-verify method to anyone unverified, OR to a verified user who
+    # still needs to prove a specific domain (e.g. verified via gmail but study needs bu.edu)
+    show_email_verify = (not is_verified) or bool(domains)
+    prefill = prefill_email or getattr(current_user, "verified_email", None) or current_user.email
     return no_store_response(templates.TemplateResponse("verify.html", {
-        "request": request, "current_user": current_user, "error": verify_error,
-        "notice": notice,
+        "request": request, "current_user": current_user, "error": error, "notice": notice,
+        "needs_domains": ", ".join(domains) if domains else None,
+        "prefill_email": prefill,
+        "show_email_verify": show_email_verify,
         "linkedin_enabled": bool(LINKEDIN_CLIENT_ID),
         # phase 3 — verified users can still upgrade to a stronger tier
         "can_upgrade_linkedin": user_rank > 2,
@@ -2302,19 +2343,45 @@ def verify_page(
     }))
 
 
+@app.get("/verify", response_class=HTMLResponse)
+def verify_page(
+    request: Request,
+    verify_error: Optional[str] = None,
+    needs_tier: Optional[str] = None,
+    needs_domains: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+):
+    # ive added this for verification — shows the OTP + LinkedIn + ID upload page
+    # needs_tier / needs_domains come from the survey completion redirect and tell
+    # the participant WHY theyre being sent here
+    domains = _normalize_domains(needs_domains)
+    notice = None
+    if domains:
+        notice = f"This study is limited to emails at: {', '.join(domains)}. Verify one of these addresses below to receive your payout."
+    elif needs_tier in TIER_RANK:
+        notice = f"This study requires Tier {TIER_RANK[needs_tier]} verification to receive your payout. Verify below to continue."
+    return _render_verify(request, current_user, error=verify_error, notice=notice, needs_domains=needs_domains)
+
+
 @app.post("/verify/send-code")
-def verify_send_code(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # ive added this for verification — sends an OTP to the logged in users own email
-    if getattr(current_user, "verification_status", "unverified") == "verified":
-        return JSONResponse({"ok": False, "message": "You are already verified."}, status_code=400)
+def verify_send_code(
+    email: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # ive added this for verification — sends an OTP to whatever email theyre proving
+    # (defaults to their account email, but can be e.g. their @bu.edu address)
+    target_email = _normalize_email(email or "") or current_user.email
+    if not target_email or "@" not in target_email:
+        return JSONResponse({"ok": False, "message": "Please enter a valid email address first."}, status_code=400)
     # phase 4 — dont let one user spam the mailer
     if not check_rate_limit(f"verify-send:user:{current_user.id}", max_hits=5, window_seconds=600):
         return JSONResponse({"ok": False, "message": "Too many codes requested. Please wait a few minutes."}, status_code=429)
-    code = _issue_verification_code(db, current_user.email, "verify_identity")
-    _send_verification_email(current_user.email, "verify_identity", code)
+    code = _issue_verification_code(db, target_email, "verify_identity")
+    _send_verification_email(target_email, "verify_identity", code)
     return JSONResponse({
         "ok": True,
-        "message": f"Verification code sent to {_mask_email(current_user.email)}."
+        "message": f"Verification code sent to {_mask_email(target_email)}."
     })
 
 
@@ -2322,27 +2389,29 @@ def verify_send_code(current_user: User = Depends(get_current_user), db: Session
 def verify_user(
     request: Request,
     verification_code: str = Form(...),
+    email: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # ive added this for verification — checks the OTP then marks user verified tier_3
-    if getattr(current_user, "verification_status", "unverified") != "verified":
-        # phase 4 — a 6 digit code is brute-forceable, so cap the attempts hard
-        if not check_rate_limit(f"verify-otp:user:{current_user.id}", max_hits=5, window_seconds=600):
-            return no_store_response(templates.TemplateResponse("verify.html", {
-                "request": request, "current_user": current_user,
-                "error": "Too many attempts. Please wait a few minutes and request a new code.",
-            }))
-        if not _consume_verification_code(db, current_user.email, "verify_identity", verification_code):
-            return no_store_response(templates.TemplateResponse("verify.html", {
-                "request": request, "current_user": current_user,
-                "error": "Invalid or expired verification code. Please request a new one.",
-            }))
-        current_user.verification_status = "verified"
+    # ive added this for verification — checks the OTP for the given email, then
+    # records verified_email so domain-restricted studies can check it
+    target_email = _normalize_email(email or "") or current_user.email
+    # phase 4 — a 6 digit code is brute-forceable, so cap the attempts hard
+    if not check_rate_limit(f"verify-otp:user:{current_user.id}", max_hits=5, window_seconds=600):
+        return _render_verify(request, current_user, prefill_email=target_email,
+            error="Too many attempts. Please wait a few minutes and request a new code.")
+    if not _consume_verification_code(db, target_email, "verify_identity", verification_code):
+        return _render_verify(request, current_user, prefill_email=target_email,
+            error="Invalid or expired verification code. Please request a new one.")
+    # they proved ownership of target_email
+    current_user.verified_email = target_email
+    current_user.verification_status = "verified"
+    # email OTP is tier_3 — never downgrade someone who already holds a stronger tier
+    if _tier_rank(getattr(current_user, "verified_tier", None)) > 3:
         current_user.verified_tier = "tier_3"
-        current_user.verified_at = datetime.utcnow()
-        db.commit()
-    return RedirectResponse("/participant", status_code=303)
+    current_user.verified_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse("/verify", status_code=303)
 
 
 # ---------------------------
@@ -2470,6 +2539,10 @@ async def verify_linkedin_callback(
     if not current_user.oauth_provider:
         current_user.oauth_provider = "linkedin"
         current_user.oauth_id = linkedin_id
+    # record the linkedin email so domain-restricted studies can check it too
+    linkedin_email = _normalize_email(userinfo.get("email", ""))
+    if linkedin_email:
+        current_user.verified_email = linkedin_email
     # LinkedIn confirms a professional identity so we mark tier_2 (OTP stays tier_3)
     # phase 3 — never downgrade someone who already holds tier_1
     if _tier_rank(getattr(current_user, "verified_tier", None)) > 2:
@@ -2557,6 +2630,7 @@ async def edit_survey_post(
     target_participation_format: str = Form(None), target_device: str = Form(None),
     target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
     required_occupation: str = Form(None), required_verification_tier: str = Form(None),
+    required_email_domains: str = Form(None),
     cover_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -2605,6 +2679,7 @@ async def edit_survey_post(
     survey.target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
     survey.required_occupation = _clean_target(required_occupation)
     survey.required_verification_tier = _clean_target(required_verification_tier) or "tier_3"
+    survey.required_email_domains = ",".join(_normalize_domains(required_email_domains)) or None
     _apply_survey_auto_filter_settings(survey, form)
 
     if cover_image and cover_image.filename:
@@ -3369,6 +3444,7 @@ async def publish_survey(
     target_participation_format: str = Form(None), target_device: str = Form(None),
     target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
     required_occupation: str = Form(None), required_verification_tier: str = Form(None),
+    required_email_domains: str = Form(None),
     cover_image: UploadFile = File(None),
     admin_display_reward_amount: Optional[float] = Form(None),
     admin_publish: bool = False,
@@ -3464,6 +3540,7 @@ async def publish_survey(
         survey.target_niche_requirements = target_niche_requirements
         survey.required_occupation = _clean_target(required_occupation)
         survey.required_verification_tier = _clean_target(required_verification_tier) or "tier_3"
+        survey.required_email_domains = ",".join(_normalize_domains(required_email_domains)) or None
         survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish else None
         _apply_survey_auto_filter_settings(survey, form)
         db.commit()
@@ -3498,6 +3575,7 @@ async def publish_survey(
             target_niche_requirements=target_niche_requirements,
             required_occupation=_clean_target(required_occupation),
             required_verification_tier=_clean_target(required_verification_tier) or "tier_3",
+            required_email_domains=",".join(_normalize_domains(required_email_domains)) or None,
             admin_display_reward_amount=admin_display_reward_amount if admin_publish else None,
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
@@ -4058,14 +4136,13 @@ async def submit_answers(
 
     # ive added this for verification — same check as /complete, for built-in surveys
     required_tier = getattr(survey, "required_verification_tier", None) or "tier_3"
-    is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
-    user_tier = getattr(current_user, "verified_tier", None) if is_verified else None
-    needs_verification = not _tier_satisfies(user_tier, required_tier)
+    needs_verification = not _verification_satisfies(current_user, survey)
 
     body = {
         "message": "submitted successfully",
         "needs_verification": needs_verification,
         "required_verification_tier": required_tier,
+        "required_email_domains": getattr(survey, "required_email_domains", None) or "",
     }
     if quality_payload:
         body["quality"] = quality_payload
