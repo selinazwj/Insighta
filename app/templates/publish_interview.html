@@ -483,48 +483,40 @@
         <div class="section-icon">05</div>
         <div><h2>Verification requirements</h2><p>Specify participant credentials needed to take this study</p></div>
       </div>
-      <div class="form-row" style="margin-bottom: 16px;">
-        <div class="form-group">
-          <label>Required occupation</label>
-          <select name="required_occupation">
-            <option value="">Any occupation</option>
-            <optgroup label="Tier 1 — Licensed Professionals">
-              <option value="physician">Physician</option>
-              <option value="nurse">Nurse</option>
-              <option value="lawyer">Lawyer</option>
-              <option value="therapist">Therapist</option>
-              <option value="engineer">Engineer</option>
-            </optgroup>
-            <optgroup label="Tier 2 — Professionals">
-              <option value="student">Student</option>
-              <option value="teacher">Teacher</option>
-              <option value="it_professional">IT Professional</option>
-              <option value="researcher">Researcher</option>
-              <option value="marketer">Marketer</option>
-              <option value="business">Business</option>
-            </optgroup>
-            <optgroup label="Tier 3 — General">
-              <option value="general_public">General Public</option>
-              <option value="other">Other</option>
-            </optgroup>
-          </select>
+      <!-- ive changed this — researchers can now require MULTIPLE occupations, not just one -->
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>Required occupation(s) <span style="font-weight:300;text-transform:none;letter-spacing:0;">(select all that apply — leave empty for any occupation)</span></label>
+        <div class="checkbox-group">
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="physician" onchange="updateCheckbox(this)"> Physician (Tier 1)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="nurse" onchange="updateCheckbox(this)"> Nurse (Tier 1)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="lawyer" onchange="updateCheckbox(this)"> Lawyer (Tier 1)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="therapist" onchange="updateCheckbox(this)"> Therapist (Tier 1)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="engineer" onchange="updateCheckbox(this)"> Engineer (Tier 1)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="student" onchange="updateCheckbox(this)"> Student (Tier 2)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="teacher" onchange="updateCheckbox(this)"> Teacher (Tier 2)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="it_professional" onchange="updateCheckbox(this)"> IT Professional (Tier 2)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="researcher" onchange="updateCheckbox(this)"> Researcher (Tier 2)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="marketer" onchange="updateCheckbox(this)"> Marketer (Tier 2)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="business" onchange="updateCheckbox(this)"> Business (Tier 2)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="general_public" onchange="updateCheckbox(this)"> General Public (Tier 3)</label>
+          <label class="checkbox-item"><input type="checkbox" name="required_occupation" value="other" onchange="updateCheckbox(this)"> Other (Tier 3)</label>
         </div>
-        <div class="form-group">
-          <label>Verification tier</label>
-          <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">
-            <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
-              <input type="radio" name="required_verification_tier" value="tier_1">
-              <span>Tier 1 — Strict verification</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
-              <input type="radio" name="required_verification_tier" value="tier_2">
-              <span>Tier 2 — Standard verification</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
-              <input type="radio" name="required_verification_tier" value="tier_3" checked>
-              <span>Tier 3 — Basic / any participant</span>
-            </label>
-          </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>Verification tier</label>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
+            <input type="radio" name="required_verification_tier" value="tier_1">
+            <span>Tier 1 — Strict verification</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
+            <input type="radio" name="required_verification_tier" value="tier_2">
+            <span>Tier 2 — Standard verification</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
+            <input type="radio" name="required_verification_tier" value="tier_3" checked>
+            <span>Tier 3 — Basic / any participant</span>
+          </label>
         </div>
       </div>
       <!-- ive added this for the email-domain feature — restrict Tier 3 email verification to specific domains -->

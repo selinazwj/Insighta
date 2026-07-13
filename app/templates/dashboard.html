@@ -362,12 +362,12 @@
 
   function renderList() {
     const el = document.getElementById('studyList');
-    const active = surveys.filter(s => !s.is_completed);
-    const done   = surveys.filter(s => s.is_completed);
-    const all    = [...active, ...done];
+    // ive changed this — completed studies now live in the My Studies tab only,
+    // so the home feed just shows what's still available
+    const all = surveys.filter(s => !s.is_completed);
 
     document.getElementById('countLabel').textContent =
-      active.length + ' available';
+      all.length + ' available';
 
     if (all.length === 0) {
       el.innerHTML = `<div class="empty">
@@ -507,8 +507,10 @@
         window.location.href = '/verify?needs_tier=' + encodeURIComponent(data.required_verification_tier || 'tier_3') + (data.required_email_domains ? '&needs_domains=' + encodeURIComponent(data.required_email_domains) : '');
         return;
       }
-      const s = surveys.find(x => x.id === id);
-      if (s) s.is_completed = true;
+      // ive changed this — the finished study disappears from home right away
+      // (it still shows up under My Studies)
+      const i = surveys.findIndex(x => x.id === id);
+      if (i >= 0) surveys.splice(i, 1);
       renderList(); updateStats();
     }
   }

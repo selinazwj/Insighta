@@ -270,6 +270,8 @@
   <form method="POST" action="/verify" id="verifyForm">
     <!-- carry the required domains so the server enforces them at verify time -->
     <input type="hidden" name="needs_domains" id="needsDomains" value="{{ needs_domains or '' }}">
+    <!-- ive added this — keep the tier focus alive across error rerenders -->
+    <input type="hidden" name="needs_tier" value="{{ focus_tier or '' }}">
     {% if needs_domains %}
     <div class="field-hint" style="text-align:left;margin-bottom:8px;">Use an email ending in <strong>@{{ needs_domains.split(', ') | join(' or @') }}</strong>.</div>
     {% endif %}
@@ -317,22 +319,25 @@
     <div class="message">✓ Verified ({{ current_user.verified_tier or 'tier_3' }}){% if current_user.verified_email %} — {{ current_user.verified_email }}{% endif %}</div>
   </div>
 
-  {% if show_email_verify %}
+  {% if show_email_verify and (not focus_tier or focus_tier == 'tier_3' or needs_domains) %}
   {{ email_verify_form() }}
   {% endif %}
 
   <!-- ive added this for phase 3 — verified users can upgrade to a stronger tier -->
-  {% if can_upgrade_linkedin or can_upgrade_id %}
-  <div class="upgrade-title">Upgrade your verification to unlock stricter studies:</div>
+  {# ive changed this — a tier focus narrows the upgrade options to just that method #}
+  {% set show_up_linkedin = can_upgrade_linkedin and (not focus_tier or focus_tier == 'tier_2') %}
+  {% set show_up_id = can_upgrade_id and (not focus_tier or focus_tier == 'tier_1') %}
+  {% if show_up_linkedin or show_up_id %}
+  <div class="upgrade-title">{% if focus_tier %}This study needs a stronger verification:{% else %}Upgrade your verification to unlock stricter studies:{% endif %}</div>
 
-  {% if can_upgrade_linkedin %}
+  {% if show_up_linkedin %}
   <a href="/verify/linkedin" class="btn-linkedin">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14zm1.78 13.02H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg>
     Verify with LinkedIn <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 2</span>
   </a>
   {% endif %}
 
-  {% if can_upgrade_id %}
+  {% if show_up_id %}
   {{ id_upload_block() }}
   {% endif %}
   {% endif %}
@@ -350,21 +355,29 @@
   <div class="error-box">{{ error }}</div>
   {% endif %}
 
+  {# ive changed this — when a study demands a specific tier, only that tiers
+     method is shown. no focus (visiting /verify directly) shows all three. #}
+  {% if not focus_tier or focus_tier == 'tier_3' %}
   <!-- ive added this for verification — OTP step (phase 2a) + email field -->
   {{ email_verify_form() }}
+  {% endif %}
 
-  <div class="or-divider">or</div>
+  {% if not focus_tier %}<div class="or-divider">or</div>{% endif %}
 
+  {% if not focus_tier or focus_tier == 'tier_2' %}
   <!-- ive added this for verification — LinkedIn OAuth (phase 2b) -->
   <a href="/verify/linkedin" class="btn-linkedin">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14zm1.78 13.02H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg>
     Verify with LinkedIn <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Tier 2</span>
   </a>
+  {% endif %}
 
-  <div class="or-divider">or</div>
+  {% if not focus_tier %}<div class="or-divider">or</div>{% endif %}
 
+  {% if not focus_tier or focus_tier == 'tier_1' %}
   <!-- ive added this for phase 2c — upload an ID document for the strongest tier -->
   {{ id_upload_block() }}
+  {% endif %}
 
   <a href="/participant" class="btn-secondary">Back to Dashboard</a>
   {% endif %}

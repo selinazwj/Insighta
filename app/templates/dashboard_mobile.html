@@ -493,7 +493,8 @@
 <script>
   const allSurveys = {{ surveys | tojson | safe }};
   let cardIdx = 0;
-  let activeSurveys = allSurveys.slice();
+  // ive changed this — completed studies belong in My Studies, keep them out of the home feed
+  let activeSurveys = allSurveys.filter(s => !s.is_completed);
   let cardHistory = [];
   let viewMode = localStorage.getItem('participantViewMode') || 'cards';
   let touchX0 = 0, touchY0 = 0, dragging = false;
@@ -715,9 +716,14 @@
         window.location.href = '/verify?needs_tier=' + encodeURIComponent(data.required_verification_tier || 'tier_3') + (data.required_email_domains ? '&needs_domains=' + encodeURIComponent(data.required_email_domains) : '');
         return;
       }
-      const s = activeSurveys.find(x => x.id === id);
-      if (s) s.is_completed = true;
-      advanceFromCurrent('right', updateStats);
+      // ive changed this — the finished study disappears from the home feed right away
+      // (it still shows up under My Studies)
+      const i = activeSurveys.findIndex(x => x.id === id);
+      if (i >= 0) {
+        flyOut('right', () => { activeSurveys.splice(i, 1); renderHome(); updateStats(); });
+      } else {
+        updateStats();
+      }
     }
   }
 

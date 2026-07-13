@@ -1461,6 +1461,10 @@ def dashboard(
         user_response = db.query(Response).filter(
             Response.survey_id == s.id, Response.participant_id == current_user.id
         ).first()
+        # ive added this — once a study is completed it belongs in My Studies,
+        # not the home feed
+        if user_response and user_response.status == "completed":
+            continue
         payload = _participant_survey_payload(s, db, current_user, user_response)
         payload.update({
             "completion_probability": llm_rec.get("completion_probability"),
@@ -1626,6 +1630,9 @@ def dashboard_mobile(
             Response.survey_id == s.id, Response.participant_id == current_user.id
         ).first()
         is_completed = user_response and user_response.status == "completed"
+        # ive added this — completed studies only show in My Studies, not the mobile home feed
+        if is_completed:
+            continue
         form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
         display_reward = getattr(s, "admin_display_reward_amount", None)
         if display_reward is None:
@@ -2068,13 +2075,16 @@ async def publish_interview(
     availability_notes: Optional[str] = Form(None), interview_location: Optional[str] = Form(None),
     urgency_level: Optional[str] = Form(None), deadline_date: Optional[str] = Form(None),
     incentive_type: Optional[str] = Form(None), per_person_gross: Optional[float] = Form(None),
-    required_occupation: str = Form(None), required_verification_tier: str = Form(None),
+    required_verification_tier: str = Form(None),
     required_email_domains: str = Form(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
     experience_list = form.getlist("target_experience_tags")
     lifestyle_list = form.getlist("target_lifestyle_tags")
+    # ive changed this — multiple required occupations, comma separated
+    occupation_list = [o for o in form.getlist("required_occupation") if o]
+    required_occupation = ",".join(occupation_list) if occupation_list else None
     target_education_min = _parse_optional_int(form.get("target_education_min"))
     target_education_max = _parse_optional_int(form.get("target_education_max"))
     availability_slots = (form.get("availability_slots") or "").strip()
@@ -2330,7 +2340,7 @@ def _verification_satisfies(user: User, survey: Survey) -> bool:
     return True
 
 
-def _render_verify(request, current_user, *, error=None, notice=None, needs_domains=None, prefill_email=None):
+def _render_verify(request, current_user, *, error=None, notice=None, needs_domains=None, prefill_email=None, focus_tier=None):
     # ive added this helper so the GET page and every error rerender share one context
     is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
     user_rank = _tier_rank(getattr(current_user, "verified_tier", None)) if is_verified else 99
@@ -2339,11 +2349,16 @@ def _render_verify(request, current_user, *, error=None, notice=None, needs_doma
     # still needs to prove a specific domain (e.g. verified via gmail but study needs bu.edu)
     show_email_verify = (not is_verified) or bool(domains)
     prefill = prefill_email or getattr(current_user, "verified_email", None) or current_user.email
+    # ive added this — when the participant arrives from a study that requires a
+    # specific tier, only that tiers method is shown (tier_1 -> ID, tier_2 -> LinkedIn,
+    # tier_3 -> email). visiting /verify directly still shows every method.
+    focus_tier = focus_tier if focus_tier in TIER_RANK else None
     return no_store_response(templates.TemplateResponse("verify.html", {
         "request": request, "current_user": current_user, "error": error, "notice": notice,
         "needs_domains": ", ".join(domains) if domains else None,
         "prefill_email": prefill,
         "show_email_verify": show_email_verify,
+        "focus_tier": focus_tier,
         "linkedin_enabled": bool(LINKEDIN_CLIENT_ID),
         # phase 3 — verified users can still upgrade to a stronger tier
         "can_upgrade_linkedin": user_rank > 2,
@@ -2370,7 +2385,8 @@ def verify_page(
         notice = f"This study is limited to emails at: {', '.join(domains)}. Verify one of these addresses below to receive your payout."
     elif needs_tier in TIER_RANK:
         notice = f"This study requires Tier {TIER_RANK[needs_tier]} verification to receive your payout. Verify below to continue."
-    return _render_verify(request, current_user, error=verify_error, notice=notice, needs_domains=needs_domains)
+    return _render_verify(request, current_user, error=verify_error, notice=notice,
+                          needs_domains=needs_domains, focus_tier=needs_tier)
 
 
 @app.post("/verify/send-code")
@@ -2407,6 +2423,7 @@ def verify_user(
     verification_code: str = Form(...),
     email: Optional[str] = Form(None),
     needs_domains: Optional[str] = Form(None),
+    needs_tier: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -2416,14 +2433,14 @@ def verify_user(
     # ive added this so a wrong-domain email is rejected here, not silently later
     domains = _normalize_domains(needs_domains)
     if domains and _email_domain(target_email) not in domains:
-        return _render_verify(request, current_user, needs_domains=needs_domains, prefill_email=target_email,
+        return _render_verify(request, current_user, needs_domains=needs_domains, prefill_email=target_email, focus_tier=needs_tier,
             error=f"This study only accepts emails ending in {_domains_pretty(domains)}. Please verify one of those addresses.")
     # phase 4 — a 6 digit code is brute-forceable, so cap the attempts hard
     if not check_rate_limit(f"verify-otp:user:{current_user.id}", max_hits=5, window_seconds=600):
-        return _render_verify(request, current_user, needs_domains=needs_domains, prefill_email=target_email,
+        return _render_verify(request, current_user, needs_domains=needs_domains, prefill_email=target_email, focus_tier=needs_tier,
             error="Too many attempts. Please wait a few minutes and request a new code.")
     if not _consume_verification_code(db, target_email, "verify_identity", verification_code):
-        return _render_verify(request, current_user, needs_domains=needs_domains, prefill_email=target_email,
+        return _render_verify(request, current_user, needs_domains=needs_domains, prefill_email=target_email, focus_tier=needs_tier,
             error="Invalid or expired verification code. Please request a new one.")
     # they proved ownership of target_email
     current_user.verified_email = target_email
@@ -2718,7 +2735,7 @@ async def edit_survey_post(
     target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
     target_participation_format: str = Form(None), target_device: str = Form(None),
     target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
-    required_occupation: str = Form(None), required_verification_tier: str = Form(None),
+    required_verification_tier: str = Form(None),
     required_email_domains: str = Form(None),
     cover_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
@@ -2728,6 +2745,9 @@ async def edit_survey_post(
     target_education_max = _parse_optional_int(form.get("target_education_max"))
     experience_list = form.getlist("target_experience_tags")
     target_experience_tags = ",".join(experience_list) if experience_list else None
+    # ive changed this — multiple required occupations, comma separated
+    occupation_list = [o for o in form.getlist("required_occupation") if o]
+    required_occupation = ",".join(occupation_list) if occupation_list else None
     lifestyle_list = form.getlist("target_lifestyle_tags")
     target_lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
 
@@ -3532,7 +3552,7 @@ async def publish_survey(
     target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
     target_participation_format: str = Form(None), target_device: str = Form(None),
     target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
-    required_occupation: str = Form(None), required_verification_tier: str = Form(None),
+    required_verification_tier: str = Form(None),
     required_email_domains: str = Form(None),
     cover_image: UploadFile = File(None),
     admin_display_reward_amount: Optional[float] = Form(None),
@@ -3548,6 +3568,10 @@ async def publish_survey(
     lifestyle_list = form.getlist("target_lifestyle_tags")
     target_lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
     target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
+    # ive changed this — researchers can now require MULTIPLE occupations (checkboxes),
+    # stored comma separated like the other multi-select fields
+    occupation_list = [o for o in form.getlist("required_occupation") if o]
+    required_occupation = ",".join(occupation_list) if occupation_list else None
     existing_survey_id = int(form.get("existing_survey_id") or 0)
 
     is_builtin = (form_url == "__builtin__")

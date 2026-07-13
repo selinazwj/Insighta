@@ -804,48 +804,39 @@
           <div class="section-sub">Specify participant credentials needed to take this study</div>
         </div>
       </div>
-      <div class="row" style="margin-bottom:14px;">
-        <div class="field">
-          <label>Required occupation</label>
-          <select name="required_occupation">
-            <option value="">Any occupation</option>
-            <optgroup label="Tier 1 — Licensed Professionals">
-              <option value="physician" {% if existing_survey and existing_survey.required_occupation == 'physician' %}selected{% endif %}>Physician</option>
-              <option value="nurse" {% if existing_survey and existing_survey.required_occupation == 'nurse' %}selected{% endif %}>Nurse</option>
-              <option value="lawyer" {% if existing_survey and existing_survey.required_occupation == 'lawyer' %}selected{% endif %}>Lawyer</option>
-              <option value="therapist" {% if existing_survey and existing_survey.required_occupation == 'therapist' %}selected{% endif %}>Therapist</option>
-              <option value="engineer" {% if existing_survey and existing_survey.required_occupation == 'engineer' %}selected{% endif %}>Engineer</option>
-            </optgroup>
-            <optgroup label="Tier 2 — Professionals">
-              <option value="student" {% if existing_survey and existing_survey.required_occupation == 'student' %}selected{% endif %}>Student</option>
-              <option value="teacher" {% if existing_survey and existing_survey.required_occupation == 'teacher' %}selected{% endif %}>Teacher</option>
-              <option value="it_professional" {% if existing_survey and existing_survey.required_occupation == 'it_professional' %}selected{% endif %}>IT Professional</option>
-              <option value="researcher" {% if existing_survey and existing_survey.required_occupation == 'researcher' %}selected{% endif %}>Researcher</option>
-              <option value="marketer" {% if existing_survey and existing_survey.required_occupation == 'marketer' %}selected{% endif %}>Marketer</option>
-              <option value="business" {% if existing_survey and existing_survey.required_occupation == 'business' %}selected{% endif %}>Business</option>
-            </optgroup>
-            <optgroup label="Tier 3 — General">
-              <option value="general_public" {% if existing_survey and existing_survey.required_occupation == 'general_public' %}selected{% endif %}>General Public</option>
-              <option value="other" {% if existing_survey and existing_survey.required_occupation == 'other' %}selected{% endif %}>Other</option>
-            </optgroup>
-          </select>
+      <!-- ive changed this — researchers can now require MULTIPLE occupations, not just one -->
+      {% set sel_occ = (existing_survey.required_occupation or '').split(',') if existing_survey else [] %}
+      <div class="field" style="margin-bottom:16px;">
+        <label>Required occupation(s) <span style="font-weight:400;color:var(--ink3);">(select all that apply — leave empty for any occupation)</span></label>
+        <div class="check-grid">
+          {% for val, lab in [
+            ('physician','Physician (Tier 1)'), ('nurse','Nurse (Tier 1)'), ('lawyer','Lawyer (Tier 1)'),
+            ('therapist','Therapist (Tier 1)'), ('engineer','Engineer (Tier 1)'),
+            ('student','Student (Tier 2)'), ('teacher','Teacher (Tier 2)'), ('it_professional','IT Professional (Tier 2)'),
+            ('researcher','Researcher (Tier 2)'), ('marketer','Marketer (Tier 2)'), ('business','Business (Tier 2)'),
+            ('general_public','General Public (Tier 3)'), ('other','Other (Tier 3)')
+          ] %}
+          <label class="check-item {{ 'checked' if val in sel_occ }}">
+            <input type="checkbox" name="required_occupation" value="{{ val }}" {{ 'checked' if val in sel_occ }} onchange="syncCheck(this)"> {{ lab }}
+          </label>
+          {% endfor %}
         </div>
-        <div class="field">
-          <label>Verification tier</label>
-          <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">
-            <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
-              <input type="radio" name="required_verification_tier" value="tier_1" {% if existing_survey and existing_survey.required_verification_tier == 'tier_1' %}checked{% endif %}>
-              <span>Tier 1 — Strict verification</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
-              <input type="radio" name="required_verification_tier" value="tier_2" {% if existing_survey and existing_survey.required_verification_tier == 'tier_2' %}checked{% endif %}>
-              <span>Tier 2 — Standard verification</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
-              <input type="radio" name="required_verification_tier" value="tier_3" {% if existing_survey and (existing_survey.required_verification_tier == 'tier_3' or not existing_survey.required_verification_tier) %}checked{% endif %} checked>
-              <span>Tier 3 — Basic / any participant</span>
-            </label>
-          </div>
+      </div>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Verification tier</label>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
+            <input type="radio" name="required_verification_tier" value="tier_1" {% if existing_survey and existing_survey.required_verification_tier == 'tier_1' %}checked{% endif %}>
+            <span>Tier 1 — Strict verification</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
+            <input type="radio" name="required_verification_tier" value="tier_2" {% if existing_survey and existing_survey.required_verification_tier == 'tier_2' %}checked{% endif %}>
+            <span>Tier 2 — Standard verification</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:400;">
+            <input type="radio" name="required_verification_tier" value="tier_3" {% if existing_survey and (existing_survey.required_verification_tier == 'tier_3' or not existing_survey.required_verification_tier) %}checked{% endif %} checked>
+            <span>Tier 3 — Basic / any participant</span>
+          </label>
         </div>
       </div>
       <!-- ive added this for the email-domain feature — restrict Tier 3 email verification to specific domains -->
