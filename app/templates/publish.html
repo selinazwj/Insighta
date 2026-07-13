@@ -223,6 +223,10 @@
     .tour-btn.primary { border-color: var(--green); background: var(--green); color: #fff; }
     .tour-btn.primary:hover { background: var(--green-d); }
     .tour-btn:disabled { opacity: .35; cursor: default; }
+    /* ive added this so users can skip the tour — quiet text button on the left */
+    .tour-btn.tour-skip { border: none; background: transparent; color: var(--ink3); padding-left: 0; }
+    .tour-btn.tour-skip:hover { background: transparent; color: var(--ink); text-decoration: underline; }
+    .tour-nav-group { display: flex; gap: 8px; }
 
     /* ── NEW LISTING MODAL ── */
     .modal-bg {
@@ -446,8 +450,12 @@
   <div class="tour-title" id="tourTitle"></div>
   <div class="tour-body" id="tourBody"></div>
   <div class="tour-actions">
-    <button class="tour-btn" id="tourPrev" onclick="prevTourStep()">Back</button>
-    <button class="tour-btn primary" id="tourNext" onclick="nextTourStep()">Next</button>
+    <!-- ive added a skip button so users can bail out of the tour any time -->
+    <button class="tour-btn tour-skip" id="tourSkip" onclick="endResearcherTour()">Skip tour</button>
+    <div class="tour-nav-group">
+      <button class="tour-btn" id="tourPrev" onclick="prevTourStep()">Back</button>
+      <button class="tour-btn primary" id="tourNext" onclick="nextTourStep()">Next</button>
+    </div>
   </div>
 </div>
 
@@ -667,6 +675,8 @@
     document.getElementById('tourBody').textContent = step.body;
     document.getElementById('tourPrev').disabled = tourIndex === 0;
     document.getElementById('tourNext').textContent = tourIndex === tourSteps.length - 1 ? 'Done' : 'Next';
+    // ive added this — hide skip on the last step since Next already says Done
+    document.getElementById('tourSkip').style.visibility = tourIndex === tourSteps.length - 1 ? 'hidden' : 'visible';
 
     card.classList.add('open');
     window.setTimeout(() => {

@@ -119,13 +119,14 @@
     .btn-hero-ghost svg { width: 14px; height: 14px; }
 
     /* Hero stats */
+    /* ive added left padding so the text isnt hugging the divider lines, and bumped the sizes a touch */
     .hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 0.5px solid var(--line); border-bottom: 0.5px solid var(--line); }
-    .hero-stat { padding: 24px 0; border-right: 0.5px solid var(--line); padding-right: 32px; }
+    .hero-stat { padding: 32px 32px 32px 28px; border-right: 0.5px solid var(--line); }
     .hero-stat:first-child { padding-left: 0; }
-    .hero-stat:last-child { border-right: none; }
-    .hs-n { font-size: 32px; font-weight: 300; color: var(--green); letter-spacing: -1px; margin-bottom: 4px; }
-    .hs-l { font-size: 13px; color: var(--ink2); font-weight: 500; margin-bottom: 2px; }
-    .hs-s { font-size: 11px; color: var(--ink4); }
+    .hero-stat:last-child { border-right: none; padding-right: 0; }
+    .hs-n { font-size: 36px; font-weight: 300; color: var(--green); letter-spacing: -1px; margin-bottom: 6px; }
+    .hs-l { font-size: 14px; color: var(--ink2); font-weight: 500; margin-bottom: 3px; }
+    .hs-s { font-size: 12px; color: var(--ink4); }
 
     /* ── HOW IT WORKS ── */
     .section { max-width: 1040px; margin: 0 auto; padding: 80px 48px; }
@@ -353,6 +354,9 @@
     @media (max-width: 860px) {
       .nav { padding: 0 24px; } .hero { padding: 64px 24px 56px; } .hero-h1 { font-size: 40px; }
       .hero-stats { grid-template-columns: repeat(2, 1fr); }
+      /* 2-col layout: odd stats start each row, so align them with the left edge like the first */
+      .hero-stat:nth-child(odd) { padding-left: 0; }
+      .hero-stat:nth-child(even) { border-right: none; padding-right: 0; }
       .section { padding: 56px 24px; } .how-grid { grid-template-columns: 1fr; }
       .how-col:first-child { border-right: none; border-bottom: 0.5px solid var(--line); }
       .features-grid { grid-template-columns: 1fr 1fr; }
