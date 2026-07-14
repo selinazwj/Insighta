@@ -375,14 +375,24 @@
     }
 
     function startExternalStudy(targetUrl) {
-      fetch('/surveys/{{ survey.id }}/start', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        credentials: 'same-origin',
-        keepalive: true,
-        body: JSON.stringify({booking_slot: '', booking_slots: []})
-      }).catch(() => {});
-      window.location.href = targetUrl;
+      const payload = JSON.stringify({booking_slot: '', booking_slots: []});
+      let queued = false;
+      if (navigator.sendBeacon) {
+        queued = navigator.sendBeacon(
+          '/surveys/{{ survey.id }}/start',
+          new Blob([payload], {type: 'application/json'})
+        );
+      }
+      if (!queued) {
+        fetch('/surveys/{{ survey.id }}/start', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          credentials: 'same-origin',
+          keepalive: true,
+          body: payload
+        }).catch(() => {});
+      }
+      setTimeout(() => { window.location.href = targetUrl; }, 80);
     }
 
     function bookSlot(slotLabel) {

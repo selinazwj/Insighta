@@ -515,7 +515,7 @@
 <script>
   const allSurveys = {{ surveys | tojson | safe }};
   let cardIdx = 0;
-  let activeSurveys = allSurveys.slice();
+  let activeSurveys = allSurveys.filter(s => !s.status);
   let cardHistory = [];
   let viewMode = localStorage.getItem('participantViewMode') || 'cards';
   let touchX0 = 0, touchY0 = 0, dragging = false;

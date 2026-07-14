@@ -388,7 +388,7 @@
 
   function renderList() {
     const el = document.getElementById('studyList');
-    const active = surveys.filter(s => !s.is_completed);
+    const active = surveys.filter(s => !s.status);
     const done   = surveys.filter(s => s.is_completed);
     const all    = [...active, ...done];
 

@@ -1210,6 +1210,15 @@ def _post_auth_or_onboarding_url(
 
 
 AUTH_RETURN_COOKIE = "auth_return_to"
+AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
+
+def _set_user_cookie(response, request: Request, user: User) -> None:
+    response.set_cookie(
+        "user_id",
+        str(user.id),
+        max_age=AUTH_COOKIE_MAX_AGE,
+        **_cookie_policy(request),
+    )
 
 
 def _safe_auth_return(*candidates: Optional[str]) -> str:
@@ -1564,7 +1573,7 @@ async def google_callback(
     )
     resp = RedirectResponse(redirect_url, status_code=303)
     policy = _cookie_policy(request)
-    resp.set_cookie("user_id", str(user.id), **policy)
+    _set_user_cookie(resp, request, user)
     resp.delete_cookie("oauth_state", samesite=policy["samesite"], secure=policy["secure"])
     _clear_auth_return(resp, request)
     return resp
@@ -1670,7 +1679,7 @@ async def linkedin_callback(
     )
     resp = RedirectResponse(redirect_url, status_code=303)
     policy = _cookie_policy(request)
-    resp.set_cookie("user_id", str(user.id), **policy)
+    _set_user_cookie(resp, request, user)
     resp.delete_cookie("oauth_state", samesite=policy["samesite"], secure=policy["secure"])
     _clear_auth_return(resp, request)
     return resp
@@ -1794,7 +1803,7 @@ def login(
     )
     _record_user_event(db, request, "login_success", user=user, metadata={"role": role or "", "next": next_url or ""})
     db.commit()
-    response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
+    _set_user_cookie(response, request, user)
     _clear_auth_return(response, request)
     if (role or "").strip().lower() == "participant":
         _mark_participant_app(response, request)
@@ -1986,7 +1995,7 @@ async def do_register(
         _post_auth_or_onboarding_url(user, final_url, role=role, participant_app=participant_app),
         status_code=303,
     )
-    response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
+    _set_user_cookie(response, request, user)
     _clear_auth_return(response, request)
     if role == "participant":
         _mark_participant_app(response, request)
@@ -2598,7 +2607,15 @@ def dashboard(
         if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
         return True
 
-    matched = [s for s in all_published if survey_matches(s)]
+    participant_response_survey_ids = {
+        row[0] for row in db.query(Response.survey_id).filter(
+            Response.participant_id == current_user.id
+        ).all()
+    }
+    matched = [
+        s for s in all_published
+        if s.id not in participant_response_survey_ids and survey_matches(s)
+    ]
 
     # Blend Claude's completion estimate with field/major relevance from the participant profile.
     recommendation_map = recommend_surveys_for_user(db, matched, current_user, use_cache=True)
@@ -2964,6 +2981,14 @@ async def start_survey(
         db.refresh(response)
         should_schedule_followup = True
         should_send_booking_email = bool(booking_slot)
+    elif response.status != "completed":
+        response.status = "started"
+        response.completed_at = None
+        response.started_at = datetime.now(timezone.utc)
+        if booking_slot:
+            should_send_booking_email = response.booking_slot != booking_slot
+            response.booking_slot = booking_slot
+        db.commit()
     elif booking_slot:
         should_send_booking_email = response.booking_slot != booking_slot
         response.booking_slot = booking_slot
