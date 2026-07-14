@@ -2331,6 +2331,10 @@ def recruitment_share_page(
         "is_online_interview": _is_online_interview_survey(survey),
         "has_external_start_link": _survey_has_external_start_link(survey),
         "external_start_url": _survey_external_start_url(survey),
+        "external_start_redirect_url": (
+            f"/surveys/{survey.id}/start-redirect?{urlencode({'next': _survey_external_start_url(survey)})}"
+            if _survey_external_start_url(survey) else ""
+        ),
     })
 
 @app.get("/r/{share_slug}/qr.png")
@@ -3105,6 +3109,66 @@ async def start_survey(
         background_tasks.add_task(_send_booking_confirmation_emails_for_response, response.id, booking_slot)
 
     return {"message": "Survey started successfully"}
+
+@app.get("/surveys/{survey_id}/start-redirect")
+def start_survey_and_redirect(
+    survey_id: int,
+    request: Request,
+    next_url: str = Query("", alias="next"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    if survey.status != "published":
+        raise HTTPException(400, "Survey not published")
+
+    target_url = (next_url or "").strip()
+    if not (target_url.startswith("https://") or target_url.startswith("http://")):
+        target_url = _participant_dashboard_url(request)
+
+    response = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.participant_id == current_user.id,
+    ).first()
+    if not response:
+        response = Response(
+            survey_id=survey_id,
+            participant_id=current_user.id,
+            status="started",
+            start_followup_scheduled_at=datetime.utcnow(),
+        )
+        db.add(response)
+        db.commit()
+        db.refresh(response)
+    elif response.status != "completed":
+        response.status = "started"
+        response.completed_at = None
+        response.started_at = datetime.now(timezone.utc)
+        if not response.start_followup_sent_at and not response.start_followup_scheduled_at:
+            response.start_followup_scheduled_at = datetime.utcnow()
+        db.commit()
+
+    _record_user_event(
+        db,
+        request,
+        "study_start",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        page_path=f"/surveys/{survey.id}/start-redirect",
+        metadata={
+            "study_title": survey.title,
+            "source": _event_source_from_request(request, "Study Page"),
+            "task_type": _normalize_task_type(getattr(survey, "task_type", None)),
+            "user_role": "participant",
+            "redirect_target": target_url,
+        },
+    )
+    db.commit()
+
+    return RedirectResponse(target_url, status_code=303)
 
 
 @app.post("/surveys/{survey_id}/complete")
