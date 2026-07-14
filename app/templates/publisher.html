@@ -436,6 +436,12 @@
     const url = new URL(path, window.location.origin).toString();
     try {
       await navigator.clipboard.writeText(url);
+      if (window.insightaTrack) {
+        const slug = (path || '').split('/').filter(Boolean).pop() || '';
+        window.insightaTrack('study_shared', {
+          metadata: { source: 'Publisher', surface: 'publisher_dashboard', share_path: path, share_slug: slug, user_role: 'researcher' }
+        });
+      }
       alert('Share link copied.');
     } catch {
       prompt('Copy this link', url);
@@ -554,6 +560,10 @@
   loadNotifications();
   setInterval(loadNotifications, 30000);
 </script>
+<script>
+  window.INSIGHTA_TRACKING = { surface: 'publisher_dashboard', source: 'Publisher', userRole: 'researcher' };
+</script>
+<script src="/static/insighta_events.js"></script>
 
 </body>
 </html>

@@ -427,7 +427,7 @@
              </button>
            </div>`;
 
-      return `<div class="study-card ${s.is_completed ? 'completed' : ''}" id="card-${s.id}">
+      return `<div class="study-card ${s.is_completed ? 'completed' : ''}" id="card-${s.id}" data-study-id="${s.id}">
         <div class="card-top">
           <div class="card-left">
             <div class="card-cat">${s.type_label || cap(s.category)}</div>
@@ -459,6 +459,28 @@
         </div>
       </div>`;
     }).join('');
+    if (window.insightaObserveStudyCards) {
+      window.insightaObserveStudyCards('#studyList .study-card', function(card) {
+        const studyId = card.getAttribute('data-study-id');
+        const s = all.find(item => String(item.id) === String(studyId));
+        if (!s) return null;
+        const cards = [...document.querySelectorAll('#studyList .study-card')];
+        const position = cards.indexOf(card) + 1;
+        const matchScore = s.match_pct ? (s.match_pct / 100).toFixed(2) : null;
+        return {
+          target_type: 'survey',
+          target_id: s.id,
+          metadata: {
+            source: 'Recommendation',
+            surface: 'participant_dashboard_desktop',
+            study_title: s.title || '',
+            match_score: matchScore,
+            position: position,
+            user_role: 'participant',
+          }
+        };
+      });
+    }
   }
 
   async function doTake(id, link, isBuiltIn, e) {
@@ -488,6 +510,21 @@
 
   function openRecruitmentPage(path, e) {
     burst(e);
+    const card = e && e.currentTarget ? e.currentTarget.closest('.study-card') : null;
+    const studyId = card ? card.getAttribute('data-study-id') : '';
+    const s = studyId ? surveys.find(x => String(x.id) === String(studyId)) : null;
+    if (window.insightaTrack && s) {
+      window.insightaTrack('study_click', {
+        target_type: 'survey',
+        target_id: s.id,
+        metadata: {
+          source: 'Dashboard',
+          surface: 'participant_dashboard_desktop',
+          study_title: s.title || '',
+          user_role: 'participant',
+        }
+      });
+    }
     if (!path) { window.location.href = '/dashboard'; return; }
     const url = new URL(path, window.location.origin);
     url.searchParams.set('from', 'participant');
@@ -640,7 +677,7 @@
   renderList();
 </script>
 <script>
-  window.INSIGHTA_TRACKING = { surface: 'participant_dashboard_desktop' };
+  window.INSIGHTA_TRACKING = { surface: 'participant_dashboard_desktop', source: 'Dashboard', userRole: 'participant' };
 </script>
 <script src="/static/insighta_events.js"></script>
 <script src="/static/support_chat.js"></script>

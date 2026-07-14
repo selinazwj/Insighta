@@ -111,6 +111,15 @@ ensure_user_profile_columns()
 def ensure_survey_listing_columns():
     columns = {col["name"] for col in inspect(engine).get_columns("surveys")}
     listing_columns = {
+        "target_student_status": "VARCHAR",
+        "target_year_in_school": "VARCHAR",
+        "target_international_domestic": "VARCHAR",
+        "target_experience_tags": "VARCHAR",
+        "target_participation_format": "VARCHAR",
+        "target_device": "VARCHAR",
+        "urgency_level": "VARCHAR",
+        "incentive_type": "VARCHAR",
+        "task_type": "VARCHAR",
         "target_income_level": "VARCHAR",
         "target_lifestyle_tags": "VARCHAR",
         "target_niche_requirements": "VARCHAR",
@@ -645,6 +654,82 @@ def _safe_event_metadata(metadata: Any) -> dict:
         else:
             allowed[safe_key] = str(value)[:200]
     return allowed
+
+
+RESEARCHER_EVENT_NAMES = frozenset({
+    "study_created", "study_published", "participant_approved",
+    "participant_rejected", "study_shared",
+})
+VIEW_EVENT_NAMES = frozenset({
+    "listing_view", "listing_viewed", "study_impression", "study_card_viewed",
+    "page_view", "page_viewed",
+})
+START_EVENT_NAMES = frozenset({"study_start", "survey_started"})
+CLICK_EVENT_NAMES = frozenset({"study_click"})
+COMPLETE_EVENT_NAMES = frozenset({"study_complete", "survey_completed"})
+
+
+def _event_source_from_request(request: Request, fallback: str = "") -> str:
+    referer = (request.headers.get("referer") or "").lower()
+    if "my-studies" in referer:
+        return "My Studies"
+    if "/dashboard" in referer:
+        return "Dashboard"
+    if "/r/" in referer:
+        return "Study Page"
+    return fallback or "—"
+
+
+def _admin_event_role(event: UserEvent, user: Optional[User], metadata: dict) -> str:
+    role = (metadata.get("user_role") or metadata.get("role") or "").strip().lower()
+    if role == "participant":
+        return "Participant"
+    if role == "researcher":
+        return "Researcher"
+    if user and getattr(user, "welcome_email_role", None):
+        welcome_role = (user.welcome_email_role or "").strip().lower()
+        if welcome_role == "participant":
+            return "Participant"
+        if welcome_role == "researcher":
+            return "Researcher"
+    if event.event_name in RESEARCHER_EVENT_NAMES:
+        return "Researcher"
+    if event.user_id or event.anonymous_id:
+        return "Participant"
+    return "—"
+
+
+def _admin_event_source(metadata: dict) -> str:
+    source = (metadata.get("source") or metadata.get("surface") or "").strip()
+    if not source:
+        return "—"
+    return source.replace("_", " ").title()
+
+
+def _admin_event_details(metadata: dict) -> str:
+    if not metadata:
+        return "—"
+    pieces = []
+    if metadata.get("match_score") is not None:
+        pieces.append(f"Match score: {metadata['match_score']}")
+    if metadata.get("position") is not None:
+        pieces.append(f"Position: {metadata['position']}")
+    if metadata.get("reward_amount") is not None:
+        try:
+            pieces.append(f"Reward: ${float(metadata['reward_amount']):.2f}")
+        except (TypeError, ValueError):
+            pieces.append(f"Reward: {metadata['reward_amount']}")
+    if metadata.get("button"):
+        pieces.append(f"Button: {metadata['button']}")
+    if not pieces:
+        extras = []
+        for key in ("referrer", "href"):
+            if metadata.get(key):
+                extras.append(str(metadata[key])[:120])
+        if extras:
+            return " · ".join(extras[:3])
+        return "—"
+    return ", ".join(pieces[:4])
 
 
 def _record_user_event(
@@ -1801,7 +1886,7 @@ def login(
         _post_auth_or_onboarding_url(user, final_url, role=role, participant_app=participant_app),
         status_code=303,
     )
-    _record_user_event(db, request, "login_success", user=user, metadata={"role": role or "", "next": next_url or ""})
+    _record_user_event(db, request, "login", user=user, metadata={"role": role or "", "user_role": role or "", "next": next_url or "", "source": "Login"})
     db.commit()
     _set_user_cookie(response, request, user)
     _clear_auth_return(response, request)
@@ -1987,7 +2072,7 @@ async def do_register(
     db.add(user)
     db.commit()
     db.refresh(user)
-    _record_user_event(db, request, "signup_completed", user=user, metadata={"role": role or "", "next": next_url or ""})
+    _record_user_event(db, request, "sign_up", user=user, metadata={"role": role or "", "user_role": role or "", "next": next_url or "", "source": "Sign up"})
     db.commit()
 
     final_url = _post_auth_url_with_next(request, participant_app, next_url, role=role, welcome=True)
@@ -2151,6 +2236,13 @@ async def complete_profile_post(
             current_user.welcome_email_role = welcome_role
         elif error:
             print(f"Welcome email error for user {current_user.id}: {error}")
+    _record_user_event(
+        db,
+        request,
+        "profile_update",
+        user=current_user,
+        metadata={"source": "Complete profile", "user_role": "participant"},
+    )
     db.commit()
     return RedirectResponse(return_to or _post_auth_url(request, participant_app), status_code=303)
 
@@ -2211,12 +2303,12 @@ def recruitment_share_page(
     _record_user_event(
         db,
         request,
-        "listing_viewed",
+        "listing_view",
         user=current_user,
         target_type="survey",
         target_id=survey.id,
         page_path=next_path,
-        metadata={"study_title": survey.title, "source": from_ or "share_link"},
+        metadata={"study_title": survey.title, "source": from_ or "Share link", "surface": "recruitment_share"},
     )
     db.commit()
     return templates.TemplateResponse("recruitment_share.html", {
@@ -2665,13 +2757,6 @@ def dashboard(
 
     pending_earnings = getattr(current_user, 'pending_earnings', 0.0) or 0.0
     total_withdrawn = getattr(current_user, 'total_withdrawn', 0.0) or 0.0
-    _record_user_event(
-        db,
-        request,
-        "dashboard_opened",
-        user=current_user,
-        metadata={"matched_count": len(surveys_data), "surface": "desktop"},
-    )
     db.commit()
 
     return templates.TemplateResponse(
@@ -2859,14 +2944,6 @@ def dashboard_mobile(
         Response.participant_id == current_user.id,
         Response.status == "completed",
     ).count()
-    _record_user_event(
-        db,
-        request,
-        "dashboard_opened",
-        user=current_user,
-        metadata={"matched_count": len(surveys_data), "surface": "mobile"},
-    )
-    db.commit()
 
     return templates.TemplateResponse("dashboard_mobile.html", {
         "request": request,
@@ -3008,15 +3085,18 @@ async def start_survey(
     _record_user_event(
         db,
         request,
-        "survey_started",
+        "study_start",
         user=current_user,
         target_type="survey",
         target_id=survey.id,
+        page_path=f"/surveys/{survey.id}/start",
         metadata={
             "study_title": survey.title,
+            "source": _event_source_from_request(request, "Study Page"),
             "booking_slot": _booking_slots_label(booking_slot) if booking_slot else "",
             "booking_slots": booking_slots,
             "task_type": _normalize_task_type(getattr(survey, "task_type", None)),
+            "user_role": "participant",
         },
     )
     db.commit()
@@ -3078,14 +3158,17 @@ def complete_survey(
         _record_user_event(
             db,
             request,
-            "survey_completed",
+            "study_complete",
             user=current_user,
             target_type="survey",
             target_id=survey.id,
+            page_path=f"/surveys/{survey.id}/take",
             metadata={
                 "study_title": survey.title,
                 "task_type": _normalize_task_type(getattr(survey, "task_type", None)),
                 "reward_amount": survey.reward_amount,
+                "source": "Survey",
+                "user_role": "participant",
             },
         )
 
@@ -3138,6 +3221,7 @@ def get_notifications(
 @app.post("/api/notifications/{notif_id}/accept")
 def accept_notification(
     notif_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -3157,6 +3241,22 @@ def accept_notification(
         release_response_payout(db, response)
         survey = db.query(Survey).filter(Survey.id == notif.survey_id).first()
         participant = db.query(User).filter(User.id == notif.participant_id).first()
+        if survey:
+            _record_user_event(
+                db,
+                request,
+                "participant_approved",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={
+                    "study_title": survey.title,
+                    "participant_id": notif.participant_id,
+                    "participant_email": notif.participant_email,
+                    "source": "Notification",
+                    "user_role": "researcher",
+                },
+            )
         if participant and survey:
             send_email(
                 to=participant.email,
@@ -3181,6 +3281,7 @@ def accept_notification(
 @app.post("/api/notifications/{notif_id}/reject")
 def reject_notification(
     notif_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -3198,6 +3299,23 @@ def reject_notification(
     ).first()
     if response:
         reject_response_payout(db, response)
+    survey = db.query(Survey).filter(Survey.id == notif.survey_id).first()
+    if survey:
+        _record_user_event(
+            db,
+            request,
+            "participant_rejected",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            metadata={
+                "study_title": survey.title,
+                "participant_id": notif.participant_id,
+                "participant_email": notif.participant_email,
+                "source": "Notification",
+                "user_role": "researcher",
+            },
+        )
     db.commit()
     return {"message": "rejected"}
 
@@ -3392,7 +3510,26 @@ async def publish_interview(
         status="published", published_at=datetime.utcnow(), closed_at=None,
     )
     _ensure_survey_share_slug(db, survey)
-    db.add(survey); db.commit()
+    db.add(survey); db.commit(); db.refresh(survey)
+    _record_user_event(
+        db,
+        request,
+        "study_created",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={"study_title": survey.title, "source": "Interview publish", "user_role": "researcher"},
+    )
+    _record_user_event(
+        db,
+        request,
+        "study_published",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={"study_title": survey.title, "source": "Interview publish", "user_role": "researcher"},
+    )
+    db.commit()
     return RedirectResponse("/publisher", status_code=303)
 
 
@@ -3417,9 +3554,20 @@ def payment_success(
 
     # Fallback: mark paid and publish when landing on payment success page
     if survey and survey.payment_status != "paid":
+        was_published = survey.status == "published"
         survey.payment_status = "paid"
         survey.status = "published"
         survey.published_at = datetime.utcnow()
+        if not was_published:
+            _record_user_event(
+                db,
+                request,
+                "study_published",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={"study_title": survey.title, "source": "Payment success", "user_role": "researcher"},
+            )
         db.commit()
 
     return templates.TemplateResponse("payment_success.html", {
@@ -3444,9 +3592,21 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if survey_id:
             survey = db.query(Survey).filter(Survey.id == int(survey_id)).first()
             if survey:
+                was_published = survey.status == "published"
                 survey.payment_status = "paid"
                 survey.status = "published"
                 survey.published_at = datetime.utcnow()
+                if not was_published:
+                    publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+                    _record_user_event(
+                        db,
+                        request,
+                        "study_published",
+                        user=publisher,
+                        target_type="survey",
+                        target_id=survey.id,
+                        metadata={"study_title": survey.title, "source": "Stripe webhook", "user_role": "researcher"},
+                    )
                 db.commit()
     elif event["type"] == "account.updated":
         account = event["data"]["object"]
@@ -3527,11 +3687,28 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
 # ---------------------------
 
 @app.post("/surveys/{survey_id}/publish")
-def publish_existing_survey(survey_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def publish_existing_survey(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     s = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
     if not s: raise HTTPException(404, "Survey not found")
     if getattr(s, 'payment_status', 'unpaid') != 'paid': raise HTTPException(400, "Survey must be paid before publishing")
-    if s.status != "published": s.status = "published"; s.published_at = datetime.utcnow(); s.closed_at = None
+    if s.status != "published":
+        s.status = "published"
+        s.published_at = datetime.utcnow()
+        s.closed_at = None
+        _record_user_event(
+            db,
+            request,
+            "study_published",
+            user=current_user,
+            target_type="survey",
+            target_id=s.id,
+            metadata={"study_title": s.title, "source": "Publisher", "user_role": "researcher"},
+        )
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
 
@@ -3781,6 +3958,13 @@ async def profile_post(
     current_user.lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
     current_user.participation_format = _value_with_other(form.get("participation_format"), form.get("participation_format_other"))
     current_user.device_type = _value_with_other(form.get("device_type"), form.get("device_type_other"))
+    _record_user_event(
+        db,
+        request,
+        "profile_update",
+        user=current_user,
+        metadata={"source": "Profile", "user_role": "participant"},
+    )
     db.commit()
     return_to = form.get("return_to")
     if return_to and is_safe_internal_next(return_to):
@@ -4528,7 +4712,7 @@ async def admin_analytics(
             response_started_total += 1
         if completed_in_window:
             completed_total += 1
-    starts_total = max(event_counts.get("survey_started", 0), response_started_total)
+    starts_total = max(event_counts.get("study_start", 0) + event_counts.get("survey_started", 0), response_started_total)
     start_to_complete = round((completed_total / starts_total) * 100, 1) if starts_total else 0
 
     surveys = db.query(Survey).order_by(Survey.created_at.desc()).limit(200).all()
@@ -4549,13 +4733,13 @@ async def admin_analytics(
             "completed": 0,
         })
         actor = f"u:{event.user_id}" if event.user_id else f"a:{event.anonymous_id or event.client_ip or event.id}"
-        if event.event_name in {"listing_viewed", "study_card_viewed"}:
+        if event.event_name in VIEW_EVENT_NAMES:
             bucket["views"] += 1
             bucket["unique_viewers"].add(actor)
-        elif event.event_name == "survey_started":
+        elif event.event_name in START_EVENT_NAMES:
             bucket["starts"] += 1
             bucket["unique_starters"].add(actor)
-        elif event.event_name == "survey_completed":
+        elif event.event_name in COMPLETE_EVENT_NAMES:
             bucket["completed"] += 1
 
     responses_by_survey: dict[int, dict[str, int]] = {}
@@ -4626,7 +4810,12 @@ async def admin_analytics(
             "days": days,
             "total_events": len(events),
             "unique_people": len(unique_people),
-            "listing_views": event_counts.get("listing_viewed", 0) + event_counts.get("study_card_viewed", 0),
+            "listing_views": (
+                event_counts.get("listing_view", 0)
+                + event_counts.get("listing_viewed", 0)
+                + event_counts.get("study_impression", 0)
+                + event_counts.get("study_card_viewed", 0)
+            ),
             "start_clicks": starts_total,
             "completed_surveys": completed_total,
             "start_to_complete_rate": start_to_complete,
@@ -4654,10 +4843,13 @@ def _admin_event_payload(event: UserEvent, users: dict[int, User], survey_map: d
     survey = survey_map.get(int(event.target_id)) if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit() else None
     inferred_user_id = anonymous_user_ids.get(event.anonymous_id) if anonymous_user_ids and event.anonymous_id else None
     actor = _admin_event_actor(event, users, anonymous_user_ids)
+    metadata = event.metadata_json or {}
+    user = users.get(event.user_id or inferred_user_id)
     return {
         "id": event.id,
         "event_name": event.event_name,
         "user": actor["label"],
+        "role": _admin_event_role(event, user, metadata),
         "actor_type": actor["type"],
         "user_email": actor["email"],
         "username": actor["username"],
@@ -4665,9 +4857,11 @@ def _admin_event_payload(event: UserEvent, users: dict[int, User], survey_map: d
         "anonymous_id": event.anonymous_id,
         "target_type": event.target_type,
         "target_id": event.target_id,
-        "target_label": survey.title if survey else None,
+        "target_label": survey.title if survey else (metadata.get("study_title") or None),
         "page_path": event.page_path,
-        "metadata": event.metadata_json or {},
+        "source": _admin_event_source(metadata),
+        "details": _admin_event_details(metadata),
+        "metadata": metadata,
         "created_at": event.created_at.isoformat() if event.created_at else None,
     }
 
@@ -4760,9 +4954,9 @@ async def admin_activity(
         survey_user_ids.update({response.participant_id for response in response_rows if response.participant_id})
         survey_users = {u.id: u for u in db.query(User).filter(User.id.in_(survey_user_ids)).all()} if survey_user_ids else {}
         grouped: dict[str, dict[str, Any]] = {}
-        view_events = {"listing_viewed", "study_card_viewed", "page_viewed"}
-        start_events = {"survey_started"}
-        complete_events = {"survey_completed"}
+        view_events = VIEW_EVENT_NAMES
+        start_events = START_EVENT_NAMES
+        complete_events = COMPLETE_EVENT_NAMES
         for event in survey_events:
             inferred_user_id = survey_anonymous_user_ids.get(event.anonymous_id) if event.anonymous_id else None
             actor_key = f"u:{event.user_id or inferred_user_id}" if (event.user_id or inferred_user_id) else f"a:{event.anonymous_id or event.client_ip or event.id}"
@@ -4817,7 +5011,7 @@ async def admin_activity(
             latest_at = completed_at or started_at
             if latest_at and (not bucket["last_event_at"] or latest_at > bucket["last_event_at"]):
                 bucket["last_event_at"] = latest_at
-                bucket["last_event_name"] = "survey_completed" if completed_at else "survey_started"
+                bucket["last_event_name"] = "study_complete" if completed_at else "study_start"
             if response.id and bucket["event_count"] == 0:
                 bucket["event_count"] = 1
         people = sorted(
@@ -5093,6 +5287,7 @@ async def admin_update_support_status(thread_id: int, request: Request, db: Sess
 
 @app.post("/surveys/create-builtin")
 def create_builtin_survey(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -5116,6 +5311,16 @@ def create_builtin_survey(
     db.add(survey)
     db.commit()
     db.refresh(survey)
+    _record_user_event(
+        db,
+        request,
+        "study_created",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={"study_title": survey.title, "source": "Builtin builder", "user_role": "researcher"},
+    )
+    db.commit()
     return RedirectResponse(f"/surveys/{survey.id}/builder", status_code=303)
 
 @app.post("/publish")
@@ -5308,11 +5513,29 @@ async def publish_survey(
         _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
         db.add(survey); db.commit(); db.refresh(survey)
+        _record_user_event(
+            db,
+            request,
+            "study_created",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            metadata={"study_title": survey.title, "source": "Publish flow", "user_role": "researcher"},
+        )
 
     if admin_publish:
         survey.status = "published"
         survey.payment_status = "admin_demo"
         survey.published_at = datetime.utcnow()
+        _record_user_event(
+            db,
+            request,
+            "study_published",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            metadata={"study_title": survey.title, "source": "Admin publish", "user_role": "researcher"},
+        )
         db.commit()
         redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
         return RedirectResponse(f"/admin/publish?{redirect_qs}", status_code=303)
@@ -5323,6 +5546,15 @@ async def publish_survey(
         survey.published_at = datetime.utcnow()
         if not stripe.api_key and not is_no_pay:
             survey.payment_status = "paid"
+        _record_user_event(
+            db,
+            request,
+            "study_published",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            metadata={"study_title": survey.title, "source": "Publish flow", "user_role": "researcher"},
+        )
         db.commit()
         return RedirectResponse("/publisher", status_code=303)
 
@@ -6030,22 +6262,55 @@ async def review_quality_check(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    row, _survey = _get_quality_check_for_publisher(db, check_id, current_user.id)
+    row, survey = _get_quality_check_for_publisher(db, check_id, current_user.id)
     body = await request.json()
     action = (body.get("action") or "").strip().lower()
     notes = body.get("notes")
     reviewer_label = body.get("reviewer_label")
 
     response = db.query(Response).filter(Response.id == row.response_id).first() if row.response_id else None
+    participant = db.query(User).filter(User.id == response.participant_id).first() if response and response.participant_id else None
 
     if action == "approve":
         row.review_status = "approved"
         if response:
             release_response_payout(db, response)
+        if survey:
+            _record_user_event(
+                db,
+                request,
+                "participant_approved",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={
+                    "study_title": survey.title,
+                    "participant_id": response.participant_id if response else None,
+                    "participant_email": participant.email if participant else None,
+                    "source": "Quality review",
+                    "user_role": "researcher",
+                },
+            )
     elif action == "reject":
         row.review_status = "rejected"
         if response:
             reject_response_payout(db, response)
+        if survey:
+            _record_user_event(
+                db,
+                request,
+                "participant_rejected",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={
+                    "study_title": survey.title,
+                    "participant_id": response.participant_id if response else None,
+                    "participant_email": participant.email if participant else None,
+                    "source": "Quality review",
+                    "user_role": "researcher",
+                },
+            )
     elif action == "pending":
         row.review_status = "pending"
         if response:
@@ -6061,6 +6326,22 @@ async def review_quality_check(
         row.reviewer_label = reviewer_label or "fraud"
         if response:
             reject_response_payout(db, response)
+        if survey:
+            _record_user_event(
+                db,
+                request,
+                "participant_rejected",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={
+                    "study_title": survey.title,
+                    "participant_id": response.participant_id if response else None,
+                    "participant_email": participant.email if participant else None,
+                    "source": "Quality review",
+                    "user_role": "researcher",
+                },
+            )
     elif action == "mark_low_quality":
         row.review_status = "rejected"
         row.reviewer_label = reviewer_label or "low_quality"
@@ -6068,6 +6349,22 @@ async def review_quality_check(
             row.quality_label = "low"
         if response:
             reject_response_payout(db, response)
+        if survey:
+            _record_user_event(
+                db,
+                request,
+                "participant_rejected",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={
+                    "study_title": survey.title,
+                    "participant_id": response.participant_id if response else None,
+                    "participant_email": participant.email if participant else None,
+                    "source": "Quality review",
+                    "user_role": "researcher",
+                },
+            )
     else:
         raise HTTPException(400, "Invalid action")
 

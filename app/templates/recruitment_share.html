@@ -419,6 +419,8 @@
   <script>
     window.INSIGHTA_TRACKING = {
       surface: 'recruitment_share',
+      source: 'Study Page',
+      userRole: 'participant',
       targetType: 'survey',
       targetId: '{{ survey.id }}',
       studyTitle: {{ survey.title | tojson }},
