@@ -120,6 +120,14 @@
     .row .field{margin-bottom:0;}
     .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
     .row-3 .field{margin-bottom:0;}
+    .admin-schedule-box{border:.5px solid var(--line2);border-radius:12px;background:var(--bg2);padding:16px;margin:18px 0;}
+    .slot-editor{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:10px;align-items:end;margin-top:10px;}
+    .slot-editor input{height:40px;}
+    .slot-add-btn{height:40px;padding:0 16px;border:0;border-radius:8px;background:var(--green);color:white;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
+    .slot-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+    .slot-chip{display:inline-flex;align-items:center;gap:8px;border:.5px solid var(--green-m);border-radius:999px;background:var(--green-l);color:var(--green-d);padding:7px 10px;font-size:12px;font-weight:700;}
+    .slot-chip button{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;line-height:1;}
+    .slot-empty{font-size:12px;color:var(--ink3);}
 
     /* ── INFO BOX ── */
     .info-box{background:var(--green-l);border-left:2.5px solid var(--green);padding:12px 16px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink2);line-height:1.6;margin-bottom:18px;}
@@ -213,6 +221,7 @@
       .container{padding:28px 16px 64px;}
       .form-section{padding:20px 18px;}
       .row,.row-3{grid-template-columns:1fr;}
+      .slot-editor{grid-template-columns:1fr;}
       .check-grid{grid-template-columns:1fr;}
       .submit-bar{flex-direction:column-reverse;}
       .wizard-label{font-size:10px;}
@@ -318,7 +327,7 @@
     </div>
   </div>
 
-  <form id="publishForm" method="POST" action="{{ '/admin/publish' if is_admin_publish else '/publish' }}" enctype="multipart/form-data">
+  <form id="publishForm" method="POST" action="{{ '/admin/publish' if is_admin_publish else '/publish' }}" enctype="multipart/form-data" novalidate>
     {% if is_admin_publish %}
     <input type="hidden" name="admin_key" value="{{ admin_key }}">
     {% endif %}
@@ -343,7 +352,7 @@
       {% else %}
       <div class="info-box">
         <strong>Before you start</strong>
-        Make sure your survey link is publicly accessible and set to accept responses.
+        Make sure your survey link, meeting link, or booking details are ready before publishing.
       </div>
       {% endif %}
 
@@ -356,9 +365,9 @@
         <textarea name="description" placeholder="Brief description of your study and what you're researching..." required>{{ prefill_desc }}</textarea>
       </div>
       {% if not builtin %}
-      <div class="field">
-        <label>Survey link <span style="color:var(--red)">*</span></label>
-        <input type="url" name="form_url" placeholder="https://your-survey-link.com/..." required>
+      <div class="field" id="surveyLinkField">
+        <label id="formUrlLabel">Survey link <span style="color:var(--red)">*</span></label>
+        <input type="url" name="form_url" id="formUrlInput" placeholder="https://your-survey-link.com/..." required>
       </div>
       {% endif %}
     </div>
@@ -376,10 +385,10 @@
       <div class="row" style="margin-bottom:18px;">
         <div class="field">
           <label>Study type <span style="color:var(--red)">*</span></label>
-          <select name="task_type" required>
+          <select name="task_type" id="taskTypeSelect" required>
             <option value="survey" selected>Online survey</option>
-            <option value="interview">Interview</option>
-            <option value="in_person">In-person study</option>
+            <option value="online_interview">Online interview</option>
+            <option value="in_person_study">In-person study</option>
             <option value="ux_test">UX / product test</option>
             <option value="diary_study">Diary study</option>
           </select>
@@ -414,13 +423,56 @@
         </div>
         <div class="field">
           <label>Participation format</label>
-          <select name="target_participation_format">
+          <select name="target_participation_format" id="participationFormatSelect">
             <option value="all" selected>Any format</option>
             <option value="Online surveys">Online</option>
             <option value="Video interview">Remote live session</option>
             <option value="In-person study">In-person</option>
             <option value="Hybrid">Hybrid</option>
           </select>
+        </div>
+      </div>
+
+      <div class="admin-schedule-box" id="adminInterviewFields" style="display:none;">
+        <div class="section-sub" style="margin-bottom:14px;">Interview scheduling details. These feed the same participant booking flow as researcher-created interviews.</div>
+        <div class="row" style="margin-bottom:14px;">
+          <div class="field">
+            <label>Total sessions per participant</label>
+            <input type="number" name="session_count" id="sessionCountInput" placeholder="e.g. 2" min="1" value="1">
+          </div>
+          <div class="field">
+            <label>Sessions per week</label>
+            <input type="number" name="sessions_per_week" placeholder="e.g. 2" min="1">
+          </div>
+        </div>
+        <div class="field" id="adminMeetingLinkField">
+          <label>Online meeting or booking link</label>
+          <input type="url" name="scheduling_link" placeholder="https://zoom.us/j/... or https://calendly.com/...">
+        </div>
+        <div class="field" id="adminLocationField" style="display:none;">
+          <label>In-person location</label>
+          <input type="text" name="interview_location" placeholder="e.g. Boston University, Questrom Room 315">
+        </div>
+        <div class="field" id="adminBookableTimesField">
+          <label>Bookable times</label>
+          <div class="field-hint">Add every slot participants can choose. Leave empty if you want them to use the link above.</div>
+          <div class="slot-editor">
+            <div>
+              <label>Date</label>
+              <input type="date" id="slotDateInput">
+            </div>
+            <div>
+              <label>Start</label>
+              <input type="time" id="slotStartInput">
+            </div>
+            <div>
+              <label>End</label>
+              <input type="time" id="slotEndInput">
+            </div>
+            <button type="button" class="slot-add-btn" onclick="addAdminSlot()">Add slot</button>
+          </div>
+          <div class="slot-list" id="adminSlotList"><span class="slot-empty">No bookable times added yet.</span></div>
+          <input type="hidden" name="availability_slots" id="availabilitySlotsInput" value="[]">
         </div>
       </div>
 
@@ -871,6 +923,20 @@
         <label>Niche criteria <span style="font-weight:400;color:var(--ink3);">(optional)</span></label>
         <textarea name="target_niche_requirements" placeholder="e.g. First-generation college students in California who have used a budgeting app in the past 6 months."></textarea>
       </div>
+      <div class="sub-label">Additional participant benefits <span style="font-weight:400;text-transform:none;letter-spacing:0;">(besides payment)</span></div>
+      <div class="section-sub" style="margin-bottom:10px;">Highlight non-monetary reasons someone may want to join. These will appear on the participant-facing study card.</div>
+      <div class="check-grid" style="margin-bottom:14px;">
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Free trial / product access" onchange="syncCheck(this)"> Free trial / product access</label>
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Social impact" onchange="syncCheck(this)"> Social impact</label>
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Networking" onchange="syncCheck(this)"> Networking</label>
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Learn about yourself" onchange="syncCheck(this)"> Learn about yourself</label>
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Early access to a new tool" onchange="syncCheck(this)"> Early access to a new tool</label>
+        <label class="check-item"><input type="checkbox" name="participant_benefits" value="Contribute to science" onchange="syncCheck(this)"> Contribute to science</label>
+      </div>
+      <div class="field">
+        <label>Other benefit <span style="font-weight:400;color:var(--ink3);">(optional)</span></label>
+        <input type="text" name="participant_benefits_other" placeholder="e.g. Free coaching session, certificate, community invite">
+      </div>
     </div>
 
     {% if is_admin_publish %}
@@ -915,6 +981,99 @@
   const DRAFT_KEY = `insighta_publish_draft_{{ 'admin' if is_admin_publish else 'builtin' if builtin else 'external' }}_{{ existing_survey_id or 0 }}`;
   const WIZARD_TITLES = ['Basics', 'Budget & timeline', 'Target audience', 'Review & publish'];
   let currentWizardStep = 1;
+  let adminSlots = [];
+
+  function isInterviewTask(value) {
+    return ['interview', 'online_interview', 'remote_interview', 'in_person', 'in_person_study'].includes(value);
+  }
+
+  function isOnlineInterviewTask(value) {
+    return ['online_interview', 'remote_interview'].includes(value);
+  }
+
+  function syncAdminStudyType() {
+    const typeSelect = document.getElementById('taskTypeSelect');
+    const value = typeSelect?.value || 'survey';
+    const interview = isInterviewTask(value);
+    const online = isOnlineInterviewTask(value);
+    const inPerson = value === 'in_person' || value === 'in_person_study';
+    const interviewBox = document.getElementById('adminInterviewFields');
+    const meetingField = document.getElementById('adminMeetingLinkField');
+    const locationField = document.getElementById('adminLocationField');
+    const bookableTimesField = document.getElementById('adminBookableTimesField');
+    const linkField = document.getElementById('surveyLinkField');
+    const formUrl = document.getElementById('formUrlInput');
+    const formUrlLabel = document.getElementById('formUrlLabel');
+    const formatSelect = document.getElementById('participationFormatSelect');
+
+    if (interviewBox) interviewBox.style.display = interview ? 'block' : 'none';
+    if (meetingField) meetingField.style.display = 'none';
+    if (locationField) locationField.style.display = inPerson ? 'block' : 'none';
+    if (bookableTimesField) bookableTimesField.style.display = inPerson ? 'block' : 'none';
+    if (linkField) linkField.style.display = inPerson ? 'none' : 'block';
+    if (formUrl) {
+      formUrl.required = !inPerson;
+      if (online) {
+        formUrl.placeholder = 'https://calendly.com/... or https://zoom.us/j/...';
+      } else {
+        formUrl.placeholder = 'https://your-survey-link.com/...';
+      }
+      if (inPerson) formUrl.closest('.field')?.classList.remove('error');
+    }
+    if (formUrlLabel) {
+      formUrlLabel.innerHTML = online
+        ? 'Survey / Calendly / meeting link <span style="color:var(--red)">*</span>'
+        : 'Survey link <span style="color:var(--red)">*</span>';
+    }
+    if (formatSelect) {
+      if (online) formatSelect.value = 'Video interview';
+      else if (inPerson) formatSelect.value = 'In-person study';
+      else if (value === 'survey') formatSelect.value = 'Online surveys';
+    }
+    updateCommission();
+  }
+
+  function slotLabel(slot) {
+    if (!slot?.date || !slot?.start || !slot?.end) return '';
+    const date = new Date(`${slot.date}T00:00:00`);
+    const dateLabel = Number.isNaN(date.getTime())
+      ? slot.date
+      : date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    return `${dateLabel}, ${slot.start} - ${slot.end}`;
+  }
+
+  function renderAdminSlots() {
+    const list = document.getElementById('adminSlotList');
+    const hidden = document.getElementById('availabilitySlotsInput');
+    if (hidden) hidden.value = JSON.stringify(adminSlots);
+    if (!list) return;
+    if (!adminSlots.length) {
+      list.innerHTML = '<span class="slot-empty">No bookable times added yet.</span>';
+      return;
+    }
+    list.innerHTML = adminSlots.map((slot, index) =>
+      `<span class="slot-chip">${slot.label}<button type="button" aria-label="Remove slot" onclick="removeAdminSlot(${index})">x</button></span>`
+    ).join('');
+  }
+
+  function addAdminSlot() {
+    const date = document.getElementById('slotDateInput')?.value;
+    const start = document.getElementById('slotStartInput')?.value;
+    const end = document.getElementById('slotEndInput')?.value;
+    if (!date || !start || !end) return;
+    const slot = { date, start, end };
+    slot.label = slotLabel(slot);
+    if (!adminSlots.some(existing => existing.date === date && existing.start === start && existing.end === end)) {
+      adminSlots.push(slot);
+      adminSlots.sort((a, b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
+      renderAdminSlots();
+    }
+  }
+
+  function removeAdminSlot(index) {
+    adminSlots.splice(index, 1);
+    renderAdminSlots();
+  }
 
   function showWizardStep(step, shouldScroll = true) {
     currentWizardStep = Math.max(1, Math.min(4, step));
@@ -935,6 +1094,7 @@
   function validateWizardStep(step) {
     let firstInvalid = null;
     document.querySelectorAll(`[data-wizard-step="${step}"] [required]`).forEach(el => {
+      if (el.disabled || el.closest('[hidden]') || el.offsetParent === null) return;
       if (!String(el.value || '').trim()) {
         el.closest('.field')?.classList.add('error');
         if (!firstInvalid) firstInvalid = el;
@@ -978,6 +1138,7 @@
   const ppInput    = document.getElementById('ppInput');
   const totalInput = document.getElementById('totalInput');
   const targetInput = document.getElementById('targetInput');
+  const sessionCountInput = document.getElementById('sessionCountInput');
 
   function commRate(pp) { return pp >= 25 ? .25 : pp >= 15 ? .20 : .15; }
   function urgencyMult() {
@@ -989,17 +1150,18 @@
     const incentive = document.getElementById('incentiveInput').value;
     if (incentive === 'raffle' || incentive === 'volunteer') { document.getElementById('commBox').style.display = 'none'; return; }
     const target = parseInt(targetInput.value) || 0;
+    const sessionCount = isInterviewTask(document.getElementById('taskTypeSelect')?.value || '') ? Math.max(parseInt(sessionCountInput?.value, 10) || 1, 1) : 1;
     let pp    = parseFloat(ppInput.value)    || 0;
     let total = parseFloat(totalInput.value) || 0;
     if (!pp && !total) { document.getElementById('commBox').style.display = 'none'; return; }
-    if (pp && target && !totalInput.matches(':focus')) { total = pp * target; totalInput.value = total.toFixed(2); }
-    else if (total && target && !ppInput.matches(':focus')) { pp = total / target; ppInput.value = pp.toFixed(2); }
+    if (pp && target && !totalInput.matches(':focus')) { total = pp * target * sessionCount; totalInput.value = total.toFixed(2); }
+    else if (total && target && !ppInput.matches(':focus')) { pp = total / (target * sessionCount); ppInput.value = pp.toFixed(2); }
     if (!pp || !target) { document.getElementById('commBox').style.display = 'none'; return; }
     const rate    = commRate(pp);
     const fee     = pp * rate;
     const reward  = pp - fee;
     const mult    = urgencyMult();
-    const payTotal = pp * target * mult;
+    const payTotal = pp * target * sessionCount * mult;
     document.getElementById('cPP').textContent     = `$${pp.toFixed(2)}`;
     document.getElementById('cRate').textContent   = `${Math.round(rate*100)}%`;
     document.getElementById('cFee').textContent    = `-$${fee.toFixed(2)}`;
@@ -1014,6 +1176,8 @@
   ppInput.addEventListener('input', updateCommission);
   totalInput.addEventListener('input', updateCommission);
   targetInput.addEventListener('input', updateCommission);
+  sessionCountInput?.addEventListener('input', updateCommission);
+  document.getElementById('taskTypeSelect')?.addEventListener('change', syncAdminStudyType);
 
   // ── CHECKBOXES ──
   function syncCheck(input) { input.closest('.check-item').classList.toggle('checked', input.checked); }
@@ -1047,9 +1211,13 @@
     else if (['food','habit','shopping','consumer','market','brand'].some(w => lower.includes(w))) category = 'market';
     else if (['club','organization','community'].some(w => lower.includes(w))) category = 'clubs';
     else if (['lifestyle','sleep','wellness','fitness','health'].some(w => lower.includes(w))) category = 'life';
+    const taskType = ['online interview', 'remote interview', 'video interview', 'zoom', 'teams'].some(w => lower.includes(w))
+      ? 'online_interview'
+      : (['in-person', 'in person', 'lab visit', 'campus visit'].some(w => lower.includes(w)) ? 'in_person_study' : 'survey');
     return {
       title: words.slice(0, 8).join(' ') || 'Research Study',
       description: clean || 'Help us validate this research study by completing a short survey.',
+      task_type: taskType,
       category,
       estimated_time: timeMatch ? Number(timeMatch[1]) : 10,
       per_person_gross: moneyMatch ? Number(moneyMatch[1]) : 5,
@@ -1069,6 +1237,11 @@
   function applyAiFill(d) {
     if (d.title) document.querySelector('input[name="title"]').value = d.title;
     if (d.description) document.querySelector('textarea[name="description"]').value = d.description;
+    if (d.task_type) {
+      const type = document.getElementById('taskTypeSelect');
+      const normalizedType = d.task_type === 'interview' ? 'online_interview' : d.task_type;
+      if (type && [...type.options].some(o => o.value === normalizedType)) type.value = normalizedType;
+    }
     if (d.category) {
       const s = document.querySelector('select[name="category"]');
       s.value = [...s.options].some(o => o.value === d.category) ? d.category : 'research';
@@ -1086,6 +1259,7 @@
       if (demoReward && !demoReward.value) demoReward.value = amount;
     }
     if (d.target_responses) targetInput.value = d.target_responses;
+    syncAdminStudyType();
     updateCommission();
   }
 
@@ -1179,6 +1353,17 @@
     const urgencyValue = document.getElementById('urgencyInput').value;
     const urgency = [...document.querySelectorAll('#urgencyPills .pill')].find(el => el.dataset.v === urgencyValue);
     if (urgency) pickUrgency(urgency);
+    const slotsRaw = document.getElementById('availabilitySlotsInput')?.value;
+    if (slotsRaw) {
+      try {
+        const parsedSlots = JSON.parse(slotsRaw);
+        adminSlots = Array.isArray(parsedSlots) ? parsedSlots : [];
+      } catch {
+        adminSlots = [];
+      }
+      renderAdminSlots();
+    }
+    syncAdminStudyType();
     togglePublishAutoFilter();
     updateCommission();
     showDraftStatus('Restored');
@@ -1194,8 +1379,10 @@
   // ── VALIDATION ──
   document.getElementById('publishForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    syncAdminStudyType();
     let err = false;
     this.querySelectorAll('[required]').forEach(el => {
+      if (el.disabled || el.closest('[hidden]') || el.offsetParent === null) return;
       if (!el.value.trim()) {
         el.closest('.field')?.classList.add('error');
         err = true;
@@ -1233,6 +1420,8 @@
     el.addEventListener('change', () => el.closest('.field')?.classList.remove('error'));
   });
   showWizardStep(1, false);
+  syncAdminStudyType();
+  renderAdminSlots();
   restoreDraft();
 </script>
 <script src="/static/support_chat.js"></script>

@@ -172,6 +172,10 @@
       font: 750 14px var(--sans);
       cursor: pointer;
     }
+    .slot-btn:hover { border-color: var(--teal); background: #f6fffb; }
+    .slot-btn.selected { border-color: var(--teal); background: rgba(181, 228, 140, 0.36); color: var(--deep); }
+    .slot-btn[disabled] { opacity: .45; cursor: not-allowed; background: #f5f5f3; color: #8a8a82; }
+    .slot-helper { margin: 2px 0 10px; color: var(--ink-soft); font-size: 13px; font-weight: 700; line-height: 1.45; }
     .details { padding: 24px 28px; margin-top: 24px; }
     .details h2 { margin: 0 0 14px; font-size: 20px; letter-spacing: 0; }
     .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -185,6 +189,7 @@
       color: var(--ink-soft);
     }
     .tag.niche { width:100%; border-radius:8px; border-color:#f3a6a6; background:#fff1f1; color:#8f3030; font-weight:850; line-height:1.45; }
+    .tag.benefits { width:100%; border-radius:8px; border-color:#99d98c; background:#f2fbec; color:#245f46; font-weight:850; line-height:1.45; }
     .fine-print { margin-top: 16px; color: #6f8fa0; font-size: 13px; line-height: 1.55; }
     @media (max-width: 860px) {
       .layout { grid-template-columns: 1fr; margin-top: 24px; }
@@ -251,6 +256,9 @@
           {% if survey.target_niche_requirements %}
             <span class="tag niche"><strong>Niche requirement:</strong> {{ survey.target_niche_requirements }}</span>
           {% endif %}
+          {% if survey.participant_benefits %}
+            <span class="tag benefits"><strong>Extra benefits:</strong> {{ survey.participant_benefits }}</span>
+          {% endif %}
         </div>
         <p class="fine-print">Insighta keeps your profile private and uses it to match you with studies. Researchers do not receive your personal contact information unless you choose to participate through their approved study flow.</p>
       </section>
@@ -280,21 +288,24 @@
           <a class="ghost-link" href="{{ login_url }}">Sign in to continue</a>
         </div>
       {% elif survey.status == "published" %}
-        {% if is_interview and availability_slots %}
+        {% if is_interview and availability_slots and not has_external_start_link and not is_online_interview %}
+          {% set session_count = survey.session_count or 1 %}
+          <div class="slot-helper">Select {{ session_count }} session{{ 's' if session_count != 1 else '' }}{% if survey.sessions_per_week %} · {{ survey.sessions_per_week }} per week{% endif %}.</div>
           <div class="slots">
             {% for slot in availability_slots %}
               {% set slot_label = slot.label | default(slot) %}
-              <button class="slot-btn" type="button" onclick='bookSlot({{ slot_label | tojson }})'>{{ slot_label }}</button>
+              {% set is_booked = slot_label in booked_slots %}
+              <button class="slot-btn" type="button" data-slot={{ slot_label | tojson }} {% if is_booked %}disabled{% else %}onclick='toggleSlot(this)'{% endif %}>{{ slot_label }}{% if is_booked %} · booked{% endif %}</button>
             {% endfor %}
           </div>
         {% endif %}
         <div class="cta-stack">
           {% if is_builtin %}
             <button class="btn btn-primary" type="button" onclick="startStudy('/surveys/{{ survey.id }}/take')">Start study</button>
-          {% elif survey.form_url %}
-            <button class="btn btn-primary" type="button" onclick="startStudy('{{ survey.form_url }}')">Start study</button>
+          {% elif external_start_url %}
+            <button class="btn btn-primary" type="button" onclick="startExternalStudy('{{ external_start_redirect_url }}')">Start study</button>
           {% else %}
-            <button class="btn btn-primary" type="button" onclick="startStudy('/dashboard')">Save my interest</button>
+            <button class="btn btn-primary" type="button" onclick="startStudy('/dashboard')">{% if is_interview and availability_slots and not has_external_start_link and not is_online_interview %}Save selected time{% else %}Save my interest{% endif %}</button>
           {% endif %}
           <a class="ghost-link" href="/dashboard">Back to dashboard</a>
         </div>
@@ -305,6 +316,9 @@
   <script>
     const shareUrl = {{ share_url | tojson }};
     const dashboardUrl = {{ dashboard_url | tojson }};
+    const requiredSessions = {{ (survey.session_count or 1) | tojson }};
+    const hasBookableSlots = {{ (is_interview and availability_slots and not has_external_start_link and not is_online_interview) | tojson }};
+    const selectedSlots = new Set();
 
     function handleBrandNav(event) {
       const action = event.currentTarget.dataset.brandAction;
@@ -336,22 +350,67 @@
     }
 
     async function startStudy(targetUrl, bookingSlot) {
+      const slots = bookingSlot ? [bookingSlot] : Array.from(selectedSlots);
+      if (hasBookableSlots && slots.length !== requiredSessions) {
+        alert(`Please select ${requiredSessions} session${requiredSessions > 1 ? 's' : ''}.`);
+        return;
+      }
       try {
-        await fetch('/surveys/{{ survey.id }}/start', {
+        const res = await fetch('/surveys/{{ survey.id }}/start', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           credentials: 'same-origin',
-          body: JSON.stringify({booking_slot: bookingSlot || ''})
+          body: JSON.stringify({booking_slot: slots[0] || '', booking_slots: slots})
         });
-      } catch {}
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          alert(data.detail || 'Could not save this time. Please choose another slot.');
+          return;
+        }
+      } catch {
+        alert('Could not save this time. Please try again.');
+        return;
+      }
       window.location.href = targetUrl || '/dashboard';
     }
 
+    function startExternalStudy(targetUrl) {
+      window.location.href = targetUrl;
+    }
+
     function bookSlot(slotLabel) {
-      const targetUrl = {{ (survey.form_url if survey.form_url and survey.form_url != "__builtin__" else "/dashboard") | tojson }};
+      const targetUrl = {{ (external_start_url if external_start_url else "/dashboard") | tojson }};
       startStudy(targetUrl, slotLabel);
     }
+
+    function toggleSlot(button) {
+      const slot = button.dataset.slot;
+      if (!slot) return;
+      if (selectedSlots.has(slot)) {
+        selectedSlots.delete(slot);
+        button.classList.remove('selected');
+        return;
+      }
+      if (selectedSlots.size >= requiredSessions) {
+        alert(`Please select ${requiredSessions} session${requiredSessions > 1 ? 's' : ''}.`);
+        return;
+      }
+      selectedSlots.add(slot);
+      button.classList.add('selected');
+    }
   </script>
+  <script>
+    window.INSIGHTA_TRACKING = {
+      surface: 'recruitment_share',
+      source: 'Study Page',
+      userRole: 'participant',
+      targetType: 'survey',
+      targetId: '{{ survey.id }}',
+      studyTitle: {{ survey.title | tojson }},
+      metadata: { share_slug: {{ survey.share_slug | tojson }} }
+    };
+  </script>
+  <script src="/static/insighta_events.js"></script>
   {% if current_user %}<script src="/static/support_chat.js"></script>{% endif %}
 </body>
 </html>

@@ -133,6 +133,10 @@
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       New listing
     </a>
+    <a href="/publisher/schedule" class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Schedule
+    </a>
     <div class="nav-divider"></div>
     <a href="/guide" class="nav-item">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -198,8 +202,8 @@
       <div class="ov-section">
         <div class="ov-section-title">Study details</div>
         <div class="ov-grid">
-          {% set is_booking_study = survey.task_type in ('interview', 'in_person', 'in-person') %}
-          {% set task_label = 'In-person study' if survey.task_type in ('in_person', 'in-person') else ('Interview' if survey.task_type == 'interview' else 'Survey') %}
+          {% set is_booking_study = survey.task_type in ('interview', 'in_person', 'in-person', 'in_person_study') %}
+          {% set task_label = 'Online interview' if survey.target_participation_format == 'Video interview' else ('In-person study' if survey.task_type in ('in_person', 'in-person', 'in_person_study') or survey.target_participation_format == 'In-person study' else ('Interview' if survey.task_type == 'interview' else 'Survey')) %}
           <div class="ov-item"><div class="ov-label">Type</div><div class="ov-value">{{ task_label }}</div></div>
           <div class="ov-item"><div class="ov-label">Category</div><div class="ov-value">{{ survey.category | capitalize }}</div></div>
           <div class="ov-item"><div class="ov-label">Estimated time</div><div class="ov-value">{{ survey.estimated_time }} min</div></div>
@@ -391,6 +395,13 @@
   async function copyShareLink() {
     try {
       await navigator.clipboard.writeText(SHARE_URL);
+      if (window.insightaTrack) {
+        window.insightaTrack('study_shared', {
+          target_type: 'survey',
+          target_id: SURVEY_ID,
+          metadata: { source: 'Study details', surface: 'publisher_study', user_role: 'researcher' }
+        });
+      }
       alert('Share link copied.');
     } catch {
       prompt('Copy this link', SHARE_URL);
@@ -435,6 +446,10 @@
     } catch { alert('Unavailable.'); }
   }
 </script>
+<script>
+  window.INSIGHTA_TRACKING = { surface: 'publisher_study', source: 'Publisher', userRole: 'researcher' };
+</script>
+<script src="/static/insighta_events.js"></script>
 <script src="/static/support_chat.js"></script>
 </body>
 </html>

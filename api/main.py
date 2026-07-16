@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case, inspect, text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case, inspect, text, or_
 from pathlib import Path
 from typing import Any, List, Optional
 from datetime import datetime, timedelta, timezone, date, time
@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from app.database import engine, get_db, SessionLocal
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage
+from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent
 from app.quality_engine import (
     anthropic_api_key_configured,
     batch_anomaly_scores_for_features,
@@ -111,11 +111,24 @@ ensure_user_profile_columns()
 def ensure_survey_listing_columns():
     columns = {col["name"] for col in inspect(engine).get_columns("surveys")}
     listing_columns = {
+        "target_student_status": "VARCHAR",
+        "target_year_in_school": "VARCHAR",
+        "target_international_domestic": "VARCHAR",
+        "target_experience_tags": "VARCHAR",
+        "target_participation_format": "VARCHAR",
+        "target_device": "VARCHAR",
+        "urgency_level": "VARCHAR",
+        "incentive_type": "VARCHAR",
+        "task_type": "VARCHAR",
         "target_income_level": "VARCHAR",
         "target_lifestyle_tags": "VARCHAR",
         "target_niche_requirements": "VARCHAR",
+        "participant_benefits": "VARCHAR",
         "raffle_prize_type": "VARCHAR",
         "availability_slots": "TEXT",
+        "interview_location": "VARCHAR",
+        "session_count": "INTEGER",
+        "sessions_per_week": "INTEGER",
         "admin_display_reward_amount": "FLOAT",
         "share_slug": "VARCHAR",
         "quality_auto_filter_enabled": "BOOLEAN DEFAULT false",
@@ -145,6 +158,28 @@ def ensure_response_tracking_columns():
 
 ensure_response_tracking_columns()
 
+def ensure_user_event_table():
+    id_type = "SERIAL PRIMARY KEY" if engine.dialect.name == "postgresql" else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    metadata_type = "JSONB" if engine.dialect.name == "postgresql" else "JSON"
+    with engine.begin() as conn:
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS user_events (
+                id {id_type},
+                user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+                anonymous_id VARCHAR NULL,
+                event_name VARCHAR NOT NULL,
+                target_type VARCHAR NULL,
+                target_id VARCHAR NULL,
+                page_path TEXT NULL,
+                metadata_json {metadata_type} NULL,
+                user_agent TEXT NULL,
+                client_ip VARCHAR NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+
+ensure_user_event_table()
+
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
@@ -159,6 +194,8 @@ SUPPORT_ALERT_EMAIL = os.environ.get("SUPPORT_ALERT_EMAIL", "vfsa@bu.edu")
 VERIFICATION_CODE_EXPIRE_MINUTES = 10
 VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS = 60
 VERIFICATION_CODE_MAX_PER_HOUR = 5
+SURVEY_START_FOLLOWUP_DELAY_MINUTES = int(os.environ.get("SURVEY_START_FOLLOWUP_DELAY_MINUTES", "5"))
+SURVEY_START_FOLLOWUP_POLL_SECONDS = int(os.environ.get("SURVEY_START_FOLLOWUP_POLL_SECONDS", "60"))
 
 # ---------------------------
 # OAuth 2.0 configuration
@@ -183,8 +220,34 @@ def _email_plain_text(body: str) -> str:
     text_body = re.sub(r"<[^>]+>", "", text_body)
     return html.unescape(text_body).strip()
 
+def _email_brand_header() -> str:
+    logo_url = f"{BASE_URL.rstrip('/')}/static/favicon.png"
+    return f"""
+    <div style="max-width:620px;margin:0 auto;padding:24px 22px 0;font-family:Arial,sans-serif;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-bottom:1px solid #eeece6;padding-bottom:16px;">
+        <tr>
+          <td width="48" style="padding:0 10px 16px 0;vertical-align:middle;">
+            <img src="{html.escape(logo_url, quote=True)}" alt="Insighta" width="40" height="40" style="display:block;width:40px;height:40px;object-fit:contain;border:0;">
+          </td>
+          <td style="padding:0 0 16px 0;vertical-align:middle;font-size:22px;font-weight:700;letter-spacing:-0.3px;color:#184e77;line-height:1;font-family:Arial,sans-serif;">Insighta</td>
+        </tr>
+      </table>
+    </div>
+    """
+
+def _with_email_brand_header(body: str) -> str:
+    if "data-insighta-email-brand" in (body or ""):
+        return body
+    return f"""
+    <div data-insighta-email-brand="1" style="margin:0;padding:0;background:#ffffff;">
+      {_email_brand_header()}
+      {body or ""}
+    </div>
+    """
+
 def send_email(to: str, subject: str, body: str, text_body: Optional[str] = None) -> tuple[bool, Optional[str]]:
     plain_text = text_body or _email_plain_text(body)
+    html_body = _with_email_brand_header(body)
     if EMAIL_PROVIDER == "resend":
         if not RESEND_API_KEY or not EMAIL_FROM:
             return False, "Resend email configuration is incomplete"
@@ -192,7 +255,7 @@ def send_email(to: str, subject: str, body: str, text_body: Optional[str] = None
             "from": EMAIL_FROM,
             "to": [to],
             "subject": subject,
-            "html": body,
+            "html": html_body,
             "text": plain_text,
         }
         if EMAIL_REPLY_TO:
@@ -228,7 +291,7 @@ def send_email(to: str, subject: str, body: str, text_body: Optional[str] = None
         if EMAIL_REPLY_TO:
             msg["Reply-To"] = EMAIL_REPLY_TO
         msg.attach(MIMEText(plain_text, "plain"))
-        msg.attach(MIMEText(body, "html"))
+        msg.attach(MIMEText(html_body, "html"))
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.sendmail(EMAIL_ADDRESS, to, msg.as_string())
@@ -362,6 +425,54 @@ The Insighta Team"""
     return send_email(user.email, subject, body, text_body=text_body)
 
 
+def _send_reward_setup_reminder_email(user: User) -> tuple[bool, Optional[str]]:
+    if not user.email:
+        return False, "Missing user email"
+    first_name = (user.first_name or user.username or "there").strip()
+    escaped_first = html.escape(first_name)
+    profile_url = f"{BASE_URL.rstrip('/')}/profile"
+    stripe_url = f"{BASE_URL.rstrip('/')}/connect/onboard"
+    subject = "Complete your Insighta profile and payout setup"
+    text_body = f"""Hi {first_name},
+
+Quick reminder from Insighta: to make sure rewards can be matched, reviewed, and paid correctly, please complete your Insighta profile.
+
+If you participate in paid studies, you will also need to connect Stripe before rewards can be paid out. This helps us send approved rewards securely.
+
+What to do next:
+1. Complete or update your profile: {profile_url}
+2. If you are participating in paid studies, connect Stripe payouts: {stripe_url}
+3. Keep your contact information current so we can reach you about study matches, bookings, and rewards.
+
+Rewards are not issued automatically. Insighta reviews study participation and eligibility before releasing approved rewards.
+
+Warmly,
+The Insighta Team"""
+    body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 22px; color: #1a1a18; line-height: 1.65;">
+      <h2 style="margin:0 0 18px;color:#168aad;">Complete your profile and payout setup</h2>
+      <p>Hi {escaped_first},</p>
+      <p>Quick reminder from Insighta: to make sure rewards can be matched, reviewed, and paid correctly, please complete your Insighta profile.</p>
+      <p>If you participate in paid studies, you will also need to connect Stripe before rewards can be paid out. This helps us send approved rewards securely.</p>
+      <div style="background:#f6fbf8;border:1px solid rgba(24,78,119,0.12);border-radius:10px;padding:16px 18px;margin:18px 0;">
+        <p style="margin:0 0 8px;font-weight:700;color:#184e77;">What to do next</p>
+        <ol style="margin:0;padding-left:20px;">
+          <li>Complete or update your profile.</li>
+          <li>If you are participating in paid studies, connect Stripe payouts.</li>
+          <li>Keep your contact information current so we can reach you about study matches, bookings, and rewards.</li>
+        </ol>
+      </div>
+      <p>
+        <a href="{profile_url}" style="display:inline-block;background:#168aad;color:#fff;text-decoration:none;border-radius:8px;padding:11px 16px;font-weight:700;margin-right:8px;">Complete profile</a>
+        <a href="{stripe_url}" style="display:inline-block;background:#184e77;color:#fff;text-decoration:none;border-radius:8px;padding:11px 16px;font-weight:700;">Connect Stripe</a>
+      </p>
+      <p style="font-size:13px;color:#5a8297;">Rewards are not issued automatically. Insighta reviews study participation and eligibility before releasing approved rewards.</p>
+      <p>Warmly,<br>The Insighta Team</p>
+    </div>
+    """
+    return send_email(user.email, subject, body, text_body=text_body)
+
+
 def _send_survey_start_followup_email(db: Session, response_id: int, dashboard_url: str) -> None:
     response = db.query(Response).filter(Response.id == response_id).first()
     if not response or getattr(response, "start_followup_sent_at", None):
@@ -406,13 +517,253 @@ The Insighta Team"""
         print(f"Survey start follow-up email error for response {response_id}: {error}")
 
 
+def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: User, booking_slot: str) -> None:
+    if not booking_slot or not _uses_booking_flow(getattr(survey, "task_type", None)):
+        return
+    booking_label = _booking_slots_label(booking_slot)
+    publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+    study_url = f"{BASE_URL.rstrip('/')}/publisher/study/{survey.id}"
+    dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
+    location = getattr(survey, "interview_location", None) or "The researcher will share the exact location."
+    participant_name = participant.first_name or participant.username or participant.email
+    if participant.email:
+        send_email(
+            participant.email,
+            f"[Insighta] Your time is booked for {survey.title}",
+            f"""
+            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:28px 22px;color:#1a1a18;line-height:1.6;">
+              <h2 style="margin:0 0 10px;font-size:22px;">Your study time is booked</h2>
+              <p>Hi {html.escape(participant_name)},</p>
+              <p>You booked a time for <strong>{html.escape(survey.title)}</strong>.</p>
+              <div style="background:#f5f3ee;border-radius:10px;padding:16px 18px;margin:18px 0;">
+                <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Time</div>
+                <div style="font-size:17px;font-weight:700;margin-bottom:10px;">{html.escape(booking_label)}</div>
+                <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Location</div>
+                <div style="font-size:15px;">{html.escape(location)}</div>
+              </div>
+              <p>If something changes, reply to this email and a real person will help.</p>
+              <p><a href="{dashboard_url}" style="color:#3b7c4f;font-weight:700;">Back to your dashboard</a></p>
+            </div>
+            """
+        )
+    if publisher and publisher.email:
+        send_email(
+            publisher.email,
+            f"[Insighta] New in-person booking: {survey.title}",
+            f"""
+            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:28px 22px;color:#1a1a18;line-height:1.6;">
+              <h2 style="margin:0 0 10px;font-size:22px;">New participant booking</h2>
+              <p><strong>{html.escape(participant.email)}</strong> booked a time for <strong>{html.escape(survey.title)}</strong>.</p>
+              <div style="background:#f5f3ee;border-radius:10px;padding:16px 18px;margin:18px 0;">
+                <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Time</div>
+                <div style="font-size:17px;font-weight:700;margin-bottom:10px;">{html.escape(booking_label)}</div>
+                <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Participant</div>
+                <div style="font-size:15px;">{html.escape(participant.email)}</div>
+              </div>
+              <p><a href="{study_url}" style="color:#3b7c4f;font-weight:700;">Open schedule in Insighta</a></p>
+            </div>
+            """
+        )
+
+
+def _send_booking_confirmation_emails_for_response(response_id: int, booking_slot: str) -> None:
+    db = SessionLocal()
+    try:
+        response = db.query(Response).filter(Response.id == response_id).first()
+        if not response:
+            return
+        survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+        participant = db.query(User).filter(User.id == response.participant_id).first()
+        if survey and participant:
+            _send_booking_confirmation_emails(db, survey, participant, booking_slot)
+    finally:
+        db.close()
+
+
 async def _send_survey_start_followup_after_delay(response_id: int, dashboard_url: str) -> None:
-    await asyncio.sleep(5 * 60)
+    await asyncio.sleep(SURVEY_START_FOLLOWUP_DELAY_MINUTES * 60)
     db = SessionLocal()
     try:
         _send_survey_start_followup_email(db, response_id, dashboard_url)
     finally:
         db.close()
+
+
+def _send_due_survey_start_followups(limit: int = 25) -> int:
+    db = SessionLocal()
+    sent_count = 0
+    try:
+        due_before = datetime.utcnow() - timedelta(minutes=SURVEY_START_FOLLOWUP_DELAY_MINUTES)
+        due_responses = db.query(Response).filter(
+            Response.start_followup_scheduled_at.isnot(None),
+            Response.start_followup_sent_at.is_(None),
+            Response.start_followup_scheduled_at <= due_before,
+        ).order_by(Response.start_followup_scheduled_at.asc()).limit(limit).all()
+        dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
+        for response in due_responses:
+            before_sent = response.start_followup_sent_at
+            _send_survey_start_followup_email(db, response.id, dashboard_url)
+            db.refresh(response)
+            if not before_sent and response.start_followup_sent_at:
+                sent_count += 1
+        return sent_count
+    finally:
+        db.close()
+
+
+async def _survey_start_followup_worker() -> None:
+    await asyncio.sleep(10)
+    while True:
+        try:
+            sent_count = _send_due_survey_start_followups()
+            if sent_count:
+                print(f"Survey start follow-up worker sent {sent_count} email(s)")
+        except Exception as exc:
+            print(f"Survey start follow-up worker error: {exc}")
+        await asyncio.sleep(SURVEY_START_FOLLOWUP_POLL_SECONDS)
+
+
+@app.on_event("startup")
+async def start_survey_followup_worker() -> None:
+    asyncio.create_task(_survey_start_followup_worker())
+
+
+def _client_ip(request: Request) -> Optional[str]:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()[:120]
+    if request.client:
+        return request.client.host[:120]
+    return None
+
+
+def _safe_event_metadata(metadata: Any) -> dict:
+    if not isinstance(metadata, dict):
+        return {}
+    allowed = {}
+    for key, value in metadata.items():
+        if key in {"password", "token", "verification_code", "answers", "content"}:
+            continue
+        safe_key = str(key)[:80]
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            allowed[safe_key] = value if not isinstance(value, str) else value[:500]
+        elif isinstance(value, list):
+            allowed[safe_key] = [str(item)[:120] for item in value[:20]]
+        elif isinstance(value, dict):
+            allowed[safe_key] = {str(k)[:80]: str(v)[:200] for k, v in list(value.items())[:20]}
+        else:
+            allowed[safe_key] = str(value)[:200]
+    return allowed
+
+
+RESEARCHER_EVENT_NAMES = frozenset({
+    "study_created", "study_published", "participant_approved",
+    "participant_rejected", "study_shared",
+})
+VIEW_EVENT_NAMES = frozenset({
+    "listing_view", "listing_viewed", "study_impression", "study_card_viewed",
+    "page_view", "page_viewed",
+})
+START_EVENT_NAMES = frozenset({"study_start", "survey_started"})
+CLICK_EVENT_NAMES = frozenset({"study_click"})
+COMPLETE_EVENT_NAMES = frozenset({"study_complete", "survey_completed"})
+
+
+def _event_source_from_request(request: Request, fallback: str = "") -> str:
+    referer = (request.headers.get("referer") or "").lower()
+    if "my-studies" in referer:
+        return "My Studies"
+    if "/dashboard" in referer:
+        return "Dashboard"
+    if "/r/" in referer:
+        return "Study Page"
+    return fallback or "—"
+
+
+def _admin_event_role(event: UserEvent, user: Optional[User], metadata: dict) -> str:
+    role = (metadata.get("user_role") or metadata.get("role") or "").strip().lower()
+    if role == "participant":
+        return "Participant"
+    if role == "researcher":
+        return "Researcher"
+    if user and getattr(user, "welcome_email_role", None):
+        welcome_role = (user.welcome_email_role or "").strip().lower()
+        if welcome_role == "participant":
+            return "Participant"
+        if welcome_role == "researcher":
+            return "Researcher"
+    if event.event_name in RESEARCHER_EVENT_NAMES:
+        return "Researcher"
+    if event.user_id or event.anonymous_id:
+        return "Participant"
+    return "—"
+
+
+def _admin_event_source(metadata: dict) -> str:
+    source = (metadata.get("source") or metadata.get("surface") or "").strip()
+    if not source:
+        return "—"
+    return source.replace("_", " ").title()
+
+
+def _admin_event_details(metadata: dict) -> str:
+    if not metadata:
+        return "—"
+    pieces = []
+    if metadata.get("match_score") is not None:
+        pieces.append(f"Match score: {metadata['match_score']}")
+    if metadata.get("position") is not None:
+        pieces.append(f"Position: {metadata['position']}")
+    if metadata.get("reward_amount") is not None:
+        try:
+            pieces.append(f"Reward: ${float(metadata['reward_amount']):.2f}")
+        except (TypeError, ValueError):
+            pieces.append(f"Reward: {metadata['reward_amount']}")
+    if metadata.get("button"):
+        pieces.append(f"Button: {metadata['button']}")
+    if not pieces:
+        extras = []
+        for key in ("referrer", "href"):
+            if metadata.get(key):
+                extras.append(str(metadata[key])[:120])
+        if extras:
+            return " · ".join(extras[:3])
+        return "—"
+    return ", ".join(pieces[:4])
+
+
+def _record_user_event(
+    db: Session,
+    request: Request,
+    event_name: str,
+    user: Optional[User] = None,
+    user_id: Optional[int] = None,
+    anonymous_id: Optional[str] = None,
+    target_type: Optional[str] = None,
+    target_id: Optional[Any] = None,
+    page_path: Optional[str] = None,
+    metadata: Optional[dict] = None,
+) -> Optional[UserEvent]:
+    clean_name = (event_name or "").strip().lower()[:80]
+    if not clean_name:
+        return None
+    resolved_user_id = user.id if user else user_id
+    path = (page_path or request.url.path)[:500]
+    if request.url.query and not page_path:
+        path = f"{path}?{request.url.query}"[:500]
+    event = UserEvent(
+        user_id=resolved_user_id,
+        anonymous_id=(anonymous_id or "")[:120] or None,
+        event_name=clean_name,
+        target_type=(target_type or "")[:80] or None,
+        target_id=str(target_id)[:120] if target_id is not None else None,
+        page_path=path,
+        metadata_json=_safe_event_metadata(metadata or {}),
+        user_agent=(request.headers.get("user-agent") or "")[:800] or None,
+        client_ip=_client_ip(request),
+    )
+    db.add(event)
+    return event
 
 
 router = APIRouter()
@@ -536,6 +887,71 @@ def _field_matches(target: Optional[str], user_val: Optional[str]) -> bool:
         return False
     return target.strip().lower() == user_val.strip().lower()
 
+FIELD_RELEVANCE_ALIASES = {
+    "computer science & engineering": ["computer science", "engineering", "software", "developer", "coding", "programming", "technology", "tech"],
+    "data science / ai": ["data science", "data", "ai", "artificial intelligence", "machine learning", "ml", "analytics", "algorithm"],
+    "business & economics": ["business", "economics", "finance", "entrepreneurship", "startup", "management", "consumer", "market"],
+    "marketing / design": ["marketing", "design", "brand", "ux", "user experience", "product", "advertising", "creative"],
+    "medicine & healthcare": ["medicine", "healthcare", "health", "clinical", "patient", "care", "medical", "public health"],
+    "psychology / neuroscience": ["psychology", "neuroscience", "mental health", "behavior", "cognition", "brain", "wellness"],
+    "natural sciences": ["biology", "chemistry", "physics", "environment", "science", "lab", "ecology"],
+    "social sciences": ["social science", "sociology", "anthropology", "political science", "community", "society", "policy"],
+    "education": ["education", "teaching", "learning", "school", "student", "classroom", "curriculum"],
+    "law / public policy": ["law", "legal", "policy", "government", "civic", "regulation", "justice"],
+    "arts & humanities": ["arts", "humanities", "history", "literature", "philosophy", "culture", "music", "theater"],
+    "communications / media": ["communications", "media", "journalism", "social media", "content", "creator", "news"],
+    "architecture / design": ["architecture", "urban", "built environment", "space", "housing", "design"],
+}
+
+def _text_relevance_score(needles: list[str], haystack: str) -> float:
+    if not needles or not haystack:
+        return 0.0
+    haystack = haystack.lower()
+    hits = sum(1 for needle in needles if needle and needle.lower() in haystack)
+    if hits <= 0:
+        return 0.0
+    return min(0.75, 0.25 + hits * 0.15)
+
+def _field_relevance_score(survey: Survey, user: User) -> float:
+    user_field = (getattr(user, "field", None) or "").strip()
+    if not user_field:
+        return 0.0
+    survey_target = (getattr(survey, "target_field", None) or "").strip()
+    user_field_clean = user_field.lower()
+    survey_target_clean = survey_target.lower()
+    if survey_target_clean and survey_target_clean != "all":
+        if survey_target_clean == user_field_clean:
+            return 1.0
+        aliases = FIELD_RELEVANCE_ALIASES.get(user_field_clean, [])
+        if survey_target_clean in aliases or any(term in survey_target_clean for term in aliases):
+            return 0.85
+        return 0.0
+
+    aliases = FIELD_RELEVANCE_ALIASES.get(user_field_clean, [])
+    user_terms = [user_field_clean] + aliases
+    survey_text = " ".join([
+        getattr(survey, "title", None) or "",
+        getattr(survey, "description", None) or "",
+        getattr(survey, "category", None) or "",
+        getattr(survey, "target_niche_requirements", None) or "",
+        getattr(survey, "participant_benefits", None) or "",
+    ])
+    score = _text_relevance_score(user_terms, survey_text)
+
+    interest_text = (getattr(user, "profile_description", None) or "").strip()
+    if interest_text:
+        interest_terms = [
+            token for token in re.findall(r"[A-Za-z][A-Za-z+/#-]{3,}", interest_text.lower())
+            if token not in {"with", "that", "this", "from", "about", "study", "research", "interested"}
+        ][:12]
+        score = max(score, min(0.6, _text_relevance_score(interest_terms, survey_text)))
+    return round(score, 4)
+
+def _recommendation_sort_score(survey: Survey, user: User, recommendation: dict) -> float:
+    completion_probability = float((recommendation or {}).get("completion_probability") or 0.0)
+    field_fit = _field_relevance_score(survey, user)
+    return round((completion_probability * 0.75) + (field_fit * 0.25), 4)
+
 def _age_matches(target: Optional[str], user: User) -> bool:
     if _is_empty(target):
         return True
@@ -585,13 +1001,15 @@ def _tags_match(target_tags: Optional[str], user_tags: Optional[str]) -> bool:
     return bool(target_set & user_set)
 
 def _participation_format_matches(target: Optional[str], user_val: Optional[str]) -> bool:
-    if _is_empty(target) or (target and target.strip().lower() == "both"):
+    target_clean = (target or "").strip().lower()
+    user_clean = (user_val or "").strip().lower()
+    if _is_empty(target) or target_clean in {"both", "any format", "hybrid"}:
         return True
-    if not user_val:
-        return False
-    if user_val.strip().lower() == "both":
+    if not user_clean:
         return True
-    return target.strip().lower() == user_val.strip().lower()
+    if user_clean in {"both", "any format", "hybrid"}:
+        return True
+    return target_clean == user_clean
 
 def _device_matches(target: Optional[str], user_val: Optional[str]) -> bool:
     if _is_empty(target) or (target and target.strip().lower() == "any"):
@@ -601,6 +1019,35 @@ def _device_matches(target: Optional[str], user_val: Optional[str]) -> bool:
     if user_val.strip().lower() == "any":
         return True
     return target.strip().lower() == user_val.strip().lower()
+
+def _parse_booking_slots(value: Optional[str]) -> list[str]:
+    raw = (value or "").strip()
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return [str(item).strip() for item in parsed if str(item).strip()]
+        if isinstance(parsed, str):
+            return [parsed.strip()] if parsed.strip() else []
+    except Exception:
+        pass
+    return [raw]
+
+def _serialize_booking_slots(slots: list[str]) -> Optional[str]:
+    cleaned = []
+    seen = set()
+    for slot in slots:
+        label = str(slot or "").strip()
+        if label and label not in seen:
+            cleaned.append(label)
+            seen.add(label)
+    if not cleaned:
+        return None
+    return cleaned[0] if len(cleaned) == 1 else json.dumps(cleaned)
+
+def _booking_slots_label(value: Optional[str]) -> str:
+    return "; ".join(_parse_booking_slots(value))
 
 
 # ---------------------------
@@ -615,15 +1062,28 @@ def _parse_optional_int(v) -> Optional[int]:
     except (ValueError, TypeError):
         return None
 
+def _parse_optional_float(v) -> Optional[float]:
+    if v is None or (isinstance(v, str) and not v.strip()):
+        return None
+    try:
+        return float(v)
+    except (ValueError, TypeError):
+        return None
+
 def _normalize_task_type(value: Optional[str]) -> str:
     normalized = (value or "").strip().lower()
-    if normalized in {"interview", "online_interview", "online-interview"}:
+    if normalized in {"interview", "online_interview", "online-interview", "remote_interview"}:
         return "interview"
-    if normalized in {"in_person", "in-person"}:
+    if normalized in {"in_person", "in-person", "in_person_study"}:
         return "in_person"
     return "survey"
 
 def _task_type_label(value: Optional[str]) -> str:
+    raw = (value or "").strip().lower()
+    if raw in {"online_interview", "online-interview", "remote_interview"}:
+        return "Online interview"
+    if raw in {"in_person", "in-person", "in_person_study"}:
+        return "In-person study"
     task_type = _normalize_task_type(value)
     if task_type == "interview":
         return "Interview"
@@ -634,8 +1094,82 @@ def _task_type_label(value: Optional[str]) -> str:
 def _uses_booking_flow(value: Optional[str]) -> bool:
     return _normalize_task_type(value) in {"interview", "in_person"}
 
+RESEARCH_PARTICIPATION_DEMO_TITLE = "Understand the Motivations and Barriers to Participating in Online Surveys and Research Studies"
+RESEARCH_PARTICIPATION_DEMO_CALENDLY_URL = "https://calendly.com/vfsa-bu/understanding-research-participation"
+
+def _compact_text(value: Optional[str]) -> str:
+    return "".join((value or "").split()).lower()
+
+def _is_research_participation_demo_survey(survey: Survey) -> bool:
+    compact_title = _compact_text(getattr(survey, "title", None))
+    return (
+        compact_title == _compact_text(RESEARCH_PARTICIPATION_DEMO_TITLE)
+        or (
+            "motivation" in compact_title
+            and "barrier" in compact_title
+            and "onlinesurveys" in compact_title
+            and "researchstudies" in compact_title
+        )
+    )
+
+def _survey_external_start_url(survey: Survey) -> str:
+    if _is_research_participation_demo_survey(survey):
+        return RESEARCH_PARTICIPATION_DEMO_CALENDLY_URL
+    form_url = (getattr(survey, "form_url", None) or "").strip()
+    return form_url if form_url and form_url != "__builtin__" else ""
+
+def _survey_has_external_start_link(survey: Survey) -> bool:
+    return bool(_survey_external_start_url(survey))
+
+def _is_online_interview_survey(survey: Survey) -> bool:
+    task_type = _normalize_task_type(getattr(survey, "task_type", None))
+    if task_type != "interview":
+        return False
+    if _is_research_participation_demo_survey(survey):
+        return True
+    participation_format = (getattr(survey, "target_participation_format", None) or "").strip().lower()
+    form_url = _survey_external_start_url(survey).lower()
+    return (
+        participation_format in {"video interview", "online interview", "remote live session"}
+        or "calendly.com" in form_url
+        or "zoom.us" in form_url
+        or "meet.google.com" in form_url
+    )
+
+def _participant_study_type_label(survey: Survey) -> Optional[str]:
+    task_type = _normalize_task_type(getattr(survey, "task_type", None))
+    if task_type == "interview":
+        if _is_online_interview_survey(survey):
+            return "Online interview"
+        participation_format = (getattr(survey, "target_participation_format", None) or "").strip().lower()
+        if participation_format in {"in-person study", "in person", "in-person"}:
+            return "In-person study"
+        return "Interview"
+    if task_type == "in_person":
+        return "In-person study"
+    return None
+
+def _participant_study_action_label(survey: Survey) -> str:
+    task_type = _normalize_task_type(getattr(survey, "task_type", None))
+    if task_type == "interview":
+        return "Schedule interview" if _is_online_interview_survey(survey) else "Book time"
+    return "Take study"
+
 def _clean_target(val: Optional[str]) -> str:
     return '' if not val or val.strip().lower() == 'all' else val
+
+def _join_form_list_with_other(values: list[str], other_value: Optional[str]) -> Optional[str]:
+    cleaned = []
+    seen = set()
+    for value in values:
+        item = str(value or "").strip()
+        if item and item.lower() != "all" and item not in seen:
+            cleaned.append(item)
+            seen.add(item)
+    other = (other_value or "").strip()
+    if other and other not in seen:
+        cleaned.append(other)
+    return "; ".join(cleaned) if cleaned else None
 
 
 def _normalize_excel_header(value: Optional[str]) -> str:
@@ -751,6 +1285,14 @@ def _needs_identity_onboarding(user: User) -> bool:
         (getattr(user, "first_name", None) or "").strip(),
         (getattr(user, "last_name", None) or "").strip(),
         (getattr(user, "username", None) or "").strip(),
+        (getattr(user, "birth_year", None) or "").strip(),
+        (getattr(user, "birth_month", None) or "").strip(),
+        (getattr(user, "education_level", None) or "").strip(),
+        (getattr(user, "field", None) or "").strip(),
+        (getattr(user, "status", None) or "").strip(),
+        (getattr(user, "current_province", None) or getattr(user, "state", None) or "").strip(),
+        (getattr(user, "language", None) or "").strip(),
+        (getattr(user, "participation_format", None) or "").strip(),
     ])
 
 
@@ -781,6 +1323,15 @@ def _post_auth_or_onboarding_url(
 
 
 AUTH_RETURN_COOKIE = "auth_return_to"
+AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
+
+def _set_user_cookie(response, request: Request, user: User) -> None:
+    response.set_cookie(
+        "user_id",
+        str(user.id),
+        max_age=AUTH_COOKIE_MAX_AGE,
+        **_cookie_policy(request),
+    )
 
 
 def _safe_auth_return(*candidates: Optional[str]) -> str:
@@ -1135,7 +1686,7 @@ async def google_callback(
     )
     resp = RedirectResponse(redirect_url, status_code=303)
     policy = _cookie_policy(request)
-    resp.set_cookie("user_id", str(user.id), **policy)
+    _set_user_cookie(resp, request, user)
     resp.delete_cookie("oauth_state", samesite=policy["samesite"], secure=policy["secure"])
     _clear_auth_return(resp, request)
     return resp
@@ -1241,7 +1792,7 @@ async def linkedin_callback(
     )
     resp = RedirectResponse(redirect_url, status_code=303)
     policy = _cookie_policy(request)
-    resp.set_cookie("user_id", str(user.id), **policy)
+    _set_user_cookie(resp, request, user)
     resp.delete_cookie("oauth_state", samesite=policy["samesite"], secure=policy["secure"])
     _clear_auth_return(resp, request)
     return resp
@@ -1263,10 +1814,15 @@ def index(request: Request):
 
 @app.get("/participant")
 def participant_app_entry(request: Request, user_id: str = Cookie(None)):
-    target_url = "/login?role=participant"
     if user_id:
-        target_url = _participant_dashboard_url(request)
-    response = RedirectResponse(target_url, status_code=302)
+        response = RedirectResponse(_participant_dashboard_url(request), status_code=302)
+    else:
+        response = no_store_response(
+            templates.TemplateResponse(
+                "participant_landing.html",
+                {"request": request}
+            )
+        )
     _mark_participant_app(response, request)
     return response
 
@@ -1358,7 +1914,9 @@ def login(
         _post_auth_or_onboarding_url(user, final_url, role=role, participant_app=participant_app),
         status_code=303,
     )
-    response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
+    _record_user_event(db, request, "login", user=user, metadata={"role": role or "", "user_role": role or "", "next": next_url or "", "source": "Login"})
+    db.commit()
+    _set_user_cookie(response, request, user)
     _clear_auth_return(response, request)
     if (role or "").strip().lower() == "participant":
         _mark_participant_app(response, request)
@@ -1436,6 +1994,7 @@ def show_register(
             "register_step": 1,
             "register_role": normalized_role,
             "register_next": register_next,
+            "register_values": {},
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }
     ))
@@ -1462,6 +2021,19 @@ async def do_register(
     next_url = _safe_auth_return(form.get("next"), auth_return_to)
     role = (form.get("role") or "").strip().lower()
     role = role if role in {"participant", "researcher"} else None
+    register_values = {
+        "first_name": (form.get("first_name") or "").strip(),
+        "last_name": (form.get("last_name") or "").strip(),
+        "username": (form.get("username") or "").strip(),
+        "birth_year": (form.get("birth_year") or "").strip(),
+        "birth_month": (form.get("birth_month") or "").strip(),
+        "education_level": (form.get("education_level") or "").strip(),
+        "field": (form.get("field") or "").strip(),
+        "status": (form.get("status") or "").strip(),
+        "current_province": (form.get("current_province") or "").strip(),
+        "language": (form.get("language") or "").strip(),
+        "participation_format": (form.get("participation_format") or "").strip(),
+    }
 
     def reg_error(msg, step: int = 1):
         response = no_store_response(templates.TemplateResponse("register.html", {
@@ -1471,6 +2043,7 @@ async def do_register(
             "register_step": step,
             "register_role": role or "",
             "register_next": next_url if is_safe_internal_next(next_url) else "",
+            "register_values": register_values,
             "participant_app": _auth_uses_participant_app(request, role, participant_app),
         }))
         if role == "researcher":
@@ -1481,6 +2054,25 @@ async def do_register(
     if password != confirm: return reg_error("Passwords do not match.", step=2)
     pw_error = _validate_registration_password(password)
     if pw_error: return reg_error(pw_error, step=2)
+    required_demo_fields = {
+        "first_name": "First name is required.",
+        "last_name": "Last name is required.",
+        "username": "Username is required.",
+        "birth_year": "Birth year is required.",
+        "birth_month": "Birth month is required.",
+        "education_level": "Education level is required.",
+        "field": "Field or major is required.",
+        "status": "Current status is required.",
+        "current_province": "Current state is required.",
+        "language": "Primary language is required.",
+        "participation_format": "Participation preference is required.",
+    }
+    for field_name, message in required_demo_fields.items():
+        if not register_values.get(field_name):
+            return reg_error(message, step=2)
+    derived_age_range = _age_range_from_birth_date(register_values["birth_year"], register_values["birth_month"])
+    if not derived_age_range:
+        return reg_error("Please enter a valid birth year and month. Participants must be 18 or older.", step=2)
     if db.query(User).filter(User.email == email).first():
         return reg_error("Email already exists.")
     if not _consume_verification_code(db, email, "register", verification_code):
@@ -1490,17 +2082,33 @@ async def do_register(
         email=email,
         password=pwd_context.hash(password),
         phone_number=phone_number or None,
+        first_name=register_values["first_name"],
+        last_name=register_values["last_name"],
+        username=register_values["username"],
+        birth_year=register_values["birth_year"],
+        birth_month=register_values["birth_month"],
+        age_range=derived_age_range,
+        education_level=register_values["education_level"],
+        field=register_values["field"],
+        status=register_values["status"],
+        current_country="United States",
+        current_province=register_values["current_province"],
+        state=register_values["current_province"],
+        language=register_values["language"],
+        participation_format=register_values["participation_format"],
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+    _record_user_event(db, request, "sign_up", user=user, metadata={"role": role or "", "user_role": role or "", "next": next_url or "", "source": "Sign up"})
+    db.commit()
 
     final_url = _post_auth_url_with_next(request, participant_app, next_url, role=role, welcome=True)
     response = RedirectResponse(
         _post_auth_or_onboarding_url(user, final_url, role=role, participant_app=participant_app),
         status_code=303,
     )
-    response.set_cookie("user_id", str(user.id), **_cookie_policy(request))
+    _set_user_cookie(response, request, user)
     _clear_auth_return(response, request)
     if role == "participant":
         _mark_participant_app(response, request)
@@ -1523,6 +2131,49 @@ def get_current_user(
     if not user:
         raise HTTPException(401, "User not found")
     return user
+
+
+@app.post("/api/events")
+async def record_client_event(
+    request: Request,
+    user_id: str = Cookie(None),
+    db: Session = Depends(get_db),
+):
+    raw = await request.body()
+    try:
+        body = json.loads(raw.decode("utf-8")) if raw else {}
+    except Exception:
+        body = {}
+
+    current_user = None
+    if user_id:
+        try:
+            current_user = db.query(User).filter(User.id == int(user_id)).first()
+        except Exception:
+            current_user = None
+
+    event_name = (body.get("event_name") or "").strip().lower()
+    if not event_name:
+        raise HTTPException(400, "event_name is required")
+    anonymous_id = (body.get("anonymous_id") or "").strip()
+    if current_user and anonymous_id:
+        db.query(UserEvent).filter(
+            UserEvent.anonymous_id == anonymous_id[:120],
+            UserEvent.user_id.is_(None),
+        ).update({"user_id": current_user.id}, synchronize_session=False)
+    _record_user_event(
+        db,
+        request,
+        event_name,
+        user=current_user,
+        anonymous_id=anonymous_id,
+        target_type=body.get("target_type"),
+        target_id=body.get("target_id"),
+        page_path=body.get("page_path"),
+        metadata=body.get("metadata") if isinstance(body.get("metadata"), dict) else {},
+    )
+    db.commit()
+    return JSONResponse({"success": True})
 
 
 @app.get("/complete-profile", response_class=HTMLResponse)
@@ -1557,22 +2208,55 @@ async def complete_profile_post(
     first_name = (form.get("first_name") or "").strip()
     last_name = (form.get("last_name") or "").strip()
     username = (form.get("username") or "").strip()
+    birth_year = (form.get("birth_year") or "").strip()
+    birth_month = (form.get("birth_month") or "").strip()
+    education_level = (form.get("education_level") or "").strip()
+    field = (form.get("field") or "").strip()
+    status = (form.get("status") or "").strip()
+    current_province = (form.get("current_province") or "").strip()
+    language = (form.get("language") or "").strip()
+    participation_format = (form.get("participation_format") or "").strip()
     return_to = form.get("next") if is_safe_internal_next(form.get("next")) else ""
     welcome_role = _welcome_email_role(form.get("role"), return_to, participant_app)
 
-    if not first_name or not last_name or not username:
+    required_values = [
+        first_name, last_name, username, birth_year, birth_month, education_level,
+        field, status, current_province, language, participation_format
+    ]
+    if not all(required_values):
         return no_store_response(templates.TemplateResponse("complete_profile.html", {
             "request": request,
             "current_user": current_user,
             "next": return_to,
             "role": welcome_role,
-            "error": "Please fill in your first name, last name, and username.",
+            "error": "Please fill in all required profile basics.",
+            "participant_app": _should_use_participant_app(request, participant_app),
+        }))
+    derived_age_range = _age_range_from_birth_date(birth_year, birth_month)
+    if not derived_age_range:
+        return no_store_response(templates.TemplateResponse("complete_profile.html", {
+            "request": request,
+            "current_user": current_user,
+            "next": return_to,
+            "role": welcome_role,
+            "error": "Please enter a valid birth year and month. Participants must be 18 or older.",
             "participant_app": _should_use_participant_app(request, participant_app),
         }))
 
     current_user.first_name = first_name
     current_user.last_name = last_name
     current_user.username = username
+    current_user.birth_year = birth_year
+    current_user.birth_month = birth_month
+    current_user.age_range = derived_age_range
+    current_user.education_level = education_level
+    current_user.field = field
+    current_user.status = status
+    current_user.current_country = "United States"
+    current_user.current_province = current_province
+    current_user.state = current_province
+    current_user.language = language
+    current_user.participation_format = participation_format
     if not getattr(current_user, "welcome_email_sent_at", None):
         sent, error = _send_welcome_followup_email(current_user, welcome_role)
         if sent:
@@ -1580,6 +2264,13 @@ async def complete_profile_post(
             current_user.welcome_email_role = welcome_role
         elif error:
             print(f"Welcome email error for user {current_user.id}: {error}")
+    _record_user_event(
+        db,
+        request,
+        "profile_update",
+        user=current_user,
+        metadata={"source": "Complete profile", "user_role": "participant"},
+    )
     db.commit()
     return RedirectResponse(return_to or _post_auth_url(request, participant_app), status_code=303)
 
@@ -1623,6 +2314,13 @@ def recruitment_share_page(
     display_reward = getattr(survey, "admin_display_reward_amount", None)
     if display_reward is None:
         display_reward = survey.reward_amount
+    booked_slots = []
+    for row in db.query(Response.booking_slot).filter(
+            Response.survey_id == survey.id,
+            Response.booking_slot.isnot(None),
+            Response.participant_id != (current_user.id if current_user else 0),
+        ).all():
+        booked_slots.extend(_parse_booking_slots(row[0]))
 
     next_path = f"/r/{share_slug}"
     dashboard_path = _participant_dashboard_url(request)
@@ -1630,12 +2328,24 @@ def recruitment_share_page(
     brand_action = "back" if from_participant_app else ("dashboard" if current_user else "none")
     brand_href = dashboard_path if brand_action == "dashboard" else "#"
     brand_label = "Back to dashboard" if from_participant_app else ("Dashboard" if current_user else "Insighta")
+    _record_user_event(
+        db,
+        request,
+        "listing_view",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        page_path=next_path,
+        metadata={"study_title": survey.title, "source": from_ or "Share link", "surface": "recruitment_share"},
+    )
+    db.commit()
     return templates.TemplateResponse("recruitment_share.html", {
         "request": request,
         "survey": survey,
         "current_user": current_user,
         "user_response": user_response,
         "availability_slots": availability_slots,
+        "booked_slots": booked_slots,
         "display_reward": display_reward,
         "share_url": _absolute_url(request, next_path),
         "login_url": f"/login?{urlencode({'role': 'participant', 'next': next_path})}",
@@ -1646,7 +2356,14 @@ def recruitment_share_page(
         "brand_label": brand_label,
         "is_builtin": survey.form_url == "__builtin__",
         "is_interview": _uses_booking_flow(getattr(survey, "task_type", None)),
-        "task_type_label": _task_type_label(getattr(survey, "task_type", None)),
+        "is_online_interview": _is_online_interview_survey(survey),
+        "has_external_start_link": _survey_has_external_start_link(survey),
+        "external_start_url": _survey_external_start_url(survey),
+        "external_start_redirect_url": (
+            f"/surveys/{survey.id}/start-redirect?{urlencode({'next': _survey_external_start_url(survey)})}"
+            if _survey_external_start_url(survey) else ""
+        ),
+        "task_type_label": _participant_study_type_label(survey) or _task_type_label(getattr(survey, "task_type", None)),
     })
 
 @app.get("/r/{share_slug}/qr.png")
@@ -1759,6 +2476,56 @@ def publisher_dashboard(
         }
     )
 
+
+@app.get("/publisher/schedule", response_class=HTMLResponse)
+def publisher_schedule(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    interviews = db.query(Survey).filter(
+        Survey.publisher_id == current_user.id,
+        Survey.task_type == "interview",
+    ).order_by(Survey.created_at.desc()).all()
+    schedule_items = []
+    for survey in interviews:
+        availability_slots = []
+        if getattr(survey, "availability_slots", None):
+            try:
+                parsed_slots = json.loads(survey.availability_slots)
+                if isinstance(parsed_slots, list):
+                    availability_slots = parsed_slots
+            except Exception:
+                availability_slots = []
+        rows = db.query(Response, User).join(User, User.id == Response.participant_id).filter(
+            Response.survey_id == survey.id,
+            Response.booking_slot.isnot(None),
+        ).order_by(Response.started_at.desc()).all()
+        bookings = [{
+            "participant": user.email,
+            "participant_name": user.username or user.email,
+            "slot": _booking_slots_label(response.booking_slot),
+            "slots": _parse_booking_slots(response.booking_slot),
+            "status": response.status,
+            "started_at": response.started_at,
+        } for response, user in rows]
+        booked_set = set()
+        for item in bookings:
+            booked_set.update(item.get("slots") or [])
+        schedule_items.append({
+            "survey": survey,
+            "availability_slots": availability_slots,
+            "bookings": bookings,
+            "booked_set": booked_set,
+            "open_count": max(len(availability_slots) - len(booked_set), 0),
+        })
+    return templates.TemplateResponse("publisher_schedule.html", {
+        "request": request,
+        "current_user": current_user,
+        "schedule_items": schedule_items,
+    })
+
+
 @app.get("/publisher/study/{survey_id}", response_class=HTMLResponse)
 def publisher_study(
     survey_id: int, request: Request,
@@ -1792,7 +2559,8 @@ def publisher_study(
         booking_rows = [
             {
                 "participant": user.email,
-                "slot": response.booking_slot,
+                "slot": _booking_slots_label(response.booking_slot),
+                "slots": _parse_booking_slots(response.booking_slot),
                 "status": response.status,
                 "started_at": response.started_at,
             }
@@ -1875,7 +2643,7 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "clubs": "/static/fb.jpg", "market": "/static/habit.png",
         "academic": "/static/r2.jpg", "other": "/static/food.jpeg"
     }
-    form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
+    form_link = _survey_external_start_url(s)
     response_status = user_response.status if user_response else None
     display_reward = getattr(s, "admin_display_reward_amount", None)
     if display_reward is None:
@@ -1894,9 +2662,13 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "title": s.title,
         "desc": s.description,
         "niche": getattr(s, "target_niche_requirements", None),
+        "benefits": getattr(s, "participant_benefits", None),
         "link": form_link,
         "share_path": _survey_share_path(db, s, commit=True),
         "type": _normalize_task_type(getattr(s, "task_type", None)),
+        "format": getattr(s, "target_participation_format", None),
+        "type_label": _participant_study_type_label(s),
+        "action_label": _participant_study_action_label(s),
         "category": s.category,
         "time": f"{s.estimated_time} min",
         "reward": f"${display_reward:.2f}",
@@ -1907,7 +2679,10 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "is_skipped": response_status == "skipped",
         "status": response_status,
         "booking_slot": getattr(user_response, "booking_slot", None) if user_response else None,
+        "booking_slots": _parse_booking_slots(getattr(user_response, "booking_slot", None)) if user_response else [],
         "availability_slots": availability_slots,
+        "session_count": getattr(s, "session_count", None),
+        "sessions_per_week": getattr(s, "sessions_per_week", None),
         "urgency": getattr(s, 'urgency_level', None) or 'flexible',
         "incentive_type": getattr(s, 'incentive_type', None),
     }
@@ -1957,14 +2732,21 @@ def dashboard(
         if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
         return True
 
-    matched = [s for s in all_published if survey_matches(s)]
+    participant_response_survey_ids = {
+        row[0] for row in db.query(Response.survey_id).filter(
+            Response.participant_id == current_user.id
+        ).all()
+    }
+    matched = [
+        s for s in all_published
+        if s.id not in participant_response_survey_ids and survey_matches(s)
+    ]
 
-    # LLM-only recommendation ranking: Claude provides completion_probability.
-    # Urgency/date are no longer used as the recommendation score.
+    # Blend Claude's completion estimate with field/major relevance from the participant profile.
     recommendation_map = recommend_surveys_for_user(db, matched, current_user, use_cache=True)
     matched.sort(
         key=lambda s: (
-            float(recommendation_map.get(s.id, {}).get("completion_probability") or 0.0),
+            _recommendation_sort_score(s, current_user, recommendation_map.get(s.id, {})),
             s.published_at.timestamp() if s.published_at else 0,
         ),
         reverse=True,
@@ -1979,6 +2761,8 @@ def dashboard(
         payload = _participant_survey_payload(s, db, current_user, user_response)
         payload.update({
             "completion_probability": llm_rec.get("completion_probability"),
+            "field_fit_score": _field_relevance_score(s, current_user),
+            "recommendation_score": _recommendation_sort_score(s, current_user, llm_rec),
             "ai_confidence": llm_rec.get("confidence"),
             "why_recommended": (llm_rec.get("top_reasons") or [])[:3],
             "risk_reasons": (llm_rec.get("risk_reasons") or [])[:3],
@@ -2006,6 +2790,7 @@ def dashboard(
 
     pending_earnings = getattr(current_user, 'pending_earnings', 0.0) or 0.0
     total_withdrawn = getattr(current_user, 'total_withdrawn', 0.0) or 0.0
+    db.commit()
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -2114,12 +2899,11 @@ def dashboard_mobile(
 
     matched = [s for s in all_published if survey_matches(s)]
 
-    # LLM-only recommendation ranking for mobile: Claude provides completion_probability.
-    # Urgency/date are no longer used as the recommendation score.
+    # Blend Claude's completion estimate with field/major relevance from the participant profile.
     recommendation_map = recommend_surveys_for_user(db, matched, current_user, use_cache=True)
     matched.sort(
         key=lambda s: (
-            float(recommendation_map.get(s.id, {}).get("completion_probability") or 0.0),
+            _recommendation_sort_score(s, current_user, recommendation_map.get(s.id, {})),
             s.published_at.timestamp() if s.published_at else 0,
         ),
         reverse=True,
@@ -2141,7 +2925,7 @@ def dashboard_mobile(
             Response.survey_id == s.id, Response.participant_id == current_user.id
         ).first()
         is_completed = user_response and user_response.status == "completed"
-        form_link = s.form_url if s.form_url and s.form_url != "__builtin__" else ""
+        form_link = _survey_external_start_url(s)
         display_reward = getattr(s, "admin_display_reward_amount", None)
         if display_reward is None:
             display_reward = s.reward_amount
@@ -2156,19 +2940,28 @@ def dashboard_mobile(
         surveys_data.append({
             "id": s.id, "title": s.title, "desc": s.description,
             "niche": getattr(s, "target_niche_requirements", None),
+            "benefits": getattr(s, "participant_benefits", None),
             "link": form_link,
             "share_path": _survey_share_path(db, s, commit=True),
             "type": _normalize_task_type(getattr(s, "task_type", None)),
+            "format": getattr(s, "target_participation_format", None),
+            "type_label": _participant_study_type_label(s),
+            "action_label": _participant_study_action_label(s),
             "category": s.category, "time": f"{s.estimated_time} min",
             "reward": f"${display_reward:.2f}",
             "responses": f"{completed_cnt}/{s.target_responses}",
             "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
             "is_completed": is_completed,
             "booking_slot": getattr(user_response, "booking_slot", None) if user_response else None,
+            "booking_slots": _parse_booking_slots(getattr(user_response, "booking_slot", None)) if user_response else [],
             "availability_slots": availability_slots,
+            "session_count": getattr(s, "session_count", None),
+            "sessions_per_week": getattr(s, "sessions_per_week", None),
             "urgency": getattr(s, 'urgency_level', None) or 'flexible',
             "incentive_type": getattr(s, 'incentive_type', None),
             "completion_probability": llm_rec.get("completion_probability"),
+            "field_fit_score": _field_relevance_score(s, current_user),
+            "recommendation_score": _recommendation_sort_score(s, current_user, llm_rec),
             "ai_confidence": llm_rec.get("confidence"),
             "why_recommended": (llm_rec.get("top_reasons") or [])[:3],
             "risk_reasons": (llm_rec.get("risk_reasons") or [])[:3],
@@ -2257,29 +3050,57 @@ async def start_survey(
     existing = db.query(Response).filter(
         Response.survey_id == survey_id, Response.participant_id == current_user.id
     ).first()
-    booking_slot = None
+    booking_slots = []
     try:
         body = await request.json()
-        booking_slot = (body.get("booking_slot") or "").strip() if isinstance(body, dict) else None
+        if isinstance(body, dict):
+            if isinstance(body.get("booking_slots"), list):
+                booking_slots = [str(item).strip() for item in body.get("booking_slots") if str(item).strip()]
+            else:
+                booking_slots = _parse_booking_slots((body.get("booking_slot") or "").strip())
     except Exception:
-        booking_slot = None
+        booking_slots = []
+    booking_slot = _serialize_booking_slots(booking_slots)
 
     should_schedule_followup = False
+    should_send_booking_email = False
     response = existing
+
+    if booking_slots and _uses_booking_flow(getattr(survey, "task_type", None)):
+        existing_bookings = db.query(Response).filter(
+            Response.survey_id == survey_id,
+            Response.booking_slot.isnot(None),
+            Response.participant_id != current_user.id,
+        ).all()
+        taken_slots = set()
+        for existing_booking in existing_bookings:
+            taken_slots.update(_parse_booking_slots(existing_booking.booking_slot))
+        if any(slot in taken_slots for slot in booking_slots):
+            raise HTTPException(409, "That time was just booked. Please choose another available time.")
 
     if not response:
         response = Response(
             survey_id=survey_id,
             participant_id=current_user.id,
             status="started",
-            booking_slot=booking_slot or None,
+            booking_slot=booking_slot,
             start_followup_scheduled_at=datetime.utcnow(),
         )
         db.add(response)
         db.commit()
         db.refresh(response)
         should_schedule_followup = True
+        should_send_booking_email = bool(booking_slot)
+    elif response.status != "completed":
+        response.status = "started"
+        response.completed_at = None
+        response.started_at = datetime.now(timezone.utc)
+        if booking_slot:
+            should_send_booking_email = response.booking_slot != booking_slot
+            response.booking_slot = booking_slot
+        db.commit()
     elif booking_slot:
+        should_send_booking_email = response.booking_slot != booking_slot
         response.booking_slot = booking_slot
         db.commit()
 
@@ -2294,13 +3115,95 @@ async def start_survey(
             response.id,
             _absolute_url(request, "/dashboard"),
         )
+    _record_user_event(
+        db,
+        request,
+        "study_start",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        page_path=f"/surveys/{survey.id}/start",
+        metadata={
+            "study_title": survey.title,
+            "source": _event_source_from_request(request, "Study Page"),
+            "booking_slot": _booking_slots_label(booking_slot) if booking_slot else "",
+            "booking_slots": booking_slots,
+            "task_type": _normalize_task_type(getattr(survey, "task_type", None)),
+            "user_role": "participant",
+        },
+    )
+    db.commit()
+
+    if should_send_booking_email and booking_slot:
+        background_tasks.add_task(_send_booking_confirmation_emails_for_response, response.id, booking_slot)
 
     return {"message": "Survey started successfully"}
+
+@app.get("/surveys/{survey_id}/start-redirect")
+def start_survey_and_redirect(
+    survey_id: int,
+    request: Request,
+    next_url: str = Query("", alias="next"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    if survey.status != "published":
+        raise HTTPException(400, "Survey not published")
+
+    target_url = (next_url or "").strip()
+    if not (target_url.startswith("https://") or target_url.startswith("http://")):
+        target_url = _participant_dashboard_url(request)
+
+    response = db.query(Response).filter(
+        Response.survey_id == survey_id,
+        Response.participant_id == current_user.id,
+    ).first()
+    if not response:
+        response = Response(
+            survey_id=survey_id,
+            participant_id=current_user.id,
+            status="started",
+            start_followup_scheduled_at=datetime.utcnow(),
+        )
+        db.add(response)
+        db.commit()
+        db.refresh(response)
+    elif response.status != "completed":
+        response.status = "started"
+        response.completed_at = None
+        response.started_at = datetime.now(timezone.utc)
+        if not response.start_followup_sent_at and not response.start_followup_scheduled_at:
+            response.start_followup_scheduled_at = datetime.utcnow()
+        db.commit()
+
+    _record_user_event(
+        db,
+        request,
+        "study_start",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        page_path=f"/surveys/{survey.id}/start-redirect",
+        metadata={
+            "study_title": survey.title,
+            "source": _event_source_from_request(request, "Study Page"),
+            "task_type": _normalize_task_type(getattr(survey, "task_type", None)),
+            "user_role": "participant",
+            "redirect_target": target_url,
+        },
+    )
+    db.commit()
+
+    return RedirectResponse(target_url, status_code=303)
 
 
 @app.post("/surveys/{survey_id}/complete")
 def complete_survey(
     survey_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -2345,6 +3248,22 @@ def complete_survey(
                 </div>
                 """
             )
+        _record_user_event(
+            db,
+            request,
+            "study_complete",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            page_path=f"/surveys/{survey.id}/take",
+            metadata={
+                "study_title": survey.title,
+                "task_type": _normalize_task_type(getattr(survey, "task_type", None)),
+                "reward_amount": survey.reward_amount,
+                "source": "Survey",
+                "user_role": "participant",
+            },
+        )
 
     db.commit()
     return RedirectResponse(url="/dashboard", status_code=302)
@@ -2396,6 +3315,7 @@ def get_notifications(
 @app.post("/api/notifications/{notif_id}/accept")
 def accept_notification(
     notif_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -2415,6 +3335,22 @@ def accept_notification(
         release_response_payout(db, response)
         survey = db.query(Survey).filter(Survey.id == notif.survey_id).first()
         participant = db.query(User).filter(User.id == notif.participant_id).first()
+        if survey:
+            _record_user_event(
+                db,
+                request,
+                "participant_approved",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={
+                    "study_title": survey.title,
+                    "participant_id": notif.participant_id,
+                    "participant_email": notif.participant_email,
+                    "source": "Notification",
+                    "user_role": "researcher",
+                },
+            )
         if participant and survey:
             send_email(
                 to=participant.email,
@@ -2439,6 +3375,7 @@ def accept_notification(
 @app.post("/api/notifications/{notif_id}/reject")
 def reject_notification(
     notif_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -2456,6 +3393,23 @@ def reject_notification(
     ).first()
     if response:
         reject_response_payout(db, response)
+    survey = db.query(Survey).filter(Survey.id == notif.survey_id).first()
+    if survey:
+        _record_user_event(
+            db,
+            request,
+            "participant_rejected",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            metadata={
+                "study_title": survey.title,
+                "participant_id": notif.participant_id,
+                "participant_email": notif.participant_email,
+                "source": "Notification",
+                "user_role": "researcher",
+            },
+        )
     db.commit()
     return {"message": "rejected"}
 
@@ -2564,8 +3518,18 @@ async def calculate_price(request: Request, current_user: User = Depends(get_cur
 # ---------------------------
 
 @app.get("/publish_interview", response_class=HTMLResponse)
-def publish_interview_page(request: Request, current_user: User = Depends(get_current_user)):
-    return templates.TemplateResponse("publish_interview.html", {"request": request, "current_user": current_user})
+def publish_interview_page(
+    request: Request,
+    mode: str = Query("in_person"),
+    current_user: User = Depends(get_current_user),
+):
+    is_online = (mode or "").strip().lower() in {"online", "remote", "video"}
+    return templates.TemplateResponse("publish_interview.html", {
+        "request": request,
+        "current_user": current_user,
+        "is_online_interview": is_online,
+        "interview_mode": "online" if is_online else "in_person",
+    })
 
 @app.post("/publish_interview")
 async def publish_interview(
@@ -2574,7 +3538,7 @@ async def publish_interview(
     interview_format: str = Form("video"), scheduling_link: Optional[str] = Form(None),
     availability_notes: Optional[str] = Form(None), interview_location: Optional[str] = Form(None),
     urgency_level: Optional[str] = Form(None), deadline_date: Optional[str] = Form(None),
-    incentive_type: Optional[str] = Form(None), per_person_gross: Optional[float] = Form(None),
+    incentive_type: Optional[str] = Form(None), per_person_gross: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
@@ -2593,13 +3557,19 @@ async def publish_interview(
         availability_slots = None
     incentive_clean = _clean_target(incentive_type) or "cash"
     is_no_pay = incentive_clean in ("raffle", "volunteer")
-    reward = 0.0 if is_no_pay else (per_person_gross or 0.0)
+    session_count = max(_parse_optional_int(form.get("session_count")) or 1, 1)
+    sessions_per_week = _parse_optional_int(form.get("sessions_per_week"))
+    try:
+        per_person_value = float(per_person_gross) if str(per_person_gross or "").strip() else 0.0
+    except (TypeError, ValueError):
+        per_person_value = 0.0
+    reward = 0.0 if is_no_pay else per_person_value
 
     survey = Survey(
         publisher_id=current_user.id, title=title, description=description,
         form_url=scheduling_link or "", task_type="in_person", category=category,
         estimated_time=estimated_time, reward_amount=reward, per_person_gross=reward,
-        total_budget=round(reward * target_responses, 2), commission_rate=0.0, payment_status="paid",
+        total_budget=round(reward * target_responses * session_count, 2), commission_rate=0.0, payment_status="paid",
         target_responses=target_responses, urgency_level=_clean_target(urgency_level),
         incentive_type=incentive_clean,
         raffle_prize_type=_clean_target(form.get("raffle_prize_type")) if incentive_clean == "raffle" else None,
@@ -2628,10 +3598,32 @@ async def publish_interview(
         target_lifestyle_tags=",".join(lifestyle_list) if lifestyle_list else None,
         target_niche_requirements=_clean_target(form.get("target_niche_requirements")),
         availability_slots=availability_slots,
-        status="draft", published_at=None, closed_at=None,
+        interview_location=_clean_target(interview_location),
+        session_count=session_count,
+        sessions_per_week=sessions_per_week,
+        status="published", published_at=datetime.utcnow(), closed_at=None,
     )
     _ensure_survey_share_slug(db, survey)
-    db.add(survey); db.commit()
+    db.add(survey); db.commit(); db.refresh(survey)
+    _record_user_event(
+        db,
+        request,
+        "study_created",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={"study_title": survey.title, "source": "Interview publish", "user_role": "researcher"},
+    )
+    _record_user_event(
+        db,
+        request,
+        "study_published",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={"study_title": survey.title, "source": "Interview publish", "user_role": "researcher"},
+    )
+    db.commit()
     return RedirectResponse("/publisher", status_code=303)
 
 
@@ -2656,9 +3648,20 @@ def payment_success(
 
     # Fallback: mark paid and publish when landing on payment success page
     if survey and survey.payment_status != "paid":
+        was_published = survey.status == "published"
         survey.payment_status = "paid"
         survey.status = "published"
         survey.published_at = datetime.utcnow()
+        if not was_published:
+            _record_user_event(
+                db,
+                request,
+                "study_published",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={"study_title": survey.title, "source": "Payment success", "user_role": "researcher"},
+            )
         db.commit()
 
     return templates.TemplateResponse("payment_success.html", {
@@ -2683,9 +3686,21 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if survey_id:
             survey = db.query(Survey).filter(Survey.id == int(survey_id)).first()
             if survey:
+                was_published = survey.status == "published"
                 survey.payment_status = "paid"
                 survey.status = "published"
                 survey.published_at = datetime.utcnow()
+                if not was_published:
+                    publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+                    _record_user_event(
+                        db,
+                        request,
+                        "study_published",
+                        user=publisher,
+                        target_type="survey",
+                        target_id=survey.id,
+                        metadata={"study_title": survey.title, "source": "Stripe webhook", "user_role": "researcher"},
+                    )
                 db.commit()
     elif event["type"] == "account.updated":
         account = event["data"]["object"]
@@ -2766,11 +3781,28 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
 # ---------------------------
 
 @app.post("/surveys/{survey_id}/publish")
-def publish_existing_survey(survey_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def publish_existing_survey(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     s = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
     if not s: raise HTTPException(404, "Survey not found")
     if getattr(s, 'payment_status', 'unpaid') != 'paid': raise HTTPException(400, "Survey must be paid before publishing")
-    if s.status != "published": s.status = "published"; s.published_at = datetime.utcnow(); s.closed_at = None
+    if s.status != "published":
+        s.status = "published"
+        s.published_at = datetime.utcnow()
+        s.closed_at = None
+        _record_user_event(
+            db,
+            request,
+            "study_published",
+            user=current_user,
+            target_type="survey",
+            target_id=s.id,
+            metadata={"study_title": s.title, "source": "Publisher", "user_role": "researcher"},
+        )
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
 
@@ -3020,6 +4052,13 @@ async def profile_post(
     current_user.lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
     current_user.participation_format = _value_with_other(form.get("participation_format"), form.get("participation_format_other"))
     current_user.device_type = _value_with_other(form.get("device_type"), form.get("device_type_other"))
+    _record_user_event(
+        db,
+        request,
+        "profile_update",
+        user=current_user,
+        metadata={"source": "Profile", "user_role": "participant"},
+    )
     db.commit()
     return_to = form.get("return_to")
     if return_to and is_safe_internal_next(return_to):
@@ -3413,6 +4452,47 @@ async def admin_verify(request: Request):
     return JSONResponse({"success": True})
 
 
+@app.post("/admin/users/reward-reminder-email")
+async def admin_reward_reminder_email(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+    dry_run = bool(body.get("dry_run", True))
+    users = db.query(User).filter(User.email.isnot(None)).order_by(User.created_at.desc()).all()
+    recipients: list[User] = []
+    seen_emails = set()
+    for user in users:
+        normalized = _normalize_email(user.email or "")
+        if not normalized or "@" not in normalized or normalized in seen_emails:
+            continue
+        seen_emails.add(normalized)
+        recipients.append(user)
+    if dry_run:
+        return JSONResponse({
+            "dry_run": True,
+            "recipient_count": len(recipients),
+        })
+
+    sent_count = 0
+    failures = []
+    for user in recipients:
+        sent, error = _send_reward_setup_reminder_email(user)
+        if sent:
+            sent_count += 1
+        else:
+            failures.append({
+                "email": user.email,
+                "error": error or "Unknown email error",
+            })
+    return JSONResponse({
+        "dry_run": False,
+        "recipient_count": len(recipients),
+        "sent_count": sent_count,
+        "failed_count": len(failures),
+        "failures": failures[:20],
+    })
+
+
 @app.post("/admin/api/ai-fill")
 async def admin_ai_fill(request: Request):
     try:
@@ -3679,6 +4759,372 @@ async def admin_list_listings(
     return JSONResponse(result)
 
 
+@app.get("/admin/analytics")
+async def admin_analytics(
+    request: Request,
+    admin_key: str = Query(None),
+    days: int = Query(30),
+    db: Session = Depends(get_db),
+):
+    if not _admin_key_matches(admin_key):
+        raise HTTPException(403, "Unauthorized")
+    days = max(1, min(days, 180))
+    since = datetime.utcnow() - timedelta(days=days)
+
+    events = db.query(UserEvent).filter(UserEvent.created_at >= since).order_by(UserEvent.created_at.desc()).limit(20000).all()
+    event_counts: dict[str, int] = {}
+    unique_people = set()
+    for event in events:
+        event_counts[event.event_name] = event_counts.get(event.event_name, 0) + 1
+        if event.user_id:
+            unique_people.add(f"u:{event.user_id}")
+        elif event.anonymous_id:
+            unique_people.add(f"a:{event.anonymous_id}")
+
+    def in_analytics_window(value) -> bool:
+        if not value:
+            return False
+        if getattr(value, "tzinfo", None):
+            value = value.replace(tzinfo=None)
+        return value >= since
+
+    def response_counts_in_window(response: Response) -> tuple[bool, bool]:
+        started_in_window = in_analytics_window(response.started_at)
+        # Older rows may not have timestamps even though their status is useful.
+        if not response.started_at:
+            started_in_window = response.status in {"started", "completed"}
+        completed_in_window = in_analytics_window(response.completed_at)
+        if not response.completed_at and response.status == "completed":
+            completed_in_window = started_in_window
+        return started_in_window, completed_in_window
+
+    all_response_rows = db.query(Response).all()
+    response_started_total = 0
+    completed_total = 0
+    for response in all_response_rows:
+        started_in_window, completed_in_window = response_counts_in_window(response)
+        if started_in_window:
+            response_started_total += 1
+        if completed_in_window:
+            completed_total += 1
+    starts_total = max(event_counts.get("study_start", 0) + event_counts.get("survey_started", 0), response_started_total)
+    start_to_complete = round((completed_total / starts_total) * 100, 1) if starts_total else 0
+
+    surveys = db.query(Survey).order_by(Survey.created_at.desc()).limit(200).all()
+    survey_ids = [s.id for s in surveys]
+    response_rows = []
+    if survey_ids:
+        response_rows = db.query(Response).filter(Response.survey_id.in_(survey_ids)).all()
+
+    event_by_survey: dict[str, dict[str, Any]] = {}
+    for event in events:
+        if event.target_type != "survey" or not event.target_id:
+            continue
+        bucket = event_by_survey.setdefault(event.target_id, {
+            "views": 0,
+            "unique_viewers": set(),
+            "starts": 0,
+            "unique_starters": set(),
+            "completed": 0,
+        })
+        actor = f"u:{event.user_id}" if event.user_id else f"a:{event.anonymous_id or event.client_ip or event.id}"
+        if event.event_name in VIEW_EVENT_NAMES:
+            bucket["views"] += 1
+            bucket["unique_viewers"].add(actor)
+        elif event.event_name in START_EVENT_NAMES:
+            bucket["starts"] += 1
+            bucket["unique_starters"].add(actor)
+        elif event.event_name in COMPLETE_EVENT_NAMES:
+            bucket["completed"] += 1
+
+    responses_by_survey: dict[int, dict[str, int]] = {}
+
+    for response in response_rows:
+        bucket = responses_by_survey.setdefault(response.survey_id, {"responses": 0, "completed": 0})
+        started_in_window, completed_in_window = response_counts_in_window(response)
+        if started_in_window:
+            bucket["responses"] += 1
+        if completed_in_window:
+            bucket["completed"] += 1
+
+    listing_funnel = []
+    for survey in surveys:
+        event_bucket = event_by_survey.get(str(survey.id), {})
+        response_bucket = responses_by_survey.get(survey.id, {"responses": 0, "completed": 0})
+        tracked_views = int(event_bucket.get("views", 0) or 0)
+        starts = max(int(event_bucket.get("starts", 0) or 0), int(response_bucket.get("responses", 0) or 0))
+        completed = max(int(event_bucket.get("completed", 0) or 0), int(response_bucket.get("completed", 0) or 0))
+        views = max(tracked_views, starts)
+        unique_viewers = max(len(event_bucket.get("unique_viewers", set())), len(event_bucket.get("unique_starters", set())))
+        listing_funnel.append({
+            "id": survey.id,
+            "title": survey.title,
+            "status": survey.status,
+            "views": views,
+            "tracked_views": tracked_views,
+            "unique_viewers": unique_viewers,
+            "starts": starts,
+            "unique_starters": len(event_bucket.get("unique_starters", set())),
+            "completed": completed,
+            "start_rate": round((starts / views) * 100, 1) if views else None,
+            "completion_rate": round((completed / starts) * 100, 1) if starts else None,
+            "created_at": survey.created_at.isoformat() if survey.created_at else None,
+        })
+    listing_funnel.sort(key=lambda item: (item["views"], item["starts"], item["completed"], item["id"]), reverse=True)
+
+    recent = events[:80]
+    user_ids = {event.user_id for event in recent if event.user_id}
+    users = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    recent_survey_ids = []
+    for event in recent:
+        if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit():
+            recent_survey_ids.append(int(event.target_id))
+    survey_map = {s.id: s for s in db.query(Survey).filter(Survey.id.in_(set(recent_survey_ids))).all()} if recent_survey_ids else {}
+    recent_activity = []
+    for event in recent:
+        user = users.get(event.user_id)
+        survey = survey_map.get(int(event.target_id)) if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit() else None
+        guest_suffix = (event.anonymous_id or "")[-4:].upper()
+        actor_label = user.email if user else (f"Guest visitor #{guest_suffix}" if guest_suffix else "Guest visitor")
+        recent_activity.append({
+            "id": event.id,
+            "event_name": event.event_name,
+            "user": actor_label,
+            "actor_type": "user" if user else "guest",
+            "anonymous_id": event.anonymous_id,
+            "target_type": event.target_type,
+            "target_id": event.target_id,
+            "target_label": survey.title if survey else None,
+            "page_path": event.page_path,
+            "metadata": event.metadata_json or {},
+            "created_at": event.created_at.isoformat() if event.created_at else None,
+        })
+
+    return JSONResponse({
+        "overview": {
+            "days": days,
+            "total_events": len(events),
+            "unique_people": len(unique_people),
+            "listing_views": (
+                event_counts.get("listing_view", 0)
+                + event_counts.get("listing_viewed", 0)
+                + event_counts.get("study_impression", 0)
+                + event_counts.get("study_card_viewed", 0)
+            ),
+            "start_clicks": starts_total,
+            "completed_surveys": completed_total,
+            "start_to_complete_rate": start_to_complete,
+        },
+        "event_counts": event_counts,
+        "listing_funnel": listing_funnel[:100],
+        "recent_activity": recent_activity,
+    })
+
+
+def _admin_event_actor(event: UserEvent, users: dict[int, User], anonymous_user_ids: Optional[dict[str, int]] = None) -> dict[str, str]:
+    inferred_user_id = None
+    if not event.user_id and event.anonymous_id and anonymous_user_ids:
+        inferred_user_id = anonymous_user_ids.get(event.anonymous_id)
+    user = users.get(event.user_id or inferred_user_id)
+    if user:
+        label = user.email or user.username or f"User #{user.id}"
+        return {"label": label, "type": "user", "email": user.email or "", "username": user.username or ""}
+    guest_suffix = (event.anonymous_id or event.client_ip or str(event.id or ""))[-4:].upper()
+    label = f"Guest visitor #{guest_suffix}" if guest_suffix else "Guest visitor"
+    return {"label": label, "type": "guest", "email": "", "username": ""}
+
+
+def _admin_event_payload(event: UserEvent, users: dict[int, User], survey_map: dict[int, Survey], anonymous_user_ids: Optional[dict[str, int]] = None) -> dict[str, Any]:
+    survey = survey_map.get(int(event.target_id)) if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit() else None
+    inferred_user_id = anonymous_user_ids.get(event.anonymous_id) if anonymous_user_ids and event.anonymous_id else None
+    actor = _admin_event_actor(event, users, anonymous_user_ids)
+    metadata = event.metadata_json or {}
+    user = users.get(event.user_id or inferred_user_id)
+    return {
+        "id": event.id,
+        "event_name": event.event_name,
+        "user": actor["label"],
+        "role": _admin_event_role(event, user, metadata),
+        "actor_type": actor["type"],
+        "user_email": actor["email"],
+        "username": actor["username"],
+        "user_id": event.user_id or inferred_user_id,
+        "anonymous_id": event.anonymous_id,
+        "target_type": event.target_type,
+        "target_id": event.target_id,
+        "target_label": survey.title if survey else (metadata.get("study_title") or None),
+        "page_path": event.page_path,
+        "source": _admin_event_source(metadata),
+        "details": _admin_event_details(metadata),
+        "metadata": metadata,
+        "created_at": event.created_at.isoformat() if event.created_at else None,
+    }
+
+
+def _anonymous_user_map(db: Session, anonymous_ids: set[str]) -> dict[str, int]:
+    clean_ids = {value for value in anonymous_ids if value}
+    if not clean_ids:
+        return {}
+    rows = db.query(UserEvent.anonymous_id, UserEvent.user_id).filter(
+        UserEvent.anonymous_id.in_(clean_ids),
+        UserEvent.user_id.isnot(None),
+    ).order_by(UserEvent.created_at.desc()).limit(5000).all()
+    result: dict[str, int] = {}
+    for anonymous_id, user_id in rows:
+        if anonymous_id and user_id and anonymous_id not in result:
+            result[anonymous_id] = user_id
+    return result
+
+
+@app.get("/admin/activity")
+async def admin_activity(
+    request: Request,
+    admin_key: str = Query(None),
+    survey_id: Optional[int] = Query(None),
+    event_name: str = Query(""),
+    q: str = Query(""),
+    limit: int = Query(100),
+    offset: int = Query(0),
+    db: Session = Depends(get_db),
+):
+    if not _admin_key_matches(admin_key):
+        raise HTTPException(403, "Unauthorized")
+
+    limit = max(20, min(limit, 500))
+    offset = max(0, offset)
+    event_name = (event_name or "").strip()
+    q = (q or "").strip()
+
+    surveys = db.query(Survey).order_by(Survey.created_at.desc()).limit(1000).all()
+    survey_options = [{
+        "id": survey.id,
+        "title": survey.title,
+        "status": survey.status,
+        "created_at": survey.created_at.isoformat() if survey.created_at else None,
+    } for survey in surveys]
+
+    query = db.query(UserEvent)
+    if survey_id:
+        query = query.filter(UserEvent.target_type == "survey", UserEvent.target_id == str(survey_id))
+    if event_name:
+        query = query.filter(UserEvent.event_name == event_name)
+    if q:
+        like = f"%{q}%"
+        matching_users = db.query(User.id).filter(or_(User.email.ilike(like), User.username.ilike(like))).limit(500).all()
+        matching_user_ids = [row[0] for row in matching_users]
+        conditions = [
+            UserEvent.anonymous_id.ilike(like),
+            UserEvent.client_ip.ilike(like),
+            UserEvent.page_path.ilike(like),
+        ]
+        if matching_user_ids:
+            conditions.append(UserEvent.user_id.in_(matching_user_ids))
+        query = query.filter(or_(*conditions))
+
+    total = query.count()
+    events = query.order_by(UserEvent.created_at.desc()).offset(offset).limit(limit).all()
+
+    anonymous_user_ids = _anonymous_user_map(db, {event.anonymous_id for event in events if event.anonymous_id})
+    user_ids = {event.user_id for event in events if event.user_id}
+    user_ids.update(anonymous_user_ids.values())
+    survey_ids = {
+        int(event.target_id)
+        for event in events
+        if event.target_type == "survey" and event.target_id and str(event.target_id).isdigit()
+    }
+    users = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    survey_map = {s.id: s for s in db.query(Survey).filter(Survey.id.in_(survey_ids)).all()} if survey_ids else {}
+    activity = [_admin_event_payload(event, users, survey_map, anonymous_user_ids) for event in events]
+
+    people = []
+    if survey_id:
+        survey_events = db.query(UserEvent).filter(
+            UserEvent.target_type == "survey",
+            UserEvent.target_id == str(survey_id),
+        ).order_by(UserEvent.created_at.asc()).limit(20000).all()
+        survey_anonymous_user_ids = _anonymous_user_map(db, {event.anonymous_id for event in survey_events if event.anonymous_id})
+        response_rows = db.query(Response).filter(Response.survey_id == survey_id).all()
+        survey_user_ids = {event.user_id for event in survey_events if event.user_id}
+        survey_user_ids.update(survey_anonymous_user_ids.values())
+        survey_user_ids.update({response.participant_id for response in response_rows if response.participant_id})
+        survey_users = {u.id: u for u in db.query(User).filter(User.id.in_(survey_user_ids)).all()} if survey_user_ids else {}
+        grouped: dict[str, dict[str, Any]] = {}
+        view_events = VIEW_EVENT_NAMES
+        start_events = START_EVENT_NAMES
+        complete_events = COMPLETE_EVENT_NAMES
+        for event in survey_events:
+            inferred_user_id = survey_anonymous_user_ids.get(event.anonymous_id) if event.anonymous_id else None
+            actor_key = f"u:{event.user_id or inferred_user_id}" if (event.user_id or inferred_user_id) else f"a:{event.anonymous_id or event.client_ip or event.id}"
+            actor = _admin_event_actor(event, survey_users, survey_anonymous_user_ids)
+            bucket = grouped.setdefault(actor_key, {
+                "user": actor["label"],
+                "actor_type": actor["type"],
+                "user_email": actor["email"],
+                "username": actor["username"],
+                "user_id": event.user_id or inferred_user_id,
+                "anonymous_id": event.anonymous_id,
+                "first_opened_at": None,
+                "first_started_at": None,
+                "completed_at": None,
+                "last_event_at": None,
+                "event_count": 0,
+                "last_event_name": None,
+            })
+            bucket["event_count"] += 1
+            bucket["last_event_at"] = event.created_at.isoformat() if event.created_at else None
+            bucket["last_event_name"] = event.event_name
+            if event.event_name in view_events and not bucket["first_opened_at"]:
+                bucket["first_opened_at"] = event.created_at.isoformat() if event.created_at else None
+            if event.event_name in start_events and not bucket["first_started_at"]:
+                bucket["first_started_at"] = event.created_at.isoformat() if event.created_at else None
+            if event.event_name in complete_events and not bucket["completed_at"]:
+                bucket["completed_at"] = event.created_at.isoformat() if event.created_at else None
+
+        for response in response_rows:
+            user = survey_users.get(response.participant_id)
+            actor_key = f"u:{response.participant_id}" if response.participant_id else f"response:{response.id}"
+            bucket = grouped.setdefault(actor_key, {
+                "user": (user.email or user.username or f"User #{user.id}") if user else f"User #{response.participant_id}",
+                "actor_type": "user",
+                "user_email": user.email if user else "",
+                "username": user.username if user else "",
+                "user_id": response.participant_id,
+                "anonymous_id": None,
+                "first_opened_at": None,
+                "first_started_at": None,
+                "completed_at": None,
+                "last_event_at": None,
+                "event_count": 0,
+                "last_event_name": None,
+            })
+            started_at = response.started_at.isoformat() if response.started_at else None
+            completed_at = response.completed_at.isoformat() if response.completed_at else None
+            if started_at and not bucket["first_started_at"]:
+                bucket["first_started_at"] = started_at
+            if completed_at and not bucket["completed_at"]:
+                bucket["completed_at"] = completed_at
+            latest_at = completed_at or started_at
+            if latest_at and (not bucket["last_event_at"] or latest_at > bucket["last_event_at"]):
+                bucket["last_event_at"] = latest_at
+                bucket["last_event_name"] = "study_complete" if completed_at else "study_start"
+            if response.id and bucket["event_count"] == 0:
+                bucket["event_count"] = 1
+        people = sorted(
+            grouped.values(),
+            key=lambda item: item.get("last_event_at") or "",
+            reverse=True,
+        )
+
+    return JSONResponse({
+        "surveys": survey_options,
+        "events": activity,
+        "people": people,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    })
+
+
 @app.post("/admin/listings/{survey_id}/delete")
 async def admin_delete_listing(survey_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
@@ -3704,6 +5150,147 @@ async def admin_delete_listings_by_title(request: Request, db: Session = Depends
         deleted.append({"id": survey.id, "title": survey.title})
         _delete_survey_tree(db, survey)
     return JSONResponse({"success": True, "deleted": deleted})
+
+
+@app.post("/admin/listings/reset-research-participation-demo")
+async def admin_reset_research_participation_demo(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+
+    title = RESEARCH_PARTICIPATION_DEMO_TITLE
+    calendly_url = RESEARCH_PARTICIPATION_DEMO_CALENDLY_URL
+    title_compact = _compact_text(title)
+    candidates = db.query(Survey).filter(
+        Survey.title.ilike("%Motivations%"),
+        Survey.title.ilike("%Barriers%"),
+        Survey.title.ilike("%Research%"),
+    ).order_by(Survey.created_at.desc()).all()
+    existing = []
+    for survey in candidates:
+        survey_title_compact = _compact_text(survey.title)
+        if survey_title_compact == title_compact or (
+            "motivation" in survey_title_compact
+            and "barrier" in survey_title_compact
+            and "onlinesurveys" in survey_title_compact
+            and "researchstudies" in survey_title_compact
+        ):
+            existing.append(survey)
+    source = existing[0] if existing else None
+    admin_user = _get_admin_publisher_user(db)
+
+    source_data = {
+        "description": (
+            getattr(source, "description", None)
+            or "Help us understand what motivates people to participate in online surveys and research studies, what barriers get in the way, and what would make research participation feel clearer, safer, and more worthwhile."
+        ),
+        "category": getattr(source, "category", None) or "research",
+        "estimated_time": getattr(source, "estimated_time", None) or 30,
+        "reward_amount": getattr(source, "reward_amount", None) or 0.0,
+        "admin_display_reward_amount": getattr(source, "admin_display_reward_amount", None),
+        "target_responses": getattr(source, "target_responses", None) or 50,
+        "target_age_range": getattr(source, "target_age_range", None),
+        "target_education_min": getattr(source, "target_education_min", None),
+        "target_education_max": getattr(source, "target_education_max", None),
+        "target_field": getattr(source, "target_field", None),
+        "target_status": getattr(source, "target_status", None),
+        "target_state": getattr(source, "target_state", None),
+        "target_language": getattr(source, "target_language", None),
+        "target_ethnicity": getattr(source, "target_ethnicity", None),
+        "target_sexual_orientation": getattr(source, "target_sexual_orientation", None),
+        "target_mental_health_diagnosis": getattr(source, "target_mental_health_diagnosis", None),
+        "target_physical_health_diagnosis": getattr(source, "target_physical_health_diagnosis", None),
+        "target_sport_type": getattr(source, "target_sport_type", None),
+        "target_sport_frequency": getattr(source, "target_sport_frequency", None),
+        "target_smoking": getattr(source, "target_smoking", None),
+        "target_cannabis_use": getattr(source, "target_cannabis_use", None),
+        "target_student_status": getattr(source, "target_student_status", None),
+        "target_international_domestic": getattr(source, "target_international_domestic", None),
+        "target_experience_tags": getattr(source, "target_experience_tags", None),
+        "target_device": getattr(source, "target_device", None),
+        "target_income_level": getattr(source, "target_income_level", None),
+        "target_lifestyle_tags": getattr(source, "target_lifestyle_tags", None),
+        "target_niche_requirements": getattr(source, "target_niche_requirements", None),
+        "image_url": getattr(source, "image_url", None),
+        "share_slug": getattr(source, "share_slug", None),
+        "incentive_type": getattr(source, "incentive_type", None) or "cash",
+        "raffle_prize_type": getattr(source, "raffle_prize_type", None),
+        "session_count": None,
+        "sessions_per_week": None,
+    }
+    if source_data["admin_display_reward_amount"] is None:
+        source_data["admin_display_reward_amount"] = source_data["reward_amount"]
+
+    deleted = []
+    for survey in existing:
+        deleted.append({"id": survey.id, "title": survey.title})
+        _delete_survey_tree(db, survey)
+
+    survey = Survey(
+        publisher_id=admin_user.id,
+        title=title,
+        description=source_data["description"],
+        form_url=calendly_url,
+        task_type="interview",
+        category=source_data["category"],
+        estimated_time=source_data["estimated_time"],
+        reward_amount=source_data["reward_amount"],
+        admin_display_reward_amount=source_data["admin_display_reward_amount"],
+        per_person_gross=0.0,
+        total_budget=0.0,
+        commission_rate=0.0,
+        payment_status="admin_demo",
+        target_responses=source_data["target_responses"],
+        status="published",
+        published_at=datetime.utcnow(),
+        target_age_range=source_data["target_age_range"],
+        target_education_min=source_data["target_education_min"],
+        target_education_max=source_data["target_education_max"],
+        target_field=source_data["target_field"],
+        target_status=source_data["target_status"],
+        target_state=source_data["target_state"],
+        target_language=source_data["target_language"],
+        target_ethnicity=source_data["target_ethnicity"],
+        target_sexual_orientation=source_data["target_sexual_orientation"],
+        target_mental_health_diagnosis=source_data["target_mental_health_diagnosis"],
+        target_physical_health_diagnosis=source_data["target_physical_health_diagnosis"],
+        target_sport_type=source_data["target_sport_type"],
+        target_sport_frequency=source_data["target_sport_frequency"],
+        target_smoking=source_data["target_smoking"],
+        target_cannabis_use=source_data["target_cannabis_use"],
+        target_student_status=source_data["target_student_status"],
+        target_year_in_school=None,
+        target_international_domestic=source_data["target_international_domestic"],
+        target_experience_tags=source_data["target_experience_tags"],
+        target_participation_format="Video interview",
+        target_device=source_data["target_device"],
+        target_income_level=source_data["target_income_level"],
+        target_lifestyle_tags=source_data["target_lifestyle_tags"],
+        target_niche_requirements=source_data["target_niche_requirements"],
+        incentive_type=source_data["incentive_type"],
+        raffle_prize_type=source_data["raffle_prize_type"],
+        image_url=source_data["image_url"],
+        share_slug=source_data["share_slug"],
+        session_count=source_data["session_count"],
+        sessions_per_week=source_data["sessions_per_week"],
+        availability_slots=None,
+    )
+    db.add(survey)
+    if not survey.share_slug:
+        _ensure_survey_share_slug(db, survey)
+    db.commit()
+    db.refresh(survey)
+    return JSONResponse({
+        "success": True,
+        "deleted": deleted,
+        "created": {
+            "id": survey.id,
+            "title": survey.title,
+            "share_url": _survey_share_url(request, db, survey),
+            "start_url": survey.form_url,
+            "type_label": _participant_study_type_label(survey),
+        },
+    })
 
 
 @app.get("/admin/feedbacks")
@@ -3795,6 +5382,7 @@ async def admin_update_support_status(thread_id: int, request: Request, db: Sess
 
 @app.post("/surveys/create-builtin")
 def create_builtin_survey(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -3818,6 +5406,16 @@ def create_builtin_survey(
     db.add(survey)
     db.commit()
     db.refresh(survey)
+    _record_user_event(
+        db,
+        request,
+        "study_created",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={"study_title": survey.title, "source": "Builtin builder", "user_role": "researcher"},
+    )
+    db.commit()
     return RedirectResponse(f"/surveys/{survey.id}/builder", status_code=303)
 
 @app.post("/publish")
@@ -3825,7 +5423,7 @@ async def publish_survey(
     request: Request,
     title: str = Form(...), description: str = Form(...), form_url: str = Form(...),
     task_type: str = Form("survey"), category: str = Form(...), estimated_time: int = Form(...),
-    per_person_gross: Optional[float] = Form(None), total_budget: Optional[float] = Form(None),
+    per_person_gross: Optional[str] = Form(None), total_budget: Optional[str] = Form(None),
     target_responses: int = Form(...), urgency_level: str = Form(None), incentive_type: str = Form(None),
     target_age_range: str = Form(None), target_field: str = Form(None), target_status: str = Form(None),
     target_state: str = Form(None), target_language: str = Form(None), target_ethnicity: str = Form(None),
@@ -3850,7 +5448,35 @@ async def publish_survey(
     lifestyle_list = form.getlist("target_lifestyle_tags")
     target_lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
     target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
+    participant_benefits = _join_form_list_with_other(
+        form.getlist("participant_benefits"),
+        form.get("participant_benefits_other")
+    )
     existing_survey_id = int(form.get("existing_survey_id") or 0)
+    raw_task_type = (task_type or form.get("task_type") or "survey").strip()
+    is_online_interview = raw_task_type in {"online_interview", "remote_interview"}
+    is_in_person_study = raw_task_type in {"in_person_study", "in_person"}
+    is_interview_listing = raw_task_type == "interview" or is_online_interview or is_in_person_study
+    normalized_task_type = "interview" if is_interview_listing else raw_task_type
+    if is_online_interview:
+        target_participation_format = "Video interview"
+    elif is_in_person_study:
+        target_participation_format = "In-person study"
+    session_count = max(_parse_optional_int(form.get("session_count")) or 1, 1)
+    sessions_per_week = _parse_optional_int(form.get("sessions_per_week"))
+    availability_slots = (form.get("availability_slots") or "").strip()
+    if availability_slots:
+        try:
+            parsed_slots = json.loads(availability_slots)
+            availability_slots = json.dumps(parsed_slots if isinstance(parsed_slots, list) else [])
+        except Exception:
+            availability_slots = None
+    else:
+        availability_slots = None
+    scheduling_link = (form.get("scheduling_link") or "").strip()
+    interview_location = _clean_target(form.get("interview_location"))
+    if is_interview_listing:
+        form_url = scheduling_link or form_url or ""
 
     is_builtin = (form_url == "__builtin__")
     incentive_clean = _clean_target(incentive_type) or "cash"
@@ -3865,16 +5491,18 @@ async def publish_survey(
         ppg = 0.0; rate = 0.0; reward = 0.0
         total = volunteer_platform_fee(target_responses)
     else:
-        if admin_publish and not per_person_gross and not total_budget:
+        per_person_gross_value = _parse_optional_float(per_person_gross)
+        total_budget_value = _parse_optional_float(total_budget)
+        if admin_publish and not per_person_gross_value and not total_budget_value:
             ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
-        elif per_person_gross is not None and float(per_person_gross) > 0:
-            ppg = float(per_person_gross)
-        elif total_budget and float(total_budget) > 0:
-            ppg = float(total_budget) / int(target_responses)
+        elif per_person_gross_value is not None and per_person_gross_value > 0:
+            ppg = per_person_gross_value
+        elif total_budget_value is not None and total_budget_value > 0:
+            ppg = total_budget_value / (int(target_responses) * session_count)
         else: ppg = 5.0
         if not (admin_publish and ppg == 0.0):
             rate, reward = calculate_commission(ppg)
-            total = round(ppg * int(target_responses), 2)
+            total = round(ppg * int(target_responses) * session_count, 2)
     total = round(total * timeline_multiplier(urgency_level), 2)
 
     image_url = None
@@ -3894,6 +5522,8 @@ async def publish_survey(
             raise HTTPException(404, "Survey not found")
         survey.title = title
         survey.description = description
+        survey.form_url = form_url
+        survey.task_type = normalized_task_type
         survey.category = category
         survey.estimated_time = estimated_time
         survey.reward_amount = reward
@@ -3929,6 +5559,11 @@ async def publish_survey(
         survey.target_income_level = _clean_target(target_income_level)
         survey.target_lifestyle_tags = target_lifestyle_tags
         survey.target_niche_requirements = target_niche_requirements
+        survey.participant_benefits = participant_benefits
+        survey.availability_slots = availability_slots if is_interview_listing else None
+        survey.interview_location = interview_location if is_interview_listing else None
+        survey.session_count = session_count if is_interview_listing else None
+        survey.sessions_per_week = sessions_per_week if is_interview_listing else None
         survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish else None
         _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
@@ -3937,7 +5572,7 @@ async def publish_survey(
     else:
         survey = Survey(
             publisher_id=current_user.id, title=title, description=description, form_url=form_url,
-            task_type=task_type, category=category, estimated_time=estimated_time,
+            task_type=normalized_task_type, category=category, estimated_time=estimated_time,
             reward_amount=reward, per_person_gross=ppg, total_budget=total, commission_rate=rate,
             payment_status="unpaid" if not is_no_pay else "paid",
             target_responses=target_responses, urgency_level=_clean_target(urgency_level),
@@ -3962,17 +5597,40 @@ async def publish_survey(
             target_income_level=_clean_target(target_income_level),
             target_lifestyle_tags=target_lifestyle_tags,
             target_niche_requirements=target_niche_requirements,
+            participant_benefits=participant_benefits,
+            availability_slots=availability_slots if is_interview_listing else None,
+            interview_location=interview_location if is_interview_listing else None,
+            session_count=session_count if is_interview_listing else None,
+            sessions_per_week=sessions_per_week if is_interview_listing else None,
             admin_display_reward_amount=admin_display_reward_amount if admin_publish else None,
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
         _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
         db.add(survey); db.commit(); db.refresh(survey)
+        _record_user_event(
+            db,
+            request,
+            "study_created",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            metadata={"study_title": survey.title, "source": "Publish flow", "user_role": "researcher"},
+        )
 
     if admin_publish:
         survey.status = "published"
         survey.payment_status = "admin_demo"
         survey.published_at = datetime.utcnow()
+        _record_user_event(
+            db,
+            request,
+            "study_published",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            metadata={"study_title": survey.title, "source": "Admin publish", "user_role": "researcher"},
+        )
         db.commit()
         redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
         return RedirectResponse(f"/admin/publish?{redirect_qs}", status_code=303)
@@ -3983,6 +5641,15 @@ async def publish_survey(
         survey.published_at = datetime.utcnow()
         if not stripe.api_key and not is_no_pay:
             survey.payment_status = "paid"
+        _record_user_event(
+            db,
+            request,
+            "study_published",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            metadata={"study_title": survey.title, "source": "Publish flow", "user_role": "researcher"},
+        )
         db.commit()
         return RedirectResponse("/publisher", status_code=303)
 
@@ -4690,22 +6357,55 @@ async def review_quality_check(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    row, _survey = _get_quality_check_for_publisher(db, check_id, current_user.id)
+    row, survey = _get_quality_check_for_publisher(db, check_id, current_user.id)
     body = await request.json()
     action = (body.get("action") or "").strip().lower()
     notes = body.get("notes")
     reviewer_label = body.get("reviewer_label")
 
     response = db.query(Response).filter(Response.id == row.response_id).first() if row.response_id else None
+    participant = db.query(User).filter(User.id == response.participant_id).first() if response and response.participant_id else None
 
     if action == "approve":
         row.review_status = "approved"
         if response:
             release_response_payout(db, response)
+        if survey:
+            _record_user_event(
+                db,
+                request,
+                "participant_approved",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={
+                    "study_title": survey.title,
+                    "participant_id": response.participant_id if response else None,
+                    "participant_email": participant.email if participant else None,
+                    "source": "Quality review",
+                    "user_role": "researcher",
+                },
+            )
     elif action == "reject":
         row.review_status = "rejected"
         if response:
             reject_response_payout(db, response)
+        if survey:
+            _record_user_event(
+                db,
+                request,
+                "participant_rejected",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={
+                    "study_title": survey.title,
+                    "participant_id": response.participant_id if response else None,
+                    "participant_email": participant.email if participant else None,
+                    "source": "Quality review",
+                    "user_role": "researcher",
+                },
+            )
     elif action == "pending":
         row.review_status = "pending"
         if response:
@@ -4721,6 +6421,22 @@ async def review_quality_check(
         row.reviewer_label = reviewer_label or "fraud"
         if response:
             reject_response_payout(db, response)
+        if survey:
+            _record_user_event(
+                db,
+                request,
+                "participant_rejected",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={
+                    "study_title": survey.title,
+                    "participant_id": response.participant_id if response else None,
+                    "participant_email": participant.email if participant else None,
+                    "source": "Quality review",
+                    "user_role": "researcher",
+                },
+            )
     elif action == "mark_low_quality":
         row.review_status = "rejected"
         row.reviewer_label = reviewer_label or "low_quality"
@@ -4728,6 +6444,22 @@ async def review_quality_check(
             row.quality_label = "low"
         if response:
             reject_response_payout(db, response)
+        if survey:
+            _record_user_event(
+                db,
+                request,
+                "participant_rejected",
+                user=current_user,
+                target_type="survey",
+                target_id=survey.id,
+                metadata={
+                    "study_title": survey.title,
+                    "participant_id": response.participant_id if response else None,
+                    "participant_email": participant.email if participant else None,
+                    "source": "Quality review",
+                    "user_role": "researcher",
+                },
+            )
     else:
         raise HTTPException(400, "Invalid action")
 

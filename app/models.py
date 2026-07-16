@@ -109,7 +109,11 @@ class Survey(Base):
     target_income_level = Column(String, nullable=True)
     target_lifestyle_tags = Column(String, nullable=True)
     target_niche_requirements = Column(String, nullable=True)
+    participant_benefits = Column(String, nullable=True)
     availability_slots = Column(String, nullable=True)
+    interview_location = Column(String, nullable=True)
+    session_count = Column(Integer, nullable=True)
+    sessions_per_week = Column(Integer, nullable=True)
     urgency_level = Column(String, nullable=True)
     incentive_type = Column(String, nullable=True)
     raffle_prize_type = Column(String, nullable=True)
@@ -198,6 +202,27 @@ class Response(Base):
     survey = relationship("Survey", back_populates="responses")
     participant = relationship("User", back_populates="responses")
     answers = relationship("Answer", back_populates="response")
+
+
+# ======================
+# Product analytics events
+# ======================
+class UserEvent(Base):
+    __tablename__ = "user_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    anonymous_id = Column(String, nullable=True, index=True)
+    event_name = Column(String, nullable=False, index=True)
+    target_type = Column(String, nullable=True, index=True)
+    target_id = Column(String, nullable=True, index=True)
+    page_path = Column(Text, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
+    user_agent = Column(Text, nullable=True)
+    client_ip = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    user = relationship("User", backref="events")
 
 
 # ======================

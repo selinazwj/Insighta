@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Publish In-person Study — Insighta</title>
+  <title>{{ 'Publish Online Interview' if is_online_interview else 'Publish In-person Study' }} — Insighta</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="apple-touch-icon" href="/static/favicon.png">
   <meta name="theme-color" content="#ffffff">
@@ -133,10 +133,23 @@
     .checkbox-item.checked { border-color: var(--accent); background: rgba(45,106,79,0.06); color: var(--ink); }
 
     .slot-builder { border: 1.5px solid var(--line); border-radius: 12px; padding: 16px; background: var(--paper); }
-    .slot-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap: 10px; align-items: end; }
-    .slot-mini label { display: block; font-size: 11px; font-weight: 700; color: var(--ink-muted); margin-bottom: 5px; }
-    .slot-add { height: 40px; padding: 0 16px; border: none; border-radius: 8px; background: var(--green); color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; }
-    .slot-add:hover { background: var(--green-d); }
+    .calendar-tools { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+    .calendar-nav { display:flex; align-items:center; gap:8px; }
+    .calendar-nav button, .slot-add { height:34px; padding:0 12px; border:.5px solid var(--line2); border-radius:8px; background:var(--bg); color:var(--ink-soft); font-family:var(--sans); font-size:12px; font-weight:700; cursor:pointer; }
+    .calendar-nav button:hover, .slot-add:hover { border-color:var(--green-m); background:var(--green-l); color:var(--green); }
+    .calendar-range { font-size:13px; font-weight:700; color:var(--ink); }
+    .calendar-hint { font-size:12px; color:var(--ink-muted); line-height:1.45; }
+    .availability-grid { display:grid; grid-template-columns:70px repeat(7, minmax(92px, 1fr)); border:.5px solid var(--line); border-radius:10px; overflow:auto; user-select:none; background:var(--bg); }
+    .cal-head, .time-head, .time-cell, .cal-cell { min-height:34px; border-right:.5px solid var(--line); border-bottom:.5px solid var(--line); display:flex; align-items:center; justify-content:center; }
+    .cal-head { position:sticky; top:0; background:var(--paper-warm); z-index:2; padding:8px 6px; flex-direction:column; gap:2px; }
+    .cal-head strong { font-size:12px; color:var(--ink); }
+    .cal-head span { font-size:10px; color:var(--ink-muted); }
+    .time-head { background:var(--paper-warm); color:var(--ink-muted); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+    .time-cell { background:var(--paper-warm); color:var(--ink-muted); font-size:11px; font-weight:700; justify-content:flex-end; padding-right:9px; }
+    .cal-cell { cursor:pointer; background:#fff; transition:background .08s, box-shadow .08s; }
+    .cal-cell:hover { background:var(--green-l); }
+    .cal-cell.selected { background:var(--green); box-shadow:inset 0 0 0 1px var(--green-d); }
+    .cal-cell.selected:hover { background:var(--green-d); }
     .slot-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; min-height: 28px; }
     .slot-chip { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid var(--green-m); background: var(--green-l); color: var(--green); border-radius: 999px; padding: 7px 10px 7px 12px; font-size: 12px; font-weight: 700; }
     .slot-chip button { border: none; background: transparent; color: var(--green); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
@@ -164,7 +177,7 @@
       .container { padding: 28px 16px 60px; }
       .form-section { padding: 24px 20px; }
       .form-row, .form-row-3 { grid-template-columns: 1fr; }
-      .slot-row { grid-template-columns: 1fr; }
+      .availability-grid { grid-template-columns:62px repeat(7, 88px); }
       .checkbox-group { grid-template-columns: 1fr; }
       .wizard-label { font-size:10px; }
       .wizard-nav { flex-wrap:wrap; }
@@ -187,6 +200,10 @@
     <a href="/publisher" class="nav-item active">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       New listing
+    </a>
+    <a href="/publisher/schedule" class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Schedule
     </a>
     <div class="nav-divider"></div>
     <a href="/guide" class="nav-item">
@@ -217,7 +234,7 @@
         My listings
       </a>
       <div class="topbar-sep"></div>
-      <div class="topbar-title">Publish in-person study</div>
+      <div class="topbar-title">Publish {{ 'online interview' if is_online_interview else 'in-person study' }}</div>
     </div>
     <div class="topbar-right">
       <button type="button" class="btn-cancel" onclick="window.location.href='/publisher'">Cancel</button>
@@ -227,9 +244,9 @@
 <div class="container">
 
   <div class="page-header">
-    <div class="type-badge">In-person study</div>
-    <h1>Post an <em>in-person study</em></h1>
-    <p>Find the right participants for live sessions, lab visits, field studies, or on-site research.</p>
+    <div class="type-badge">{{ 'Online interview' if is_online_interview else 'In-person study' }}</div>
+    <h1>Post an <em>{{ 'online interview' if is_online_interview else 'in-person study' }}</em></h1>
+    <p>{{ 'Find the right participants for remote interviews, video calls, and live online research sessions.' if is_online_interview else 'Find the right participants for live sessions, lab visits, field studies, or on-site research.' }}</p>
   </div>
 
   <div class="wizard-progress" aria-label="Listing progress">
@@ -246,16 +263,16 @@
     <div class="form-section" data-wizard-step="1">
       <div class="section-header">
         <div class="section-icon">01</div>
-        <div><h2>Basic Information</h2><p>What your in-person study is about</p></div>
+        <div><h2>Basic Information</h2><p>What your {{ 'online interview' if is_online_interview else 'in-person study' }} is about</p></div>
       </div>
       <div class="form-group">
         <label>Study Title *</label>
-        <input type="text" name="title" placeholder="e.g., In-person usability study for a campus app" required>
+        <input type="text" name="title" placeholder="{{ 'e.g., 45-minute online interview about student wellness apps' if is_online_interview else 'e.g., In-person usability study for a campus app' }}" required>
       </div>
       <div class="form-group">
         <label>Description *</label>
-        <div class="label-desc">Explain what the in-person session is about and what participants can expect</div>
-        <textarea name="description" placeholder="We're conducting 30-minute in-person sessions to understand how students use campus services..." required style="min-height: 120px;"></textarea>
+        <div class="label-desc">Explain what the {{ 'online interview' if is_online_interview else 'in-person session' }} is about and what participants can expect</div>
+        <textarea name="description" placeholder="{{ 'We are conducting live online interviews to understand student experiences...' if is_online_interview else 'We are conducting 30-minute in-person sessions to understand how students use campus services...' }}" required style="min-height: 120px;"></textarea>
       </div>
       <div class="form-group">
         <label>Category *</label>
@@ -275,11 +292,11 @@
     <div class="form-section" data-wizard-step="2" hidden>
       <div class="section-header">
         <div class="section-icon">02</div>
-        <div><h2>In-person study details</h2><p>Location, duration, and scheduling</p></div>
+        <div><h2>{{ 'Online interview details' if is_online_interview else 'In-person study details' }}</h2><p>{{ 'Call format, duration, and scheduling' if is_online_interview else 'Location, duration, and scheduling' }}</p></div>
       </div>
 
-      <input type="hidden" name="interview_format" id="formatInput" value="in_person">
-      <input type="hidden" name="target_participation_format" value="In-person study">
+      <input type="hidden" name="interview_format" id="formatInput" value="{{ 'online' if is_online_interview else 'in_person' }}">
+      <input type="hidden" name="target_participation_format" value="{{ 'Video interview' if is_online_interview else 'In-person study' }}">
 
       <div class="form-row" style="margin-bottom: 20px;">
         <div class="form-group">
@@ -298,20 +315,26 @@
           <input type="number" name="target_responses" placeholder="e.g. 10" min="1" required>
         </div>
       </div>
-
-      <div class="form-group">
-        <label>Calendly / booking link</label>
-        <div class="label-desc">Add the Calendly link participants should use to book their in-person slot.</div>
-        <input type="url" name="scheduling_link" placeholder="https://calendly.com/your-link">
+      <div class="form-row" style="margin-bottom: 20px;">
+        <div class="form-group">
+          <label>Total sessions per participant</label>
+          <div class="label-desc">How many times should each participant attend in total?</div>
+          <input type="number" name="session_count" placeholder="e.g. 2" min="1">
+        </div>
+        <div class="form-group">
+          <label>Sessions per week</label>
+          <div class="label-desc">Optional. For example, enter 2 if participants come twice per week.</div>
+          <input type="number" name="sessions_per_week" placeholder="e.g. 2" min="1">
+        </div>
       </div>
 
-      <div class="form-group">
-        <label>Availability / Time Windows</label>
-        <div class="label-desc">Describe when you're available so participants can plan ahead</div>
-        <textarea name="availability_notes" placeholder="Available weekdays 9am-5pm EST, Saturdays 10am-2pm. Sessions can be booked anytime in the next 3 weeks." style="min-height: 80px;"></textarea>
+      <div class="form-group" id="onlineLinkRow" {% if not is_online_interview %}style="display:none;"{% endif %}>
+        <label>Online meeting or booking link</label>
+        <div class="label-desc">Optional. Add Zoom, Teams, Calendly, or another link participants should use after choosing a time.</div>
+        <input type="url" name="scheduling_link" placeholder="https://zoom.us/j/... or https://calendly.com/...">
       </div>
 
-      <div class="form-group" id="locationRow">
+      <div class="form-group" id="locationRow" {% if is_online_interview %}style="display:none;"{% endif %}>
         <label>In-person location</label>
         <div class="label-desc">Where will the in-person session take place?</div>
         <input type="text" name="interview_location" placeholder="e.g. Questrom School of Business, Room 315, Boston, MA">
@@ -319,23 +342,19 @@
 
       <div class="form-group">
         <label>Bookable times</label>
-        <div class="label-desc">Add the dates and time windows participants can choose from when they sign up.</div>
+        <div class="label-desc">Drag across the calendar to mark every start time participants can book. Each selected cell uses your session duration above.</div>
         <div class="slot-builder">
-          <div class="slot-row">
-            <div class="slot-mini">
-              <label>Date</label>
-              <input type="date" id="slotDate">
+          <div class="calendar-tools">
+            <div class="calendar-nav">
+              <button type="button" onclick="moveCalendarWeek(-7)">Previous week</button>
+              <button type="button" onclick="moveCalendarWeek(7)">Next week</button>
+              <button type="button" onclick="resetCalendarWeek()">Today</button>
             </div>
-            <div class="slot-mini">
-              <label>Start time</label>
-              <input type="time" id="slotStart">
-            </div>
-            <div class="slot-mini">
-              <label>End time</label>
-              <input type="time" id="slotEnd">
-            </div>
-            <button class="slot-add" type="button" onclick="addSlot()">Add slot</button>
+            <div class="calendar-range" id="calendarRange">This week</div>
+            <button class="slot-add" type="button" onclick="clearSlots()">Clear all</button>
           </div>
+          <div class="calendar-hint">Tip: click or drag to paint availability. Click a selected time again to remove it.</div>
+          <div class="availability-grid" id="availabilityGrid" aria-label="Availability calendar"></div>
           <div class="slot-list" id="slotList"><span class="slot-empty">No bookable times added yet.</span></div>
           <input type="hidden" name="availability_slots" id="availabilitySlots" value="[]">
         </div>
@@ -371,7 +390,7 @@
 
       <div class="raffle-box" id="volunteerBox">
         <strong>Volunteer recruitment fee</strong>
-        Volunteer in-person listings do not pay participants per session. We charge $1 per 10 target participants to cover recruitment and verification.
+        Volunteer {{ 'online interview' if is_online_interview else 'in-person' }} listings do not pay participants per session. We charge $1 per 10 target participants to cover recruitment and verification.
       </div>
 
       <div id="budgetSection">
@@ -499,6 +518,22 @@
         <div class="label-desc">Add any very specific criteria we should consider during review or manual matching.</div>
         <textarea name="target_niche_requirements" placeholder="e.g. First-generation college students in California who have used budgeting apps in the past 6 months."></textarea>
       </div>
+      <div class="form-group" style="margin-top: 18px;">
+        <label>Additional participant benefits</label>
+        <div class="label-desc">Besides payment, what might participants value? These will appear on the participant-facing study card.</div>
+        <div class="checkbox-group">
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Free trial / product access" onchange="updateCheckbox(this)"> Free trial / product access</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Social impact" onchange="updateCheckbox(this)"> Social impact</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Networking" onchange="updateCheckbox(this)"> Networking</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Learn about yourself" onchange="updateCheckbox(this)"> Learn about yourself</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Early access to a new tool" onchange="updateCheckbox(this)"> Early access to a new tool</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Contribute to science" onchange="updateCheckbox(this)"> Contribute to science</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Other benefit <span style="font-weight:400;color:var(--ink-muted);">(optional)</span></label>
+        <input type="text" name="participant_benefits_other" placeholder="e.g. Free coaching session, certificate, community invite">
+      </div>
     </div>
 
     <div class="wizard-nav">
@@ -519,6 +554,9 @@
 
 <script>
   const availabilitySlots = [];
+  let calendarStart = startOfDay(new Date());
+  let isDraggingCalendar = false;
+  let dragModeSelect = true;
   const WIZARD_TITLES = ['Basics', 'Schedule & location', 'Budget & timeline', 'Target audience'];
   let currentWizardStep = 1;
 
@@ -551,12 +589,129 @@
     showWizardStep(currentWizardStep + delta);
   }
 
+  function startOfDay(date) {
+    const next = new Date(date);
+    next.setHours(0, 0, 0, 0);
+    return next;
+  }
+
+  function pad2(num) {
+    return String(num).padStart(2, '0');
+  }
+
+  function isoDate(date) {
+    return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  }
+
+  function addDays(date, days) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+  }
+
+  function minutesToTime(minutes) {
+    return `${pad2(Math.floor(minutes / 60))}:${pad2(minutes % 60)}`;
+  }
+
+  function addMinutes(time, minutes) {
+    const [h, m] = String(time || '00:00').split(':').map(Number);
+    return minutesToTime((h * 60 + m + minutes) % (24 * 60));
+  }
+
+  function selectedDuration() {
+    return parseInt(document.querySelector('select[name="estimated_time"]').value, 10) || 30;
+  }
+
   function formatSlotLabel(slot) {
     const date = new Date(slot.date + 'T00:00:00');
     const dateLabel = Number.isNaN(date.getTime())
       ? slot.date
       : date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     return `${dateLabel}, ${slot.start} - ${slot.end}`;
+  }
+
+  function slotKey(slot) {
+    return `${slot.date}|${slot.start}`;
+  }
+
+  function buildSlot(date, start) {
+    const slot = { date, start, end: addMinutes(start, selectedDuration()), label: '' };
+    slot.label = formatSlotLabel(slot);
+    return slot;
+  }
+
+  function rebuildSlotLabels() {
+    availabilitySlots.forEach(slot => {
+      slot.end = addMinutes(slot.start, selectedDuration());
+      slot.label = formatSlotLabel(slot);
+    });
+  }
+
+  function isSlotSelected(date, start) {
+    return availabilitySlots.some(slot => slot.date === date && slot.start === start);
+  }
+
+  function setSlot(date, start, selected) {
+    const idx = availabilitySlots.findIndex(slot => slot.date === date && slot.start === start);
+    if (selected && idx === -1) availabilitySlots.push(buildSlot(date, start));
+    if (!selected && idx !== -1) availabilitySlots.splice(idx, 1);
+    availabilitySlots.sort((a, b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
+    renderSlots();
+    renderAvailabilityCalendar();
+  }
+
+  function toggleCalendarCell(cell) {
+    const date = cell.dataset.date;
+    const start = cell.dataset.start;
+    const shouldSelect = !isSlotSelected(date, start);
+    setSlot(date, start, shouldSelect);
+    dragModeSelect = shouldSelect;
+  }
+
+  function paintCalendarCell(cell) {
+    if (!cell || !cell.classList.contains('cal-cell')) return;
+    setSlot(cell.dataset.date, cell.dataset.start, dragModeSelect);
+  }
+
+  function renderAvailabilityCalendar() {
+    const grid = document.getElementById('availabilityGrid');
+    if (!grid) return;
+    const days = Array.from({ length: 7 }, (_, i) => addDays(calendarStart, i));
+    const rangeStart = days[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const rangeEnd = days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    document.getElementById('calendarRange').textContent = `${rangeStart} - ${rangeEnd}`;
+    const starts = [];
+    for (let minutes = 8 * 60; minutes <= 20 * 60; minutes += 30) starts.push(minutesToTime(minutes));
+    let html = '<div class="time-head">Time</div>' + days.map(day => `
+      <div class="cal-head"><strong>${day.toLocaleDateString('en-US', { weekday:'short' })}</strong><span>${day.toLocaleDateString('en-US', { month:'short', day:'numeric' })}</span></div>
+    `).join('');
+    starts.forEach(start => {
+      html += `<div class="time-cell">${start}</div>`;
+      days.forEach(day => {
+        const date = isoDate(day);
+        const selected = isSlotSelected(date, start);
+        html += `<div class="cal-cell ${selected ? 'selected' : ''}" data-date="${date}" data-start="${start}" role="button" aria-label="${date} ${start}"></div>`;
+      });
+    });
+    grid.innerHTML = html;
+  }
+
+  function moveCalendarWeek(days) {
+    calendarStart = addDays(calendarStart, days);
+    renderAvailabilityCalendar();
+  }
+
+  function resetCalendarWeek() {
+    calendarStart = startOfDay(new Date());
+    renderAvailabilityCalendar();
+  }
+
+  function clearSlots() {
+    if (!availabilitySlots.length || confirm('Clear all selected bookable times?')) {
+      availabilitySlots.splice(0, availabilitySlots.length);
+      renderSlots();
+      renderAvailabilityCalendar();
+    }
   }
 
   function renderSlots() {
@@ -574,29 +729,10 @@
     `).join('');
   }
 
-  function addSlot() {
-    const date = document.getElementById('slotDate').value;
-    const start = document.getElementById('slotStart').value;
-    const end = document.getElementById('slotEnd').value;
-    if (!date || !start || !end) {
-      alert('Please choose a date, start time, and end time.');
-      return;
-    }
-    if (start >= end) {
-      alert('End time must be later than start time.');
-      return;
-    }
-    const slot = { date, start, end, label: '' };
-    slot.label = formatSlotLabel(slot);
-    const exists = availabilitySlots.some(s => s.date === date && s.start === start && s.end === end);
-    if (!exists) availabilitySlots.push(slot);
-    availabilitySlots.sort((a, b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
-    renderSlots();
-  }
-
   function removeSlot(idx) {
     availabilitySlots.splice(idx, 1);
     renderSlots();
+    renderAvailabilityCalendar();
   }
 
   // ── Format pills ─────────────────────────────────────────
@@ -606,6 +742,8 @@
     const val = el.dataset.value;
     document.getElementById('formatInput').value = val;
     document.getElementById('locationRow').style.display = val === 'in_person' ? 'block' : 'none';
+    const onlineRow = document.getElementById('onlineLinkRow');
+    if (onlineRow) onlineRow.style.display = val === 'online' ? 'block' : 'none';
   }
 
   // ── Incentive → show/hide budget ─────────────────────────
@@ -639,6 +777,7 @@
 
   function updateCommission() {
     const target = parseInt(document.querySelector('input[name="target_responses"]').value) || 0;
+    const sessionCount = Math.max(parseInt(document.querySelector('input[name="session_count"]').value, 10) || 1, 1);
     const incentive = document.getElementById('incentiveInput').value;
     const multiplier = getTimelineMultiplier();
     if (incentive === 'volunteer') {
@@ -657,11 +796,11 @@
     let ppg = parseFloat(perPersonInput.value) || 0;
     let total = parseFloat(totalBudgetInput.value) || 0;
     if (!ppg && !total) { document.getElementById('commissionBox').style.display = 'none'; return; }
-    if (ppg && target && !totalBudgetInput.matches(':focus')) { total = ppg * target; totalBudgetInput.value = total.toFixed(2); }
-    else if (total && target && !perPersonInput.matches(':focus')) { ppg = total / target; perPersonInput.value = ppg.toFixed(2); }
+    if (ppg && target && !totalBudgetInput.matches(':focus')) { total = ppg * target * sessionCount; totalBudgetInput.value = total.toFixed(2); }
+    else if (total && target && !perPersonInput.matches(':focus')) { ppg = total / (target * sessionCount); perPersonInput.value = ppg.toFixed(2); }
     if (!ppg || !target) { document.getElementById('commissionBox').style.display = 'none'; return; }
     const rate = getRate(ppg);
-    const totalPay = ppg * target * multiplier;
+    const totalPay = ppg * target * sessionCount * multiplier;
     document.getElementById('dispPerPerson').textContent = `$${ppg.toFixed(2)}`;
     document.getElementById('dispFeeRate').textContent = `${Math.round(rate * 100)}%`;
     document.getElementById('dispFee').textContent = `-$${(ppg * rate).toFixed(2)}`;
@@ -675,6 +814,7 @@
   perPersonInput.addEventListener('input', updateCommission);
   totalBudgetInput.addEventListener('input', updateCommission);
   document.querySelector('input[name="target_responses"]').addEventListener('input', updateCommission);
+  document.querySelector('input[name="session_count"]').addEventListener('input', updateCommission);
 
   // ── Urgency ───────────────────────────────────────────────
   function selectUrgency(el) {
@@ -701,9 +841,37 @@
   });
 
   document.getElementById('interviewForm').addEventListener('submit', function() {
+    rebuildSlotLabels();
     document.getElementById('availabilitySlots').value = JSON.stringify(availabilitySlots);
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+      if (!String(input.value || '').trim() && !input.required) input.disabled = true;
+    });
   });
+  document.querySelector('select[name="estimated_time"]').addEventListener('change', function() {
+    rebuildSlotLabels();
+    renderSlots();
+    renderAvailabilityCalendar();
+  });
+  document.getElementById('availabilityGrid').addEventListener('mousedown', function(event) {
+    if (!event.target.classList.contains('cal-cell')) return;
+    event.preventDefault();
+    isDraggingCalendar = true;
+    toggleCalendarCell(event.target);
+  });
+  document.getElementById('availabilityGrid').addEventListener('mouseover', function(event) {
+    if (!isDraggingCalendar) return;
+    paintCalendarCell(event.target);
+  });
+  document.addEventListener('mouseup', function() {
+    isDraggingCalendar = false;
+  });
+  document.getElementById('availabilityGrid').addEventListener('touchstart', function(event) {
+    const cell = event.target.closest('.cal-cell');
+    if (!cell) return;
+    toggleCalendarCell(cell);
+  }, { passive: true });
   showWizardStep(1, false);
+  renderAvailabilityCalendar();
 </script>
 <script src="/static/support_chat.js"></script>
 </body>

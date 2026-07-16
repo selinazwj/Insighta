@@ -173,12 +173,22 @@
         </button>
       </form>
 
-      <!-- Interview -->
+      <!-- In-person study -->
       <a href="/publish_interview" class="type-card">
         <div class="type-card-icon icon-interview">🎙️</div>
         <div class="type-card-text">
           <div class="type-card-title">In-person study</div>
-          <div class="type-card-desc">Schedule 1-on-1 or group sessions for qualitative research.</div>
+          <div class="type-card-desc">Schedule lab visits, field studies, or on-site sessions.</div>
+        </div>
+        <div class="type-card-arrow">→</div>
+      </a>
+
+      <!-- Online interview -->
+      <a href="/publish_interview?mode=online" class="type-card">
+        <div class="type-card-icon icon-interview">🎙️</div>
+        <div class="type-card-text">
+          <div class="type-card-title">Online interview</div>
+          <div class="type-card-desc">Schedule live remote interviews or video sessions.</div>
         </div>
         <div class="type-card-arrow">→</div>
       </a>
@@ -342,7 +352,7 @@
             {% endif %}
             / session
           </span>
-          <span style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#7c3aed; background:rgba(124,58,237,0.08); padding:3px 10px; border-radius:100px;">{{ 'In-person study' if s.task_type in ('in_person','in-person') else ('Interview' if s.task_type == 'interview' else 'Survey') }}</span>
+          <span style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#7c3aed; background:rgba(124,58,237,0.08); padding:3px 10px; border-radius:100px;">{{ 'Online interview' if s.target_participation_format == 'Video interview' else ('In-person study' if s.task_type in ('in_person','in-person','in_person_study') or s.target_participation_format == 'In-person study' else ('Interview' if s.task_type == 'interview' else 'Survey')) }}</span>
         </div>
         <div class="progress-row">
           <div class="progress-bar"><div class="progress-fill" data-pct="{{ pct }}" style="background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div>
@@ -426,6 +436,12 @@
     const url = new URL(path, window.location.origin).toString();
     try {
       await navigator.clipboard.writeText(url);
+      if (window.insightaTrack) {
+        const slug = (path || '').split('/').filter(Boolean).pop() || '';
+        window.insightaTrack('study_shared', {
+          metadata: { source: 'Publisher', surface: 'publisher_dashboard', share_path: path, share_slug: slug, user_role: 'researcher' }
+        });
+      }
       alert('Share link copied.');
     } catch {
       prompt('Copy this link', url);
@@ -544,6 +560,10 @@
   loadNotifications();
   setInterval(loadNotifications, 30000);
 </script>
+<script>
+  window.INSIGHTA_TRACKING = { surface: 'publisher_dashboard', source: 'Publisher', userRole: 'researcher' };
+</script>
+<script src="/static/insighta_events.js"></script>
 
 </body>
 </html>

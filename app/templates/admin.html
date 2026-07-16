@@ -78,6 +78,61 @@
     .stat-n.green{color:var(--green);}
     .stat-n.amber{color:#c05621;}
     .stat-l{font-size:12px;color:var(--ink3);font-weight:500;}
+    .analytics-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:0.5px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg);margin-bottom:20px;}
+    .analytics-card{padding:18px 18px;border-right:0.5px solid var(--line);}
+    .analytics-card:last-child{border-right:none;}
+    .analytics-num{font-size:24px;font-weight:300;letter-spacing:-.8px;color:var(--ink);margin-bottom:3px;}
+    .analytics-label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;}
+    .analytics-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,.8fr);gap:18px;align-items:start;}
+    .analytics-box{background:var(--bg);border:0.5px solid var(--line);border-radius:10px;overflow:hidden;}
+    .analytics-head{padding:14px 16px;border-bottom:0.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    .analytics-title{font-size:13px;font-weight:700;color:var(--ink);}
+    .analytics-sub{font-size:12px;color:var(--ink3);}
+    .activity-list{display:flex;flex-direction:column;}
+    .activity-item{padding:12px 16px;border-bottom:0.5px solid var(--line);}
+    .activity-item:last-child{border-bottom:none;}
+    .activity-main{font-size:12px;color:var(--ink2);line-height:1.45;}
+    .activity-main strong{color:var(--ink);font-weight:700;}
+    .activity-meta{font-size:11px;color:var(--ink4);margin-top:4px;}
+    .rate-good{color:var(--green);font-weight:700;}
+    .rate-empty{color:var(--ink4);}
+    .activity-controls{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+    .activity-controls select,
+    .activity-controls input{height:38px;border:0.5px solid var(--line2);border-radius:7px;padding:0 12px;font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--ink);}
+    .activity-controls select{min-width:210px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238a8a82' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
+    .activity-controls input{min-width:240px;}
+    .activity-controls select:focus,
+    .activity-controls input:focus{outline:none;border-color:var(--green);}
+    .activity-stack{display:flex;flex-direction:column;gap:16px;}
+    .activity-stack .analytics-box{overflow:visible;}
+    .activity-stack .table-wrap{overflow:visible;}
+    .event-pill{position:relative;display:inline-flex;align-items:center;border:0.5px solid var(--line2);border-radius:999px;padding:2px 8px;background:var(--bg3);color:var(--ink2);font-size:11px;font-weight:700;white-space:nowrap;}
+    .event-pill.view{background:var(--green-l);border-color:var(--green-m);color:var(--green);}
+    .event-pill.start{background:var(--amber-l);border-color:#fde68a;color:#92400e;}
+    .event-pill.complete{background:#eefcf3;border-color:#bbf7d0;color:#15803d;}
+    .event-pill.click{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;}
+    .event-pill.review{background:#fdf4ff;border-color:#f5d0fe;color:#7e22ce;}
+    .event-pill.has-tip{cursor:help;}
+    .event-pill.has-tip::before{
+      content:'';position:absolute;left:50%;top:calc(100% + 2px);transform:translateX(-50%);
+      border:6px solid transparent;border-bottom-color:var(--bg);
+      opacity:0;pointer-events:none;transition:opacity .15s;z-index:31;
+      filter:drop-shadow(0 -1px 0 rgba(0,0,0,.04));
+    }
+    .event-pill.has-tip::after{
+      content:attr(data-tip);
+      position:absolute;left:50%;top:calc(100% + 13px);transform:translateX(-50%);
+      width:max-content;max-width:200px;padding:6px 8px;border-radius:8px;
+      background:var(--bg);color:var(--ink2);font-size:10px;font-weight:500;line-height:1.35;
+      white-space:normal;text-align:left;
+      box-shadow:0 6px 18px rgba(26,26,24,.08), 0 1px 4px rgba(26,26,24,.05);
+      opacity:0;pointer-events:none;transition:opacity .15s ease, transform .15s ease;
+      z-index:30;
+    }
+    .event-pill.has-tip:hover::before,
+    .event-pill.has-tip:hover::after{opacity:1;}
+    .event-pill.has-tip:hover::after{transform:translateX(-50%) translateY(2px);}
+    .load-more-wrap{padding:14px 16px;border-top:0.5px solid var(--line);text-align:center;}
 
     /* ── FILTER TABS ── */
     .filter-tabs{display:flex;gap:2px;margin-bottom:16px;flex-wrap:wrap;}
@@ -196,6 +251,8 @@
     @media(max-width:860px){
       .sidebar{display:none;}
       .stats{grid-template-columns:1fr 1fr;}
+      .analytics-grid{grid-template-columns:1fr 1fr;}
+      .analytics-layout{grid-template-columns:1fr;}
       .support-layout{grid-template-columns:1fr;height:auto;}
       .form-grid{grid-template-columns:1fr;}
     }
@@ -224,6 +281,14 @@
     <button class="nav-item active" id="nav-overview" onclick="switchPanel('overview')">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
       Overview
+    </button>
+    <button class="nav-item" id="nav-analytics" onclick="switchPanel('analytics')">
+      <svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5"/><rect x="12" y="7" width="3" height="9"/><rect x="17" y="9" width="3" height="7"/></svg>
+      Analytics
+    </button>
+    <button class="nav-item" id="nav-activity" onclick="switchPanel('activity')">
+      <svg viewBox="0 0 24 24"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/><circle cx="7" cy="5" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="7" cy="19" r="1"/></svg>
+      Activity log
     </button>
     <button class="nav-item" id="nav-feedback" onclick="switchPanel('feedback')">
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -279,7 +344,7 @@
       <div class="stat"><div class="stat-n green" id="statAmount">—</div><div class="stat-l">Total credit issued</div></div>
       <div class="stat"><div class="stat-n" id="statSupport">—</div><div class="stat-l">Open support threads</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;">
       <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('feedback')">
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Feedback review</div>
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Review user feedback, grant credits, or reject submissions.</div>
@@ -304,6 +369,111 @@
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Listings</div>
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Review uploaded studies and delete test listings from admin.</div>
         <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
+      </div>
+      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('activity')">
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Activity log</div>
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Track who opened, started, and completed each listing.</div>
+        <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
+      </div>
+      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;">
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Email reminder</div>
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Email all users to complete their profile and connect Stripe before rewards.</div>
+        <button id="rewardReminderBtn" class="btn-refresh" style="margin-top:10px;" onclick="sendRewardReminder()">Send reminder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ANALYTICS PANEL ── -->
+  <div class="panel" id="panel-analytics">
+    <div class="analytics-grid" id="analyticsCards">
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Total events</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Unique users</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Listing views</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Starts</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Completed</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Start to complete</div></div>
+    </div>
+    <div class="analytics-layout">
+      <div class="analytics-box">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">Listing funnel</div>
+            <div class="analytics-sub">Views, starts, and completions by study over the last 30 days. Starts count as implied views when a view event was missed.</div>
+          </div>
+          <button class="btn-refresh" onclick="loadAnalytics()">Refresh</button>
+        </div>
+        <div id="analyticsFunnel">
+          <div class="empty"><div class="empty-sub">Open this panel to load analytics.</div></div>
+        </div>
+      </div>
+      <div class="analytics-box">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">Recent activity</div>
+            <div class="analytics-sub">Readable user journey events.</div>
+          </div>
+        </div>
+        <div id="analyticsActivity" class="activity-list">
+          <div class="empty"><div class="empty-sub">No activity loaded.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ACTIVITY PANEL ── -->
+  <div class="panel" id="panel-activity">
+    <div class="activity-controls">
+      <select id="activitySurvey" onchange="loadActivity(true)">
+        <option value="">All studies</option>
+      </select>
+      <select id="activityEvent" onchange="loadActivity(true)">
+        <option value="">All events</option>
+        <option value="page_view">Page View</option>
+        <option value="page_exit">Page Exit</option>
+        <option value="study_impression">Study Impression</option>
+        <option value="study_click">Study Clicked</option>
+        <option value="study_start">Start Clicked</option>
+        <option value="study_complete">Study Completed</option>
+        <option value="sign_up">Sign Up</option>
+        <option value="login">Login</option>
+        <option value="profile_update">Profile Update</option>
+        <option value="study_created">Study Created</option>
+        <option value="study_published">Study Published</option>
+        <option value="participant_approved">Participant Approved</option>
+        <option value="participant_rejected">Participant Rejected</option>
+        <option value="listing_view">Listing View</option>
+        <option value="study_shared">Study Shared</option>
+      </select>
+      <input id="activitySearch" placeholder="Search email, guest ID, or page..." onkeydown="if(event.key==='Enter') loadActivity(true)">
+      <button class="btn-run" onclick="loadActivity(true)">Search</button>
+      <button class="btn-refresh" onclick="resetActivityFilters()">Reset</button>
+    </div>
+    <div class="activity-stack">
+      <div class="analytics-box">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">People by selected study</div>
+            <div class="analytics-sub">Choose one study above to see who opened it, clicked Start, and completed it.</div>
+          </div>
+        </div>
+        <div id="activityPeople">
+          <div class="empty"><div class="empty-sub">Choose a study to see user-level activity.</div></div>
+        </div>
+      </div>
+      <div class="analytics-box">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">Full activity log</div>
+            <div class="analytics-sub">Paginated raw event history. Use Load more to keep older rows visible.</div>
+          </div>
+          <button class="btn-refresh" onclick="loadActivity(true)">Refresh</button>
+        </div>
+        <div id="activityTable">
+          <div class="empty"><div class="empty-sub">Open this panel to load activity.</div></div>
+        </div>
+        <div class="load-more-wrap">
+          <button class="btn-refresh" id="activityMoreBtn" onclick="loadActivity(false)" style="display:none;">Load more</button>
+        </div>
       </div>
     </div>
   </div>
@@ -404,7 +574,10 @@
       <div style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:18px;">
         Use the same survey publishing form as researchers, plus one admin-only field for the reward amount participants see. This skips Stripe and marks the listing as an admin demo.
       </div>
-      <button class="btn-run" onclick="openAdminPublish()">Create demo listing</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-run" onclick="openAdminPublish()">Create demo listing</button>
+        <button class="btn-refresh" id="resetResearchDemoBtn" onclick="resetResearchParticipationDemo()">Reset research participation demo</button>
+      </div>
     </div>
   </div>
 
@@ -428,12 +601,15 @@
   let currentFilter = 'all';
   let supportThreads = [];
   let listings = [];
+  let analytics = null;
+  let activityRows = [];
+  let activityState = { offset: 0, limit: 100, total: 0, loading: false };
   let selectedThreadId = null;
   let supportPollTimer = null;
   let currentPanel = 'overview';
 
   // ── PANEL SWITCH ──
-  const PANEL_TITLES = { overview:'Overview', feedback:'Feedback review', support:'Support inbox', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
+  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', activity:'Activity log', feedback:'Feedback review', support:'Support inbox', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
 
   async function login() {
     const input = document.getElementById('adminKeyInput');
@@ -459,8 +635,11 @@
       input.value = '';
       loadFeedbacks();
       loadSupportThreads();
+      loadAnalytics();
       if (supportPollTimer) clearInterval(supportPollTimer);
       supportPollTimer = setInterval(loadSupportThreads, 8000);
+      if (window.location.hash === '#analytics') switchPanel('analytics');
+      if (window.location.hash === '#activity') switchPanel('activity');
       if (window.location.hash === '#listings') switchPanel('listings');
       if (window.location.hash === '#support') switchPanel('support');
       if (window.location.hash === '#discovery') switchPanel('discovery');
@@ -481,6 +660,8 @@
     if (id === 'feedback') loadFeedbacks();
     if (id === 'support')  loadSupportThreads();
     if (id === 'listings') loadListings();
+    if (id === 'analytics') loadAnalytics();
+    if (id === 'activity') loadActivity(true);
     if (id === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
 
@@ -488,12 +669,412 @@
     if (currentPanel === 'feedback') loadFeedbacks();
     else if (currentPanel === 'support') loadSupportThreads();
     else if (currentPanel === 'listings') loadListings();
+    else if (currentPanel === 'analytics') loadAnalytics();
+    else if (currentPanel === 'activity') loadActivity(true);
     else if (currentPanel === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
 
   function openAdminPublish() {
     if (!adminKey) return;
     window.location.href = `/admin/publish?admin_key=${encodeURIComponent(adminKey)}`;
+  }
+
+  async function resetResearchParticipationDemo() {
+    if (!adminKey) return;
+    if (!confirm('Delete and rebuild the research participation listing as an online interview with the Calendly start link?')) return;
+    const btn = document.getElementById('resetResearchDemoBtn');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Resetting...';
+    try {
+      const res = await fetch('/admin/listings/reset-research-participation-demo', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ admin_key: adminKey })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not reset listing');
+      alert(`Rebuilt listing. Start link: ${data.created?.start_url || 'Calendly link saved'}`);
+      if (currentPanel === 'listings') loadListings();
+    } catch (error) {
+      alert(error.message || 'Could not reset listing');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }
+
+  async function sendRewardReminder() {
+    if (!adminKey) return;
+    const btn = document.getElementById('rewardReminderBtn');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Checking...';
+    try {
+      const preview = await fetch('/admin/users/reward-reminder-email', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, dry_run: true })
+      });
+      if (!preview.ok) throw new Error((await preview.json().catch(()=>({}))).detail || 'Could not preview recipients');
+      const data = await preview.json();
+      const count = data.recipient_count || 0;
+      if (!count) {
+        alert('No users with valid email addresses found.');
+        return;
+      }
+      if (!confirm(`Send the profile and Stripe reminder email to ${count} user${count === 1 ? '' : 's'}?`)) return;
+      btn.textContent = 'Sending...';
+      const res = await fetch('/admin/users/reward-reminder-email', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, dry_run: false })
+      });
+      const result = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(result.detail || 'Could not send reminder emails');
+      alert(`Reminder sent to ${result.sent_count || 0}/${result.recipient_count || count} user${(result.recipient_count || count) === 1 ? '' : 's'}.${result.failed_count ? ` Failed: ${result.failed_count}.` : ''}`);
+    } catch(err) {
+      alert(err.message || 'Reminder email failed.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }
+
+  // ── ANALYTICS ──
+  async function loadAnalytics() {
+    const cards = document.getElementById('analyticsCards');
+    const funnel = document.getElementById('analyticsFunnel');
+    const activity = document.getElementById('analyticsActivity');
+    if (!adminKey || !cards) return;
+    funnel.innerHTML = '<div class="empty"><div class="empty-sub">Loading funnel...</div></div>';
+    activity.innerHTML = '<div class="empty"><div class="empty-sub">Loading activity...</div></div>';
+    try {
+      const res = await fetch(`/admin/analytics?admin_key=${encodeURIComponent(adminKey)}&days=30`, { cache:'no-store' });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Failed to load analytics');
+      analytics = await res.json();
+      renderAnalytics();
+    } catch(err) {
+      funnel.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message)}</div></div>`;
+      activity.innerHTML = '<div class="empty"><div class="empty-sub">Analytics unavailable.</div></div>';
+    }
+  }
+
+  function renderAnalytics() {
+    if (!analytics) return;
+    const o = analytics.overview || {};
+    const cardData = [
+      [fmtNum(o.total_events), 'Total events'],
+      [fmtNum(o.unique_people), 'Unique users'],
+      [fmtNum(o.listing_views), 'Listing views'],
+      [fmtNum(o.start_clicks), 'Starts'],
+      [fmtNum(o.completed_surveys), 'Completed'],
+      [`${Number(o.start_to_complete_rate || 0).toFixed(1)}%`, 'Start to complete'],
+    ];
+    document.getElementById('analyticsCards').innerHTML = cardData.map(([num,label]) => `
+      <div class="analytics-card"><div class="analytics-num">${esc(num)}</div><div class="analytics-label">${esc(label)}</div></div>
+    `).join('');
+    renderAnalyticsFunnel(analytics.listing_funnel || []);
+    renderAnalyticsActivity(analytics.recent_activity || []);
+  }
+
+  function renderAnalyticsFunnel(rows) {
+    const wrap = document.getElementById('analyticsFunnel');
+    const useful = rows.filter(r => (r.views || r.starts || r.completed));
+    if (!useful.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-title">No funnel data yet</div><div class="empty-sub">Data will appear after users view or start listings.</div></div>';
+      return;
+    }
+    const body = useful.slice(0, 60).map(r => {
+      const startRate = r.start_rate == null ? '<span class="rate-empty">—</span>' : `<span class="rate-good">${Number(r.start_rate).toFixed(1)}%</span>`;
+      const completionRate = r.completion_rate == null ? '<span class="rate-empty">—</span>' : `<span class="rate-good">${Number(r.completion_rate).toFixed(1)}%</span>`;
+      return `<tr>
+        <td><div class="listing-title">${esc(r.title)}</div><div class="listing-desc">${esc(r.status || '')}</div></td>
+        <td>${fmtNum(r.views)}</td>
+        <td>${fmtNum(r.unique_viewers)}</td>
+        <td>${fmtNum(r.starts)}</td>
+        <td>${fmtNum(r.completed)}</td>
+        <td>${startRate}</td>
+        <td>${completionRate}</td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>Study</th><th>Views</th><th>Unique viewers</th><th>Starts</th><th>Completed</th><th>Start rate</th><th>Completion rate</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>`;
+  }
+
+  function renderAnalyticsActivity(items) {
+    const wrap = document.getElementById('analyticsActivity');
+    if (!items.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-sub">No recent activity yet.</div></div>';
+      return;
+    }
+    wrap.innerHTML = items.slice(0, 50).map(item => {
+      const label = activityLabel(item);
+      const when = item.created_at ? new Date(item.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+      const target = item.target_label ? ` · ${esc(item.target_label)}` : '';
+      return `<div class="activity-item">
+        <div class="activity-main">${label}${target}</div>
+        <div class="activity-meta">${esc(when)} · ${esc(item.page_path || '')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function activityLabel(item) {
+    const actor = item.actor_type === 'guest'
+      ? `<strong>${esc(item.user || 'Guest visitor')}</strong> <span style="color:var(--ink4);font-weight:600;">guest</span>`
+      : `<strong>${esc(item.user || 'Logged-in user')}</strong>`;
+    const names = {
+      listing_view: 'viewed a listing',
+      listing_viewed: 'viewed a listing',
+      study_impression: 'saw a study',
+      study_card_viewed: 'saw a study',
+      study_click: 'clicked Take study',
+      study_start: 'clicked Start',
+      survey_started: 'clicked Start',
+      study_complete: 'completed a study',
+      survey_completed: 'completed a study',
+      sign_up: 'signed up',
+      signup_completed: 'signed up',
+      login: 'signed in',
+      login_success: 'signed in',
+      profile_update: 'updated profile',
+      study_created: 'created a study',
+      study_published: 'published a study',
+      participant_approved: 'approved a participant',
+      participant_rejected: 'rejected a participant',
+      study_shared: 'shared a study',
+      page_view: 'opened a page',
+      page_viewed: 'opened a page',
+      page_exit: 'left a page',
+      page_hidden: 'left a page',
+      dashboard_opened: 'opened participant dashboard',
+    };
+    return `${actor} ${names[item.event_name] || esc(item.event_name || 'did something')}`;
+  }
+
+  function fmtNum(n) {
+    return Number(n || 0).toLocaleString('en-US');
+  }
+
+  // ── ACTIVITY LOG ──
+  async function loadActivity(reset) {
+    if (!adminKey || activityState.loading) return;
+    const table = document.getElementById('activityTable');
+    const moreBtn = document.getElementById('activityMoreBtn');
+    const surveyId = document.getElementById('activitySurvey')?.value || '';
+    const eventName = document.getElementById('activityEvent')?.value || '';
+    const q = document.getElementById('activitySearch')?.value.trim() || '';
+    if (reset) {
+      activityState.offset = 0;
+      activityRows = [];
+      table.innerHTML = '<div class="empty"><div class="empty-sub">Loading activity...</div></div>';
+      if (moreBtn) moreBtn.style.display = 'none';
+    }
+    activityState.loading = true;
+    try {
+      const params = new URLSearchParams({
+        admin_key: adminKey,
+        limit: String(activityState.limit),
+        offset: String(activityState.offset)
+      });
+      if (surveyId) params.set('survey_id', surveyId);
+      if (eventName) params.set('event_name', eventName);
+      if (q) params.set('q', q);
+      const res = await fetch(`/admin/activity?${params.toString()}`, { cache:'no-store' });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Failed to load activity');
+      const data = await res.json();
+      populateActivitySurveys(data.surveys || [], surveyId);
+      renderActivityPeople(data.people || [], surveyId);
+      activityRows = reset ? (data.events || []) : activityRows.concat(data.events || []);
+      activityState.total = data.total || 0;
+      activityState.offset = activityRows.length;
+      renderActivityTable(activityRows, activityState.total);
+      if (moreBtn) moreBtn.style.display = activityRows.length < activityState.total ? 'inline-flex' : 'none';
+    } catch(err) {
+      table.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message)}</div></div>`;
+      if (moreBtn) moreBtn.style.display = 'none';
+    } finally {
+      activityState.loading = false;
+    }
+  }
+
+  function populateActivitySurveys(surveys, selectedId) {
+    const select = document.getElementById('activitySurvey');
+    if (!select) return;
+    const current = selectedId || select.value || '';
+    select.innerHTML = '<option value="">All studies</option>' + surveys.map(s => (
+      `<option value="${s.id}">${esc(s.title || `Study #${s.id}`)}</option>`
+    )).join('');
+    select.value = current;
+  }
+
+  function renderActivityPeople(people, surveyId) {
+    const wrap = document.getElementById('activityPeople');
+    if (!surveyId) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-sub">Choose a study to see who opened it.</div></div>';
+      return;
+    }
+    if (!people.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-title">No tracked users yet</div><div class="empty-sub">Rows will appear after someone opens this listing or clicks Start.</div></div>';
+      return;
+    }
+    const rows = people.map(p => `<tr>
+      <td>
+        <div class="listing-title">${esc(p.user)}</div>
+        <div class="listing-desc">${esc(p.actor_type === 'guest' ? (p.anonymous_id || 'Guest visitor') : (p.username || p.user_email || ''))}</div>
+      </td>
+      <td>${formatActivityTime(p.first_opened_at)}</td>
+      <td>${formatActivityTime(p.first_started_at)}</td>
+      <td>${formatActivityTime(p.completed_at)}</td>
+        <td>${formatActivityTime(p.last_event_at)}<br>${eventPillHtml(p.last_event_name)}</td>
+      <td>${fmtNum(p.event_count)}</td>
+    </tr>`).join('');
+    wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>User</th><th>First opened</th><th>Start clicked</th><th>Completed</th><th>Last event</th><th>Events</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+
+  function renderActivityTable(rows, total) {
+    const wrap = document.getElementById('activityTable');
+    if (!rows.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-title">No matching events</div><div class="empty-sub">Try a different study, event type, or search term.</div></div>';
+      return;
+    }
+    const body = rows.map(item => {
+      const details = item.details || activityDetails(item);
+      const userLabel = item.username || item.user_email || (item.actor_type === 'guest' ? (item.anonymous_id || 'Guest') : item.user);
+      return `<tr>
+        <td>${formatActivityTime(item.created_at)}</td>
+        <td>
+          <div class="listing-title">${esc(item.user)}</div>
+          <div class="listing-desc">${esc(userLabel)}</div>
+        </td>
+        <td>${esc(item.role || '—')}</td>
+        <td>${eventPillHtml(item.event_name)}</td>
+        <td>${esc(item.target_label || (item.target_type === 'survey' ? `Survey #${item.target_id}` : ''))}</td>
+        <td>${esc(item.page_path || '')}</td>
+        <td>${esc(item.source || '—')}</td>
+        <td>${esc(details)}</td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>Time</th><th>User</th><th>Role</th><th>Event</th><th>Study</th><th>Page</th><th>Source</th><th>Details</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+    <div class="activity-meta" style="padding:10px 16px;border-top:0.5px solid var(--line);">Showing ${fmtNum(rows.length)} of ${fmtNum(total)} events.</div>`;
+  }
+
+  function resetActivityFilters() {
+    document.getElementById('activitySurvey').value = '';
+    document.getElementById('activityEvent').value = '';
+    document.getElementById('activitySearch').value = '';
+    loadActivity(true);
+  }
+
+  function eventTooltip(name) {
+    const tips = {
+      page_view: 'User opens any page.',
+      page_exit: 'User leaves the current page.',
+      study_impression: 'Study is shown to the user.',
+      study_click: 'User clicks Take study on a study card.',
+      study_start: 'User clicks Start Study to begin questionnaire or interview.',
+      study_complete: 'User submits questionnaire or completes study task.',
+      sign_up: 'User creates an Insighta account.',
+      login: 'User signs in to the platform.',
+      profile_update: 'User updates profile information.',
+      study_created: 'Researcher creates a new study project.',
+      study_published: 'Researcher publishes a study so participants can see it.',
+      participant_approved: 'Researcher approves a participant submission.',
+      participant_rejected: 'Researcher rejects a participant submission.',
+      listing_view: 'User opens a public recruitment link.',
+      study_shared: 'Researcher copies or shares a recruitment link.',
+    };
+    const aliases = {
+      page_viewed: 'page_view',
+      page_hidden: 'page_exit',
+      study_card_viewed: 'study_impression',
+      survey_started: 'study_start',
+      survey_completed: 'study_complete',
+      signup_completed: 'sign_up',
+      login_success: 'login',
+      listing_viewed: 'listing_view',
+      dashboard_opened: 'page_view',
+    };
+    const key = aliases[name] || name;
+    return tips[key] || '';
+  }
+
+  function eventPillHtml(name) {
+    const label = eventNameLabel(name);
+    const tip = eventTooltip(name);
+    const cls = `event-pill ${eventPillClass(name)}${tip ? ' has-tip' : ''}`;
+    const tipAttr = tip ? ` data-tip="${escAttr(tip)}"` : '';
+    return `<span class="${cls}"${tipAttr}>${esc(label)}</span>`;
+  }
+
+  function eventNameLabel(name) {
+    const labels = {
+      page_view: 'Page View',
+      page_viewed: 'Page View',
+      page_exit: 'Page Exit',
+      page_hidden: 'Page Exit',
+      study_impression: 'Study Impression',
+      study_card_viewed: 'Study Impression',
+      study_click: 'Study Clicked',
+      study_start: 'Start Clicked',
+      survey_started: 'Start Clicked',
+      study_complete: 'Study Completed',
+      survey_completed: 'Study Completed',
+      sign_up: 'Sign Up',
+      signup_completed: 'Sign Up',
+      login: 'Login',
+      login_success: 'Login',
+      profile_update: 'Profile Update',
+      study_created: 'Study Created',
+      study_published: 'Study Published',
+      participant_approved: 'Participant Approved',
+      participant_rejected: 'Participant Rejected',
+      listing_view: 'Listing View',
+      listing_viewed: 'Listing View',
+      study_shared: 'Study Shared',
+      dashboard_opened: 'Page View',
+    };
+    return labels[name] || (name || 'Event').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  function eventPillClass(name) {
+    if (['listing_view','listing_viewed','study_impression','study_card_viewed','page_view','page_viewed','dashboard_opened'].includes(name)) return 'view';
+    if (['study_click'].includes(name)) return 'click';
+    if (['study_start','survey_started'].includes(name)) return 'start';
+    if (['study_complete','survey_completed'].includes(name)) return 'complete';
+    if (['participant_approved','participant_rejected'].includes(name)) return 'review';
+    return '';
+  }
+
+  function formatActivityTime(value) {
+    if (!value) return '<span class="rate-empty">—</span>';
+    return esc(new Date(value).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }));
+  }
+
+  function activityDetails(item) {
+    const meta = item.metadata || {};
+    const pieces = [];
+    if (meta.match_score !== undefined && meta.match_score !== null && meta.match_score !== '') {
+      pieces.push(`Match score: ${meta.match_score}`);
+    }
+    if (meta.position !== undefined && meta.position !== null && meta.position !== '') {
+      pieces.push(`Position: ${meta.position}`);
+    }
+    if (meta.reward_amount !== undefined && meta.reward_amount !== null && meta.reward_amount !== '') {
+      pieces.push(`Reward: $${meta.reward_amount}`);
+    }
+    if (meta.participant_email) pieces.push(meta.participant_email);
+    if (meta.button) pieces.push(`Button: ${meta.button}`);
+    if (!pieces.length && meta.referrer) pieces.push(`referrer: ${meta.referrer}`);
+    return pieces.slice(0, 4).join(', ') || '—';
   }
 
   // ── LISTINGS ──
@@ -882,6 +1463,9 @@
     adminKey = '';
     allFeedbacks = [];
     supportThreads = [];
+    analytics = null;
+    activityRows = [];
+    activityState = { offset: 0, limit: 100, total: 0, loading: false };
     selectedThreadId = null;
     if (supportPollTimer) clearInterval(supportPollTimer);
     supportPollTimer = null;
@@ -891,10 +1475,15 @@
   }
 
   // ── INIT ──
+  const urlAdminKey = new URLSearchParams(window.location.search).get('admin_key');
   const storedAdminKey = sessionStorage.getItem('insighta_admin_key');
-  if (storedAdminKey) {
-    document.getElementById('adminKeyInput').value = storedAdminKey;
-    login();
+  const initialAdminKey = (urlAdminKey || storedAdminKey || '').trim();
+  if (initialAdminKey) {
+    document.getElementById('adminKeyInput').value = initialAdminKey;
+    login().then(() => {
+      const hash = (window.location.hash || '').replace('#', '');
+      if (hash) switchPanel(hash);
+    });
   } else {
     document.getElementById('adminKeyInput').focus();
   }

@@ -28,8 +28,9 @@
     .error{background:var(--red-l);border:1px solid var(--red-b);color:var(--red);border-radius:10px;padding:11px 13px;font-size:13px;font-weight:700;margin-bottom:16px}
     .field{margin-bottom:14px}
     label{display:block;font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:7px}
-    input{width:100%;height:46px;border:1px solid var(--line);border-radius:10px;padding:0 13px;font-family:var(--sans);font-size:15px;color:var(--ink);background:var(--bg2)}
-    input:focus{outline:none;border-color:var(--green);background:#fff;box-shadow:0 0 0 3px rgba(59,124,79,.1)}
+    input,select{width:100%;height:46px;border:1px solid var(--line);border-radius:10px;padding:0 13px;font-family:var(--sans);font-size:15px;color:var(--ink);background:var(--bg2)}
+    select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink3) 50%),linear-gradient(135deg,var(--ink3) 50%,transparent 50%);background-position:calc(100% - 17px) 20px,calc(100% - 12px) 20px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
+    input:focus,select:focus{outline:none;border-color:var(--green);background-color:#fff;box-shadow:0 0 0 3px rgba(59,124,79,.1)}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .submit{width:100%;height:48px;border:0;border-radius:10px;background:var(--green);color:#fff;font-family:var(--sans);font-size:15px;font-weight:800;cursor:pointer;margin-top:8px}
     .submit:hover{background:var(--green-d)}
@@ -60,13 +61,13 @@
     .eyebrow{color:var(--teal2);letter-spacing:0;font-weight:900}
     h1{font-family:var(--sans);font-weight:900;letter-spacing:0;color:var(--ink)}
     .copy,label,.note{font-weight:700;color:var(--ink2)}
-    input{
+    input,select{
       border:2px solid var(--line);
       border-radius:14px;
       background:#fff;
       font-weight:800;
     }
-    input:focus{border-color:var(--teal);box-shadow:0 0 0 4px rgba(52,160,164,.14)}
+    input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 4px rgba(52,160,164,.14)}
     .submit{
       border:2px solid var(--yale);
       border-radius:16px;
@@ -90,7 +91,7 @@
     </a>
     <div class="eyebrow">One last step</div>
     <h1>{% if participant_app %}Set up your study profile.{% else %}Tell us who you are.{% endif %}</h1>
-    <p class="copy">{% if participant_app %}Add the basics first. You can finish the detailed participant profile after you enter your dashboard.{% else %}Add your name and username before entering Insighta. This keeps accounts clear for support, verification, and study tracking.{% endif %}</p>
+    <p class="copy">{% if participant_app %}Add the core details we need to match studies and verify rewards.{% else %}Add your basic profile before entering Insighta. This keeps accounts clear for support, verification, and study tracking.{% endif %}</p>
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
     <form method="POST" action="/complete-profile">
       <input type="hidden" name="next" value="{{ next or '' }}">
@@ -108,6 +109,77 @@
       <div class="field">
         <label>Username</label>
         <input name="username" autocomplete="nickname" required value="{{ current_user.username or '' }}" placeholder="How you want to appear in Insighta">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Birth year</label>
+          <input type="number" min="1900" max="2010" name="birth_year" required value="{{ current_user.birth_year or '' }}" placeholder="2002">
+        </div>
+        <div class="field">
+          <label>Birth month</label>
+          <select name="birth_month" required>
+            <option value="">Select</option>
+            {% for month in ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
+              <option value="{{ loop.index }}" {% if current_user.birth_month|string == loop.index|string %}selected{% endif %}>{{ month }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Education level</label>
+        <select name="education_level" required>
+          <option value="">Select education level</option>
+          {% for option in ['Below High School','High School','Undergraduate','Graduate','PhD','Postdoc'] %}
+            <option value="{{ option }}" {% if current_user.education_level == option %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Field / major</label>
+        <select name="field" required>
+          <option value="">Select field / major</option>
+          {% for option in ['Computer Science & Engineering','Data Science / AI','Business & Economics','Marketing / Design','Medicine & Healthcare','Psychology / Neuroscience','Natural Sciences','Social Sciences','Education','Law / Public Policy','Arts & Humanities','Communications / Media','Architecture / Design','Other'] %}
+            <option value="{{ option }}" {% if current_user.field == option %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Current status</label>
+        <select name="status" required>
+          <option value="">Select current status</option>
+          {% for option in ['High school student','Undergraduate student','Graduate student','PhD student','Postdoc','Full-time employed','Part-time employed','Self-employed / Freelancer','Unemployed','Homemaker / Caregiver','Retired','Other'] %}
+            <option value="{{ option }}" {% if current_user.status == option %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>State you live in now</label>
+        <select name="current_province" required>
+          <option value="">Select state</option>
+          {% for option in ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','Washington DC','West Virginia','Wisconsin','Wyoming','Other'] %}
+            <option value="{{ option }}" {% if (current_user.current_province or current_user.state) == option %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Primary language</label>
+          <select name="language" required>
+            <option value="">Select language</option>
+            {% for option in ['English','Spanish','Mandarin Chinese','Cantonese','French','Arabic','Hindi','Bengali','Portuguese','Russian','Japanese','Korean','German','Italian','Vietnamese','Tagalog','Urdu','Other'] %}
+              <option value="{{ option }}" {% if current_user.language == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Participation preference</label>
+          <select name="participation_format" required>
+            <option value="">Select format</option>
+            {% for option in ['Online surveys','Phone interview','Video interview','In-person study','Product test','Diary study','Any format'] %}
+              <option value="{{ option }}" {% if current_user.participation_format == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
       <button class="submit" type="submit">Continue</button>
     </form>

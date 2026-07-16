@@ -305,6 +305,10 @@
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       New listing
     </button>
+    <a href="/publisher/schedule" class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Schedule
+    </a>
 
     <div class="nav-divider"></div>
 
@@ -368,7 +372,7 @@
         Surveys{% if surveys %} ({{ surveys | length }}){% endif %}
       </button>
       <button class="type-tab" id="tab-interviews" onclick="switchTab('interviews')">
-        In-person studies{% if interviews %} ({{ interviews | length }}){% endif %}
+        Interviews / live studies{% if interviews %} ({{ interviews | length }}){% endif %}
       </button>
     </div>
 
@@ -412,7 +416,7 @@
         {% set completed = completed_map.get(s.id, 0) %}
         {% set target    = s.target_responses or 0 %}
         {% set pct       = (completed * 100 // target) if target > 0 else 0 %}
-        {% set task_label = 'In-person study' if s.task_type in ('in_person', 'in-person') else ('Interview' if s.task_type == 'interview' else 'Survey') %}
+        {% set task_label = 'Online interview' if s.target_participation_format == 'Video interview' else ('In-person study' if s.task_type in ('in_person', 'in-person', 'in_person_study') or s.target_participation_format == 'In-person study' else ('Interview' if s.task_type == 'interview' else 'Survey')) %}
         <a href="/publisher/study/{{ s.id }}" class="study-row">
           <div class="study-dot" style="background:{% if s.status == 'published' %}#7c3aed{% elif s.status == 'draft' %}#f59e0b{% else %}var(--ink4){% endif %};"></div>
           <div class="study-info">
@@ -488,15 +492,26 @@
           </button>
         </form>
       </div>
-      <a href="/publish_interview" class="listing-type wide">
-        <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
-        <div class="lt-content">
-          <div class="lt-title">In-person study</div>
-          <div class="lt-desc">Recruit participants for lab visits, field studies, or on-site sessions.</div>
-        </div>
-        <div class="lt-tag">On site</div>
-        <div class="lt-arrow">&gt;</div>
-      </a>
+      <div class="listing-grid">
+        <a href="/publish_interview" class="listing-type">
+          <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1M9 13h1M9 17h1"/></svg></div>
+          <div class="lt-content">
+            <div class="lt-title">In-person study</div>
+            <div class="lt-desc">Recruit participants for lab visits, field studies, or on-site sessions.</div>
+          </div>
+          <div class="lt-tag">On site</div>
+          <div class="lt-arrow">&gt;</div>
+        </a>
+        <a href="/publish_interview?mode=online" class="listing-type">
+          <div class="lt-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M17 9l4-2v10l-4-2"/></svg></div>
+          <div class="lt-content">
+            <div class="lt-title">Online interview</div>
+            <div class="lt-desc">Schedule live remote interviews, video calls, or moderated sessions.</div>
+          </div>
+          <div class="lt-tag">Remote</div>
+          <div class="lt-arrow">&gt;</div>
+        </a>
+      </div>
     </div>
   </div>
 </div>
