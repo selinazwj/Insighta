@@ -526,7 +526,7 @@
           <div class="listing-desc">${esc(s.description || '')}</div>
         </td>
         <td>${esc(s.status || '')}<br><span style="color:var(--ink3);">${esc(s.payment_status || '')}</span></td>
-        <td>${esc(s.task_type || '')}<br><span style="color:var(--ink3);">${esc(s.category || '')}</span></td>
+        <td>${esc(s.task_type_label || s.task_type || '')}<br><span style="color:var(--ink3);">${esc(s.category || '')}</span></td>
         <td>$${Number(displayReward || 0).toFixed(2)}</td>
         <td>${s.completed_count || 0}/${s.target_responses || 0}</td>
         <td>${esc(s.publisher_email || '')}</td>

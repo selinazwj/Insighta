@@ -276,10 +276,10 @@
           <label>Study type</label>
           <select name="task_type">
             <option value="survey"    {% if survey.task_type in ('survey',none,'') %}selected{% endif %}>Online survey</option>
-            <option value="interview" {% if survey.task_type=='interview' %}selected{% endif %}>Remote interview</option>
+            <option value="interview" {% if survey.task_type=='interview' %}selected{% endif %}>Interview</option>
+            <option value="in_person" {% if survey.task_type in ('in_person','in-person') %}selected{% endif %}>In-person study</option>
             <option value="ux_test"   {% if survey.task_type=='ux_test' %}selected{% endif %}>UX / product test</option>
             <option value="diary_study" {% if survey.task_type=='diary_study' %}selected{% endif %}>Diary study</option>
-            <option value="in_person" {% if survey.task_type=='in_person' %}selected{% endif %}>In-person study</option>
           </select>
         </div>
         <div class="field">

@@ -244,6 +244,18 @@
     .empty svg { width:48px; height:48px; stroke:var(--line2); fill:none; stroke-width:1.5; margin-bottom:16px; }
     .empty h3 { font-size:20px; font-weight:900; color:var(--ink); margin-bottom:6px; }
     .empty p  { font-size:14px; color:var(--ink3); font-weight:500; line-height:1.6; }
+    .my-studies-hint {
+      margin-top: 22px; padding: 14px 16px; text-align: center;
+      color: var(--ink3); font-size: 13px; font-weight: 700; line-height: 1.5;
+      border-top: 1px solid var(--line); opacity: .9;
+    }
+    .my-studies-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      color: var(--teal); font-weight: 900; text-decoration: underline;
+      text-underline-offset: 3px; cursor: pointer;
+    }
+    .my-studies-link::after { content: "→"; font-size: 12px; text-decoration: none; }
+    .my-studies-link:hover { color: var(--yale); }
 
     /* tap burst */
     .burst {
@@ -335,6 +347,7 @@
     <div class="studies" id="studyList">
       <!-- rendered by JS -->
     </div>
+    <div class="my-studies-hint">Studies you've started or marked complete will appear in <a class="my-studies-link" href="/my-studies">My studies</a>.</div>
 
   </div>
 </div>

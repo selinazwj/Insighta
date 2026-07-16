@@ -32,7 +32,12 @@ TOKEN_TTL_DAYS = 7
 
 
 def normalize_task_type(value: Optional[str]) -> str:
-    return "interview" if value == "interview" else "survey"
+    normalized = (value or "").strip().lower()
+    if normalized in {"interview", "online_interview", "online-interview"}:
+        return "interview"
+    if normalized in {"in_person", "in-person"}:
+        return "in_person"
+    return "survey"
 
 
 def get_or_create_response(db: Session, survey: Survey, user: User) -> Response:

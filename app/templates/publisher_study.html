@@ -198,18 +198,20 @@
       <div class="ov-section">
         <div class="ov-section-title">Study details</div>
         <div class="ov-grid">
-          <div class="ov-item"><div class="ov-label">Type</div><div class="ov-value">{{ 'In-person study' if survey.task_type == 'interview' else 'Survey' }}</div></div>
+          {% set is_booking_study = survey.task_type in ('interview', 'in_person', 'in-person') %}
+          {% set task_label = 'In-person study' if survey.task_type in ('in_person', 'in-person') else ('Interview' if survey.task_type == 'interview' else 'Survey') %}
+          <div class="ov-item"><div class="ov-label">Type</div><div class="ov-value">{{ task_label }}</div></div>
           <div class="ov-item"><div class="ov-label">Category</div><div class="ov-value">{{ survey.category | capitalize }}</div></div>
           <div class="ov-item"><div class="ov-label">Estimated time</div><div class="ov-value">{{ survey.estimated_time }} min</div></div>
           <div class="ov-item"><div class="ov-label">Reward per person</div><div class="ov-value">${{ survey.reward_amount }}</div></div>
           <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">Overview</div><div class="ov-value">{{ survey.target_niche_requirements or 'Everyone' }}</div></div>
           {% if survey.form_url and survey.form_url != '__builtin__' %}
-          <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">{{ 'Calendly / booking link' if survey.task_type == 'interview' else 'Survey link' }}</div><div class="ov-value"><a href="{{ survey.form_url }}" target="_blank">{{ survey.form_url[:60] }}{% if survey.form_url|length > 60 %}…{% endif %}</a></div></div>
+          <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">{{ 'Calendly / booking link' if is_booking_study else 'Survey link' }}</div><div class="ov-value"><a href="{{ survey.form_url }}" target="_blank">{{ survey.form_url[:60] }}{% if survey.form_url|length > 60 %}…{% endif %}</a></div></div>
           {% endif %}
         </div>
       </div>
 
-      {% if survey.task_type == 'interview' and availability_slots %}
+      {% if is_booking_study and availability_slots %}
       <div class="ov-section">
         <div class="ov-section-title">Bookable times</div>
         <div class="ov-grid">
@@ -220,7 +222,7 @@
       </div>
       {% endif %}
 
-      {% if survey.task_type == 'interview' %}
+      {% if is_booking_study %}
       <div class="ov-section">
         <div class="ov-section-title">Participant bookings</div>
         <div class="ov-grid">

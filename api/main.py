@@ -616,7 +616,23 @@ def _parse_optional_int(v) -> Optional[int]:
         return None
 
 def _normalize_task_type(value: Optional[str]) -> str:
-    return "interview" if value == "interview" else "survey"
+    normalized = (value or "").strip().lower()
+    if normalized in {"interview", "online_interview", "online-interview"}:
+        return "interview"
+    if normalized in {"in_person", "in-person"}:
+        return "in_person"
+    return "survey"
+
+def _task_type_label(value: Optional[str]) -> str:
+    task_type = _normalize_task_type(value)
+    if task_type == "interview":
+        return "Interview"
+    if task_type == "in_person":
+        return "In-person study"
+    return "Survey"
+
+def _uses_booking_flow(value: Optional[str]) -> bool:
+    return _normalize_task_type(value) in {"interview", "in_person"}
 
 def _clean_target(val: Optional[str]) -> str:
     return '' if not val or val.strip().lower() == 'all' else val
@@ -1629,7 +1645,8 @@ def recruitment_share_page(
         "brand_href": brand_href,
         "brand_label": brand_label,
         "is_builtin": survey.form_url == "__builtin__",
-        "is_interview": _normalize_task_type(getattr(survey, "task_type", None)) == "interview",
+        "is_interview": _uses_booking_flow(getattr(survey, "task_type", None)),
+        "task_type_label": _task_type_label(getattr(survey, "task_type", None)),
     })
 
 @app.get("/r/{share_slug}/qr.png")
@@ -1729,7 +1746,7 @@ def publisher_dashboard(
         )
 
     survey_items = [s for s in all_items if _normalize_task_type(getattr(s, "task_type", None)) == "survey"]
-    interview_items = [s for s in all_items if _normalize_task_type(getattr(s, "task_type", None)) == "interview"]
+    interview_items = [s for s in all_items if _uses_booking_flow(getattr(s, "task_type", None))]
 
     return templates.TemplateResponse(
         "publish.html",
@@ -1767,7 +1784,7 @@ def publisher_study(
         except Exception:
             availability_slots = []
     booking_rows = []
-    if _normalize_task_type(getattr(survey, "task_type", None)) == "interview":
+    if _uses_booking_flow(getattr(survey, "task_type", None)):
         rows = db.query(Response, User).join(User, User.id == Response.participant_id).filter(
             Response.survey_id == survey_id,
             Response.booking_slot.isnot(None),
@@ -2369,7 +2386,8 @@ def get_notifications(
         "id": n.id,
         "participant_email": n.participant_email,
         "survey_title": n.survey_title,
-        "task_type": n.task_type or "survey",
+        "task_type": _normalize_task_type(n.task_type),
+        "task_type_label": _task_type_label(n.task_type),
         "status": n.status,
         "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else "",
     } for n in notifs])
@@ -2579,7 +2597,7 @@ async def publish_interview(
 
     survey = Survey(
         publisher_id=current_user.id, title=title, description=description,
-        form_url=scheduling_link or "", task_type="interview", category=category,
+        form_url=scheduling_link or "", task_type="in_person", category=category,
         estimated_time=estimated_time, reward_amount=reward, per_person_gross=reward,
         total_budget=round(reward * target_responses, 2), commission_rate=0.0, payment_status="paid",
         target_responses=target_responses, urgency_level=_clean_target(urgency_level),
@@ -3442,7 +3460,7 @@ async def admin_publish_survey(request: Request, db: Session = Depends(get_db)):
         title=form.get("title"),
         description=form.get("description"),
         form_url=form.get("form_url"),
-        task_type=form.get("task_type") or "survey",
+        task_type=_normalize_task_type(form.get("task_type")),
         category=form.get("category"),
         estimated_time=int(form.get("estimated_time") or 0),
         per_person_gross=float(form.get("per_person_gross") or 0),
@@ -3647,6 +3665,7 @@ async def admin_list_listings(
             "status": s.status,
             "payment_status": s.payment_status,
             "task_type": _normalize_task_type(getattr(s, "task_type", None)),
+            "task_type_label": _task_type_label(getattr(s, "task_type", None)),
             "category": s.category,
             "reward_amount": s.reward_amount,
             "admin_display_reward_amount": getattr(s, "admin_display_reward_amount", None),

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Surveys — Insighta</title>
+  <title>My Studies — Insighta</title>
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="apple-touch-icon" href="/static/favicon.png">
   <meta name="theme-color" content="#faf9f5">
@@ -177,7 +177,7 @@
       <a href="/publish_interview" class="type-card">
         <div class="type-card-icon icon-interview">🎙️</div>
         <div class="type-card-text">
-          <div class="type-card-title">Interview</div>
+          <div class="type-card-title">In-person study</div>
           <div class="type-card-desc">Schedule 1-on-1 or group sessions for qualitative research.</div>
         </div>
         <div class="type-card-arrow">→</div>
@@ -236,7 +236,7 @@
   <!-- TABS -->
   <div style="display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:32px;">
     <div class="pub-tab active" onclick="switchPubTab('surveys', this)" style="padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; color:var(--accent); border-bottom:2px solid var(--accent); margin-bottom:-1px;">Surveys</div>
-    <div class="pub-tab" onclick="switchPubTab('interviews', this)" style="padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; color:var(--ink-muted); border-bottom:2px solid transparent; margin-bottom:-1px;">Interviews</div>
+    <div class="pub-tab" onclick="switchPubTab('interviews', this)" style="padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; color:var(--ink-muted); border-bottom:2px solid transparent; margin-bottom:-1px;">In-person studies</div>
   </div>
 
   <!-- SURVEYS TAB -->
@@ -312,9 +312,9 @@
     {% if interviews|length == 0 %}
     <div class="empty-state">
       <div class="empty-icon">🎙️</div>
-      <h3>No interviews yet</h3>
-      <p>Post your first interview and find the right participants.</p>
-      <button class="create-btn" onclick="openModal()">+ Create Interview</button>
+      <h3>No in-person studies yet</h3>
+      <p>Post your first in-person study and find the right participants.</p>
+      <button class="create-btn" onclick="openModal()">+ Create In-person Study</button>
     </div>
     {% else %}
     <div class="survey-list">
@@ -342,7 +342,7 @@
             {% endif %}
             / session
           </span>
-          <span style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#7c3aed; background:rgba(124,58,237,0.08); padding:3px 10px; border-radius:100px;">🎙️ Interview</span>
+          <span style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#7c3aed; background:rgba(124,58,237,0.08); padding:3px 10px; border-radius:100px;">{{ 'In-person study' if s.task_type in ('in_person','in-person') else ('Interview' if s.task_type == 'interview' else 'Survey') }}</span>
         </div>
         <div class="progress-row">
           <div class="progress-bar"><div class="progress-fill" data-pct="{{ pct }}" style="background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div>
@@ -376,7 +376,7 @@
             <button class="btn">Edit</button>
           </form>
           <form method="post" action="/publisher/delete/{{ s.id }}" style="display:inline"
-            onsubmit="return confirm('Delete this interview? This cannot be undone.')">
+            onsubmit="return confirm('Delete this in-person study? This cannot be undone.')">
             <button class="btn btn-danger">Delete</button>
           </form>
         </div>
@@ -497,8 +497,8 @@
     if (allNotifs.length === 0) { list.innerHTML = '<div class="notif-empty">🎉 No notifications yet</div>'; return; }
 
     list.innerHTML = allNotifs.map(n => {
-      const typeClass = n.task_type === 'interview' ? 'notif-type-interview' : 'notif-type-survey';
-      const typeLabel = n.task_type === 'interview' ? '🎙️ Interview' : '📋 Survey';
+      const typeClass = (n.task_type === 'interview' || n.task_type === 'in_person') ? 'notif-type-interview' : 'notif-type-survey';
+      const typeLabel = n.task_type_label || (n.task_type === 'in_person' ? 'In-person study' : (n.task_type === 'interview' ? 'Interview' : 'Survey'));
       const acceptActive = n.status === 'accepted';
       const rejectActive = n.status === 'rejected';
       const decided = acceptActive || rejectActive;

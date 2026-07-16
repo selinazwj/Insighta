@@ -412,11 +412,12 @@
         {% set completed = completed_map.get(s.id, 0) %}
         {% set target    = s.target_responses or 0 %}
         {% set pct       = (completed * 100 // target) if target > 0 else 0 %}
+        {% set task_label = 'In-person study' if s.task_type in ('in_person', 'in-person') else ('Interview' if s.task_type == 'interview' else 'Survey') %}
         <a href="/publisher/study/{{ s.id }}" class="study-row">
           <div class="study-dot" style="background:{% if s.status == 'published' %}#7c3aed{% elif s.status == 'draft' %}#f59e0b{% else %}var(--ink4){% endif %};"></div>
           <div class="study-info">
             <div class="study-title">{{ s.title }}</div>
-            <div class="study-meta">In-person study · {{ s.estimated_time }} min · ${{ s.reward_amount }}</div>
+            <div class="study-meta">{{ task_label }} · {{ s.estimated_time }} min · ${{ s.reward_amount }}</div>
           </div>
           <div class="study-prog">
             <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%; background:#7c3aed;"></div></div>
