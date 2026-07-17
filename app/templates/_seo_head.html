@@ -1,0 +1,39 @@
+{#
+  Shared SEO controls. Public routes pass an explicit ``seo`` dictionary.
+  Every other template defaults to noindex so account, payment, admin, survey
+  response, and API-adjacent pages cannot accidentally enter a search index.
+#}
+{% set seo_meta = seo if seo is defined and seo else {} %}
+<meta name="description" content="{{ seo_meta.get('description', 'Insighta account and application page.') }}">
+<meta name="robots" content="{{ seo_meta.get('robots', 'noindex, nofollow, noarchive') }}">
+<meta name="googlebot" content="{{ seo_meta.get('robots', 'noindex, nofollow, noarchive') }}">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+{% if seo_meta.get('canonical') %}
+<link rel="canonical" href="{{ seo_meta.get('canonical') }}">
+<meta property="og:title" content="{{ seo_meta.get('title') }}">
+<meta property="og:description" content="{{ seo_meta.get('description') }}">
+<meta property="og:type" content="{{ seo_meta.get('og_type', 'website') }}">
+<meta property="og:url" content="{{ seo_meta.get('canonical') }}">
+<meta property="og:site_name" content="{{ seo_meta.get('site_name', 'Insighta') }}">
+<meta property="og:locale" content="{{ seo_meta.get('locale', 'en_US') }}">
+<meta property="og:image" content="{{ seo_meta.get('image') }}">
+<meta property="og:image:alt" content="{{ seo_meta.get('image_alt', seo_meta.get('title')) }}">
+<meta name="twitter:card" content="{{ seo_meta.get('twitter_card', 'summary_large_image') }}">
+<meta name="twitter:title" content="{{ seo_meta.get('title') }}">
+<meta name="twitter:description" content="{{ seo_meta.get('description') }}">
+<meta name="twitter:image" content="{{ seo_meta.get('image') }}">
+<meta name="twitter:image:alt" content="{{ seo_meta.get('image_alt', seo_meta.get('title')) }}">
+{% if seo_meta.get('prev') %}<link rel="prev" href="{{ seo_meta.get('prev') }}">{% endif %}
+{% if seo_meta.get('next') %}<link rel="next" href="{{ seo_meta.get('next') }}">{% endif %}
+{% endif %}
+{% if seo_meta.get('google_site_verification') %}
+<meta name="google-site-verification" content="{{ seo_meta.get('google_site_verification') }}">
+{% endif %}
+{% if seo_meta.get('bing_site_verification') %}
+<meta name="msvalidate.01" content="{{ seo_meta.get('bing_site_verification') }}">
+{% endif %}
+{% for block in seo_meta.get('json_ld', []) %}
+<script type="application/ld+json">{{ block | safe }}</script>
+{% endfor %}

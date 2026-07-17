@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ category | capitalize }} Surveys - Insighta</title>
+  {% include "_seo_head.html" %}
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,7 +29,7 @@
 <body>
   <nav class="nav">
     <a href="/" class="brand">Insight<span>a</span></a>
-    <a href="/dashboard" class="back">Back</a>
+    <a href="/studies" class="back">Browse studies</a>
   </nav>
   <main class="wrap">
     <section class="head">
@@ -40,7 +41,7 @@
     {% if surveys %}
     <section class="grid">
       {% for s in surveys %}
-      <a class="card" href="/survey/{{ s.id }}">
+      <a class="card" href="{% if s.share_slug %}/r/{{ s.share_slug }}{% else %}/studies{% endif %}">
         <div class="title">{{ s.title }}</div>
         <div class="meta">{{ s.category | capitalize }}</div>
         <div class="arrow">Open survey</div>

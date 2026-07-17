@@ -7,3 +7,8 @@ users.db
 test.db
 app/static/uploads/
 *.mov
+# Local databases may contain account or study data.
+survey.db
+surveybridge.db
+*.db-wal
+*.db-shm

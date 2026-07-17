@@ -1,7 +1,8 @@
 from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query, BackgroundTasks
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse, PlainTextResponse, Response as HTTPResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case, inspect, text, or_
@@ -9,6 +10,7 @@ from pathlib import Path
 from typing import Any, List, Optional
 from datetime import datetime, timedelta, timezone, date, time
 from urllib.parse import urlencode
+from xml.sax.saxutils import escape as xml_escape
 from io import BytesIO
 import random
 import re
@@ -17,6 +19,7 @@ import uuid
 import os
 import secrets
 import hashlib
+import hmac
 import html
 import json
 import stripe
@@ -61,8 +64,25 @@ from app.discovery.router import router as discovery_router
 from app.discovery.discovery import discover as discover_channels
 from app.discovery.models import Criteria as DiscoveryCriteria
 from app.discovery.ranking import rank as rank_discovery_channels
+from app.seo import (
+    CATEGORY_CONTENT,
+    INDEX_PUBLIC_STUDIES,
+    SITE_LANGUAGE,
+    category_content,
+    category_image,
+    category_label,
+    content_page_seo,
+    home_seo,
+    participant_seo,
+    plain_text,
+    site_url as seo_site_url,
+    studies_directory_seo,
+    category_seo,
+    study_seo,
+)
 
-app = FastAPI()
+app = FastAPI(title="Insighta", docs_url=None, redoc_url=None)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(verification_router)
 app.include_router(ai_growth_router)
 app.include_router(discovery_router)
@@ -70,6 +90,46 @@ app.include_router(discovery_router)
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+SEO_PUBLIC_EXACT_PATHS = {
+    "/",
+    "/participant",
+    "/studies",
+    "/about",
+    "/privacy",
+    "/terms",
+    "/robots.txt",
+    "/sitemap.xml",
+}
+
+def _is_public_seo_path(path: str) -> bool:
+    if path in SEO_PUBLIC_EXACT_PATHS:
+        return True
+    if path.startswith("/studies/"):
+        return True
+    if path.startswith("/r/") and not path.endswith("/qr.png"):
+        return True
+    return False
+
+@app.middleware("http")
+async def apply_seo_and_delivery_headers(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    if response.headers.get("content-type", "").startswith("text/html"):
+        response.headers.setdefault("Content-Language", SITE_LANGUAGE)
+
+    if path.startswith("/static/"):
+        # Assets are not fingerprinted, so use a moderate cache lifetime rather than immutable caching.
+        response.headers.setdefault("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
+    elif response.status_code >= 400:
+        response.headers.setdefault("X-Robots-Tag", "noindex, nofollow, noarchive")
+    elif not _is_public_seo_path(path):
+        # Defense in depth: the Jinja partial also emits noindex for non-public HTML pages.
+        response.headers.setdefault("X-Robots-Tag", "noindex, nofollow, noarchive")
+
+    return response
 
 def no_store_response(response):
     response.headers["Cache-Control"] = "no-store, max-age=0"
@@ -1799,16 +1859,216 @@ async def linkedin_callback(
 
 
 # ---------------------------
+# Public discovery and SEO infrastructure
+# ---------------------------
+
+def _public_study_cards(db: Session, category_slug: Optional[str] = None) -> list[dict]:
+    if not INDEX_PUBLIC_STUDIES:
+        return []
+    query = db.query(Survey).filter(Survey.status == "published")
+    if category_slug:
+        query = query.filter(func.lower(Survey.category) == category_slug.lower())
+    surveys = query.order_by(Survey.published_at.desc(), Survey.created_at.desc()).all()
+
+    slugs_changed = False
+    for survey in surveys:
+        if not getattr(survey, "share_slug", None):
+            _ensure_survey_share_slug(db, survey)
+            slugs_changed = True
+    if slugs_changed:
+        db.commit()
+
+    cards: list[dict] = []
+    for survey in surveys:
+        display_reward = getattr(survey, "admin_display_reward_amount", None)
+        if display_reward is None:
+            display_reward = survey.reward_amount
+        raw_category = (survey.category or "other").strip().lower()
+        normalized_category = raw_category if raw_category in CATEGORY_CONTENT else "other"
+        cards.append({
+            "id": survey.id,
+            "title": survey.title,
+            "summary": plain_text(survey.description, 180),
+            "description": survey.description,
+            "category": normalized_category,
+            "category_label": category_label(normalized_category),
+            "category_path": f"/studies/{normalized_category}",
+            "share_path": f"/r/{survey.share_slug}",
+            "image": survey.image_url or category_image(normalized_category),
+            "estimated_time": survey.estimated_time,
+            "display_reward": float(display_reward or 0),
+            "task_type_label": _participant_study_type_label(survey) or _task_type_label(getattr(survey, "task_type", None)),
+            "published_at": survey.published_at or survey.created_at,
+        })
+    return cards
+
+
+def _category_navigation(cards: list[dict]) -> list[dict]:
+    counts = {slug: 0 for slug in CATEGORY_CONTENT}
+    for card in cards:
+        slug = card.get("category") or "other"
+        if slug not in counts:
+            slug = "other"
+        counts[slug] += 1
+    return [
+        {
+            "slug": slug,
+            "label": content["label"],
+            "path": f"/studies/{slug}",
+            "count": counts.get(slug, 0),
+        }
+        for slug, content in CATEGORY_CONTENT.items()
+    ]
+
+
+def _sitemap_lastmod(value: Optional[datetime]) -> Optional[str]:
+    if not value:
+        return None
+    return value.date().isoformat()
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse, include_in_schema=False)
+def robots_txt():
+    # Private HTML pages remain crawlable long enough for their noindex directives to be seen.
+    body = "\n".join([
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /api/",
+        "Disallow: /admin/",
+        "Disallow: /auth/",
+        "Disallow: /connect/",
+        "Disallow: /webhook/",
+        "Disallow: /static/uploads/",
+        "",
+        f"Sitemap: {seo_site_url('/sitemap.xml')}",
+        "",
+    ])
+    return PlainTextResponse(
+        body,
+        media_type="text/plain; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+def sitemap_xml(db: Session = Depends(get_db)):
+    entries: list[tuple[str, Optional[str]]] = [
+        (seo_site_url("/"), None),
+        (seo_site_url("/participant"), None),
+        (seo_site_url("/studies"), None),
+        (seo_site_url("/about"), None),
+        (seo_site_url("/privacy"), None),
+        (seo_site_url("/terms"), None),
+    ]
+    cards = _public_study_cards(db)
+    category_lastmods: dict[str, Optional[datetime]] = {}
+    for card in cards:
+        slug = card["category"] if card["category"] in CATEGORY_CONTENT else "other"
+        published_at = card.get("published_at")
+        current = category_lastmods.get(slug)
+        if published_at and (current is None or published_at > current):
+            category_lastmods[slug] = published_at
+        entries.append((seo_site_url(card["share_path"]), _sitemap_lastmod(published_at)))
+    for slug, lastmod in category_lastmods.items():
+        entries.append((seo_site_url(f"/studies/{slug}"), _sitemap_lastmod(lastmod)))
+
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for loc, lastmod in entries[:50000]:
+        lines.append("  <url>")
+        lines.append(f"    <loc>{xml_escape(loc)}</loc>")
+        if lastmod:
+            lines.append(f"    <lastmod>{lastmod}</lastmod>")
+        lines.append("  </url>")
+    lines.append("</urlset>")
+    return HTTPResponse(
+        content="\n".join(lines),
+        media_type="application/xml; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=300, stale-while-revalidate=3600"},
+    )
+
+
+@app.get("/studies", response_class=HTMLResponse)
+def public_studies(request: Request, db: Session = Depends(get_db)):
+    cards = _public_study_cards(db)
+    return templates.TemplateResponse("studies.html", {
+        "request": request,
+        "surveys": cards,
+        "categories": _category_navigation(cards),
+        "total_studies": len(cards),
+        "active_category": None,
+        "page_heading": "Open research studies",
+        "page_intro": "Browse surveys, interviews, and other research opportunities. Review the audience, format, estimated time, and reward before deciding whether to participate.",
+        "seo": studies_directory_seo(cards),
+    })
+
+
+@app.get("/studies/{category_slug}", response_class=HTMLResponse)
+def public_studies_by_category(category_slug: str, request: Request, db: Session = Depends(get_db)):
+    normalized = category_slug.strip().lower()
+    if normalized not in CATEGORY_CONTENT:
+        raise HTTPException(404, "Study category not found")
+    all_cards = _public_study_cards(db)
+    cards = [card for card in all_cards if card.get("category") == normalized]
+    content = category_content(normalized)
+    response = templates.TemplateResponse("studies.html", {
+        "request": request,
+        "surveys": cards,
+        "categories": _category_navigation(all_cards),
+        "total_studies": len(all_cards),
+        "active_category": normalized,
+        "page_heading": content["heading"],
+        "page_intro": content["intro"],
+        "seo": category_seo(normalized, cards),
+    })
+    if not cards:
+        response.headers["X-Robots-Tag"] = "noindex, follow"
+    return response
+
+
+@app.get("/about", response_class=HTMLResponse)
+def about_page(request: Request):
+    seo = content_page_seo(
+        title="About Insighta | Research Recruitment Platform",
+        description="Learn how Insighta helps researchers recruit qualified participants and helps people discover surveys, interviews, and studies that fit their background.",
+        path="/about",
+        page_type="AboutPage",
+        breadcrumb_label="About",
+    )
+    return templates.TemplateResponse("about.html", {"request": request, "seo": seo})
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page(request: Request):
+    seo = content_page_seo(
+        title="Privacy | Insighta",
+        description="Read how Insighta handles account, profile, study, payment, and technical information used to operate the research participation platform.",
+        path="/privacy",
+        breadcrumb_label="Privacy",
+    )
+    return templates.TemplateResponse("privacy.html", {"request": request, "seo": seo})
+
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms_page(request: Request):
+    seo = content_page_seo(
+        title="Terms of Use | Insighta",
+        description="Review the core rules for researchers and participants using Insighta to publish, discover, complete, and manage research studies.",
+        path="/terms",
+        breadcrumb_label="Terms of use",
+    )
+    return templates.TemplateResponse("terms.html", {"request": request, "seo": seo})
+
+
+# ---------------------------
 # Index
 # ---------------------------
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    if _is_mobile_request(request):
-        return RedirectResponse("/participant", status_code=302)
+    # Serve one canonical, responsive homepage to desktop and mobile crawlers alike.
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "show": None, "error": None}
+        {"request": request, "show": None, "error": None, "seo": home_seo()}
     )
 
 
@@ -1820,7 +2080,7 @@ def participant_app_entry(request: Request, user_id: str = Cookie(None)):
         response = no_store_response(
             templates.TemplateResponse(
                 "participant_landing.html",
-                {"request": request}
+                {"request": request, "seo": participant_seo()}
             )
         )
     _mark_participant_app(response, request)
@@ -2325,8 +2585,8 @@ def recruitment_share_page(
     next_path = f"/r/{share_slug}"
     dashboard_path = _participant_dashboard_url(request)
     from_participant_app = from_ == "participant"
-    brand_action = "back" if from_participant_app else ("dashboard" if current_user else "none")
-    brand_href = dashboard_path if brand_action == "dashboard" else "#"
+    brand_action = "back" if from_participant_app else ("dashboard" if current_user else "home")
+    brand_href = dashboard_path if brand_action in {"back", "dashboard"} else "/"
     brand_label = "Back to dashboard" if from_participant_app else ("Dashboard" if current_user else "Insighta")
     _record_user_event(
         db,
@@ -2339,15 +2599,23 @@ def recruitment_share_page(
         metadata={"study_title": survey.title, "source": from_ or "Share link", "surface": "recruitment_share"},
     )
     db.commit()
-    return templates.TemplateResponse("recruitment_share.html", {
+    normalized_category = (survey.category or "other").strip().lower()
+    if normalized_category not in CATEGORY_CONTENT:
+        normalized_category = "other"
+    seo = study_seo(survey, next_path, indexable=survey.status == "published")
+    response = templates.TemplateResponse("recruitment_share.html", {
         "request": request,
         "survey": survey,
+        "seo": seo,
+        "category_label": category_label(normalized_category),
+        "category_path": f"/studies/{normalized_category}",
+        "study_image": survey.image_url or category_image(normalized_category),
         "current_user": current_user,
         "user_response": user_response,
         "availability_slots": availability_slots,
         "booked_slots": booked_slots,
         "display_reward": display_reward,
-        "share_url": _absolute_url(request, next_path),
+        "share_url": seo_site_url(next_path),
         "login_url": f"/login?{urlencode({'role': 'participant', 'next': next_path})}",
         "register_url": f"/register?{urlencode({'role': 'participant', 'next': next_path})}",
         "dashboard_url": dashboard_path,
@@ -2365,6 +2633,9 @@ def recruitment_share_page(
         ),
         "task_type_label": _participant_study_type_label(survey) or _task_type_label(getattr(survey, "task_type", None)),
     })
+    if survey.status != "published":
+        response.headers["X-Robots-Tag"] = "noindex, follow, noarchive"
+    return response
 
 @app.get("/r/{share_slug}/qr.png")
 def recruitment_share_qr(
@@ -2381,7 +2652,7 @@ def recruitment_share_qr(
     except ImportError as exc:
         raise HTTPException(503, "QR generation is not installed") from exc
 
-    share_url = _absolute_url(request, f"/r/{share_slug}")
+    share_url = seo_site_url(f"/r/{share_slug}")
     qr = qrcode.QRCode(version=None, box_size=10, border=3)
     qr.add_data(share_url)
     qr.make(fit=True)
@@ -4415,8 +4686,9 @@ async def send_support_message(
 # ---------------------------
 
 def _admin_key_matches(value: str | None) -> bool:
-    expected = (os.environ.get("ADMIN_KEY", "insighta-admin") or "").strip()
-    return (value or "").strip() == expected
+    expected = (os.environ.get("ADMIN_KEY") or "").strip()
+    provided = (value or "").strip()
+    return bool(expected and provided) and hmac.compare_digest(provided, expected)
 
 
 def _get_admin_publisher_user(db: Session) -> User:

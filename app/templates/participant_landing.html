@@ -6,7 +6,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Insighta">
   <meta name="theme-color" content="#d9ed92">
-  <title>Insighta Participants</title>
+  <title>{{ seo.title }}</title>
+  {% include "_seo_head.html" %}
   <link rel="icon" href="/static/favicon.png">
   <style>
     :root {
@@ -257,6 +258,82 @@
       font-weight: 650;
     }
 
+    .browse-link {
+      display: inline-flex;
+      margin-top: 14px;
+      color: var(--cerulean);
+      font-size: 0.86rem;
+      font-weight: 900;
+      text-underline-offset: 3px;
+    }
+
+    .info-panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.66);
+      box-shadow: 0 14px 38px rgba(24, 78, 119, 0.1);
+      backdrop-filter: blur(18px);
+      padding: 20px;
+    }
+
+    .info-panel h2 {
+      margin: 0 0 14px;
+      color: var(--yale-blue);
+      font-size: 1.25rem;
+    }
+
+    .info-list {
+      display: grid;
+      gap: 13px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: participant-steps;
+    }
+
+    .info-list li {
+      position: relative;
+      padding-left: 38px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 650;
+      line-height: 1.5;
+      counter-increment: participant-steps;
+    }
+
+    .info-list li::before {
+      content: counter(participant-steps);
+      position: absolute;
+      left: 0;
+      top: 0;
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(52, 160, 164, 0.14);
+      color: var(--cerulean);
+      font-size: 0.75rem;
+      font-weight: 950;
+    }
+
+    .legal-links {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .legal-links a {
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 750;
+      text-underline-offset: 3px;
+    }
+
+    a:focus-visible { outline: 3px solid rgba(26, 117, 159, 0.35); outline-offset: 3px; }
+
     .researcher-note {
       border-top: 1px solid rgba(24, 78, 119, 0.1);
       padding-top: 14px;
@@ -357,7 +434,7 @@
   <main class="page">
     <header class="topbar" aria-label="Insighta participant entry">
       <a class="brand" href="/participant" aria-label="Insighta participant home">
-        <img src="/static/favicon.png" alt="">
+        <img src="/static/favicon.png" alt="Insighta logo" width="32" height="32">
         <span>Insighta</span>
       </a>
       <a class="signin" href="/login?role=participant">Sign in</a>
@@ -381,12 +458,27 @@
           <div class="chip">Rewards after approval</div>
         </div>
 
-        <p class="note">You are never automatically signed up for a study. Insighta sends matches, and you decide what feels right.</p>
+        <p class="note">You are never automatically signed up for a study. Insighta surfaces possible matches, and you decide which opportunities to review or join.</p>
+        <a class="browse-link" href="/studies">Browse open research studies →</a>
       </div>
     </section>
 
+    <section class="info-panel" aria-labelledby="participant-process">
+      <h2 id="participant-process">How research participation works</h2>
+      <ol class="info-list">
+        <li>Create a profile with the background and participation preferences used for eligibility matching.</li>
+        <li>Review each study's audience, format, estimated time, available spots, and reward before starting.</li>
+        <li>Complete the study honestly, then track response review and any eligible reward status from your account.</li>
+      </ol>
+    </section>
+
     <footer class="researcher-note">
-      Researcher? Please access Insighta from a computer at <a href="/">the main site</a>.
+      Researcher? <a href="/register?role=researcher">Create a researcher account</a> or return to <a href="/">the main site</a>.
+      <nav class="legal-links" aria-label="Footer navigation">
+        <a href="/about">About</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+      </nav>
     </footer>
   </main>
 </body>

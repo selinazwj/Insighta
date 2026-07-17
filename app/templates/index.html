@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Insighta — Research that moves people</title>
+  <title>{{ seo.title }}</title>
+  {% include "_seo_head.html" %}
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -180,6 +181,8 @@
     .footer-links a { font-size: 12px; color: var(--ink4); text-decoration: none; transition: color .15s; }
     .footer-links a:hover { color: var(--ink); }
     .footer-copy { width: 100%; font-size: 11px; color: var(--ink4); border-top: 0.5px solid var(--line); padding-top: 16px; margin-top: 8px; }
+    .quote-attr a { color: inherit; text-underline-offset: 3px; }
+    a:focus-visible, button:focus-visible { outline: 3px solid var(--green-m); outline-offset: 3px; }
 
     /* ── MODAL — ROLE PICKER ── */
     .modal-bg {
@@ -355,8 +358,9 @@
 <nav class="nav">
   <a href="/" class="nav-logo">Insight<span>a</span></a>
   <div class="nav-links">
+    <a href="/studies">Browse studies</a>
     <a href="#how">How it works</a>
-    <a href="#community">Community</a>
+    <a href="/about">About</a>
   </div>
   <div class="role-switch" aria-label="Choose Insighta side">
     <button class="role-tab active" id="tab-researcher" type="button" onclick="setHomepageMode('researcher')">Researcher</button>
@@ -368,6 +372,7 @@
   </div>
 </nav>
 
+<main>
 <!-- HERO -->
 <section class="hero">
   <div class="hero-inner">
@@ -376,31 +381,31 @@
     <p class="hero-sub reveal d2 mode-text" id="heroSub">Insighta connects researchers who need real insights with participants who deserve real credit — so the studies that matter actually get done.</p>
     <div class="hero-actions reveal d3">
       <a class="btn-hero mode-register-link" id="heroPrimary" href="/register?role=researcher">Start as researcher</a>
-      <a href="#how" class="btn-hero-ghost">
-        How it works
+      <a href="/studies" class="btn-hero-ghost">
+        Browse open studies
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
     </div>
     <div class="hero-stats">
       <div class="hero-stat">
-        <div class="hs-n" id="statOneN">100+</div>
-        <div class="hs-l" id="statOneL">Active participants</div>
-        <div class="hs-s" id="statOneS">across 12 universities</div>
+        <div class="hs-n" id="statOneN">Profile-based</div>
+        <div class="hs-l" id="statOneL">Participant matching</div>
+        <div class="hs-s" id="statOneS">using defined eligibility</div>
       </div>
       <div class="hero-stat">
-        <div class="hs-n" id="statTwoN">Directly</div>
-        <div class="hs-l" id="statTwoL">Paid to participants</div>
-        <div class="hs-s" id="statTwoS">no fees, no delays</div>
+        <div class="hs-n" id="statTwoN">Clear</div>
+        <div class="hs-l" id="statTwoL">Time and reward details</div>
+        <div class="hs-s" id="statTwoS">shown before participation</div>
       </div>
       <div class="hero-stat">
-        <div class="hs-n" id="statThreeN">High</div>
-        <div class="hs-l" id="statThreeL">Avg. completion rate</div>
-        <div class="hs-s" id="statThreeS">Higher than industry average</div>
+        <div class="hs-n" id="statThreeN">Tracked</div>
+        <div class="hs-l" id="statThreeL">Response workflow</div>
+        <div class="hs-s" id="statThreeS">with dashboard status</div>
       </div>
       <div class="hero-stat">
-        <div class="hs-n" id="statFourN">Growing</div>
-        <div class="hs-l" id="statFourL">Studies completed</div>
-        <div class="hs-s" id="statFourS">BU Accelerator '26</div>
+        <div class="hs-n" id="statFourN">Flexible</div>
+        <div class="hs-l" id="statFourL">Surveys and interviews</div>
+        <div class="hs-s" id="statFourS">built in or externally linked</div>
       </div>
     </div>
   </div>
@@ -456,7 +461,7 @@
         </div>
         <div class="how-step">
           <div class="how-n">3</div>
-          <div><div class="how-t">Participate and get paid</div><div class="how-b">Complete the study. Earnings go straight to your account. Withdraw to your bank at any time — no minimum wait.</div></div>
+          <div><div class="how-t">Participate and track status</div><div class="how-b">Complete the study and follow its status from your dashboard. Eligible rewards are recorded after the applicable response review and approval.</div></div>
         </div>
       </div>
     </div>
@@ -473,7 +478,7 @@
       <div class="feature-card">
         <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
         <div class="feature-t">Privacy by design</div>
-        <div class="feature-b">We never sell participant data. Your profile is used only for matching — never shared with researchers without your consent.</div>
+        <div class="feature-b">Profile information supports eligibility and matching. Participants review each listing and choose whether to enter its study flow.</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
@@ -483,50 +488,53 @@
       <div class="feature-card">
         <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <div class="feature-t">Inclusive by default</div>
-        <div class="feature-b">We actively recruit diverse participants. More voices in research means better research — for everyone, not just the loudest rooms.</div>
+        <div class="feature-b">Detailed eligibility fields help researchers describe the audience they need without relying only on broad, one-size-fits-all outreach.</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
         <div class="feature-t">Real impact</div>
-        <div class="feature-b">Studies span mental health, climate attitudes, education equity, and more. Your participation helps research that actually matters.</div>
+        <div class="feature-b">Support academic, product, community, lifestyle, and other research by choosing opportunities that match your background and interests.</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
         <div class="feature-t">Transparent payouts</div>
-        <div class="feature-b">Earnings visible in your dashboard from day one. Withdraw to your bank any time. No hidden fees, no minimums, no waiting games.</div>
+        <div class="feature-b">Study reward details are visible before participation, while response review and reward status remain connected to the participant workflow.</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
         <div class="feature-t">Real support</div>
-        <div class="feature-b">Submit feedback anytime from your dashboard and earn credit. We're a small team that actually reads everything — not a faceless platform.</div>
+        <div class="feature-b">In-product feedback and support threads give researchers and participants a direct way to report issues and ask platform questions.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
-<div class="quote-section">
+<!-- DISCOVERY PATHS -->
+<div class="quote-section" aria-labelledby="next-step-heading">
   <div class="quote-inner">
-    <div class="quote-card">
-      <div class="quote-text">"I got 50 responses in 3 days. I'd been trying to hit 30 for three weeks posting in Facebook groups."</div>
-      <div class="quote-attr"><div class="quote-dot"></div> BU grad student, Psychology</div>
-    </div>
-    <div class="quote-card">
-      <div class="quote-text">"It finally felt like my time and experience were actually worth something. The match system is surprisingly accurate."</div>
-      <div class="quote-attr"><div class="quote-dot"></div> Participant, Boston University</div>
-    </div>
+    <article class="quote-card">
+      <div class="quote-text" id="next-step-heading">Looking for a study to join?</div>
+      <div class="quote-attr"><div class="quote-dot"></div><a href="/studies">Browse open research studies, surveys, and interviews</a></div>
+    </article>
+    <article class="quote-card">
+      <div class="quote-text">Need participants for your research?</div>
+      <div class="quote-attr"><div class="quote-dot"></div><a href="/register?role=researcher">Create a researcher account and publish a listing</a></div>
+    </article>
   </div>
 </div>
+</main>
 
 <!-- FOOTER -->
 <footer class="footer">
   <div class="footer-logo">Insight<span>a</span></div>
   <div class="footer-links">
-    <a href="mailto:insightcom@gmail.com">Contact</a>
+    <a href="/about">About</a>
+    <a href="/studies">Studies</a>
+    <a href="mailto:insightacom@gmail.com">Contact</a>
     <a href="/privacy">Privacy</a>
     <a href="/terms">Terms</a>
   </div>
-  <div class="footer-copy">© 2026 Insighta · Boston University Accelerator · insightaco.org</div>
+  <div class="footer-copy">© 2026 Insighta · Research recruitment and participation platform · insightaco.org</div>
 </footer>
 
 <!-- ── MODAL ── -->
@@ -583,22 +591,22 @@
       sub: 'Insighta connects researchers who need real insights with participants who deserve real credit — so the studies that matter actually get done.',
       primary: 'Start as researcher',
       stats: [
-        ['100+', 'Active participants', 'across 12 universities'],
-        ['Directly', 'Paid to participants', 'no fees, no delays'],
-        ['High', 'Avg. completion rate', 'Higher than industry average'],
-        ['Growing', 'Studies completed', "BU Accelerator '26"]
+        ['Profile-based', 'Participant matching', 'using defined eligibility'],
+        ['Clear', 'Time and reward details', 'shown before participation'],
+        ['Tracked', 'Response workflow', 'with dashboard status'],
+        ['Flexible', 'Surveys and interviews', 'built in or externally linked']
       ]
     },
     participant: {
-      kicker: 'Participant quest board',
-      title: 'Pick study quests<br><strong>that fit you.</strong><br>Earn as you go.',
-      sub: 'Switch into a playful participant space with matched study cards, clear rewards, and progress that feels easy to track.',
+      kicker: 'Research participation platform',
+      title: 'Find studies<br><strong>that fit you.</strong><br>Choose what to join.',
+      sub: 'Browse research studies, review eligibility, time, format, and reward details, then decide which opportunities match your profile and schedule.',
       primary: 'Join as participant',
       stats: [
-        ['94%', 'Example match score', 'based on your profile'],
-        ['Cards', 'Swipe or list view', 'choose your style'],
-        ['$8+', 'Clear rewards upfront', 'know before you start'],
-        ['Private', 'Profile used for matching', 'never sold or scraped']
+        ['Profile', 'Match once', 'use background and preferences'],
+        ['Choice', 'Join study by study', 'no automatic enrollment'],
+        ['Upfront', 'Time and reward details', 'review before starting'],
+        ['Tracked', 'Participation status', 'follow progress in one place']
       ]
     }
   };
