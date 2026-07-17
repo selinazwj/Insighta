@@ -58,14 +58,35 @@
     .page-header p{font-size:14px;color:var(--ink3);line-height:1.6;max-width:610px;}
 
     .profile-grid{display:grid;grid-template-columns:280px minmax(0,1fr);gap:20px;align-items:start;}
+    .summary-stack{display:flex;flex-direction:column;gap:14px;position:sticky;top:80px;}
     .summary-card,.form-card{background:var(--bg);border:.5px solid var(--line);border-radius:12px;}
-    .summary-card{padding:22px;position:sticky;top:80px;}
+    .summary-card{padding:22px;}
     .summary-avatar{width:58px;height:58px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;margin-bottom:14px;}
     .summary-name{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:4px;}
     .summary-email{font-size:13px;color:var(--ink3);line-height:1.5;word-break:break-word;}
     .summary-meta{margin-top:18px;padding-top:16px;border-top:.5px solid var(--line);display:flex;flex-direction:column;gap:10px;}
     .meta-row{font-size:12px;color:var(--ink3);line-height:1.45;}
     .meta-row strong{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);margin-bottom:3px;}
+    .referral-box{
+      padding:18px;
+      border-radius:12px;
+      border:.5px solid var(--line);
+      background:var(--bg);
+    }
+    .referral-box h3{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+    .referral-box p{font-size:12px;color:var(--ink3);line-height:1.5;margin-bottom:12px;}
+    .referral-code{
+      font-size:20px;font-weight:700;letter-spacing:.12em;color:var(--green);
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin-bottom:10px;
+      background:var(--bg2);border:.5px solid var(--line);border-radius:8px;padding:10px 12px;
+    }
+    .referral-link{font-size:11px;color:var(--ink2);background:var(--bg2);border:.5px solid var(--line);border-radius:8px;padding:8px 10px;word-break:break-all;margin-bottom:10px;line-height:1.45;}
+    .referral-actions{display:flex;gap:8px;flex-wrap:wrap;}
+    .referral-btn{border:.5px solid var(--line2);background:var(--green-l);color:var(--green);border-radius:8px;padding:8px 12px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;}
+    .referral-btn:hover{background:var(--green-m);}
+    .referral-btn.secondary{background:var(--bg);color:var(--ink2);border-color:var(--line2);}
+    .referral-btn.secondary:hover{background:var(--bg3);}
+    .referral-copied{font-size:11px;font-weight:600;color:var(--green);min-height:14px;margin-top:8px;}
 
     .form-card{padding:26px 28px;}
     .section-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px;}
@@ -93,7 +114,7 @@
       .topbar{padding:0 16px;}
       .content{padding:28px 16px 64px;}
       .profile-grid{grid-template-columns:1fr;}
-      .summary-card{position:static;}
+      .summary-stack{position:static;}
     }
     @media(max-width:560px){
       .form-card{padding:22px 18px;}
@@ -158,16 +179,30 @@
     </div>
 
     <div class="profile-grid">
-      <aside class="summary-card">
-        <div class="summary-avatar">{{ user.username[0].upper() if user.username else user.email[0].upper() }}</div>
-        <div class="summary-name">{{ user.username or 'Your profile' }}</div>
-        <div class="summary-email">{{ user.email }}</div>
-        <div class="summary-meta">
-          <div class="meta-row"><strong>Field</strong>{{ user.field or 'Not set' }}</div>
-          <div class="meta-row"><strong>Status</strong>{{ user.status or 'Not set' }}</div>
-          <div class="meta-row"><strong>Phone</strong>{{ user.phone_number or 'Not set' }}</div>
-        </div>
-      </aside>
+      <div class="summary-stack">
+        <aside class="summary-card">
+          <div class="summary-avatar">{{ user.username[0].upper() if user.username else user.email[0].upper() }}</div>
+          <div class="summary-name">{{ user.username or 'Your profile' }}</div>
+          <div class="summary-email">{{ user.email }}</div>
+          <div class="summary-meta">
+            <div class="meta-row"><strong>Field</strong>{{ user.field or 'Not set' }}</div>
+            <div class="meta-row"><strong>Status</strong>{{ user.status or 'Not set' }}</div>
+            <div class="meta-row"><strong>Phone</strong>{{ user.phone_number or 'Not set' }}</div>
+          </div>
+        </aside>
+
+        <aside class="referral-box">
+          <h3>Your referral code</h3>
+          <p>Share your code or invite link. Friends can enter it when they register.</p>
+          <div class="referral-code" id="referralCodeValue">{{ referral_code }}</div>
+          <div class="referral-link" id="referralLinkValue">{{ invite_url }}</div>
+          <div class="referral-actions">
+            <button type="button" class="referral-btn" onclick="copyReferral('code')">Copy code</button>
+            <button type="button" class="referral-btn secondary" onclick="copyReferral('link')">Copy link</button>
+          </div>
+          <div class="referral-copied" id="referralCopied"></div>
+        </aside>
+      </div>
 
       <section class="form-card">
         <form method="POST" action="/profile">
@@ -235,5 +270,25 @@
 </div>
 
 <script src="/static/support_chat.js"></script>
+<script>
+  function copyReferral(kind) {
+    const text = kind === 'link'
+      ? (document.getElementById('referralLinkValue')?.textContent || '').trim()
+      : (document.getElementById('referralCodeValue')?.textContent || '').trim();
+    const note = document.getElementById('referralCopied');
+    if (!text) return;
+    const done = () => {
+      if (note) note.textContent = kind === 'link' ? 'Invite link copied.' : 'Referral code copied.';
+      setTimeout(() => { if (note) note.textContent = ''; }, 2000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => {
+        window.prompt('Copy this:', text);
+      });
+    } else {
+      window.prompt('Copy this:', text);
+    }
+  }
+</script>
 </body>
 </html>
