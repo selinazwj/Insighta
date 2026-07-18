@@ -81,7 +81,7 @@ from app.seo import (
     study_seo,
 )
 
-app = FastAPI(title="Insighta", docs_url=None, redoc_url=None)
+app = FastAPI(title="Insighta")
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(verification_router)
 app.include_router(ai_growth_router)
