@@ -152,6 +152,11 @@ def ensure_survey_listing_columns():
         "sessions_per_week": "INTEGER",
         "admin_display_reward_amount": "FLOAT",
         "share_slug": "VARCHAR",
+        "total_budget": "FLOAT",
+        "per_person_gross": "FLOAT",
+        "commission_rate": "FLOAT",
+        "payment_status": "VARCHAR",
+        "stripe_payment_intent_id": "VARCHAR",
         "quality_auto_filter_enabled": "BOOLEAN DEFAULT false",
         "quality_auto_filter_min_score": "FLOAT DEFAULT 80.0",
     }
@@ -171,6 +176,9 @@ def ensure_response_tracking_columns():
         "booking_slot": "TEXT",
         "start_followup_scheduled_at": "TIMESTAMP",
         "start_followup_sent_at": "TIMESTAMP",
+        "payout_status": "VARCHAR",
+        "payout_amount": "FLOAT",
+        "stripe_transfer_id": "VARCHAR",
     }
     with engine.begin() as conn:
         for name, column_type in response_columns.items():
