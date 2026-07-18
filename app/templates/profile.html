@@ -74,18 +74,25 @@
       background:var(--bg);
     }
     .referral-box h3{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px;}
-    .referral-box p{font-size:12px;color:var(--ink3);line-height:1.5;margin-bottom:12px;}
+    .referral-box p{font-size:12px;color:var(--ink3);line-height:1.5;margin-bottom:14px;}
+    .referral-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);margin-bottom:7px;}
+    .referral-row{display:flex;gap:8px;align-items:center;}
+    .referral-row + .referral-label{margin-top:14px;}
     .referral-code{
-      font-size:20px;font-weight:700;letter-spacing:.12em;color:var(--green);
-      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin-bottom:10px;
+      flex:1;min-width:0;font-size:16px;font-weight:700;letter-spacing:.1em;color:var(--green);
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
       background:var(--bg2);border:.5px solid var(--line);border-radius:8px;padding:10px 12px;
     }
-    .referral-link{font-size:11px;color:var(--ink2);background:var(--bg2);border:.5px solid var(--line);border-radius:8px;padding:8px 10px;word-break:break-all;margin-bottom:10px;line-height:1.45;}
-    .referral-actions{display:flex;gap:8px;flex-wrap:wrap;}
-    .referral-btn{border:.5px solid var(--line2);background:var(--green-l);color:var(--green);border-radius:8px;padding:8px 12px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;}
+    .referral-link{
+      flex:1;min-width:0;font-size:11px;color:var(--ink2);background:var(--bg2);border:.5px solid var(--line);
+      border-radius:8px;padding:10px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.45;
+    }
+    .referral-btn{
+      flex-shrink:0;border:.5px solid var(--line2);background:var(--green-l);color:var(--green);
+      border-radius:8px;padding:10px 12px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;
+    }
     .referral-btn:hover{background:var(--green-m);}
-    .referral-btn.secondary{background:var(--bg);color:var(--ink2);border-color:var(--line2);}
-    .referral-btn.secondary:hover{background:var(--bg3);}
+    .referral-hint{font-size:11px;font-weight:500;color:var(--ink3);line-height:1.45;margin-top:8px;}
     .referral-copied{font-size:11px;font-weight:600;color:var(--green);min-height:14px;margin-top:8px;}
 
     .form-card{padding:26px 28px;}
@@ -194,12 +201,17 @@
         <aside class="referral-box">
           <h3>Your referral code</h3>
           <p>Share your code or invite link. Friends can enter it when they register.</p>
-          <div class="referral-code" id="referralCodeValue">{{ referral_code }}</div>
-          <div class="referral-link" id="referralLinkValue">{{ invite_url }}</div>
-          <div class="referral-actions">
-            <button type="button" class="referral-btn" onclick="copyReferral('code')">Copy code</button>
-            <button type="button" class="referral-btn secondary" onclick="copyReferral('link')">Copy link</button>
+          <div class="referral-label">Code</div>
+          <div class="referral-row">
+            <div class="referral-code" id="referralCodeValue">{{ referral_code }}</div>
+            <button type="button" class="referral-btn" onclick="copyReferral('code')">Copy</button>
           </div>
+          <div class="referral-label">Invite link</div>
+          <div class="referral-row">
+            <div class="referral-link" id="referralLinkValue" title="{{ invite_url }}">{{ invite_url }}</div>
+            <button type="button" class="referral-btn" onclick="copyReferral('link')">Copy</button>
+          </div>
+          <div class="referral-hint">Anyone who opens this link will land on signup with your referral code filled in.</div>
           <div class="referral-copied" id="referralCopied"></div>
         </aside>
       </div>
