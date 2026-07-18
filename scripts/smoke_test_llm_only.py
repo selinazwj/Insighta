@@ -13,11 +13,21 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, UTC
 from pathlib import Path
+import os
 import sys
+import tempfile
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+# Importing api.main runs compatibility migrations. Force those side effects into
+# a disposable database so this smoke test can never modify survey.db or a
+# DATABASE_URL supplied by the developer's shell.
+_APP_DB_TEMP_DIR = tempfile.TemporaryDirectory(prefix="insighta-llm-smoke-")
+_APP_DB_PATH = Path(_APP_DB_TEMP_DIR.name) / "app-import.db"
+os.environ["DATABASE_URL"] = f"sqlite:///{_APP_DB_PATH.as_posix()}"
+os.environ["SURVEY_START_FOLLOWUP_POLL_SECONDS"] = "3600"
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

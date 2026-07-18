@@ -1,13 +1,13 @@
 {
   "name": "Insighta",
   "short_name": "Insighta",
-  "description": "Connect researchers with participants for better research.",
+  "description": "Recruit qualified research participants and discover surveys, interviews, and studies with clear eligibility, time, and reward details.",
   "id": "/",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#050E1F",
+  "theme_color": "#3b7c4f",
   "icons": [
     {
       "src": "/static/icon-192.png",
@@ -41,5 +41,6 @@
       "type": "image/png",
       "form_factor": "wide"
     }
-  ]
+  ],
+  "scope": "/"
 }

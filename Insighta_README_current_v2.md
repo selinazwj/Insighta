@@ -168,10 +168,10 @@ STRIPE_PUBLISHABLE_KEY=
 STRIPE_WEBHOOK_SECRET=
 
 EMAIL_ADDRESS=insightacom@gmail.com
-EMAIL_PASSWORD=babx pysm yevt tamq
+EMAIL_PASSWORD=
 
 ANTHROPIC_API_KEY=
-ADMIN_KEY=insighta-admin
+ADMIN_KEY=<generate-a-long-random-secret>
 ```
 
 ### Notes

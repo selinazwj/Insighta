@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ seo.title }}</title>
+  {% include "_seo_head.html" %}
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="stylesheet" href="/static/seo_public.css">
+</head>
+<body>
+  <header class="public-nav">
+    <a class="public-brand" href="/" aria-label="Insighta home">Insight<span>a</span></a>
+    <nav class="public-nav-links" aria-label="Primary navigation">
+      <a href="/about">About</a>
+      <a href="/participant">For participants</a>
+      <a href="/login?role=participant">Sign in</a>
+      <a class="nav-cta" href="/register?role=participant">Join Insighta</a>
+    </nav>
+  </header>
+
+  <main class="public-shell">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="/">Home</a><span aria-hidden="true">/</span>
+      {% if active_category %}
+        <a href="/studies">Studies</a><span aria-hidden="true">/</span>
+        <span aria-current="page">{{ page_heading }}</span>
+      {% else %}
+        <span aria-current="page">Studies</span>
+      {% endif %}
+    </nav>
+
+    <section class="public-hero">
+      <div>
+        <p class="eyebrow">Research opportunities</p>
+        <h1>{{ page_heading }}</h1>
+        <p>{{ page_intro }}</p>
+        <div class="category-list" aria-label="Study categories">
+          <a class="category-link{% if not active_category %} active{% endif %}" href="/studies">
+            All studies <span class="category-count">{{ total_studies }}</span>
+          </a>
+          {% for category in categories %}
+            <a class="category-link{% if active_category == category.slug %} active{% endif %}" href="{{ category.path }}">
+              {{ category.label }} <span class="category-count">{{ category.count }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="hero-actions">
+        <a class="button primary" href="/register?role=participant">Create participant account</a>
+        <a class="button" href="/about">How Insighta works</a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="study-list-heading">
+      <div class="section-head">
+        <div>
+          <h2 id="study-list-heading">Available now</h2>
+          <p class="section-sub">Listings are published by research teams. Read the complete eligibility and participation details on each study page.</p>
+        </div>
+      </div>
+
+      {% if surveys %}
+      <div class="study-grid" id="study-list">
+        {% for survey in surveys %}
+        <a class="study-card" href="{{ survey.share_path }}" aria-label="View {{ survey.title }} research study">
+          <div class="study-image-wrap">
+            <img class="study-image" src="{{ survey.image }}" alt="{{ survey.title }} research study cover" width="640" height="360" loading="{% if loop.index <= 3 %}eager{% else %}lazy{% endif %}" decoding="async">
+          </div>
+          <div class="study-body">
+            <div class="study-kicker">{{ survey.category_label }} · {{ survey.task_type_label }}</div>
+            <h3 class="study-title">{{ survey.title }}</h3>
+            <p class="study-summary">{{ survey.summary }}</p>
+            <div class="study-meta">
+              <span class="meta-pill">{{ survey.estimated_time }} min</span>
+              {% if survey.display_reward > 0 %}
+                <span class="meta-pill reward">${{ "%.2f"|format(survey.display_reward) }} reward</span>
+              {% else %}
+                <span class="meta-pill">Volunteer</span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <h2>No open studies in this view</h2>
+        <p>New studies are added as research teams publish them. Browse all categories or create a participant account to receive profile-based matches.</p>
+        <a class="button primary" href="{% if active_category %}/studies{% else %}/register?role=participant{% endif %}">
+          {% if active_category %}Browse all studies{% else %}Create participant account{% endif %}
+        </a>
+      </div>
+      {% endif %}
+    </section>
+  </main>
+
+  <footer class="public-footer">
+    <span>© 2026 Insighta</span>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="/about">About</a>
+      <a href="/studies">Studies</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="mailto:insightacom@gmail.com">Contact</a>
+    </nav>
+  </footer>
+</body>
+</html>

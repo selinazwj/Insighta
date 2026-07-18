@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ seo.title }}</title>
+  {% include "_seo_head.html" %}
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="stylesheet" href="/static/seo_public.css">
+</head>
+<body>
+  <header class="public-nav">
+    <a class="public-brand" href="/" aria-label="Insighta home">Insight<span>a</span></a>
+    <nav class="public-nav-links" aria-label="Primary navigation">
+      <a href="/studies">Browse studies</a>
+      <a href="/about">About</a>
+      <a href="/login">Sign in</a>
+      <a class="nav-cta" href="/register">Create account</a>
+    </nav>
+  </header>
+
+  <main class="public-shell">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Privacy</span>
+    </nav>
+
+    <article class="prose">
+      <p class="eyebrow">Privacy notice</p>
+      <h1>How Insighta handles information</h1>
+      <p class="lead">This notice describes the information the Insighta application processes to operate researcher and participant accounts, publish studies, match participants, track responses, communicate with users, and administer payments or rewards.</p>
+      <p class="updated"><strong>Last updated:</strong> July 17, 2026</p>
+
+      <h2>Information you provide</h2>
+      <p>Depending on how you use Insighta, the application may collect account details such as your name, email address, phone number, login credentials, and OAuth account identifiers. Participant profiles may include age range, education, field, status, location, language, participation preferences, lifestyle or experience tags, and other eligibility information you choose to provide.</p>
+      <p>Researchers may provide study titles, descriptions, forms, targeting criteria, scheduling details, images, reward information, and study materials. Participants may submit study responses, answers, booking selections, feedback, and support messages.</p>
+
+      <h2>Information collected during use</h2>
+      <p>The application may record technical and activity information such as IP address, user agent, device-related identifiers, page path, referral source, login events, listing views, study starts, completion timestamps, response duration, and quality-review signals. Cookies are used for login state, authentication return paths, OAuth state, and participant application preferences.</p>
+
+      <h2>How information is used</h2>
+      <ul>
+        <li>Provide, secure, maintain, and troubleshoot the platform.</li>
+        <li>Create accounts, authenticate users, and remember session state.</li>
+        <li>Publish and display research opportunities.</li>
+        <li>Match participants to studies using profile and eligibility information.</li>
+        <li>Track study progress, review response quality, and administer reward status.</li>
+        <li>Send verification, account, study, support, and follow-up communications.</li>
+        <li>Analyze product usage and improve platform functionality.</li>
+        <li>Detect fraud, abuse, duplicate participation, or security incidents.</li>
+      </ul>
+
+      <h2>Service providers and external study tools</h2>
+      <p>Insighta may rely on service providers that process information on its behalf, including hosting and database providers, Stripe for payment-related workflows, email delivery providers, Google or LinkedIn for optional OAuth login, and Anthropic-powered features when those integrations are enabled. A researcher may also link to an external survey or meeting tool. Information you submit directly to that external service is governed by its operator and the researcher’s own disclosures.</p>
+
+      <h2>Information shared with researchers</h2>
+      <p>Study responses and participation records may be made available to the researcher who published the study. Profile attributes may be used to determine eligibility or matching. Researchers are responsible for describing their own data collection, consent process, retention, and research purpose. Do not assume a study is anonymous unless the study materials expressly say so.</p>
+
+      <h2>Data retention and security</h2>
+      <p>Information is retained for as long as reasonably necessary to operate accounts and studies, keep business and payment records, resolve disputes, enforce platform rules, and meet legal obligations. No system can guarantee absolute security; the deployment operator should use appropriate access controls, encrypted transport, secret management, backups, monitoring, and deletion procedures.</p>
+
+      <h2>Your choices</h2>
+      <p>You may choose not to join a particular study. You can update supported profile fields through the application. For access, correction, deletion, or account questions that are not available in-product, contact <a href="mailto:insightacom@gmail.com">insightacom@gmail.com</a>. Some records may need to be retained where required for security, payment, dispute, or legal purposes.</p>
+
+      <h2>Age requirement</h2>
+      <p>The current participant onboarding flow requires participants to be at least 18 years old. Insighta is not designed for children to create participant accounts independently.</p>
+
+      <h2>Changes to this notice</h2>
+      <p>This notice may be updated as the product, integrations, or legal requirements change. The date above identifies the current version.</p>
+
+      <h2>Deployment and legal review</h2>
+      <p>This page documents the application’s current technical behavior and is not a substitute for deployment-specific legal advice. Before a public production launch, the operator should identify the legal entity, jurisdiction, retention periods, subprocessors, user-rights process, research compliance requirements, and any institution-specific obligations.</p>
+    </article>
+  </main>
+
+  <footer class="public-footer">
+    <span>© 2026 Insighta</span>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="/about">About</a>
+      <a href="/studies">Studies</a>
+      <a href="/privacy" aria-current="page">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="mailto:insightacom@gmail.com">Contact</a>
+    </nav>
+  </footer>
+</body>
+</html>
