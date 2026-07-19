@@ -337,6 +337,14 @@ def _field_matches(target: Optional[str], user_val: Optional[str]) -> bool:
         return False
     return target.strip().lower() == user_val.strip().lower()
 
+def _occupation_matches(required: Optional[str], user_occupation: Optional[str]) -> bool:
+    # ive added this — a survey can require multiple occupations (comma separated,
+    # e.g. "physician,nurse"). blank means any occupation is welcome.
+    required_list = [o.strip().lower() for o in (required or "").split(",") if o.strip()]
+    if not required_list:
+        return True
+    return (user_occupation or "").strip().lower() in required_list
+
 def _age_matches(target: Optional[str], user: User) -> bool:
     if _is_empty(target):
         return True
@@ -1440,6 +1448,9 @@ def dashboard(
         if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
         if not _field_matches(getattr(s, 'target_income_level', None), getattr(current_user, 'income_level', None)): return False
         if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
+        # ive added this — occupation targeting is finally enforced: a physicians-only
+        # study no longer shows up for everyone
+        if not _occupation_matches(getattr(s, 'required_occupation', None), getattr(current_user, 'occupation', None)): return False
         return True
 
     matched = [s for s in all_published if survey_matches(s)]
@@ -1599,6 +1610,9 @@ def dashboard_mobile(
         if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
         if not _field_matches(getattr(s, 'target_income_level', None), getattr(current_user, 'income_level', None)): return False
         if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
+        # ive added this — occupation targeting is finally enforced: a physicians-only
+        # study no longer shows up for everyone
+        if not _occupation_matches(getattr(s, 'required_occupation', None), getattr(current_user, 'occupation', None)): return False
         return True
 
     matched = [s for s in all_published if survey_matches(s)]
@@ -1787,6 +1801,25 @@ def complete_survey(
         r.payout_amount = survey.reward_amount
         mark_response_under_review(r)
 
+        # ive added this — the researchers bell only used to get notifications from
+        # the AI jump flow, so normal completions had no in-app approve button and
+        # the payout could sit unreleased. now every completion creates one.
+        existing_notif = db.query(Notification).filter(
+            Notification.survey_id == survey.id,
+            Notification.participant_id == current_user.id,
+            Notification.status == "pending",
+        ).first()
+        if not existing_notif:
+            db.add(Notification(
+                publisher_id=survey.publisher_id,
+                participant_id=current_user.id,
+                survey_id=survey.id,
+                participant_email=current_user.email,
+                survey_title=survey.title,
+                task_type=getattr(survey, "task_type", "survey") or "survey",
+                status="pending",
+            ))
+
         publisher = db.query(User).filter(User.id == survey.publisher_id).first()
         if publisher and publisher.email:
             send_email(
@@ -1840,6 +1873,14 @@ def modify_completed_survey(
         survey = db.query(Survey).filter(Survey.id == survey_id).first()
         r.status = "started"; r.completed_at = None
         return_response_to_review(db, r)
+        # ive added this — undoing a completion removes the pending bell notification,
+        # otherwise the researcher could approve a payout for a response thats no
+        # longer completed
+        db.query(Notification).filter(
+            Notification.survey_id == survey_id,
+            Notification.participant_id == current_user.id,
+            Notification.status == "pending",
+        ).delete()
         db.commit()
         return {"message": "Response modified"}
 
@@ -4208,6 +4249,24 @@ async def submit_answers(
         r.completed_at = datetime.now(timezone.utc)
         r.payout_amount = survey.reward_amount
         mark_response_under_review(r)
+
+        # ive added this — builtin submissions also create a bell notification so
+        # the researcher can approve the payout in-app (not just via email)
+        existing_notif = db.query(Notification).filter(
+            Notification.survey_id == survey.id,
+            Notification.participant_id == current_user.id,
+            Notification.status == "pending",
+        ).first()
+        if not existing_notif:
+            db.add(Notification(
+                publisher_id=survey.publisher_id,
+                participant_id=current_user.id,
+                survey_id=survey.id,
+                participant_email=current_user.email,
+                survey_title=survey.title,
+                task_type=getattr(survey, "task_type", "survey") or "survey",
+                status="pending",
+            ))
 
         publisher = db.query(User).filter(User.id == survey.publisher_id).first()
         if publisher and publisher.email:
