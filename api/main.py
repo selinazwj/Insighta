@@ -1912,13 +1912,15 @@ def get_notifications(
         status = getattr(participant, "verification_status", "unverified") or "unverified"
         participant_tier = getattr(participant, "verified_tier", None)
         satisfied = bool(survey and participant and _verification_satisfies(participant, survey))
-        return requires, status, participant_tier, required_tier, domains, satisfied
+        id_review = getattr(participant, "id_review_status", None) if participant else None
+        return requires, status, participant_tier, required_tier, domains, satisfied, id_review
 
     payload = []
     for n in notifs:
-        requires_verification, verification_status, participant_tier, required_tier, domains, satisfied = _verify_info(n)
+        requires_verification, verification_status, participant_tier, required_tier, domains, satisfied, id_review = _verify_info(n)
         payload.append({
             "id": n.id,
+            "participant_id": n.participant_id,
             "participant_email": n.participant_email,
             "survey_title": n.survey_title,
             "task_type": n.task_type or "survey",
@@ -1930,6 +1932,8 @@ def get_notifications(
             "required_verification_tier": required_tier,
             "required_email_domains": ", ".join(domains) if domains else "",
             "verification_warning": requires_verification and not satisfied,
+            # ive added this — the researcher (not an admin) reviews uploaded IDs now
+            "id_review_status": id_review,
         })
     return JSONResponse(payload)
 
@@ -2547,66 +2551,76 @@ async def verify_id_upload(
 
 
 # ---------------------------
-# Admin ID review queue
+# Researcher ID review (ive moved this off the admin — the researcher who is
+# paying reviews the ID, right from their notification bell)
 # ---------------------------
 
-@app.get("/admin/id-reviews", response_class=HTMLResponse)
-def admin_id_reviews(request: Request, admin_key: str = Query(None), db: Session = Depends(get_db)):
-    # ive added this — the admin queue that reviews uploaded ID documents
-    if not _admin_key_matches(admin_key):
-        raise HTTPException(403, "Unauthorized")
-    pending = db.query(User).filter(User.id_review_status == "pending").order_by(User.id_uploaded_at.asc()).all()
-    decided = db.query(User).filter(User.id_review_status.in_(["approved", "rejected"])).order_by(User.id_uploaded_at.desc()).limit(20).all()
-    return templates.TemplateResponse("admin_id_reviews.html", {
-        "request": request, "admin_key": admin_key,
-        "pending": pending, "decided": decided,
-    })
+def _researcher_can_review_id(db: Session, researcher_id: int, participant_id: int) -> bool:
+    """
+    a researcher may only see/decide a participants ID if that participant has
+    a response on one of THEIR studies that actually requires verification
+    """
+    return db.query(Response).join(Survey, Survey.id == Response.survey_id).filter(
+        Survey.publisher_id == researcher_id,
+        Response.participant_id == participant_id,
+        Survey.required_verification_tier.in_(["tier_1", "tier_2"]),
+    ).first() is not None
 
 
-@app.get("/admin/id-document/{user_id}")
-def admin_view_id_document(user_id: int, admin_key: str = Query(None), db: Session = Depends(get_db)):
-    # ive added this — the ONLY way to view an ID doc, gated by the admin key.
-    # the uploads dir is deliberately not web-served, so this route is the door.
-    if not _admin_key_matches(admin_key):
-        raise HTTPException(403, "Unauthorized")
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user or not user.id_document_path:
-        raise HTTPException(404, "No document for this user")
-    doc_path = Path(user.id_document_path)
+@app.get("/researcher/id-document/{participant_id}")
+def researcher_view_id_document(
+    participant_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # the ONLY way to view an ID doc — the uploads dir is not web-served.
+    # only a researcher this participant responded to may open it
+    if not _researcher_can_review_id(db, current_user.id, participant_id):
+        raise HTTPException(403, "You can only view IDs of participants who responded to your studies")
+    participant = db.query(User).filter(User.id == participant_id).first()
+    if not participant or not participant.id_document_path:
+        raise HTTPException(404, "No document for this participant")
+    doc_path = Path(participant.id_document_path)
     # safety: only ever serve files that live inside the ID documents dir
     if doc_path.resolve().parent != ID_DOC_DIR.resolve() or not doc_path.exists():
         raise HTTPException(404, "Document not found")
     return FileResponse(doc_path)
 
 
-@app.post("/admin/id-reviews/{user_id}/approve")
-async def admin_approve_id(user_id: int, request: Request, db: Session = Depends(get_db)):
-    # ive added this — admin approved the ID, grant tier_1
-    body = await request.json()
-    if not _admin_key_matches(body.get("admin_key")):
-        raise HTTPException(403, "Unauthorized")
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user or user.id_review_status != "pending":
-        raise HTTPException(404, "No pending review for this user")
-    user.id_review_status = "approved"
-    user.verification_status = "verified"
-    user.verified_tier = "tier_1"
-    user.verified_at = datetime.utcnow()
+@app.post("/researcher/id-reviews/{participant_id}/approve")
+def researcher_approve_id(
+    participant_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # researcher approved the ID — grant tier_1
+    if not _researcher_can_review_id(db, current_user.id, participant_id):
+        raise HTTPException(403, "You can only review IDs of participants who responded to your studies")
+    participant = db.query(User).filter(User.id == participant_id).first()
+    if not participant or participant.id_review_status != "pending":
+        raise HTTPException(404, "No pending ID review for this participant")
+    participant.id_review_status = "approved"
+    participant.verification_status = "verified"
+    participant.verified_tier = "tier_1"
+    participant.verified_at = datetime.utcnow()
     db.commit()
     return JSONResponse({"ok": True, "status": "approved"})
 
 
-@app.post("/admin/id-reviews/{user_id}/reject")
-async def admin_reject_id(user_id: int, request: Request, db: Session = Depends(get_db)):
-    # ive added this — admin rejected the ID; participant keeps any existing tier
-    # and can upload a new document
-    body = await request.json()
-    if not _admin_key_matches(body.get("admin_key")):
-        raise HTTPException(403, "Unauthorized")
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user or user.id_review_status != "pending":
-        raise HTTPException(404, "No pending review for this user")
-    user.id_review_status = "rejected"
+@app.post("/researcher/id-reviews/{participant_id}/reject")
+def researcher_reject_id(
+    participant_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # researcher asked for a new photo — participant keeps any existing tier
+    # and can upload a fresh document
+    if not _researcher_can_review_id(db, current_user.id, participant_id):
+        raise HTTPException(403, "You can only review IDs of participants who responded to your studies")
+    participant = db.query(User).filter(User.id == participant_id).first()
+    if not participant or participant.id_review_status != "pending":
+        raise HTTPException(404, "No pending ID review for this participant")
+    participant.id_review_status = "rejected"
     db.commit()
     return JSONResponse({"ok": True, "status": "rejected"})
 

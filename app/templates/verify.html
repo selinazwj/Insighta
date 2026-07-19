@@ -246,13 +246,13 @@
   {% if id_review_status == 'pending' %}
   <div class="info-box">
     <div class="label">ID document</div>
-    <div class="message">⏳ Your ID is under review. We'll grant Tier 1 once an admin approves it — usually within a day.</div>
+    <div class="message">⏳ Your ID is under review. The researcher will check it and approve — you'll get Tier 1 once they do.</div>
   </div>
   {% else %}
   {% if id_review_status == 'rejected' %}
   <div class="info-box" style="border-color:#fed7d7;background:#fff5f5;">
     <div class="label" style="color:#c53030;">ID document</div>
-    <div class="message" style="color:#c53030;">Your previous ID was rejected. Please upload a clearer photo of a valid ID.</div>
+    <div class="message" style="color:#c53030;">The researcher asked for a new photo of your ID. Please upload a clearer picture of a valid ID.</div>
   </div>
   {% endif %}
   <form method="POST" action="/verify/id-upload" enctype="multipart/form-data">

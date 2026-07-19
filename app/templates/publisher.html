@@ -52,6 +52,16 @@
     .notif-verify { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; margin-bottom: 8px; }
     .notif-verify.warn { background: #FEF3C7; color: #92400E; }
     .notif-verify.ok { background: rgba(45,106,79,0.1); color: var(--accent); }
+    /* ive added these — researcher-side ID review actions on the notification card */
+    .notif-id-review { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+    .notif-id-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .id-btn { font-family: inherit; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 7px; cursor: pointer; text-decoration: none; border: 1px solid var(--line); background: white; color: var(--ink-soft); transition: all .12s; }
+    .id-btn.view { color: var(--accent); border-color: var(--accent); }
+    .id-btn.view:hover { background: rgba(45,106,79,0.06); }
+    .id-btn.approve { background: var(--accent); border-color: var(--accent); color: white; }
+    .id-btn.approve:hover { background: #245c43; }
+    .id-btn.resend { color: #92400E; border-color: #f0c070; }
+    .id-btn.resend:hover { background: #FEF3C7; }
     .notif-time { font-size: 11px; color: var(--ink-muted); }
     .notif-actions { display: flex; gap: 8px; margin-top: 10px; }
     .notif-accept { flex: 1; padding: 6px 0; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
@@ -506,6 +516,20 @@
         } else {
           verifyHtml = `<div class="notif-verify warn">⚠ Participant not verified</div>`;
         }
+        // ive added this — the RESEARCHER reviews the participants uploaded ID now
+        // (moved off the admin): view the document, approve it, or ask for a new photo
+        if (n.id_review_status === 'pending') {
+          verifyHtml += `<div class="notif-id-review" id="idreview-${n.id}">
+            <div class="notif-verify warn" style="margin-bottom:6px;">🪪 ID document waiting for your review</div>
+            <div class="notif-id-actions">
+              <a class="id-btn view" href="/researcher/id-document/${n.participant_id}" target="_blank">View ID</a>
+              <button class="id-btn approve" onclick="decideId(${n.participant_id},'approve')">✓ Approve ID → Tier 1</button>
+              <button class="id-btn resend" onclick="decideId(${n.participant_id},'reject')">↺ Ask for new photo</button>
+            </div>
+          </div>`;
+        } else if (n.id_review_status === 'rejected') {
+          verifyHtml += `<div class="notif-verify warn">🪪 You asked for a new ID photo — waiting on the participant</div>`;
+        }
       }
       const actionHtml = `<div class="notif-actions">
         <button class="notif-accept ${acceptActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'accept')">
@@ -535,6 +559,19 @@
       if (notif) notif.status = action === 'accept' ? 'accepted' : 'rejected';
       renderNotifications();
     } catch {}
+  }
+
+  // ive added this — researcher approves the participants ID or asks for a new photo
+  async function decideId(participantId, action) {
+    const msg = action === 'approve'
+      ? 'Approve this ID? The participant becomes verified Tier 1.'
+      : 'Ask the participant to upload a new photo of their ID?';
+    if (!confirm(msg)) return;
+    try {
+      const res = await fetch(`/researcher/id-reviews/${participantId}/${action}`, { method: 'POST', credentials: 'same-origin' });
+      if (!res.ok) { alert('Something went wrong.'); return; }
+      await loadNotifications();
+    } catch { alert('Network error.'); }
   }
 
   function toggleNotifPanel() {
