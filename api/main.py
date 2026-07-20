@@ -4604,6 +4604,42 @@ async def verify_id_upload(
     current_user.id_review_status = "pending"
     current_user.id_uploaded_at = datetime.utcnow()
     db.commit()
+
+    # ive added this — every researcher who is waiting on this participant gets
+    # an email nudge to review the ID (accept or ask for a new photo)
+    review_url = f"{BASE_URL.rstrip('/')}/researcher/id-reviews"
+    publishers = (
+        db.query(User)
+        .join(Survey, Survey.publisher_id == User.id)
+        .join(Response, Response.survey_id == Survey.id)
+        .filter(
+            Response.participant_id == current_user.id,
+            Survey.required_verification_tier.in_(["tier_1", "tier_2"]),
+        )
+        .distinct()
+        .all()
+    )
+    for publisher in publishers:
+        if not publisher.email:
+            continue
+        send_email(
+            to=publisher.email,
+            subject="[Insighta] A participant sent their verification ID — review needed",
+            body=f"""
+            <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+              <h2 style="font-size: 22px; margin-bottom: 8px;">🪪 ID Verification Review</h2>
+              <p style="color: #8a8a82; margin-bottom: 24px;">A participant uploaded a photo of their ID for a study that requires verification. Please review it and approve — or ask them to resend a clearer picture.</p>
+              <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
+                <div style="font-size: 15px; font-weight: 600;">{current_user.email}</div>
+              </div>
+              <a href="{review_url}" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                Review ID now →
+              </a>
+            </div>
+            """,
+        )
+
     # done=1 shows just the "under review" confirmation, not more tier options
     return RedirectResponse("/verify?done=1", status_code=303)
 
@@ -4681,6 +4717,50 @@ def researcher_reject_id(
     participant.id_review_status = "rejected"
     db.commit()
     return JSONResponse({"ok": True, "status": "rejected"})
+
+
+@app.get("/researcher/id-reviews", response_class=HTMLResponse)
+def researcher_id_reviews_page(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # ive added this — the dedicated page where a researcher reviews the ID
+    # photos of participants who responded to THEIR verification-gated studies
+    rows = (
+        db.query(User, Survey)
+        .join(Response, Response.participant_id == User.id)
+        .join(Survey, Survey.id == Response.survey_id)
+        .filter(
+            Survey.publisher_id == current_user.id,
+            Survey.required_verification_tier.in_(["tier_1", "tier_2"]),
+            User.id_review_status.isnot(None),
+        )
+        .all()
+    )
+    # one card per participant, collecting which of my studies they answered
+    by_participant: dict = {}
+    for participant, survey in rows:
+        entry = by_participant.setdefault(participant.id, {
+            "id": participant.id,
+            "email": participant.email,
+            "occupation": participant.occupation,
+            "verified_tier": participant.verified_tier,
+            "id_review_status": participant.id_review_status,
+            "id_uploaded_at": participant.id_uploaded_at,
+            "studies": [],
+        })
+        if survey.title not in entry["studies"]:
+            entry["studies"].append(survey.title)
+    pending = sorted(
+        [p for p in by_participant.values() if p["id_review_status"] == "pending"],
+        key=lambda p: p["id_uploaded_at"] or datetime.min,
+    )
+    decided = [p for p in by_participant.values() if p["id_review_status"] in ("approved", "rejected")][:20]
+    return templates.TemplateResponse("researcher_id_reviews.html", {
+        "request": request, "current_user": current_user,
+        "pending": pending, "decided": decided,
+    })
 
 
 # ---------------------------

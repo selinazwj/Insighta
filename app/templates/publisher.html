@@ -555,6 +555,7 @@
               <button class="id-btn approve" onclick="decideId(${n.participant_id},'approve')">✓ Approve ID → Tier 1</button>
               <button class="id-btn resend" onclick="decideId(${n.participant_id},'reject')">↺ Ask for new photo</button>
             </div>
+            <a href="/researcher/id-reviews" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--accent);font-weight:600;text-decoration:none;">Open the full ID review page →</a>
           </div>`;
         } else if (n.id_review_status === 'rejected') {
           verifyHtml += `<div class="notif-verify warn">🪪 You asked for a new ID photo — waiting on the participant</div>`;
