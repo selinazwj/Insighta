@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Insighta</title>
+  {% include "_seo_head.html" %}
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="apple-touch-icon" href="/static/favicon.png">
   <meta name="theme-color" content="#faf9f5">
@@ -12,6 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/support_chat.css">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
     :root {
@@ -88,6 +90,16 @@
     .empty-wrap { text-align: center; padding: 60px 24px; }
     .empty-wrap h3 { font-family: var(--serif); font-size: 22px; color: var(--ink); margin-bottom: 8px; }
     .empty-wrap p { font-size: 14px; color: var(--ink-muted); font-weight: 300; }
+    .my-studies-hint-mobile {
+      padding: 8px 16px 96px; text-align: center;
+      font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--ink-muted);
+    }
+    .my-studies-link-mobile {
+      display: inline-flex; align-items: center; gap: 4px;
+      color: var(--accent); font-weight: 900; text-decoration: underline;
+      text-underline-offset: 3px; cursor: pointer;
+    }
+    .my-studies-link-mobile::after { content: "→"; font-size: 11px; text-decoration: none; }
     .spinner-wrap { display: flex; flex-direction: column; align-items: center; padding: 60px 24px; }
     .spinner { width: 32px; height: 32px; border: 2.5px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -111,7 +123,7 @@
     .h-amount.pending { color: var(--ink-muted); }
 
     /* PROFILE */
-    .profile-wrap { padding: 16px; }
+    .profile-wrap { padding: 16px 16px calc(var(--nav-h) + env(safe-area-inset-bottom) + 28px); }
     .profile-head { background: white; border-radius: 16px; border: 0.5px solid var(--line); padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
     .avatar-circle { width: 52px; height: 52px; border-radius: 50%; background: #EAF3DE; color: #27500A; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 22px; flex-shrink: 0; }
     .p-name { font-size: 16px; font-weight: 600; color: var(--ink); }
@@ -130,7 +142,7 @@
     .f-value { font-size: 14px; color: var(--ink-muted); display: flex; align-items: center; gap: 4px; }
     .f-empty { font-size: 14px; color: var(--line); }
     .btn-logout { width: 100%; padding: 13px; background: white; color: var(--ink-muted); border: 0.5px solid var(--line); border-radius: 12px; font-family: var(--sans); font-size: 14px; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
-    .profile-form { display: flex; flex-direction: column; gap: 12px; }
+    .profile-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
     .profile-section { background: white; border: 2px solid var(--line); border-radius: 18px; box-shadow: 0 4px 0 #d9efc8; overflow: hidden; }
     .profile-section summary { list-style: none; padding: 14px 16px; font-size: 14px; font-weight: 900; color: var(--ink); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
     .profile-section summary::-webkit-details-marker { display: none; }
@@ -150,7 +162,7 @@
     .profile-chip input { position: absolute; opacity: 0; pointer-events: none; }
     .profile-chip span { min-height: 34px; display: inline-flex; align-items: center; padding: 8px 11px; border-radius: 999px; border: 2px solid var(--line); background: var(--paper); color: var(--ink-soft); font-size: 12px; font-weight: 900; line-height: 1.2; }
     .profile-chip input:checked + span { background: var(--lime-cream); border-color: var(--light-green); color: var(--yale-blue); box-shadow: 0 3px 0 var(--light-green-2); }
-    .profile-save { position: sticky; bottom: calc(var(--nav-h) + 10px); z-index: 20; width: 100%; border: 0; border-radius: 14px; background: var(--accent-blue); color: white; font-family: var(--sans); font-size: 15px; font-weight: 900; padding: 14px; box-shadow: 0 4px 0 var(--yale-blue); }
+    .profile-save { width: 100%; border: 0; border-radius: 14px; background: var(--accent-blue); color: white; font-family: var(--sans); font-size: 15px; font-weight: 900; padding: 14px; box-shadow: 0 4px 0 var(--yale-blue); }
 
     /* BOTTOM NAV */
     .bottom-nav { flex-shrink: 0; background: rgba(250,249,245,0.95); backdrop-filter: blur(12px); border-top: 0.5px solid var(--line); display: flex; height: var(--nav-h); padding-bottom: env(safe-area-inset-bottom); }
@@ -245,8 +257,10 @@
       to { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(.2); }
     }
 
-    .card-stack { height: min(54vh, 360px); min-height: 278px; }
-    .survey-card { height: 100%; min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 8px; }
+    .card-stack { height: auto; min-height: 0; }
+    .survey-card { height: auto; min-height: 0; overflow: visible; display: flex; flex-direction: column; gap: 10px; }
+    .card-front { position: relative; }
+    .card-back-1, .card-back-2 { inset: 0; height: 100%; min-height: 100%; pointer-events: none; }
     .card-cat { align-self: start; margin-bottom: 0; }
     .card-title {
       min-height: 0;
@@ -260,40 +274,59 @@
     .card-desc {
       min-height: 0;
       display: -webkit-box;
-      -webkit-line-clamp: 4;
+      -webkit-line-clamp: 6;
       -webkit-box-orient: vertical;
       overflow: hidden;
       margin-bottom: 0;
     }
     .card-meta-row { gap: 6px; margin-bottom: 0; align-self: end; }
     .meta-pill { padding: 5px 8px; font-size: 11px; }
+    .niche-pill { width:100%; min-width:0; padding:6px 9px; border-radius:10px; border:1.5px solid #f3a6a6; background:#fff1f1; color:#8f3030; font-size:11px; font-weight:800; white-space:normal; overflow-wrap:anywhere; }
+    .niche-pill strong { font-weight:900; }
+    .benefit-pill { width:100%; min-width:0; padding:6px 9px; border-radius:10px; border:1.5px solid #99d98c; background:#f2fbec; color:#245f46; font-size:11px; font-weight:800; white-space:normal; overflow-wrap:anywhere; }
+    .benefit-pill strong { font-weight:900; }
     .card-footer-row { margin-top: 0; padding-top: 10px; align-self: end; }
     .reward-big { font-size: clamp(22px, 7vw, 28px); }
     .impact-tag { padding: 5px 8px; }
-    .card-actions { flex-shrink: 0; }
+    .card-actions { flex-shrink: 0; flex-wrap: wrap; }
+    .card-actions .btn-take { flex: 1 1 100%; order: -1; }
+    .card-actions .btn-skip,
+    .card-actions .btn-mark,
+    .card-actions .btn-back-card { flex: 1 1 calc(50% - 6px); min-width: 0; }
     @media (min-height: 820px) {
-      .card-stack { height: min(50vh, 390px); }
-      .card-desc { -webkit-line-clamp: 5; }
+      .card-desc { -webkit-line-clamp: 8; }
     }
     @media (max-height: 720px) {
       .impact-banner { margin-top: 10px; margin-bottom: 8px; padding: 10px 12px; }
       .impact-icon { width: 36px; height: 36px; }
-      .card-stack { height: 252px; min-height: 252px; }
       .survey-card { padding: 15px; gap: 6px; }
       .card-title { -webkit-line-clamp: 2; }
-      .card-desc { -webkit-line-clamp: 2; }
+      .card-desc { -webkit-line-clamp: 5; }
       .card-actions button { padding: 11px 8px; }
     }
     @media (max-height: 640px) {
-      .card-stack { height: 226px; min-height: 226px; }
-      .survey-card { grid-template-rows: auto auto minmax(0, 1fr) auto; }
-      .card-meta-row { display: none; }
+      .card-desc { -webkit-line-clamp: 4; }
       .impact-tag { display: none; }
+    }
+    @media (max-width: 370px) {
+      .card-stack-wrap, #homeContent { padding-left: 12px !important; padding-right: 12px !important; }
+      .section-row { padding-left: 14px; padding-right: 12px; gap: 10px; }
+      .section-label { font-size: 11px; }
+      .view-toggle button { min-width: 48px; padding-left: 8px; padding-right: 8px; }
+      .survey-card { padding: 14px; border-radius: 18px; }
+      .card-title { font-size: 17px; }
+      .card-footer-row { align-items: flex-start; gap: 10px; }
+      .impact-tag { white-space: normal; text-align: center; }
+      .study-row-top { flex-direction: column; gap: 4px; }
+      .study-reward { white-space: normal; }
+      .study-row-actions { flex-wrap: wrap; }
+      .study-row-actions .list-primary,
+      .study-row-actions .list-secondary { flex: 1 1 100%; }
     }
 
   </style>
 </head>
-<body>
+<body class="participant-support participant-support-mobile">
 
 <div class="topbar">
   <div class="topbar-logo">Insight<span>a</span></div>
@@ -326,6 +359,7 @@
     <div style="padding: 0 16px;" id="homeContent">
       <div class="spinner-wrap"><div class="spinner"></div><p style="font-size:14px;color:var(--ink-muted);">Loading...</p></div>
     </div>
+    <div class="my-studies-hint-mobile">Studies you've started or marked complete will appear in <a class="my-studies-link-mobile" href="/my-studies">My studies</a>.</div>
   </div>
 
   <!-- EARNINGS -->
@@ -493,8 +527,9 @@
 <script>
   const allSurveys = {{ surveys | tojson | safe }};
   let cardIdx = 0;
-  // ive changed this — completed studies belong in My Studies, keep them out of the home feed
-  let activeSurveys = allSurveys.filter(s => !s.is_completed);
+  // completed studies belong in My Studies — the stricter !s.status filter
+  // (from main) also keeps started/skipped out of the fresh card stack
+  let activeSurveys = allSurveys.filter(s => !s.status);
   let cardHistory = [];
   let viewMode = localStorage.getItem('participantViewMode') || 'cards';
   let touchX0 = 0, touchY0 = 0, dragging = false;
@@ -519,6 +554,19 @@
   }
 
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+  function spotsLabel(value) {
+    const text = String(value || '').trim();
+    const match = text.match(/^(\d+)\s*\/\s*(\d+)$/);
+    if (match) return `${match[1]} of ${match[2]} spots filled`;
+    return text || 'Open spots';
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
 
   function syncViewToggle() {
     document.getElementById('viewCardsBtn')?.classList.toggle('active', viewMode === 'cards');
@@ -548,6 +596,7 @@
 
     const s = remaining[0], s2 = remaining[1], s3 = remaining[2];
     const isBuiltIn = !s.link || s.link === '';
+    const safeSharePath = (s.share_path || `/r/${s.share_slug || ''}`).replace(/'/g, "\\'");
 
     const urgentPill = s.urgency === 'within_1_week'
       ? `<div class="meta-pill" style="color:#c05621;background:rgba(192,86,33,.08);border-color:rgba(192,86,33,.2)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Urgent</div>`
@@ -555,6 +604,9 @@
     // ive added this for verification — nudge pill if this study needs a stronger tier
     const verifyPill = s.verification_satisfied === false
       ? `<div class="meta-pill" style="color:#92400e;background:#FEF3C7;border-color:#f5d47a"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Verify to get paid</div>`
+      : '';
+    const sessionPill = s.type === 'interview' && s.session_count
+      ? `<div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${s.session_count} session${Number(s.session_count) === 1 ? '' : 's'}${s.sessions_per_week ? ` · ${s.sessions_per_week}/week` : ''}</div>`
       : '';
 
     const backAction = cardHistory.length
@@ -565,22 +617,25 @@
       ? `<button class="btn-skip" onclick="doModify(${s.id})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Undo</button>`
       : isBuiltIn
         ? `<button class="btn-skip" onclick="doSkip()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skip</button>
-           <button class="btn-take" onclick="doTake(${s.id},'',true)">${s.type === 'interview' ? 'Book time' : 'Take Survey'} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`
+           <button class="btn-take" onclick="openRecruitmentPage('${safeSharePath}')">${s.action_label || (s.type === 'interview' ? 'Book time' : 'Take study')} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`
         : `<button class="btn-skip" onclick="doSkip()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skip</button>
-           <button class="btn-take" onclick="doTake(${s.id},'${s.link}',false)">${s.type === 'interview' ? 'Book time' : 'Take Survey'} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+           <button class="btn-take" onclick="openRecruitmentPage('${safeSharePath}')">${s.action_label || (s.type === 'interview' ? 'Book time' : 'Take study')} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
            <button class="btn-mark" onclick="doComplete(${s.id})">Mark done</button>`;
 
     wrap.innerHTML = `
       <div class="card-stack">
         ${s3 ? `<div class="survey-card card-back-2"></div>` : ''}
         ${s2 ? `<div class="survey-card card-back-1"></div>` : ''}
-        <div class="survey-card card-front" id="frontCard">
-          <div class="card-cat">${cap(s.category)}</div>
+        <div class="survey-card card-front" id="frontCard" data-study-id="${s.id}">
+          <div class="card-cat">${s.type_label || cap(s.category)}</div>
           <div class="card-title">${s.title}</div>
           <div class="card-desc">${s.desc}</div>
           <div class="card-meta-row">
+            ${s.niche ? `<div class="niche-pill"><strong>Niche:</strong> ${escapeHtml(s.niche)}</div>` : ''}
+            ${s.benefits ? `<div class="benefit-pill"><strong>Extra benefits:</strong> ${escapeHtml(s.benefits)}</div>` : ''}
             <div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${s.time}</div>
-            <div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ${s.responses}</div>
+            ${sessionPill}
+            <div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ${spotsLabel(s.responses)}</div>
             ${urgentPill}
             ${verifyPill}
           </div>
@@ -593,6 +648,26 @@
       <div class="swipe-dots">${dots(remaining.length)}</div>
       <div class="card-actions">${backAction}${actions}</div>
     `;
+    if (window.insightaTrack && s) {
+      if (!window._mobileImpressed) window._mobileImpressed = new Set();
+      const key = 'mobile-' + s.id;
+      if (!window._mobileImpressed.has(key)) {
+        window._mobileImpressed.add(key);
+        const matchScore = s.match_pct ? (s.match_pct / 100).toFixed(2) : null;
+        window.insightaTrack('study_impression', {
+          target_type: 'survey',
+          target_id: s.id,
+          metadata: {
+            source: 'Recommendation',
+            surface: 'participant_dashboard_mobile',
+            study_title: s.title || '',
+            match_score: matchScore,
+            position: cardIdx + 1,
+            user_role: 'participant',
+          }
+        });
+      }
+    }
     initSwipe();
   }
 
@@ -624,18 +699,19 @@
     wrap.innerHTML = `<div class="study-list">${remaining.map(s => {
       const isBuiltIn = !s.link || s.link === '';
       const safeLink = (s.link || '').replace(/'/g, "\\'");
+      const safeSharePath = (s.share_path || `/r/${s.share_slug || ''}`).replace(/'/g, "\\'");
       const action = s.is_completed
         ? `<button class="list-secondary" onclick="doModify(${s.id})">Undo</button>`
-        : `<button class="list-primary" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn})">${s.type === 'interview' ? 'Book time' : 'Take study'}</button>`;
+        : `<button class="list-primary" onclick="openRecruitmentPage('${safeSharePath}')">${s.action_label || (s.type === 'interview' ? 'Book time' : 'Take study')}</button>`;
       const done = s.is_completed ? `<span>Completed</span>` : '';
       return `
         <div class="study-row">
           <div class="study-row-top">
-            <div><h3>${s.title}</h3><p>${s.desc}</p></div>
+            <div><h3>${s.title}</h3><p>${s.desc}</p>${s.niche ? `<div class="niche-pill" style="margin-top:8px"><strong>Niche:</strong> ${escapeHtml(s.niche)}</div>` : ''}${s.benefits ? `<div class="benefit-pill" style="margin-top:8px"><strong>Extra benefits:</strong> ${escapeHtml(s.benefits)}</div>` : ''}</div>
             <div class="study-reward">${s.reward}</div>
           </div>
           <div class="study-row-meta">
-            <span>${cap(s.category)}</span><span>${s.time}</span><span>${s.responses}</span>${done}
+            <span>${s.type_label || cap(s.category)}</span><span>${s.time}</span>${s.type === 'interview' && s.session_count ? `<span>${s.session_count} session${Number(s.session_count) === 1 ? '' : 's'}${s.sessions_per_week ? ` · ${s.sessions_per_week}/week` : ''}</span>` : ''}<span>${spotsLabel(s.responses)}</span>${done}
             ${s.verification_satisfied === false ? '<span>🔒 Verify to get paid</span>' : ''}
           </div>
           <div class="study-row-actions">
@@ -660,6 +736,26 @@
 
   function doSkip() { advanceFromCurrent('left'); }
 
+  function openRecruitmentPage(path) {
+    const s = activeSurveys[cardIdx];
+    if (window.insightaTrack && s) {
+      window.insightaTrack('study_click', {
+        target_type: 'survey',
+        target_id: s.id,
+        metadata: {
+          source: 'Dashboard',
+          surface: 'participant_dashboard_mobile',
+          study_title: s.title || '',
+          user_role: 'participant',
+        }
+      });
+    }
+    if (!path) { window.location.href = '/dashboard/mobile'; return; }
+    const url = new URL(path, window.location.origin);
+    url.searchParams.set('from', 'participant');
+    window.location.href = url.toString();
+  }
+
   function slotLabel(slot) {
     if (!slot) return '';
     if (slot.label) return slot.label;
@@ -671,21 +767,25 @@
   function pickSlotMobile(study) {
     if (!Array.isArray(study.availability_slots) || !study.availability_slots.length) return null;
     const options = study.availability_slots.map((slot, i) => `${i + 1}. ${slotLabel(slot)}`).join('\n');
-    const raw = prompt(`Choose a time for ${study.title}:\n\n${options}\n\nEnter a number:`);
+    const needed = Math.max(parseInt(study.session_count || 1, 10) || 1, 1);
+    const weekly = parseInt(study.sessions_per_week || 0, 10) || 0;
+    const raw = prompt(`Choose ${needed} session${needed > 1 ? 's' : ''} for ${study.title}${weekly ? ` (${weekly} per week)` : ''}:\n\n${options}\n\nEnter ${needed > 1 ? 'numbers separated by commas' : 'a number'}:`);
     if (!raw) return null;
-    const idx = parseInt(raw, 10) - 1;
-    if (idx < 0 || idx >= study.availability_slots.length) {
-      alert('Please choose a valid time number.');
+    const indexes = raw.split(',').map(part => parseInt(part.trim(), 10) - 1).filter(idx => Number.isInteger(idx));
+    const uniqueIndexes = [...new Set(indexes)];
+    if (uniqueIndexes.length !== needed || uniqueIndexes.some(idx => idx < 0 || idx >= study.availability_slots.length)) {
+      alert(`Please choose ${needed} valid time${needed > 1 ? 's' : ''}.`);
       return null;
     }
-    return slotLabel(study.availability_slots[idx]);
+    return uniqueIndexes.map(idx => slotLabel(study.availability_slots[idx]));
   }
 
   async function startStudy(id, bookingSlot) {
     const opts = { method: 'POST', credentials: 'same-origin' };
     if (bookingSlot) {
+      const slots = Array.isArray(bookingSlot) ? bookingSlot : [bookingSlot];
       opts.headers = { 'Content-Type': 'application/json' };
-      opts.body = JSON.stringify({ booking_slot: bookingSlot });
+      opts.body = JSON.stringify({ booking_slot: slots[0] || '', booking_slots: slots });
     }
     return fetch(`/surveys/${id}/start`, opts).catch(()=>null);
   }
@@ -693,10 +793,19 @@
   async function doTake(id, link, isBuiltIn) {
     const s = activeSurveys.find(x => x.id === id) || allSurveys.find(x => x.id === id);
     let bookingSlot = null;
-    if (s && s.type === 'interview' && Array.isArray(s.availability_slots) && s.availability_slots.length) {
+    const hasExternalLink = !!(link && link !== '__builtin__');
+    const format = ((s && s.format) || '').toLowerCase();
+    const typeLabel = ((s && s.type_label) || '').toLowerCase();
+    const isOnlineInterview = s && s.type === 'interview' && (
+      typeLabel.includes('online') ||
+      ['video interview', 'online interview', 'remote live session'].includes(format) ||
+      String(link || '').toLowerCase().includes('calendly.com')
+    );
+    if (s && s.type === 'interview' && !hasExternalLink && !isOnlineInterview && Array.isArray(s.availability_slots) && s.availability_slots.length) {
       bookingSlot = pickSlotMobile(s);
       if (!bookingSlot) return;
-      s.booking_slot = bookingSlot;
+      s.booking_slots = Array.isArray(bookingSlot) ? bookingSlot : [bookingSlot];
+      s.booking_slot = s.booking_slots.join('; ');
     }
     await startStudy(id, bookingSlot);
     if (isBuiltIn) { window.location.href = `/surveys/${id}/take`; }
@@ -834,5 +943,10 @@
 
   buildEarningsHistory();
 </script>
+<script>
+  window.INSIGHTA_TRACKING = { surface: 'participant_dashboard_mobile', source: 'Dashboard', userRole: 'participant' };
+</script>
+<script src="/static/insighta_events.js"></script>
+<script src="/static/support_chat.js"></script>
 </body>
 </html>

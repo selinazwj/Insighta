@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ survey.title }} — Insighta</title>
+  {% include "_seo_head.html" %}
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <meta name="theme-color" content="#ffffff">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -133,6 +134,10 @@
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       New listing
     </a>
+    <a href="/publisher/schedule" class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Schedule
+    </a>
     <div class="nav-divider"></div>
     <a href="/guide" class="nav-item">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -198,18 +203,20 @@
       <div class="ov-section">
         <div class="ov-section-title">Study details</div>
         <div class="ov-grid">
-          <div class="ov-item"><div class="ov-label">Type</div><div class="ov-value">{{ 'In-person study' if survey.task_type == 'interview' else 'Survey' }}</div></div>
+          {% set is_booking_study = survey.task_type in ('interview', 'in_person', 'in-person', 'in_person_study') %}
+          {% set task_label = 'Online interview' if survey.target_participation_format == 'Video interview' else ('In-person study' if survey.task_type in ('in_person', 'in-person', 'in_person_study') or survey.target_participation_format == 'In-person study' else ('Interview' if survey.task_type == 'interview' else 'Survey')) %}
+          <div class="ov-item"><div class="ov-label">Type</div><div class="ov-value">{{ task_label }}</div></div>
           <div class="ov-item"><div class="ov-label">Category</div><div class="ov-value">{{ survey.category | capitalize }}</div></div>
           <div class="ov-item"><div class="ov-label">Estimated time</div><div class="ov-value">{{ survey.estimated_time }} min</div></div>
           <div class="ov-item"><div class="ov-label">Reward per person</div><div class="ov-value">${{ survey.reward_amount }}</div></div>
           <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">Overview</div><div class="ov-value">{{ survey.target_niche_requirements or 'Everyone' }}</div></div>
           {% if survey.form_url and survey.form_url != '__builtin__' %}
-          <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">{{ 'Calendly / booking link' if survey.task_type == 'interview' else 'Survey link' }}</div><div class="ov-value"><a href="{{ survey.form_url }}" target="_blank">{{ survey.form_url[:60] }}{% if survey.form_url|length > 60 %}…{% endif %}</a></div></div>
+          <div class="ov-item" style="grid-column:span 2;"><div class="ov-label">{{ 'Calendly / booking link' if is_booking_study else 'Survey link' }}</div><div class="ov-value"><a href="{{ survey.form_url }}" target="_blank">{{ survey.form_url[:60] }}{% if survey.form_url|length > 60 %}…{% endif %}</a></div></div>
           {% endif %}
         </div>
       </div>
 
-      {% if survey.task_type == 'interview' and availability_slots %}
+      {% if is_booking_study and availability_slots %}
       <div class="ov-section">
         <div class="ov-section-title">Bookable times</div>
         <div class="ov-grid">
@@ -220,7 +227,7 @@
       </div>
       {% endif %}
 
-      {% if survey.task_type == 'interview' %}
+      {% if is_booking_study %}
       <div class="ov-section">
         <div class="ov-section-title">Participant bookings</div>
         <div class="ov-grid">
@@ -281,7 +288,10 @@
 
       <div class="action-group">
         <div class="action-group-head">Status</div>
-
+        <div class="action-row">
+          <div><div class="action-label">Share link</div><div class="action-desc">Copy the public recruitment page for this listing.</div></div>
+          <button type="button" class="action-btn primary" onclick="copyShareLink()">Copy link</button>
+        </div>
         {% if survey.status == 'draft' %}
         <div class="action-row">
           <div><div class="action-label">Publish</div><div class="action-desc">Make this study visible to participants.</div></div>
@@ -368,6 +378,7 @@
 
 <script>
   const SURVEY_ID = {{ survey.id }};
+  const SHARE_URL = {{ share_url | tojson }};
 
   function switchTab(tab) {
     ['overview','actions','ai'].forEach(t => {
@@ -381,6 +392,22 @@
   // restore last tab
   const saved = localStorage.getItem('studyTab_' + SURVEY_ID);
   if (saved && saved !== 'overview') switchTab(saved);
+
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(SHARE_URL);
+      if (window.insightaTrack) {
+        window.insightaTrack('study_shared', {
+          target_type: 'survey',
+          target_id: SURVEY_ID,
+          metadata: { source: 'Study details', surface: 'publisher_study', user_role: 'researcher' }
+        });
+      }
+      alert('Share link copied.');
+    } catch {
+      prompt('Copy this link', SHARE_URL);
+    }
+  }
 
   async function loadForecast(force) {
     const loading = document.getElementById('ai-loading');
@@ -420,6 +447,10 @@
     } catch { alert('Unavailable.'); }
   }
 </script>
+<script>
+  window.INSIGHTA_TRACKING = { surface: 'publisher_study', source: 'Publisher', userRole: 'researcher' };
+</script>
+<script src="/static/insighta_events.js"></script>
 <script src="/static/support_chat.js"></script>
 </body>
 </html>

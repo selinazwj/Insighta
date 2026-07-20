@@ -32,7 +32,12 @@ TOKEN_TTL_DAYS = 7
 
 
 def normalize_task_type(value: Optional[str]) -> str:
-    return "interview" if value == "interview" else "survey"
+    normalized = (value or "").strip().lower()
+    if normalized in {"interview", "online_interview", "online-interview", "remote_interview"}:
+        return "interview"
+    if normalized in {"in_person", "in-person", "in_person_study"}:
+        return "in_person"
+    return "survey"
 
 
 def get_or_create_response(db: Session, survey: Survey, user: User) -> Response:
@@ -41,11 +46,18 @@ def get_or_create_response(db: Session, survey: Survey, user: User) -> Response:
         Response.participant_id == user.id,
     ).first()
     if not response:
-        response = Response(survey_id=survey.id, participant_id=user.id, status="started")
+        response = Response(
+            survey_id=survey.id,
+            participant_id=user.id,
+            status="started",
+            start_followup_scheduled_at=datetime.utcnow(),
+        )
         db.add(response)
         db.flush()
     elif response.status not in {"completed", "rejected"}:
         response.status = "started"
+        if not getattr(response, "start_followup_sent_at", None) and not getattr(response, "start_followup_scheduled_at", None):
+            response.start_followup_scheduled_at = datetime.utcnow()
     return response
 
 

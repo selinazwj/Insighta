@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register — Insighta</title>
+  {% include "_seo_head.html" %}
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="apple-touch-icon" href="/static/favicon.png">
   <meta name="theme-color" content="#ffffff">
@@ -62,12 +63,14 @@
     .form-row .form-group { margin-bottom: 0; }
 
     .badge-required { font-size: 10px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--green); background: var(--green-l); border: 0.5px solid var(--green-m); padding: 2px 7px; border-radius: 100px; }
+    .badge-optional { font-size: 10px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink-muted); background: var(--paper-soft); border: 0.5px solid var(--line2); padding: 2px 7px; border-radius: 100px; }
 
-    input[type="email"], input[type="password"], input[type="text"], input[type="tel"] {
+    input[type="email"], input[type="password"], input[type="text"], input[type="tel"], input[type="number"], select {
       width: 100%; height: 42px; padding: 0 12px; border: 0.5px solid var(--line2); border-radius: 8px;
       font-family: var(--sans); font-size: 13px; color: var(--ink); background: var(--paper-warm); transition: border-color .15s, background .15s; appearance: none;
     }
-    input:focus { outline: none; border-color: var(--green); background: var(--paper); box-shadow: none; }
+    select { background-image: linear-gradient(45deg, transparent 50%, var(--ink-muted) 50%), linear-gradient(135deg, var(--ink-muted) 50%, transparent 50%); background-position: calc(100% - 16px) 18px, calc(100% - 11px) 18px; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
+    input:focus, select:focus { outline: none; border-color: var(--green); background-color: var(--paper); box-shadow: none; }
     input::placeholder { color: var(--ink4); font-weight: 400; }
 
     .code-row { display: flex; gap: 10px; align-items: flex-end; }
@@ -81,10 +84,42 @@
     .field-note { font-size: 12px; color: var(--ink-muted); line-height: 1.5; margin-top: 7px; }
     .field-note strong { color: var(--green); font-weight: 700; }
 
-    .pw-strength { margin-top: 8px; }
+    .pw-strength { margin-top: 10px; }
     .pw-bar { height: 4px; border-radius: 100px; background: var(--line); overflow: hidden; margin-bottom: 4px; }
     .pw-bar-fill { height: 100%; border-radius: 100px; transition: width 0.3s, background 0.3s; width: 0%; }
-    .pw-hint { font-size: 12px; color: var(--ink-muted); }
+    .pw-hint { font-size: 12px; font-weight: 600; min-height: 16px; color: var(--ink-muted); }
+    .pw-rules {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .pw-rule {
+      font-size: 12px;
+      color: var(--ink-soft);
+      line-height: 1.4;
+    }
+    .pw-rule::before {
+      content: "○ ";
+      color: var(--ink-muted);
+    }
+    .pw-rule.ok {
+      color: var(--green-d);
+      font-weight: 600;
+    }
+    .pw-rule.ok::before {
+      content: "✓ ";
+      color: var(--green-d);
+      font-weight: 700;
+    }
+    .confirm-hint {
+      font-size: 12px;
+      margin-top: 7px;
+      min-height: 16px;
+      line-height: 1.4;
+    }
+    .confirm-hint.error { color: #c53030; font-weight: 600; }
+    .confirm-hint.ok { color: var(--green-d); font-weight: 600; }
 
     .btn-next, .btn-submit { width: 100%; height: 42px; background: var(--green); color: white; border: none; border-radius: 20px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; margin-top: 8px; }
     .btn-next:hover, .btn-submit:hover { background: var(--green-d); transform: none; box-shadow: none; }
@@ -93,6 +128,12 @@
     .form-footer { text-align: center; margin-top: 20px; font-size: 14px; color: var(--ink-muted); }
     .form-footer a { color: var(--green); font-weight: 600; text-decoration: none; }
     .form-footer a:hover { text-decoration: underline; }
+    .quick-auth { margin: 16px 0 12px; }
+    .quick-auth-note { display: flex; align-items: center; gap: 10px; color: var(--ink-muted); font-size: 12px; margin-bottom: 10px; }
+    .quick-auth-note::before, .quick-auth-note::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+    .btn-google { height: 42px; border: 0.5px solid var(--line2); border-radius: 20px; background: var(--paper); color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; font-size: 14px; font-weight: 700; }
+    .btn-google:hover { border-color: var(--green-m); background: var(--paper-warm); }
+    .google-mark { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #4285f4; background: #fff; border: 1px solid var(--line); }
 
     /* MODAL */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(26,26,24,0.5); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; animation: fadeIn 0.25s ease; }
@@ -318,7 +359,7 @@
     </div>
   </div>
   <div class="panel-footer">
-    <p>Already have an account? <a href="/login{% if register_role %}?role={{ register_role }}{% endif %}">Sign in →</a></p>
+    <p>Already have an account, or want to use Google? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in or continue with Google →</a></p>
   </div>
 </div>
 
@@ -336,6 +377,7 @@
       <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
         style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;" aria-hidden="true">
       <input type="hidden" name="captcha_token" value="{{ captcha_token or '' }}">
+      <input type="hidden" name="next" value="{{ register_next or '' }}">
 
       <!-- STEP 1: Email + Verification -->
       <div class="step {% if register_step|default(1) == 1 %}active{% endif %}" id="step1">
@@ -363,6 +405,14 @@
         </div>
 
         <div class="form-group">
+          <label>Referral code <span class="badge-optional">Optional</span></label>
+          <input type="text" name="referral_code" id="referralCode" placeholder="e.g. AB12CD34"
+            value="{{ register_referral or '' }}" autocomplete="off" spellcheck="false"
+            style="text-transform:uppercase;letter-spacing:.08em;">
+          <div class="field-note">Have a friend’s code? Enter it here — or skip if you don’t.</div>
+        </div>
+
+        <div class="form-group">
           <label>Verification code <span class="badge-required">Required</span></label>
           <div class="code-row">
             <input type="text" name="verification_code" id="verificationCode"
@@ -376,30 +426,139 @@
         </div>
 
         <button type="button" class="btn-next" onclick="goToStep2()">Continue →</button>
-        <p class="form-footer">Already have an account? <a href="/login{% if register_role %}?role={{ register_role }}{% endif %}">Sign in</a></p>
+        <div class="quick-auth">
+          <div class="quick-auth-note">or</div>
+          <a class="btn-google" href="/auth/google">
+            <span class="google-mark">G</span>
+            Sign in or create account with Google
+          </a>
+        </div>
+        <p class="form-footer">Already have an account, or prefer Google? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in or use Google</a></p>
       </div>
 
       <!-- STEP 2: Password -->
       <div class="step {% if register_step|default(1) == 2 %}active{% endif %}" id="step2">
         <div class="step-header">
           <span class="step-eyebrow">Step 2 of 3</span>
-          <h1>Create a password.</h1>
-          <p>Choose a strong password. We will ask for your profile details after you enter the app.</p>
+          <h1>Finish your basics.</h1>
+          <p>Add the core profile details we need to match studies and verify rewards.</p>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>First name <span class="badge-required">Required</span></label>
+            <input type="text" name="first_name" id="firstName" required value="{{ register_values.first_name if register_values else '' }}" autocomplete="given-name">
+          </div>
+          <div class="form-group">
+            <label>Last name <span class="badge-required">Required</span></label>
+            <input type="text" name="last_name" id="lastName" required value="{{ register_values.last_name if register_values else '' }}" autocomplete="family-name">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+          <label>Username <span class="badge-required">Required</span></label>
+          <input type="text" name="username" id="username" required value="{{ register_values.username if register_values else '' }}" autocomplete="nickname">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Birth year <span class="badge-required">Required</span></label>
+            <input type="number" name="birth_year" id="birthYear" min="1900" max="2010" required value="{{ register_values.birth_year if register_values else '' }}" placeholder="2002">
+          </div>
+          <div class="form-group">
+            <label>Birth month <span class="badge-required">Required</span></label>
+            <select name="birth_month" id="birthMonth" required>
+              <option value="">Select</option>
+              {% for month in ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
+                <option value="{{ loop.index }}" {% if register_values and register_values.birth_month|string == loop.index|string %}selected{% endif %}>{{ month }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+          <label>Education level <span class="badge-required">Required</span></label>
+          <select name="education_level" id="educationLevel" required>
+            <option value="">Select education level</option>
+            {% for option in ['Below High School','High School','Undergraduate','Graduate','PhD','Postdoc'] %}
+              <option value="{{ option }}" {% if register_values and register_values.education_level == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
         </div>
 
         <div class="form-group">
+          <label>Field / major <span class="badge-required">Required</span></label>
+          <select name="field" id="fieldMajor" required>
+            <option value="">Select field / major</option>
+            {% for option in ['Computer Science & Engineering','Data Science / AI','Business & Economics','Marketing / Design','Medicine & Healthcare','Psychology / Neuroscience','Natural Sciences','Social Sciences','Education','Law / Public Policy','Arts & Humanities','Communications / Media','Architecture / Design','Other'] %}
+              <option value="{{ option }}" {% if register_values and register_values.field == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Current status <span class="badge-required">Required</span></label>
+          <select name="status" id="currentStatus" required>
+            <option value="">Select current status</option>
+            {% for option in ['High school student','Undergraduate student','Graduate student','PhD student','Postdoc','Full-time employed','Part-time employed','Self-employed / Freelancer','Unemployed','Homemaker / Caregiver','Retired','Other'] %}
+              <option value="{{ option }}" {% if register_values and register_values.status == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>State you live in now <span class="badge-required">Required</span></label>
+          <select name="current_province" id="currentProvince" required>
+            <option value="">Select state</option>
+            {% for option in ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','Washington DC','West Virginia','Wisconsin','Wyoming','Other'] %}
+              <option value="{{ option }}" {% if register_values and register_values.current_province == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Primary language <span class="badge-required">Required</span></label>
+            <select name="language" id="language" required>
+              <option value="">Select language</option>
+              {% for option in ['English','Spanish','Mandarin Chinese','Cantonese','French','Arabic','Hindi','Bengali','Portuguese','Russian','Japanese','Korean','German','Italian','Vietnamese','Tagalog','Urdu','Other'] %}
+                <option value="{{ option }}" {% if register_values and register_values.language == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Participation preference <span class="badge-required">Required</span></label>
+            <select name="participation_format" id="participationFormat" required>
+              <option value="">Select format</option>
+              {% for option in ['Online surveys','Phone interview','Video interview','In-person study','Product test','Diary study','Any format'] %}
+                <option value="{{ option }}" {% if register_values and register_values.participation_format == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
           <label>Password <span class="badge-required">Required</span></label>
           <input type="password" name="password" id="password" required placeholder="••••••••"
             oninput="checkPasswordStrength(this.value)">
-          <div class="pw-strength">
+          <div class="pw-strength" id="pwStrength" hidden>
             <div class="pw-bar"><div class="pw-bar-fill" id="pwBarFill"></div></div>
-            <div class="pw-hint" id="pwHint">Min 8 chars, uppercase, lowercase, number, special char</div>
+            <div class="pw-hint" id="pwHint"></div>
+          </div>
+          <div class="pw-rules" id="pwRules" aria-live="polite">
+            <div class="pw-rule" data-rule="length">At least 8 characters</div>
+            <div class="pw-rule" data-rule="upper">One uppercase letter</div>
+            <div class="pw-rule" data-rule="lower">One lowercase letter</div>
+            <div class="pw-rule" data-rule="number">One number</div>
+            <div class="pw-rule" data-rule="special">One special character</div>
           </div>
         </div>
 
         <div class="form-group">
           <label>Confirm password <span class="badge-required">Required</span></label>
-          <input type="password" name="confirm" id="confirm" required placeholder="••••••••">
+          <input type="password" name="confirm" id="confirm" required placeholder="••••••••"
+            oninput="checkPasswordMatch()">
+          <div class="confirm-hint" id="confirmHint"></div>
         </div>
 
         <button type="button" class="btn-next" onclick="goToStep3()">Continue →</button>
@@ -567,23 +726,26 @@
   }
 
   function goToStep3() {
-    const password = document.getElementById('password').value;
-    const confirm = document.getElementById('confirm').value;
+    // ive updated this — validate every required basics field (theirs) plus the
+    // password pair before moving on to the occupation step
     let hasError = false;
-
-    ['password', 'confirm'].forEach(id => {
-      const el = document.getElementById(id);
+    let firstBad = null;
+    document.querySelectorAll('#step2 [required]').forEach(el => {
       if (!el.value.trim()) {
         el.style.borderColor = '#ef4444';
         el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
         hasError = true;
+        if (!firstBad) firstBad = el;
         el.addEventListener('input', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
+        el.addEventListener('change', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
       } else {
         el.style.borderColor = '';
         el.style.boxShadow = '';
       }
     });
-    if (hasError) return;
+    if (hasError) { if (firstBad) firstBad.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm').value;
     if (password !== confirm) {
       const el = document.getElementById('confirm');
       el.style.borderColor = '#ef4444';
@@ -608,22 +770,63 @@
     window.scrollTo(0, 0);
   }
 
-  // ── Password strength ─────────────────────────────────────
+  // ── Password strength + requirements checklist ────────────
   function checkPasswordStrength(val) {
     const fill = document.getElementById('pwBarFill');
     const hint = document.getElementById('pwHint');
-    let score = 0;
-    if (val.length >= 8) score++;
-    if (/[A-Z]/.test(val)) score++;
-    if (/[a-z]/.test(val)) score++;
-    if (/\d/.test(val)) score++;
-    if (/[^A-Za-z0-9]/.test(val)) score++;
-    const pct = (score / 5) * 100;
-    fill.style.width = pct + '%';
-    if (score <= 2) { fill.style.background = '#ef4444'; hint.textContent = 'Weak — add uppercase, numbers, special chars'; hint.style.color = '#ef4444'; }
-    else if (score <= 3) { fill.style.background = '#f59e0b'; hint.textContent = 'Fair — getting better'; hint.style.color = '#f59e0b'; }
-    else if (score === 4) { fill.style.background = '#3b82f6'; hint.textContent = 'Good — almost there'; hint.style.color = '#3b82f6'; }
-    else { fill.style.background = '#3b7c4f'; hint.textContent = 'Strong'; hint.style.color = '#3b7c4f'; }
+    const strength = document.getElementById('pwStrength');
+    const checks = {
+      length: (val || '').length >= 8,
+      upper: /[A-Z]/.test(val || ''),
+      lower: /[a-z]/.test(val || ''),
+      number: /\d/.test(val || ''),
+      special: /[^A-Za-z0-9]/.test(val || ''),
+    };
+    Object.keys(checks).forEach((key) => {
+      const row = document.querySelector(`.pw-rule[data-rule="${key}"]`);
+      if (row) row.classList.toggle('ok', checks[key]);
+    });
+
+    if (!val) {
+      strength.hidden = true;
+      fill.style.width = '0%';
+      hint.textContent = '';
+      checkPasswordMatch();
+      return;
+    }
+    strength.hidden = false;
+    const score = Object.values(checks).filter(Boolean).length;
+    fill.style.width = (score / 5) * 100 + '%';
+    if (score <= 2) { fill.style.background = '#ef4444'; hint.textContent = 'Weak'; hint.style.color = '#ef4444'; }
+    else if (score <= 3) { fill.style.background = '#f59e0b'; hint.textContent = 'Fair'; hint.style.color = '#f59e0b'; }
+    else if (score === 4) { fill.style.background = '#3b82f6'; hint.textContent = 'Good'; hint.style.color = '#3b82f6'; }
+    else { fill.style.background = '#2a5c39'; hint.textContent = 'Strong'; hint.style.color = '#2a5c39'; }
+    checkPasswordMatch();
+  }
+
+  function checkPasswordMatch() {
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm');
+    const hint = document.getElementById('confirmHint');
+    const value = confirm.value;
+    if (!value) {
+      hint.textContent = '';
+      hint.className = 'confirm-hint';
+      confirm.style.borderColor = '';
+      confirm.style.boxShadow = '';
+      return;
+    }
+    if (value === password) {
+      hint.textContent = 'Passwords match';
+      hint.className = 'confirm-hint ok';
+      confirm.style.borderColor = '';
+      confirm.style.boxShadow = '';
+    } else {
+      hint.textContent = 'Passwords do not match';
+      hint.className = 'confirm-hint error';
+      confirm.style.borderColor = '#ef4444';
+      confirm.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+    }
   }
 
   // ── Consent modal ─────────────────────────────────────────
@@ -651,6 +854,7 @@
       const el = document.getElementById('confirm');
       el.style.borderColor = '#ef4444';
       el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      checkPasswordMatch();
       return;
     }
     document.getElementById('consentModal').style.display = 'flex';

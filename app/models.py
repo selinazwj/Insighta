@@ -15,6 +15,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
     username = Column(String, nullable=True)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
     phone_number = Column(String, nullable=True)
 
     # Core profile fields
@@ -77,6 +79,12 @@ class User(Base):
     stripe_onboarding_complete = Column(String, default="false")
     pending_earnings = Column(Float, default=0.0)
     total_withdrawn = Column(Float, default=0.0)
+    welcome_email_sent_at = Column(DateTime, nullable=True)
+    welcome_email_role = Column(String, nullable=True)
+
+    # Referral
+    referral_code = Column(String, unique=True, index=True, nullable=True)
+    invited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -127,7 +135,11 @@ class Survey(Base):
     target_income_level = Column(String, nullable=True)
     target_lifestyle_tags = Column(String, nullable=True)
     target_niche_requirements = Column(String, nullable=True)
+    participant_benefits = Column(String, nullable=True)
     availability_slots = Column(String, nullable=True)
+    interview_location = Column(String, nullable=True)
+    session_count = Column(Integer, nullable=True)
+    sessions_per_week = Column(Integer, nullable=True)
     urgency_level = Column(String, nullable=True)
     incentive_type = Column(String, nullable=True)
     raffle_prize_type = Column(String, nullable=True)
@@ -140,6 +152,7 @@ class Survey(Base):
     category = Column(String, nullable=False)
     estimated_time = Column(Integer, nullable=False)
     image_url = Column(String, nullable=True)
+    share_slug = Column(String, unique=True, index=True, nullable=True)
 
     # Reward & progress
     reward_amount = Column(Float, nullable=False)
@@ -209,10 +222,33 @@ class Response(Base):
     user_agent = Column(String, nullable=True)
     device_fingerprint = Column(String, nullable=True)
     booking_slot = Column(String, nullable=True)
+    start_followup_scheduled_at = Column(DateTime(timezone=True), nullable=True)
+    start_followup_sent_at = Column(DateTime(timezone=True), nullable=True)
 
     survey = relationship("Survey", back_populates="responses")
     participant = relationship("User", back_populates="responses")
     answers = relationship("Answer", back_populates="response")
+
+
+# ======================
+# Product analytics events
+# ======================
+class UserEvent(Base):
+    __tablename__ = "user_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    anonymous_id = Column(String, nullable=True, index=True)
+    event_name = Column(String, nullable=False, index=True)
+    target_type = Column(String, nullable=True, index=True)
+    target_id = Column(String, nullable=True, index=True)
+    page_path = Column(Text, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
+    user_agent = Column(Text, nullable=True)
+    client_ip = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    user = relationship("User", backref="events")
 
 
 # ======================

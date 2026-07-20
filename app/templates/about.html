@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ seo.title }}</title>
+  {% include "_seo_head.html" %}
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="stylesheet" href="/static/seo_public.css">
+</head>
+<body>
+  <header class="public-nav">
+    <a class="public-brand" href="/" aria-label="Insighta home">Insight<span>a</span></a>
+    <nav class="public-nav-links" aria-label="Primary navigation">
+      <a href="/studies">Browse studies</a>
+      <a href="/participant">For participants</a>
+      <a href="/login?role=researcher">Sign in</a>
+      <a class="nav-cta" href="/register?role=researcher">Publish a study</a>
+    </nav>
+  </header>
+
+  <main class="public-shell">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">About</span>
+    </nav>
+
+    <section class="public-hero">
+      <div>
+        <p class="eyebrow">About Insighta</p>
+        <h1>A clearer path from a research question to the right participants.</h1>
+        <p>Insighta is a two-sided research recruitment platform. Researchers can publish surveys or interviews, define who they need, and manage participation. Participants can discover studies, review the commitment and reward, and decide which opportunities fit them.</p>
+      </div>
+      <div class="hero-actions">
+        <a class="button primary" href="/studies">Browse open studies</a>
+        <a class="button" href="/register?role=researcher">Start recruiting</a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="how-insighta-works">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">How the platform works</p>
+          <h2 id="how-insighta-works">Built for both sides of research participation</h2>
+          <p class="section-sub">The platform keeps study discovery, eligibility details, participation tracking, response review, and reward status connected in one workflow.</p>
+        </div>
+      </div>
+      <div class="content-grid">
+        <article class="content-card">
+          <span class="number" aria-hidden="true">1</span>
+          <h3>Researchers publish</h3>
+          <p>Create a survey or interview listing, describe the target audience, specify the time and reward, and publish a shareable study page.</p>
+        </article>
+        <article class="content-card">
+          <span class="number" aria-hidden="true">2</span>
+          <h3>Participants evaluate</h3>
+          <p>Browse available studies or receive profile-based matches, then review the eligibility criteria and participation details before starting.</p>
+        </article>
+        <article class="content-card">
+          <span class="number" aria-hidden="true">3</span>
+          <h3>Progress stays visible</h3>
+          <p>Researchers monitor responses and participants can track study and reward status through their respective dashboards.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="principles">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Product principles</p>
+          <h2 id="principles">Useful information before commitment</h2>
+          <p class="section-sub">A study page should make the decision to participate easier, not obscure the trade-offs.</p>
+        </div>
+      </div>
+      <div class="content-grid">
+        <article class="content-card">
+          <h3>Transparent listings</h3>
+          <p>Study pages surface the format, expected duration, target audience, available spots, and reward information provided by the researcher.</p>
+        </article>
+        <article class="content-card">
+          <h3>Participant choice</h3>
+          <p>A profile may be used for matching, but a participant chooses whether to join each study and can review the listing first.</p>
+        </article>
+        <article class="content-card">
+          <h3>Researcher responsibility</h3>
+          <p>Researchers remain responsible for ethical review, informed consent, lawful data collection, and the accuracy of their study materials.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="prose">
+        <h2>Questions about Insighta?</h2>
+        <p>Contact <a href="mailto:insightacom@gmail.com">insightacom@gmail.com</a>. For product rules and data practices, review the <a href="/terms">Terms of Use</a> and <a href="/privacy">Privacy notice</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="public-footer">
+    <span>© 2026 Insighta</span>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="/about" aria-current="page">About</a>
+      <a href="/studies">Studies</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="mailto:insightacom@gmail.com">Contact</a>
+    </nav>
+  </footer>
+</body>
+</html>

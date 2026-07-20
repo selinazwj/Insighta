@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Insighta — Earnings</title>
+  {% include "_seo_head.html" %}
   <link rel="icon" type="image/png" href="/static/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/support_chat.css">
   <style>
     :root {
       --lime:#d9ed92;--lime2:#b5e48c;--lime3:#99d98c;
@@ -86,7 +88,7 @@
     ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
   </style>
 </head>
-<body>
+<body class="participant-support">
 
 <aside class="sidebar">
   <div class="sidebar-top">
@@ -200,5 +202,6 @@
     } catch { alert('Network error'); btn.disabled = false; btn.textContent = 'Withdraw to bank'; }
   }
 </script>
+<script src="/static/support_chat.js"></script>
 </body>
 </html>
