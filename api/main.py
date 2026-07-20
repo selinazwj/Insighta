@@ -160,11 +160,32 @@ def ensure_user_profile_columns():
         "race": "VARCHAR",
         "income_level": "VARCHAR",
         "lifestyle_tags": "VARCHAR",
+        "referral_code": "VARCHAR",
+        "invited_by_user_id": "INTEGER",
+        "student_status": "VARCHAR",
+        "year_in_school": "VARCHAR",
+        "international_domestic": "VARCHAR",
+        "experience_tags": "VARCHAR",
+        "participation_format": "VARCHAR",
+        "device_type": "VARCHAR",
+        "oauth_provider": "VARCHAR",
+        "oauth_id": "VARCHAR",
+        "stripe_account_id": "VARCHAR",
+        "stripe_onboarding_complete": "VARCHAR",
+        "pending_earnings": "FLOAT",
+        "total_withdrawn": "FLOAT",
     }
     with engine.begin() as conn:
         for name, column_type in profile_columns.items():
             if name not in columns:
                 conn.execute(text(f"ALTER TABLE users ADD COLUMN {name} {column_type}"))
+        # Unique index for referral codes (ignore if already present)
+        try:
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_referral_code ON users (referral_code)"
+            ))
+        except Exception:
+            pass
 
 ensure_user_profile_columns()
 
@@ -191,6 +212,11 @@ def ensure_survey_listing_columns():
         "sessions_per_week": "INTEGER",
         "admin_display_reward_amount": "FLOAT",
         "share_slug": "VARCHAR",
+        "total_budget": "FLOAT",
+        "per_person_gross": "FLOAT",
+        "commission_rate": "FLOAT",
+        "payment_status": "VARCHAR",
+        "stripe_payment_intent_id": "VARCHAR",
         "quality_auto_filter_enabled": "BOOLEAN DEFAULT false",
         "quality_auto_filter_min_score": "FLOAT DEFAULT 80.0",
     }
@@ -210,6 +236,9 @@ def ensure_response_tracking_columns():
         "booking_slot": "TEXT",
         "start_followup_scheduled_at": "TIMESTAMP",
         "start_followup_sent_at": "TIMESTAMP",
+        "payout_status": "VARCHAR",
+        "payout_amount": "FLOAT",
+        "stripe_transfer_id": "VARCHAR",
     }
     with engine.begin() as conn:
         for name, column_type in response_columns.items():
@@ -1532,6 +1561,80 @@ def _consume_verification_code(db: Session, email: str, purpose: str, code: str)
     db.commit()
     return True
 
+
+PENDING_REFERRAL_COOKIE = "pending_referral"
+_REFERRAL_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def _normalize_referral_code(value: Optional[str]) -> str:
+    return re.sub(r"[^A-Za-z0-9]", "", (value or "").strip()).upper()
+
+
+def _generate_referral_code(db: Session) -> str:
+    for _ in range(40):
+        code = "".join(secrets.choice(_REFERRAL_CODE_ALPHABET) for _ in range(8))
+        exists = db.query(User.id).filter(User.referral_code == code).first()
+        if not exists:
+            return code
+    return secrets.token_hex(5).upper()
+
+
+def _ensure_user_referral_code(db: Session, user: User, *, commit: bool = False) -> str:
+    if user.referral_code:
+        return user.referral_code
+    user.referral_code = _generate_referral_code(db)
+    db.add(user)
+    if commit:
+        db.commit()
+        db.refresh(user)
+    return user.referral_code
+
+
+def _find_referrer_by_code(db: Session, code: Optional[str]) -> Optional[User]:
+    normalized = _normalize_referral_code(code)
+    if not normalized:
+        return None
+    return db.query(User).filter(User.referral_code == normalized).first()
+
+
+def _apply_referral_code(db: Session, user: User, code: Optional[str]) -> Optional[str]:
+    """Attach invited_by if code is valid. Returns error message or None."""
+    normalized = _normalize_referral_code(code)
+    if not normalized:
+        return None
+    referrer = _find_referrer_by_code(db, normalized)
+    if not referrer:
+        return "Referral code not found."
+    if user.id and referrer.id == user.id:
+        return "You cannot use your own referral code."
+    if not user.invited_by_user_id:
+        user.invited_by_user_id = referrer.id
+    return None
+
+
+def _referral_invite_url(code: str, role: Optional[str] = None) -> str:
+    params = {"ref": code}
+    if role in {"participant", "researcher"}:
+        params["role"] = role
+    return f"{BASE_URL.rstrip('/')}/register?{urlencode(params)}"
+
+
+def _remember_pending_referral(response, request: Request, code: Optional[str]) -> None:
+    normalized = _normalize_referral_code(code)
+    if not normalized:
+        return
+    response.set_cookie(
+        PENDING_REFERRAL_COOKIE,
+        normalized,
+        max_age=60 * 60 * 24 * 14,
+        **_cookie_policy(request),
+    )
+
+
+def _clear_pending_referral(response, request: Optional[Request] = None) -> None:
+    response.delete_cookie(PENDING_REFERRAL_COOKIE, **_cookie_policy(request))
+
+
 def _send_verification_email(email: str, purpose: str, code: str) -> tuple[bool, Optional[str]]:
     if purpose == "register":
         subject = "Insighta registration verification code"
@@ -1721,7 +1824,10 @@ async def google_callback(
             username=name,
             oauth_provider="google",
             oauth_id=google_id,
+            referral_code=_generate_referral_code(db),
         )
+        pending_ref = request.cookies.get(PENDING_REFERRAL_COOKIE)
+        _apply_referral_code(db, user, pending_ref)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -1731,6 +1837,7 @@ async def google_callback(
             user.oauth_provider = "google"
             user.oauth_id = google_id
             db.commit()
+        _ensure_user_referral_code(db, user, commit=True)
 
     return_to = _safe_auth_return(request.cookies.get(AUTH_RETURN_COOKIE))
     final_url = _post_auth_url_with_next(
@@ -1749,6 +1856,8 @@ async def google_callback(
     _set_user_cookie(resp, request, user)
     resp.delete_cookie("oauth_state", samesite=policy["samesite"], secure=policy["secure"])
     _clear_auth_return(resp, request)
+    if is_new:
+        _clear_pending_referral(resp, request)
     return resp
 
 
@@ -1827,7 +1936,10 @@ async def linkedin_callback(
             username=name,
             oauth_provider="linkedin",
             oauth_id=linkedin_id,
+            referral_code=_generate_referral_code(db),
         )
+        pending_ref = request.cookies.get(PENDING_REFERRAL_COOKIE)
+        _apply_referral_code(db, user, pending_ref)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -1837,6 +1949,7 @@ async def linkedin_callback(
             user.oauth_provider = "linkedin"
             user.oauth_id = linkedin_id
             db.commit()
+        _ensure_user_referral_code(db, user, commit=True)
 
     return_to = _safe_auth_return(request.cookies.get(AUTH_RETURN_COOKIE))
     final_url = _post_auth_url_with_next(
@@ -1855,6 +1968,8 @@ async def linkedin_callback(
     _set_user_cookie(resp, request, user)
     resp.delete_cookie("oauth_state", samesite=policy["samesite"], secure=policy["secure"])
     _clear_auth_return(resp, request)
+    if is_new:
+        _clear_pending_referral(resp, request)
     return resp
 
 
@@ -2243,10 +2358,13 @@ def show_register(
     request: Request,
     role: Optional[str] = None,
     next: Optional[str] = None,
-    participant_app: Optional[str] = Cookie(None)
+    ref: Optional[str] = None,
+    participant_app: Optional[str] = Cookie(None),
+    pending_referral: Optional[str] = Cookie(None),
 ):
     normalized_role = role if role in {"participant", "researcher"} else ""
     register_next = next if is_safe_internal_next(next) else ""
+    referral_code = _normalize_referral_code(ref) or _normalize_referral_code(pending_referral)
     response = no_store_response(templates.TemplateResponse(
         "register.html",
         {
@@ -2254,6 +2372,7 @@ def show_register(
             "register_step": 1,
             "register_role": normalized_role,
             "register_next": register_next,
+            "register_referral": referral_code,
             "register_values": {},
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }
@@ -2263,6 +2382,8 @@ def show_register(
     elif normalized_role == "researcher":
         _clear_participant_app(response, request)
     _remember_auth_return(response, request, register_next)
+    if referral_code:
+        _remember_pending_referral(response, request, referral_code)
     return response
 
 @app.post("/register", response_class=HTMLResponse)
@@ -2270,6 +2391,7 @@ async def do_register(
     request: Request,
     participant_app: Optional[str] = Cookie(None),
     auth_return_to: Optional[str] = Cookie(None),
+    pending_referral: Optional[str] = Cookie(None),
     db: Session = Depends(get_db)
 ):
     form = await request.form()
@@ -2278,6 +2400,7 @@ async def do_register(
     password = form.get("password") or ""
     confirm = form.get("confirm") or ""
     verification_code = form.get("verification_code") or ""
+    referral_input = _normalize_referral_code(form.get("referral_code") or pending_referral)
     next_url = _safe_auth_return(form.get("next"), auth_return_to)
     role = (form.get("role") or "").strip().lower()
     role = role if role in {"participant", "researcher"} else None
@@ -2303,11 +2426,14 @@ async def do_register(
             "register_step": step,
             "register_role": role or "",
             "register_next": next_url if is_safe_internal_next(next_url) else "",
+            "register_referral": referral_input,
             "register_values": register_values,
             "participant_app": _auth_uses_participant_app(request, role, participant_app),
         }))
         if role == "researcher":
             _clear_participant_app(response, request)
+        if referral_input:
+            _remember_pending_referral(response, request, referral_input)
         return response
 
     if not email: return reg_error("Email is required.")
@@ -2335,6 +2461,8 @@ async def do_register(
         return reg_error("Please enter a valid birth year and month. Participants must be 18 or older.", step=2)
     if db.query(User).filter(User.email == email).first():
         return reg_error("Email already exists.")
+    if referral_input and not _find_referrer_by_code(db, referral_input):
+        return reg_error("Referral code not found.")
     if not _consume_verification_code(db, email, "register", verification_code):
         return reg_error("Invalid or expired verification code.")
 
@@ -2356,11 +2484,28 @@ async def do_register(
         state=register_values["current_province"],
         language=register_values["language"],
         participation_format=register_values["participation_format"],
+        referral_code=_generate_referral_code(db),
     )
+    referral_error = _apply_referral_code(db, user, referral_input)
+    if referral_error:
+        return reg_error(referral_error)
     db.add(user)
     db.commit()
     db.refresh(user)
-    _record_user_event(db, request, "sign_up", user=user, metadata={"role": role or "", "user_role": role or "", "next": next_url or "", "source": "Sign up"})
+    _record_user_event(
+        db,
+        request,
+        "sign_up",
+        user=user,
+        metadata={
+            "role": role or "",
+            "user_role": role or "",
+            "next": next_url or "",
+            "source": "Sign up",
+            "referral_code": referral_input or "",
+            "invited_by_user_id": user.invited_by_user_id or "",
+        },
+    )
     db.commit()
 
     final_url = _post_auth_url_with_next(request, participant_app, next_url, role=role, welcome=True)
@@ -2370,6 +2515,7 @@ async def do_register(
     )
     _set_user_cookie(response, request, user)
     _clear_auth_return(response, request)
+    _clear_pending_referral(response, request)
     if role == "participant":
         _mark_participant_app(response, request)
     elif role == "researcher":
@@ -4226,21 +4372,48 @@ async def edit_survey_post(
 def profile_get(
     request: Request,
     participant_app: Optional[str] = Cookie(None),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
+    referral_code = _ensure_user_referral_code(db, current_user, commit=True)
+    invite_url = _referral_invite_url(
+        referral_code,
+        role="participant" if _should_use_participant_app(request, participant_app) else "researcher",
+    )
     if _should_use_participant_app(request, participant_app):
         return templates.TemplateResponse("participant_profile.html", {
             "request": request,
             "current_user": current_user,
             "pending_earnings": getattr(current_user, 'pending_earnings', 0.0) or 0.0,
+            "referral_code": referral_code,
+            "invite_url": invite_url,
         })
     prev_url = request.headers.get("referer", "/publisher")
-    return templates.TemplateResponse("profile.html", {"request": request, "user": current_user, "prev_url": prev_url})
+    return templates.TemplateResponse("profile.html", {
+        "request": request,
+        "user": current_user,
+        "prev_url": prev_url,
+        "referral_code": referral_code,
+        "invite_url": invite_url,
+    })
+
 
 @app.get("/profile/edit", response_class=HTMLResponse)
-def profile_edit_get(request: Request, current_user: User = Depends(get_current_user)):
+def profile_edit_get(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     prev_url = request.headers.get("referer", "/profile")
-    return templates.TemplateResponse("profile.html", {"request": request, "user": current_user, "prev_url": prev_url})
+    referral_code = _ensure_user_referral_code(db, current_user, commit=True)
+    return templates.TemplateResponse("profile.html", {
+        "request": request,
+        "user": current_user,
+        "prev_url": prev_url,
+        "referral_code": referral_code,
+        "invite_url": _referral_invite_url(referral_code, role="researcher"),
+    })
+
 
 @app.post("/profile")
 async def profile_post(
@@ -4695,12 +4868,14 @@ def _get_admin_publisher_user(db: Session) -> User:
     email = (os.environ.get("ADMIN_PUBLISHER_EMAIL") or "vfsa@bu.edu").strip().lower()
     user = db.query(User).filter(func.lower(User.email) == email).first()
     if user:
+        _ensure_user_referral_code(db, user, commit=True)
         return user
     user = User(
         email=email,
         password="admin-managed-publisher",
         username="Insighta Admin",
         status="Researcher",
+        referral_code=_generate_referral_code(db),
     )
     db.add(user)
     db.commit()

@@ -41,14 +41,27 @@
     .user-name{font-size:13px;font-weight:700;color:var(--ink);}
     .user-sub{font-size:11px;color:var(--ink3);margin-top:1px;}
     .main{flex:1;min-width:0;display:flex;flex-direction:column;}
-    .topbar{background:rgba(252,255,245,0.94);backdrop-filter:blur(16px);border-bottom:2px solid var(--line);padding:0 32px;height:58px;display:flex;align-items:center;position:sticky;top:0;z-index:50;}
+    .topbar{background:rgba(252,255,245,0.94);backdrop-filter:blur(16px);border-bottom:2px solid var(--line);padding:0 32px;height:58px;display:flex;align-items:center;justify-content:space-between;gap:14px;position:sticky;top:0;z-index:50;}
     .topbar-title{font-size:17px;font-weight:900;color:var(--ink);}
+    .logout-link{font-size:13px;font-weight:900;color:var(--ink3);text-decoration:none;border:2px solid var(--line);border-radius:12px;padding:8px 14px;background:#fff;box-shadow:0 3px 0 var(--line2);transition:transform .1s,box-shadow .1s,color .15s;}
+    .logout-link:hover{color:var(--ink);transform:translateY(2px);box-shadow:0 1px 0 var(--line2);}
     .content{flex:1;padding:28px 32px 40px;max-width:980px;width:100%;}
     .profile-hero{background:#fff;border:2px solid var(--line2);border-radius:20px;padding:22px 24px;margin-bottom:20px;box-shadow:0 5px 0 var(--em);display:flex;align-items:center;gap:18px;}
     .profile-avatar{width:64px;height:64px;border-radius:18px;font-size:28px;}
     .profile-name{font-size:21px;font-weight:900;color:var(--ink);margin-bottom:2px;}
     .profile-email{font-size:13px;color:var(--ink3);font-weight:700;}
     .profile-note{margin-top:10px;font-size:13px;color:var(--ink2);font-weight:700;line-height:1.45;max-width:620px;}
+    .referral-card{background:#fff;border:2px solid var(--line2);border-radius:16px;padding:18px 20px;margin-bottom:20px;box-shadow:0 4px 0 var(--em);}
+    .referral-title{font-size:14px;font-weight:900;color:var(--ink);margin-bottom:4px;}
+    .referral-sub{font-size:12px;color:var(--ink3);font-weight:700;line-height:1.45;margin-bottom:14px;}
+    .referral-label{font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--teal2);margin-bottom:7px;}
+    .referral-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+    .referral-code{flex:1;min-width:140px;font-size:20px;font-weight:900;letter-spacing:.12em;color:var(--yale);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--paper2);border:2px solid var(--line);border-radius:10px;padding:10px 12px;}
+    .referral-link{flex:1;min-width:180px;font-size:12px;font-weight:700;color:var(--ink2);background:var(--paper2);border:2px solid var(--line);border-radius:10px;padding:10px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .referral-btn{flex-shrink:0;border:2px solid var(--line2);background:var(--lime);color:var(--yale);border-radius:12px;padding:9px 14px;font-family:var(--sans);font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 3px 0 var(--lime3);transition:transform .1s,box-shadow .1s;}
+    .referral-btn:hover{transform:translateY(2px);box-shadow:0 1px 0 var(--lime3);}
+    .referral-copied{font-size:12px;font-weight:800;color:var(--teal2);min-height:16px;margin-top:8px;}
+    .referral-hint{font-size:12px;font-weight:700;color:var(--ink3);line-height:1.45;margin-top:8px;}
     .completeness{background:var(--paper2);border:2px solid var(--line2);border-radius:16px;padding:18px 20px;margin-bottom:20px;box-shadow:0 4px 0 var(--em);}
     .comp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px;}
     .comp-title{font-size:14px;font-weight:900;color:var(--ink);}
@@ -84,9 +97,6 @@
     .save-copy{font-size:12px;color:var(--ink3);font-weight:800;line-height:1.35;}
     .save-btn{border:0;border-radius:13px;background:var(--teal2);color:#fff;font-family:var(--sans);font-weight:900;font-size:14px;padding:13px 20px;cursor:pointer;box-shadow:0 4px 0 var(--yale);transition:all .15s;white-space:nowrap;}
     .save-btn:hover{transform:translateY(-1px);background:var(--ocean);}
-    .logout-btn{display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px;background:#fff;border:2px solid var(--line);border-radius:12px;font-family:var(--sans);font-size:13px;font-weight:700;color:var(--ink3);cursor:pointer;text-decoration:none;transition:all .15s;box-shadow:0 3px 0 var(--line2);}
-    .logout-btn:hover{border-color:var(--line2);color:var(--ink);}
-    .logout-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
     @media(max-width:760px){
       body{display:block;padding-bottom:80px;}
       .sidebar{display:none;}
@@ -156,7 +166,10 @@
 </aside>
 
 <div class="main">
-  <div class="topbar"><div class="topbar-title">Profile</div></div>
+  <div class="topbar">
+    <div class="topbar-title">Profile</div>
+    <a href="/logout" class="logout-link">Log out</a>
+  </div>
   <div class="content">
     <div class="profile-hero">
       <div class="profile-avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
@@ -165,6 +178,23 @@
         <div class="profile-email">{{ current_user.email }}</div>
         <div class="profile-note">Add more detail about yourself so researchers can match you with better studies.</div>
       </div>
+    </div>
+
+    <div class="referral-card">
+      <div class="referral-title">Your referral code</div>
+      <div class="referral-sub">Share your code or invite link. Friends can enter it when they register.</div>
+      <div class="referral-label">Code</div>
+      <div class="referral-row">
+        <div class="referral-code" id="referralCodeValue">{{ referral_code }}</div>
+        <button type="button" class="referral-btn" onclick="copyReferral('code')">Copy</button>
+      </div>
+      <div class="referral-label" style="margin-top:12px;">Invite link</div>
+      <div class="referral-row">
+        <div class="referral-link" id="referralLinkValue" title="{{ invite_url }}">{{ invite_url }}</div>
+        <button type="button" class="referral-btn" onclick="copyReferral('link')">Copy</button>
+      </div>
+      <div class="referral-hint">Anyone who opens this link will land on signup with your referral code filled in.</div>
+      <div class="referral-copied" id="referralCopied"></div>
     </div>
 
     {% set pf = [current_user.username, current_user.phone_number, current_user.birth_year, current_user.birth_month, current_user.profile_description, current_user.education_level, current_user.field, current_user.status, current_user.current_province, current_user.current_city, current_user.language, current_user.race, current_user.student_status, current_user.year_in_school, current_user.international_domestic, current_user.experience_tags, current_user.participation_format, current_user.device_type, current_user.income_level, current_user.lifestyle_tags] %}
@@ -407,11 +437,6 @@
         <button class="save-btn" type="submit">Save profile</button>
       </div>
     </form>
-
-    <a href="/logout" class="logout-btn" style="margin-top:16px;">
-      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      Log out
-    </a>
   </div>
 </div>
 <script>
@@ -427,6 +452,25 @@
   document.addEventListener('input', syncOtherInputs);
   document.addEventListener('change', syncOtherInputs);
   syncOtherInputs();
+
+  function copyReferral(kind) {
+    const text = kind === 'link'
+      ? (document.getElementById('referralLinkValue')?.textContent || '').trim()
+      : (document.getElementById('referralCodeValue')?.textContent || '').trim();
+    const note = document.getElementById('referralCopied');
+    if (!text) return;
+    const done = () => {
+      if (note) note.textContent = kind === 'link' ? 'Invite link copied.' : 'Referral code copied.';
+      setTimeout(() => { if (note) note.textContent = ''; }, 2000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => {
+        window.prompt('Copy this:', text);
+      });
+    } else {
+      window.prompt('Copy this:', text);
+    }
+  }
 </script>
 <script src="/static/support_chat.js"></script>
 </body>

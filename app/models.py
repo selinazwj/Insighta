@@ -67,6 +67,10 @@ class User(Base):
     welcome_email_sent_at = Column(DateTime, nullable=True)
     welcome_email_role = Column(String, nullable=True)
 
+    # Referral
+    referral_code = Column(String, unique=True, index=True, nullable=True)
+    invited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     surveys = relationship("Survey", back_populates="publisher")
