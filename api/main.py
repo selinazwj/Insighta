@@ -1777,6 +1777,62 @@ async def start_survey(
     return {"message": "Survey started successfully"}
 
 
+def _notify_publisher_response_ready(db: Session, survey: Survey, participant: User) -> None:
+    """
+    ive extracted this — both completion paths (external /complete and builtin
+    /submit) used to carry an identical 45-line copy of this. one place now:
+    creates the researchers bell notification (deduped) + sends them an email.
+    """
+    existing_notif = db.query(Notification).filter(
+        Notification.survey_id == survey.id,
+        Notification.participant_id == participant.id,
+        Notification.status == "pending",
+    ).first()
+    if not existing_notif:
+        db.add(Notification(
+            publisher_id=survey.publisher_id,
+            participant_id=participant.id,
+            survey_id=survey.id,
+            participant_email=participant.email,
+            survey_title=survey.title,
+            task_type=getattr(survey, "task_type", "survey") or "survey",
+            status="pending",
+        ))
+
+    publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+    if publisher and publisher.email:
+        send_email(
+            to=publisher.email,
+            subject=f"[Insighta] New response ready for review: {survey.title}",
+            body=f"""
+            <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+              <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
+              <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey and is awaiting your approval.</p>
+              <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
+                <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
+                <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
+                <div style="font-size: 15px;">{participant.email}</div>
+                <div style="font-size: 13px; color: #8a8a82; margin-top: 12px; margin-bottom: 4px;">Reward</div>
+                <div style="font-size: 15px; font-weight: 600; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
+              </div>
+              <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                Review & Approve →
+              </a>
+            </div>
+            """
+        )
+
+
+def _verification_response_fields(user: User, survey: Survey) -> dict:
+    """ive extracted this — the completion JSON both handlers return for the verify nudge"""
+    return {
+        "needs_verification": not _verification_satisfies(user, survey),
+        "required_verification_tier": getattr(survey, "required_verification_tier", None) or "tier_3",
+        "required_email_domains": getattr(survey, "required_email_domains", None) or "",
+    }
+
+
 @app.post("/surveys/{survey_id}/complete")
 def complete_survey(
     survey_id: int,
@@ -1800,63 +1856,14 @@ def complete_survey(
         r.completed_at = datetime.now(timezone.utc)
         r.payout_amount = survey.reward_amount
         mark_response_under_review(r)
-
-        # ive added this — the researchers bell only used to get notifications from
-        # the AI jump flow, so normal completions had no in-app approve button and
-        # the payout could sit unreleased. now every completion creates one.
-        existing_notif = db.query(Notification).filter(
-            Notification.survey_id == survey.id,
-            Notification.participant_id == current_user.id,
-            Notification.status == "pending",
-        ).first()
-        if not existing_notif:
-            db.add(Notification(
-                publisher_id=survey.publisher_id,
-                participant_id=current_user.id,
-                survey_id=survey.id,
-                participant_email=current_user.email,
-                survey_title=survey.title,
-                task_type=getattr(survey, "task_type", "survey") or "survey",
-                status="pending",
-            ))
-
-        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
-        if publisher and publisher.email:
-            send_email(
-                to=publisher.email,
-                subject=f"[Insighta] New response ready for review: {survey.title}",
-                body=f"""
-                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
-                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
-                  <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey and is awaiting your approval.</p>
-                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
-                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
-                    <div style="font-size: 15px;">{current_user.email}</div>
-                    <div style="font-size: 13px; color: #8a8a82; margin-top: 12px; margin-bottom: 4px;">Reward</div>
-                    <div style="font-size: 15px; font-weight: 600; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
-                  </div>
-                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-                    Review & Approve →
-                  </a>
-                </div>
-                """
-            )
+        # bell notification + publisher email, shared with the builtin path
+        _notify_publisher_response_ready(db, survey, current_user)
 
     db.commit()
 
-    # ive added this for verification — tell the frontend to send the participant
-    # to /verify if this survey needs a tier or email domain they dont have yet
-    required_tier = getattr(survey, "required_verification_tier", None) or "tier_3"
-    needs_verification = not _verification_satisfies(current_user, survey)
-
-    return JSONResponse({
-        "message": "completed",
-        "needs_verification": needs_verification,
-        "required_verification_tier": required_tier,
-        "required_email_domains": getattr(survey, "required_email_domains", None) or "",
-    })
+    # verify nudge fields — tell the frontend to send the participant to /verify
+    # if this survey needs a tier or email domain they dont have yet
+    return JSONResponse({"message": "completed", **_verification_response_fields(current_user, survey)})
 
 
 @app.post("/surveys/{survey_id}/modify")
@@ -1903,9 +1910,16 @@ def get_notifications(
     # ive added this for verification — tell the researcher if the participant is verified
     # so they can decide before approving payout (we warn but still allow)
     # phase 3 — tier aware; email-domain feature — also domain aware, all via the helper
+    # ive optimized this — batch-load the surveys and participants in two queries
+    # instead of two queries PER notification (was an N+1)
+    survey_ids = {n.survey_id for n in notifs if n.survey_id}
+    participant_ids = {n.participant_id for n in notifs if n.participant_id}
+    surveys_by_id = {s.id: s for s in db.query(Survey).filter(Survey.id.in_(survey_ids)).all()} if survey_ids else {}
+    users_by_id = {u.id: u for u in db.query(User).filter(User.id.in_(participant_ids)).all()} if participant_ids else {}
+
     def _verify_info(n):
-        survey = db.query(Survey).filter(Survey.id == n.survey_id).first()
-        participant = db.query(User).filter(User.id == n.participant_id).first()
+        survey = surveys_by_id.get(n.survey_id)
+        participant = users_by_id.get(n.participant_id)
         required_tier = survey.required_verification_tier if survey else None
         domains = _normalize_domains(getattr(survey, "required_email_domains", None) if survey else None)
         requires = bool(required_tier in ("tier_1", "tier_2")) or bool(domains)
@@ -4271,46 +4285,8 @@ async def submit_answers(
         r.completed_at = datetime.now(timezone.utc)
         r.payout_amount = survey.reward_amount
         mark_response_under_review(r)
-
-        # ive added this — builtin submissions also create a bell notification so
-        # the researcher can approve the payout in-app (not just via email)
-        existing_notif = db.query(Notification).filter(
-            Notification.survey_id == survey.id,
-            Notification.participant_id == current_user.id,
-            Notification.status == "pending",
-        ).first()
-        if not existing_notif:
-            db.add(Notification(
-                publisher_id=survey.publisher_id,
-                participant_id=current_user.id,
-                survey_id=survey.id,
-                participant_email=current_user.email,
-                survey_title=survey.title,
-                task_type=getattr(survey, "task_type", "survey") or "survey",
-                status="pending",
-            ))
-
-        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
-        if publisher and publisher.email:
-            send_email(
-                to=publisher.email,
-                subject=f"[Insighta] New response ready for review: {survey.title}",
-                body=f"""
-                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
-                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
-                  <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey.</p>
-                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
-                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
-                    <div style="font-size: 15px;">{current_user.email}</div>
-                  </div>
-                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-                    Review & Approve →
-                  </a>
-                </div>
-                """
-            )
+        # bell notification + publisher email, shared with the external path
+        _notify_publisher_response_ready(db, survey, current_user)
 
     quality_payload = None
     try:
@@ -4328,16 +4304,8 @@ async def submit_answers(
     db.commit()
     mark_latest_jump_completed_for_response(db, r)
 
-    # ive added this for verification — same check as /complete, for built-in surveys
-    required_tier = getattr(survey, "required_verification_tier", None) or "tier_3"
-    needs_verification = not _verification_satisfies(current_user, survey)
-
-    body = {
-        "message": "submitted successfully",
-        "needs_verification": needs_verification,
-        "required_verification_tier": required_tier,
-        "required_email_domains": getattr(survey, "required_email_domains", None) or "",
-    }
+    # verify nudge fields — same check as /complete, for built-in surveys
+    body = {"message": "submitted successfully", **_verification_response_fields(current_user, survey)}
     if quality_payload:
         body["quality"] = quality_payload
     return JSONResponse(body)
