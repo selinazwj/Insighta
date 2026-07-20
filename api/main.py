@@ -2385,7 +2385,7 @@ def _verification_satisfies(user: User, survey: Survey) -> bool:
     return True
 
 
-def _render_verify(request, current_user, *, error=None, notice=None, needs_domains=None, prefill_email=None, focus_tier=None):
+def _render_verify(request, current_user, *, error=None, notice=None, needs_domains=None, prefill_email=None, focus_tier=None, done=False):
     # ive added this helper so the GET page and every error rerender share one context
     is_verified = getattr(current_user, "verification_status", "unverified") == "verified"
     user_rank = _tier_rank(getattr(current_user, "verified_tier", None)) if is_verified else 99
@@ -2404,6 +2404,9 @@ def _render_verify(request, current_user, *, error=None, notice=None, needs_doma
         "prefill_email": prefill,
         "show_email_verify": show_email_verify,
         "focus_tier": focus_tier,
+        # ive added this — right after a successful verification we show a clean
+        # "youre done" screen instead of advertising the other tiers again
+        "done": bool(done),
         "linkedin_enabled": bool(LINKEDIN_CLIENT_ID),
         # phase 3 — verified users can still upgrade to a stronger tier
         "can_upgrade_linkedin": user_rank > 2,
@@ -2419,11 +2422,13 @@ def verify_page(
     verify_error: Optional[str] = None,
     needs_tier: Optional[str] = None,
     needs_domains: Optional[str] = None,
+    done: Optional[str] = None,
     current_user: User = Depends(get_current_user),
 ):
     # ive added this for verification — shows the OTP + LinkedIn + ID upload page
     # needs_tier / needs_domains come from the survey completion redirect and tell
-    # the participant WHY theyre being sent here
+    # the participant WHY theyre being sent here. done=1 means they JUST finished
+    # a verification step, so we show a clean success screen, not more tiers
     domains = _normalize_domains(needs_domains)
     notice = None
     if domains:
@@ -2431,7 +2436,7 @@ def verify_page(
     elif needs_tier in TIER_RANK:
         notice = f"This study requires Tier {TIER_RANK[needs_tier]} verification to receive your payout. Verify below to continue."
     return _render_verify(request, current_user, error=verify_error, notice=notice,
-                          needs_domains=needs_domains, focus_tier=needs_tier)
+                          needs_domains=needs_domains, focus_tier=needs_tier, done=bool(done))
 
 
 @app.post("/verify/send-code")
@@ -2495,7 +2500,8 @@ def verify_user(
         current_user.verified_tier = "tier_3"
     current_user.verified_at = datetime.utcnow()
     db.commit()
-    return RedirectResponse("/verify", status_code=303)
+    # done=1 shows the clean success screen instead of more tier options
+    return RedirectResponse("/verify?done=1", status_code=303)
 
 
 # ---------------------------
@@ -2547,7 +2553,8 @@ async def verify_id_upload(
     current_user.id_review_status = "pending"
     current_user.id_uploaded_at = datetime.utcnow()
     db.commit()
-    return RedirectResponse("/verify", status_code=303)
+    # done=1 shows just the "under review" confirmation, not more tier options
+    return RedirectResponse("/verify?done=1", status_code=303)
 
 
 # ---------------------------
@@ -2713,7 +2720,8 @@ async def verify_linkedin_callback(
     db.commit()
 
     policy = _cookie_policy(request)
-    resp = RedirectResponse("/verify", status_code=303)
+    # done=1 shows the clean success screen instead of more tier options
+    resp = RedirectResponse("/verify?done=1", status_code=303)
     resp.delete_cookie("verify_oauth_state", samesite=policy["samesite"], secure=policy["secure"])
     return resp
 

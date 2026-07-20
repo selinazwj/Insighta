@@ -301,9 +301,11 @@
   {% endif %}
 
   {% if current_user.verification_status == 'verified' %}
-  <h1>{% if show_email_verify %}One more step{% else %}You're verified{% endif %}</h1>
+  <h1>{% if done %}Verification complete!{% elif show_email_verify %}One more step{% else %}You're verified{% endif %}</h1>
   <p class="subtitle">
-    {% if show_email_verify %}
+    {% if done %}
+    You're all set — the researcher will see your verified status.<br>You can head back to your studies.
+    {% elif show_email_verify %}
     You're verified, but this study needs a specific email.<br>Verify it below to receive your payout.
     {% else %}
     Your identity has been verified.<br>You can now withdraw your earnings.
@@ -319,14 +321,15 @@
     <div class="message">✓ Verified ({{ current_user.verified_tier or 'tier_3' }}){% if current_user.verified_email %} — {{ current_user.verified_email }}{% endif %}</div>
   </div>
 
-  {% if show_email_verify and (not focus_tier or focus_tier == 'tier_3' or needs_domains) %}
+  {% if show_email_verify and not done and (not focus_tier or focus_tier == 'tier_3' or needs_domains) %}
   {{ email_verify_form() }}
   {% endif %}
 
   <!-- ive added this for phase 3 — verified users can upgrade to a stronger tier -->
-  {# ive changed this — a tier focus narrows the upgrade options to just that method #}
-  {% set show_up_linkedin = can_upgrade_linkedin and (not focus_tier or focus_tier == 'tier_2') %}
-  {% set show_up_id = can_upgrade_id and (not focus_tier or focus_tier == 'tier_1') %}
+  {# ive changed this — a tier focus narrows the upgrade options to just that method,
+     and right after a successful verification (done) we dont advertise tiers at all #}
+  {% set show_up_linkedin = not done and can_upgrade_linkedin and (not focus_tier or focus_tier == 'tier_2') %}
+  {% set show_up_id = not done and can_upgrade_id and (not focus_tier or focus_tier == 'tier_1') %}
   {% if show_up_linkedin or show_up_id %}
   <div class="upgrade-title">{% if focus_tier %}This study needs a stronger verification:{% else %}Upgrade your verification to unlock stricter studies:{% endif %}</div>
 
@@ -345,15 +348,25 @@
   <a href="/participant" class="btn-secondary">Back to Dashboard</a>
 
   {% else %}
-  <h1>Verify yourself</h1>
+  <h1>{% if done %}ID received!{% else %}Verify yourself{% endif %}</h1>
   <p class="subtitle">
+    {% if done %}
+    Thanks — your document is with the researcher now.<br>You'll be verified as soon as they approve it.
+    {% else %}
     To claim your payout, verify your identity below.<br>
     This takes just a moment.
+    {% endif %}
   </p>
 
   {% if error %}
   <div class="error-box">{{ error }}</div>
   {% endif %}
+
+  {% if done %}
+  {# ive added this — right after uploading an ID we only confirm its under review,
+     we dont advertise the other verification methods again #}
+  {{ id_upload_block() }}
+  {% else %}
 
   {# ive changed this — when a study demands a specific tier, only that tiers
      method is shown. no focus (visiting /verify directly) shows all three. #}
@@ -378,6 +391,8 @@
   <!-- ive added this for phase 2c — upload an ID document for the strongest tier -->
   {{ id_upload_block() }}
   {% endif %}
+
+  {% endif %}{# closes the done/else split #}
 
   <a href="/participant" class="btn-secondary">Back to Dashboard</a>
   {% endif %}

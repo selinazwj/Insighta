@@ -553,33 +553,26 @@
         <div class="label-desc">Select all that apply. Leave empty to allow any occupation.</div>
       </div>
 
-      <!-- ive restyled this — big tier cards, hover any card for a plain-english explanation -->
+      <!-- ive changed this — for in-person studies the researcher just decides:
+           is a photo ID required or not? (ID required = tier_1, not required = tier_3) -->
       <div class="form-group" style="margin-bottom: 16px;">
-        <label>Verification tier <span style="font-weight:300;text-transform:none;letter-spacing:0;">(hover a card to see what it means)</span></label>
-        <div class="tier-cards">
+        <label>ID verification <span style="font-weight:300;text-transform:none;letter-spacing:0;">(hover a card to see what it means)</span></label>
+        <div class="tier-cards" style="grid-template-columns:repeat(2,1fr);">
           <label class="tier-card" onclick="pickTier(this)">
             <input type="radio" name="required_verification_tier" value="tier_1">
-            <span class="tier-card-badge">Tier 1</span>
-            <div class="tier-card-name">Strict</div>
-            <div class="tier-card-desc">Government ID, reviewed by an admin</div>
+            <span class="tier-card-badge">ID required</span>
+            <div class="tier-card-name">Photo ID needed</div>
+            <div class="tier-card-desc">Participant uploads a government ID and you review it before paying</div>
             <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Participants must upload a government ID document, which an admin reviews and approves before they can be paid. The strongest identity guarantee — use for sensitive or high-payout studies.</div>
-          </label>
-          <label class="tier-card" onclick="pickTier(this)">
-            <input type="radio" name="required_verification_tier" value="tier_2">
-            <span class="tier-card-badge">Tier 2</span>
-            <div class="tier-card-name">Standard</div>
-            <div class="tier-card-desc">LinkedIn sign-in required</div>
-            <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Participants verify by signing in with their LinkedIn account, confirming a real professional identity. Good for studies aimed at working professionals.</div>
+            <div class="tier-tip">Since you'll meet participants in person, you can require a government ID. They upload a photo of it, you view and approve it from your notifications — only then can they be paid.</div>
           </label>
           <label class="tier-card selected" onclick="pickTier(this)">
             <input type="radio" name="required_verification_tier" value="tier_3" checked>
-            <span class="tier-card-badge">Tier 3</span>
-            <div class="tier-card-name">Basic</div>
-            <div class="tier-card-desc">Email code — the default</div>
+            <span class="tier-card-badge">No ID needed</span>
+            <div class="tier-card-name">Email check only</div>
+            <div class="tier-card-desc">Participant just confirms a code sent to their email — the default</div>
             <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Participants confirm a one-time code sent to their email. Add "Allowed email domains" below to restrict to specific communities, e.g. bu.edu for BU students only.</div>
+            <div class="tier-tip">No document needed. Participants confirm a one-time email code. Add "Allowed email domains" below to restrict to specific communities, e.g. bu.edu for BU students only.</div>
           </label>
         </div>
       </div>
