@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.database import engine, get_db
 from app.models import Base, Survey, User
+from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.ai_growth import models as _ai_models  # noqa: F401 - registers additive tables in Base.metadata
 from app.ai_growth.jump import complete_response_with_token, mark_returned, start_jump
 from app.ai_growth.matching import survey_match_result
@@ -20,7 +21,8 @@ from app.ai_growth.security import is_safe_internal_next, login_redirect_with_ne
 
 # Ensure additive tables exist even though api/main.py calls create_all before this
 # router is included in some deployments.
-Base.metadata.create_all(bind=engine)
+if auto_schema_bootstrap_enabled():
+    Base.metadata.create_all(bind=engine)
 
 router = APIRouter(tags=["ai-growth"])
 
