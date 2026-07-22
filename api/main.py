@@ -1355,6 +1355,35 @@ def _quality_row_label(index: int = 0) -> str:
 def _normalize_email(value: Optional[str]) -> str:
     return (value or "").strip().lower()
 
+DEFAULT_BLOCKED_EMAILS = {
+    "edward.websterjr@gmail.com",
+}
+
+def _configured_blocked_emails() -> set[str]:
+    configured = os.environ.get("BLOCKED_EMAILS") or ""
+    return {
+        _normalize_email(email)
+        for email in configured.split(",")
+        if _normalize_email(email)
+    }
+
+def _is_email_blocked(db: Session, email: Optional[str]) -> bool:
+    normalized = _normalize_email(email)
+    if not normalized:
+        return False
+    if normalized in DEFAULT_BLOCKED_EMAILS or normalized in _configured_blocked_emails():
+        return True
+    try:
+        return db.query(QualityBlacklist).filter(
+            QualityBlacklist.block_type == "email",
+            QualityBlacklist.block_value == normalized,
+        ).first() is not None
+    except Exception:
+        return False
+
+def _blocked_auth_message() -> str:
+    return "This account is not available. Please contact Insighta support if you believe this is a mistake."
+
 MOBILE_USER_AGENT_TOKENS = ("mobile", "android", "iphone", "ipad")
 
 def _is_mobile_request(request: Request) -> bool:
@@ -1722,6 +1751,8 @@ async def check_email_exists(email: str, db: Session = Depends(get_db)):
     normalized = _normalize_email(email)
     if not normalized:
         return JSONResponse({"exists": False})
+    if _is_email_blocked(db, normalized):
+        return JSONResponse({"exists": False})
     exists = db.query(User).filter(User.email == normalized).first() is not None
     return JSONResponse({"exists": exists})
 
@@ -1739,6 +1770,8 @@ async def send_auth_code(
         return JSONResponse({"ok": False, "message": "Please enter your email address first."}, status_code=400)
     if normalized_purpose not in {"register", "reset_password"}:
         return JSONResponse({"ok": False, "message": "Unsupported verification purpose."}, status_code=400)
+    if _is_email_blocked(db, normalized_email):
+        return JSONResponse({"ok": False, "message": _blocked_auth_message()}, status_code=403)
 
     existing_user = db.query(User).filter(User.email == normalized_email).first()
 
@@ -1853,6 +1886,8 @@ async def google_callback(
 
     if not email:
         return RedirectResponse("/login?oauth_error=Could+not+retrieve+email+from+Google.", status_code=302)
+    if _is_email_blocked(db, email):
+        return RedirectResponse(f"/login?oauth_error={urlencode({'': _blocked_auth_message()})[1:]}", status_code=302)
 
     user = db.query(User).filter(User.email == email).first()
     is_new = False
@@ -1965,6 +2000,8 @@ async def linkedin_callback(
 
     if not email:
         return RedirectResponse("/login?oauth_error=Could+not+retrieve+email+from+LinkedIn.", status_code=302)
+    if _is_email_blocked(db, email):
+        return RedirectResponse(f"/login?oauth_error={urlencode({'': _blocked_auth_message()})[1:]}", status_code=302)
 
     user = db.query(User).filter(User.email == email).first()
     is_new = False
@@ -2297,6 +2334,17 @@ def login(
 ):
     next_url = _safe_auth_return(next, auth_return_to)
     normalized_email = _normalize_email(email or "")
+    if _is_email_blocked(db, normalized_email):
+        normalized_role = role if role in {"participant", "researcher"} else ""
+        return no_store_response(templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": _blocked_auth_message(),
+            "success": None, "reset_error": None, "reset_success": None,
+            "reset_open": False, "login_email": normalized_email, "reset_email": "",
+            "login_next": next_url,
+            "login_role": normalized_role,
+            "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
+        }))
     try:
         user = db.query(User).filter(User.email == normalized_email).first()
     except Exception as e:
@@ -2353,6 +2401,14 @@ def password_reset(
     db: Session = Depends(get_db)
 ):
     normalized_email = _normalize_email(email)
+    if _is_email_blocked(db, normalized_email):
+        return no_store_response(templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": None, "success": None,
+            "reset_error": _blocked_auth_message(), "reset_success": None,
+            "reset_open": True,
+            "login_email": "", "reset_email": normalized_email,
+        }))
     user = db.query(User).filter(User.email == normalized_email).first()
 
     def reset_error(msg):
@@ -2476,6 +2532,8 @@ async def do_register(
         return response
 
     if not email: return reg_error("Email is required.")
+    if _is_email_blocked(db, email):
+        return reg_error(_blocked_auth_message())
     if password != confirm: return reg_error("Passwords do not match.", step=2)
     pw_error = _validate_registration_password(password)
     if pw_error: return reg_error(pw_error, step=2)
@@ -2575,6 +2633,8 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:
         raise HTTPException(401, "User not found")
+    if _is_email_blocked(db, user.email):
+        raise HTTPException(403, "Account unavailable")
     return user
 
 
@@ -7077,8 +7137,8 @@ async def blacklist_from_quality_check(
     block_type = (body.get("block_type") or "").strip().lower()
     reason = body.get("reason") or "Marked from quality review"
 
-    if block_type not in {"ip", "user", "device"}:
-        raise HTTPException(400, "block_type must be ip, user, or device")
+    if block_type not in {"ip", "user", "device", "email"}:
+        raise HTTPException(400, "block_type must be ip, user, device, or email")
 
     block_value = None
     if row.response_id:
@@ -7090,6 +7150,9 @@ async def blacklist_from_quality_check(
                 block_value = str(resp.participant_id)
             elif block_type == "device":
                 block_value = resp.device_fingerprint
+            elif block_type == "email" and resp.participant_id:
+                participant = db.query(User).filter(User.id == resp.participant_id).first()
+                block_value = _normalize_email(participant.email if participant else "")
 
     if not block_value:
         raise HTTPException(400, "No value available to blacklist for this record")
