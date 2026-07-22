@@ -951,13 +951,30 @@
       <div class="section-head">
         <div class="section-num">A</div>
         <div>
-          <div class="section-title">Admin demo reward</div>
-          <div class="section-sub">This amount is shown to participants only. It does not trigger Stripe or payout logic.</div>
+          <div class="section-title">Admin payment mode</div>
+          <div class="section-sub">Choose whether this listing is a validation demo or a real paid listing through Stripe.</div>
         </div>
       </div>
-      <div class="field" style="max-width:260px;">
-        <label>Displayed participant reward ($)</label>
-        <input type="number" name="admin_display_reward_amount" placeholder="e.g. 10.00" min="0" step="0.01">
+      <div class="row" style="margin-bottom:14px;">
+        <div class="field">
+          <label>Payment mode</label>
+          <select name="admin_payment_mode" id="adminPaymentMode" onchange="syncAdminPaymentMode()">
+            <option value="demo" selected>Demo listing - display reward only</option>
+            <option value="stripe">Real payment - use Stripe checkout</option>
+          </select>
+        </div>
+        <div class="field" id="adminDisplayRewardField">
+          <label>Displayed participant reward ($)</label>
+          <input type="number" name="admin_display_reward_amount" placeholder="e.g. 10.00" min="0" step="0.01">
+        </div>
+      </div>
+      <div class="info-box" id="adminDemoNote">
+        <strong>Demo mode</strong>
+        Publishes immediately as an admin demo. The displayed reward is shown to participants only and does not trigger Stripe.
+      </div>
+      <div class="info-box" id="adminStripeNote" style="display:none;">
+        <strong>Stripe mode</strong>
+        Uses the real budget fields above and opens Stripe checkout. The listing publishes after payment succeeds.
       </div>
     </div>
     {% endif %}
@@ -1180,11 +1197,30 @@
     document.getElementById('commBox').style.display = 'block';
   }
 
+  function adminUsesStripe() {
+    return IS_ADMIN_PUBLISH && document.getElementById('adminPaymentMode')?.value === 'stripe';
+  }
+
+  function syncAdminPaymentMode() {
+    if (!IS_ADMIN_PUBLISH) return;
+    const useStripe = adminUsesStripe();
+    const displayField = document.getElementById('adminDisplayRewardField');
+    const demoNote = document.getElementById('adminDemoNote');
+    const stripeNote = document.getElementById('adminStripeNote');
+    const submitLabel = document.getElementById('submitLabel');
+    if (displayField) displayField.style.display = useStripe ? 'none' : '';
+    if (demoNote) demoNote.style.display = useStripe ? 'none' : '';
+    if (stripeNote) stripeNote.style.display = useStripe ? '' : 'none';
+    if (submitLabel) submitLabel.textContent = useStripe ? 'Pay with Stripe & publish' : 'Publish demo listing';
+    updateCommission();
+  }
+
   ppInput.addEventListener('input', updateCommission);
   totalInput.addEventListener('input', updateCommission);
   targetInput.addEventListener('input', updateCommission);
   sessionCountInput?.addEventListener('input', updateCommission);
   document.getElementById('taskTypeSelect')?.addEventListener('change', syncAdminStudyType);
+  document.getElementById('adminPaymentMode')?.addEventListener('change', syncAdminPaymentMode);
 
   // ── CHECKBOXES ──
   function syncCheck(input) { input.closest('.check-item').classList.toggle('checked', input.checked); }
@@ -1397,7 +1433,7 @@
     });
     const incentive = document.getElementById('incentiveInput').value;
     const noPay = incentive === 'raffle' || incentive === 'volunteer';
-    if (!noPay && !IS_ADMIN_PUBLISH) {
+    if (!noPay && (!IS_ADMIN_PUBLISH || adminUsesStripe())) {
       const pp = parseFloat(ppInput.value) || 0;
       const tot = parseFloat(totalInput.value) || 0;
       if (!pp && !tot) {
@@ -1430,6 +1466,7 @@
   syncAdminStudyType();
   renderAdminSlots();
   restoreDraft();
+  syncAdminPaymentMode();
 </script>
 <script src="/static/support_chat.js"></script>
 </body>

@@ -5257,6 +5257,9 @@ async def admin_publish_survey(request: Request, db: Session = Depends(get_db)):
     if not _admin_key_matches(form.get("admin_key")):
         raise HTTPException(403, "Unauthorized")
     admin_user = _get_admin_publisher_user(db)
+    admin_payment_mode = (form.get("admin_payment_mode") or "demo").strip().lower()
+    if admin_payment_mode not in {"demo", "stripe"}:
+        admin_payment_mode = "demo"
     display_amount_raw = (form.get("admin_display_reward_amount") or "").strip()
     display_amount = float(display_amount_raw) if display_amount_raw else None
     return await publish_survey(
@@ -5295,6 +5298,7 @@ async def admin_publish_survey(request: Request, db: Session = Depends(get_db)):
         cover_image=form.get("cover_image"),
         admin_display_reward_amount=display_amount,
         admin_publish=True,
+        admin_payment_mode=admin_payment_mode,
         admin_redirect_key=form.get("admin_key"),
         current_user=admin_user,
         db=db,
@@ -6161,10 +6165,15 @@ async def publish_survey(
     cover_image: UploadFile = File(None),
     admin_display_reward_amount: Optional[float] = Form(None),
     admin_publish: bool = False,
+    admin_payment_mode: str = "demo",
     admin_redirect_key: Optional[str] = None,
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
+    admin_payment_mode = (admin_payment_mode or form.get("admin_payment_mode") or "demo").strip().lower()
+    if admin_payment_mode not in {"demo", "stripe"}:
+        admin_payment_mode = "demo"
+    admin_uses_stripe = bool(admin_publish and admin_payment_mode == "stripe")
     target_education_min = _parse_optional_int(form.get("target_education_min"))
     target_education_max = _parse_optional_int(form.get("target_education_max"))
     experience_list = form.getlist("target_experience_tags")
@@ -6217,14 +6226,16 @@ async def publish_survey(
     else:
         per_person_gross_value = _parse_optional_float(per_person_gross)
         total_budget_value = _parse_optional_float(total_budget)
-        if admin_publish and not per_person_gross_value and not total_budget_value:
+        if admin_uses_stripe and not per_person_gross_value and not total_budget_value:
+            raise HTTPException(400, "Stripe admin publish requires a per-person or total budget.")
+        if admin_publish and not admin_uses_stripe and not per_person_gross_value and not total_budget_value:
             ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
         elif per_person_gross_value is not None and per_person_gross_value > 0:
             ppg = per_person_gross_value
         elif total_budget_value is not None and total_budget_value > 0:
             ppg = total_budget_value / (int(target_responses) * session_count)
         else: ppg = 5.0
-        if not (admin_publish and ppg == 0.0):
+        if not (admin_publish and not admin_uses_stripe and ppg == 0.0):
             rate, reward = calculate_commission(ppg)
             total = round(ppg * int(target_responses) * session_count, 2)
     total = round(total * timeline_multiplier(urgency_level), 2)
@@ -6288,7 +6299,7 @@ async def publish_survey(
         survey.interview_location = interview_location if is_interview_listing else None
         survey.session_count = session_count if is_interview_listing else None
         survey.sessions_per_week = sessions_per_week if is_interview_listing else None
-        survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish else None
+        survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish and not admin_uses_stripe else None
         _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
         db.commit()
@@ -6326,7 +6337,7 @@ async def publish_survey(
             interview_location=interview_location if is_interview_listing else None,
             session_count=session_count if is_interview_listing else None,
             sessions_per_week=sessions_per_week if is_interview_listing else None,
-            admin_display_reward_amount=admin_display_reward_amount if admin_publish else None,
+            admin_display_reward_amount=admin_display_reward_amount if admin_publish and not admin_uses_stripe else None,
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
         _ensure_survey_share_slug(db, survey)
@@ -6342,7 +6353,7 @@ async def publish_survey(
             metadata={"study_title": survey.title, "source": "Publish flow", "user_role": "researcher"},
         )
 
-    if admin_publish:
+    if admin_publish and not admin_uses_stripe:
         survey.status = "published"
         survey.payment_status = "admin_demo"
         survey.published_at = datetime.utcnow()
@@ -6358,6 +6369,9 @@ async def publish_survey(
         db.commit()
         redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
         return RedirectResponse(f"/admin/publish?{redirect_qs}", status_code=303)
+
+    if admin_uses_stripe and not stripe.api_key:
+        raise HTTPException(503, "Stripe is not configured. Use demo mode or add STRIPE_SECRET_KEY.")
 
     # Handle no-pay incentives, missing Stripe key, and Stripe checkout
     if is_no_pay or not stripe.api_key:
@@ -6378,6 +6392,10 @@ async def publish_survey(
         return RedirectResponse("/publisher", status_code=303)
 
     success_url = f"https://insightaco.org/payment/success?survey_id={survey.id}"
+    cancel_url = "https://insightaco.org/publisher"
+    if admin_uses_stripe:
+        success_url = f"https://insightaco.org/payment/success?survey_id={survey.id}&admin=1"
+        cancel_url = f"https://insightaco.org/admin#publish"
     if is_volunteer:
         stripe_description = f"Volunteer recruitment fee: ${volunteer_platform_fee(target_responses):.2f} per 10 participants"
     else:
@@ -6387,8 +6405,12 @@ async def publish_survey(
         line_items=[{"price_data": {"currency": "usd", "product_data": {"name": f"Survey: {survey.title}", "description": stripe_description}, "unit_amount": int(round(total * 100))}, "quantity": 1}],
         mode="payment",
         success_url=success_url,
-        cancel_url="https://insightaco.org/publisher",
-        metadata={"survey_id": str(survey.id), "publisher_id": str(current_user.id)}
+        cancel_url=cancel_url,
+        metadata={
+            "survey_id": str(survey.id),
+            "publisher_id": str(current_user.id),
+            "source": "admin_publish_stripe" if admin_uses_stripe else "researcher_publish",
+        }
     )
     survey.stripe_payment_intent_id = session.id; db.commit()
     return RedirectResponse(session.url, status_code=303)
