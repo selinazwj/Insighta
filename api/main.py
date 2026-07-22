@@ -5139,6 +5139,84 @@ async def admin_reward_reminder_email(request: Request, db: Session = Depends(ge
     })
 
 
+@app.get("/admin/blocked-users")
+async def admin_blocked_users(admin_key: str = Query(None), db: Session = Depends(get_db)):
+    if not _admin_key_matches(admin_key):
+        raise HTTPException(403, "Unauthorized")
+    rows = db.query(QualityBlacklist).filter(
+        QualityBlacklist.block_type == "email",
+    ).order_by(QualityBlacklist.created_at.desc()).all()
+    seen = set()
+    result = []
+    for email in sorted(DEFAULT_BLOCKED_EMAILS):
+        normalized = _normalize_email(email)
+        if not normalized:
+            continue
+        seen.add(normalized)
+        result.append({
+            "email": normalized,
+            "reason": "Blocked by default risk-control list",
+            "source": "built_in",
+            "created_at": "",
+        })
+    for row in rows:
+        normalized = _normalize_email(row.block_value)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        result.append({
+            "email": normalized,
+            "reason": row.reason or "",
+            "source": "database",
+            "created_at": row.created_at.isoformat() if row.created_at else "",
+        })
+    return JSONResponse({"blocked_users": result, "count": len(result)})
+
+
+@app.post("/admin/blocked-users")
+async def admin_block_user_by_email(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+    email = _normalize_email(body.get("email"))
+    reason = (body.get("reason") or "Blocked by admin").strip()[:500]
+    if not email or "@" not in email:
+        raise HTTPException(400, "Please provide a valid email address")
+    if email in DEFAULT_BLOCKED_EMAILS:
+        return JSONResponse({
+            "message": "Email is already blocked",
+            "email": email,
+            "source": "built_in",
+            "created": False,
+        })
+    existing = db.query(QualityBlacklist).filter(
+        QualityBlacklist.block_type == "email",
+        QualityBlacklist.block_value == email,
+    ).first()
+    if existing:
+        if reason and existing.reason != reason:
+            existing.reason = reason
+            db.commit()
+        return JSONResponse({
+            "message": "Email is already blocked",
+            "email": email,
+            "source": "database",
+            "created": False,
+        })
+    db.add(QualityBlacklist(
+        block_type="email",
+        block_value=email,
+        reason=reason,
+    ))
+    db.commit()
+    return JSONResponse({
+        "message": "Email blocked",
+        "email": email,
+        "source": "database",
+        "created": True,
+    })
+
+
 @app.post("/admin/api/ai-fill")
 async def admin_ai_fill(request: Request):
     try:

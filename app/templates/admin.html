@@ -302,6 +302,10 @@
       Support inbox
       <span class="nav-badge" id="support-badge" style="display:none;">0</span>
     </button>
+    <button class="nav-item" id="nav-blocks" onclick="switchPanel('blocks')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9l14.2 14.2"/></svg>
+      User blocks
+    </button>
     <button class="nav-item" id="nav-discovery" onclick="switchPanel('discovery')">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       Channel discovery
@@ -374,6 +378,11 @@
       <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('activity')">
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Activity log</div>
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Track who opened, started, and completed each listing.</div>
+        <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
+      </div>
+      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('blocks')">
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">User blocks</div>
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Block abusive users by email across login, signup, OAuth, and active sessions.</div>
         <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
       </div>
       <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;">
@@ -520,6 +529,42 @@
     </div>
   </div>
 
+  <!-- ── USER BLOCKS PANEL ── -->
+  <div class="panel" id="panel-blocks">
+    <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:24px;margin-bottom:16px;max-width:760px;">
+      <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px;">Block user by email</div>
+      <div style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:18px;">
+        Blocked emails cannot request codes, sign up, sign in, use Google/LinkedIn login, or continue with an existing session.
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="blockEmail" placeholder="person@example.com">
+        </div>
+        <div class="field">
+          <label>Reason</label>
+          <input type="text" id="blockReason" placeholder="Spam, abuse, fraud risk...">
+        </div>
+      </div>
+      <div class="form-actions">
+        <div class="form-rule" id="blockStatus">Use this for clear abuse or fraud risk only.</div>
+        <button class="btn-run" id="blockBtn" onclick="blockUserEmail()">Block user</button>
+      </div>
+    </div>
+    <div class="analytics-box">
+      <div class="analytics-head">
+        <div>
+          <div class="analytics-title">Blocked emails</div>
+          <div class="analytics-sub">Built-in blocks are shipped in code. Database blocks are added from this admin tool or Supabase.</div>
+        </div>
+        <button class="btn-refresh" onclick="loadBlockedUsers()">Refresh</button>
+      </div>
+      <div id="blockedUsersList">
+        <div class="empty"><div class="empty-sub">Open this panel to load blocked users.</div></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── DISCOVERY PANEL ── -->
   <div class="panel" id="panel-discovery">
     <div class="discovery-form">
@@ -610,7 +655,7 @@
   let currentPanel = 'overview';
 
   // ── PANEL SWITCH ──
-  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', activity:'Activity log', feedback:'Feedback review', support:'Support inbox', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
+  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', activity:'Activity log', feedback:'Feedback review', support:'Support inbox', blocks:'User blocks', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
 
   async function login() {
     const input = document.getElementById('adminKeyInput');
@@ -643,6 +688,7 @@
       if (window.location.hash === '#activity') switchPanel('activity');
       if (window.location.hash === '#listings') switchPanel('listings');
       if (window.location.hash === '#support') switchPanel('support');
+      if (window.location.hash === '#blocks') switchPanel('blocks');
       if (window.location.hash === '#discovery') switchPanel('discovery');
       if (window.location.hash === '#publish') switchPanel('publish');
     } catch {
@@ -663,6 +709,7 @@
     if (id === 'listings') loadListings();
     if (id === 'analytics') loadAnalytics();
     if (id === 'activity') loadActivity(true);
+    if (id === 'blocks') loadBlockedUsers();
     if (id === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
 
@@ -672,6 +719,7 @@
     else if (currentPanel === 'listings') loadListings();
     else if (currentPanel === 'analytics') loadAnalytics();
     else if (currentPanel === 'activity') loadActivity(true);
+    else if (currentPanel === 'blocks') loadBlockedUsers();
     else if (currentPanel === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
 
@@ -736,6 +784,76 @@
       alert(`Reminder sent to ${result.sent_count || 0}/${result.recipient_count || count} user${(result.recipient_count || count) === 1 ? '' : 's'}.${result.failed_count ? ` Failed: ${result.failed_count}.` : ''}`);
     } catch(err) {
       alert(err.message || 'Reminder email failed.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }
+
+  async function loadBlockedUsers() {
+    const wrap = document.getElementById('blockedUsersList');
+    if (!adminKey || !wrap) return;
+    wrap.innerHTML = '<div class="empty"><div class="empty-sub">Loading blocked users...</div></div>';
+    try {
+      const res = await fetch(`/admin/blocked-users?admin_key=${encodeURIComponent(adminKey)}&_=${Date.now()}`, { cache:'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not load blocked users');
+      const rows = data.blocked_users || [];
+      if (!rows.length) {
+        wrap.innerHTML = '<div class="empty"><div class="empty-title">No blocked emails</div><div class="empty-sub">Blocked users will appear here after you add them.</div></div>';
+        return;
+      }
+      wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+        <thead><tr><th>Email</th><th>Reason</th><th>Source</th><th>Added</th></tr></thead>
+        <tbody>${rows.map(row => `
+          <tr>
+            <td><div class="listing-title">${esc(row.email || '')}</div></td>
+            <td>${esc(row.reason || '')}</td>
+            <td><span class="${row.source === 'built_in' ? 'rate-good' : 'rate-empty'}">${esc(row.source === 'built_in' ? 'Built-in' : 'Database')}</span></td>
+            <td>${esc(row.created_at ? new Date(row.created_at).toLocaleString() : '—')}</td>
+          </tr>
+        `).join('')}</tbody>
+      </table></div>`;
+    } catch (err) {
+      wrap.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message || 'Could not load blocked users')}</div></div>`;
+    }
+  }
+
+  async function blockUserEmail() {
+    if (!adminKey) return;
+    const emailInput = document.getElementById('blockEmail');
+    const reasonInput = document.getElementById('blockReason');
+    const status = document.getElementById('blockStatus');
+    const btn = document.getElementById('blockBtn');
+    const email = (emailInput?.value || '').trim().toLowerCase();
+    const reason = (reasonInput?.value || '').trim() || 'Blocked by admin';
+    if (!email || !email.includes('@')) {
+      status.textContent = 'Please enter a valid email address.';
+      status.style.color = '#b91c1c';
+      return;
+    }
+    if (!confirm(`Block ${email}? This will prevent login, signup, OAuth, and active-session access.`)) return;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Blocking...';
+    status.textContent = 'Blocking user...';
+    status.style.color = 'var(--ink3)';
+    try {
+      const res = await fetch('/admin/blocked-users', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, email, reason })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not block this user');
+      status.textContent = data.message || 'User blocked.';
+      status.style.color = 'var(--green)';
+      if (emailInput) emailInput.value = '';
+      if (reasonInput) reasonInput.value = '';
+      loadBlockedUsers();
+    } catch (err) {
+      status.textContent = err.message || 'Could not block this user.';
+      status.style.color = '#b91c1c';
     } finally {
       btn.disabled = false;
       btn.textContent = original;
