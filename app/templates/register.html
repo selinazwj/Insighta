@@ -63,6 +63,7 @@
     .form-row .form-group { margin-bottom: 0; }
 
     .badge-required { font-size: 10px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--green); background: var(--green-l); border: 0.5px solid var(--green-m); padding: 2px 7px; border-radius: 100px; }
+    .badge-optional { font-size: 10px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink-muted); background: var(--paper-soft); border: 0.5px solid var(--line2); padding: 2px 7px; border-radius: 100px; }
 
     input[type="email"], input[type="password"], input[type="text"], input[type="tel"], input[type="number"], select {
       width: 100%; height: 42px; padding: 0 12px; border: 0.5px solid var(--line2); border-radius: 8px;
@@ -83,10 +84,42 @@
     .field-note { font-size: 12px; color: var(--ink-muted); line-height: 1.5; margin-top: 7px; }
     .field-note strong { color: var(--green); font-weight: 700; }
 
-    .pw-strength { margin-top: 8px; }
+    .pw-strength { margin-top: 10px; }
     .pw-bar { height: 4px; border-radius: 100px; background: var(--line); overflow: hidden; margin-bottom: 4px; }
     .pw-bar-fill { height: 100%; border-radius: 100px; transition: width 0.3s, background 0.3s; width: 0%; }
-    .pw-hint { font-size: 12px; color: var(--ink-muted); }
+    .pw-hint { font-size: 12px; font-weight: 600; min-height: 16px; color: var(--ink-muted); }
+    .pw-rules {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .pw-rule {
+      font-size: 12px;
+      color: var(--ink-soft);
+      line-height: 1.4;
+    }
+    .pw-rule::before {
+      content: "○ ";
+      color: var(--ink-muted);
+    }
+    .pw-rule.ok {
+      color: var(--green-d);
+      font-weight: 600;
+    }
+    .pw-rule.ok::before {
+      content: "✓ ";
+      color: var(--green-d);
+      font-weight: 700;
+    }
+    .confirm-hint {
+      font-size: 12px;
+      margin-top: 7px;
+      min-height: 16px;
+      line-height: 1.4;
+    }
+    .confirm-hint.error { color: #c53030; font-weight: 600; }
+    .confirm-hint.ok { color: var(--green-d); font-weight: 600; }
 
     .btn-next, .btn-submit { width: 100%; height: 42px; background: var(--green); color: white; border: none; border-radius: 20px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; margin-top: 8px; }
     .btn-next:hover, .btn-submit:hover { background: var(--green-d); transform: none; box-shadow: none; }
@@ -364,6 +397,14 @@
         </div>
 
         <div class="form-group">
+          <label>Referral code <span class="badge-optional">Optional</span></label>
+          <input type="text" name="referral_code" id="referralCode" placeholder="e.g. AB12CD34"
+            value="{{ register_referral or '' }}" autocomplete="off" spellcheck="false"
+            style="text-transform:uppercase;letter-spacing:.08em;">
+          <div class="field-note">Have a friend’s code? Enter it here — or skip if you don’t.</div>
+        </div>
+
+        <div class="form-group">
           <label>Verification code <span class="badge-required">Required</span></label>
           <div class="code-row">
             <input type="text" name="verification_code" id="verificationCode"
@@ -488,19 +529,28 @@
           </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" style="margin-top:16px;">
           <label>Password <span class="badge-required">Required</span></label>
           <input type="password" name="password" id="password" required placeholder="••••••••"
             oninput="checkPasswordStrength(this.value)">
-          <div class="pw-strength">
+          <div class="pw-strength" id="pwStrength" hidden>
             <div class="pw-bar"><div class="pw-bar-fill" id="pwBarFill"></div></div>
-            <div class="pw-hint" id="pwHint">Min 8 chars, uppercase, lowercase, number, special char</div>
+            <div class="pw-hint" id="pwHint"></div>
+          </div>
+          <div class="pw-rules" id="pwRules" aria-live="polite">
+            <div class="pw-rule" data-rule="length">At least 8 characters</div>
+            <div class="pw-rule" data-rule="upper">One uppercase letter</div>
+            <div class="pw-rule" data-rule="lower">One lowercase letter</div>
+            <div class="pw-rule" data-rule="number">One number</div>
+            <div class="pw-rule" data-rule="special">One special character</div>
           </div>
         </div>
 
         <div class="form-group">
           <label>Confirm password <span class="badge-required">Required</span></label>
-          <input type="password" name="confirm" id="confirm" required placeholder="••••••••">
+          <input type="password" name="confirm" id="confirm" required placeholder="••••••••"
+            oninput="checkPasswordMatch()">
+          <div class="confirm-hint" id="confirmHint"></div>
         </div>
 
         <button type="button" class="btn-next" onclick="requestConsent()">Create Account →</button>
@@ -621,22 +671,63 @@
     window.scrollTo(0, 0);
   }
 
-  // ── Password strength ─────────────────────────────────────
+  // ── Password strength + requirements checklist ────────────
   function checkPasswordStrength(val) {
     const fill = document.getElementById('pwBarFill');
     const hint = document.getElementById('pwHint');
-    let score = 0;
-    if (val.length >= 8) score++;
-    if (/[A-Z]/.test(val)) score++;
-    if (/[a-z]/.test(val)) score++;
-    if (/\d/.test(val)) score++;
-    if (/[^A-Za-z0-9]/.test(val)) score++;
-    const pct = (score / 5) * 100;
-    fill.style.width = pct + '%';
-    if (score <= 2) { fill.style.background = '#ef4444'; hint.textContent = 'Weak — add uppercase, numbers, special chars'; hint.style.color = '#ef4444'; }
-    else if (score <= 3) { fill.style.background = '#f59e0b'; hint.textContent = 'Fair — getting better'; hint.style.color = '#f59e0b'; }
-    else if (score === 4) { fill.style.background = '#3b82f6'; hint.textContent = 'Good — almost there'; hint.style.color = '#3b82f6'; }
-    else { fill.style.background = '#3b7c4f'; hint.textContent = 'Strong'; hint.style.color = '#3b7c4f'; }
+    const strength = document.getElementById('pwStrength');
+    const checks = {
+      length: (val || '').length >= 8,
+      upper: /[A-Z]/.test(val || ''),
+      lower: /[a-z]/.test(val || ''),
+      number: /\d/.test(val || ''),
+      special: /[^A-Za-z0-9]/.test(val || ''),
+    };
+    Object.keys(checks).forEach((key) => {
+      const row = document.querySelector(`.pw-rule[data-rule="${key}"]`);
+      if (row) row.classList.toggle('ok', checks[key]);
+    });
+
+    if (!val) {
+      strength.hidden = true;
+      fill.style.width = '0%';
+      hint.textContent = '';
+      checkPasswordMatch();
+      return;
+    }
+    strength.hidden = false;
+    const score = Object.values(checks).filter(Boolean).length;
+    fill.style.width = (score / 5) * 100 + '%';
+    if (score <= 2) { fill.style.background = '#ef4444'; hint.textContent = 'Weak'; hint.style.color = '#ef4444'; }
+    else if (score <= 3) { fill.style.background = '#f59e0b'; hint.textContent = 'Fair'; hint.style.color = '#f59e0b'; }
+    else if (score === 4) { fill.style.background = '#3b82f6'; hint.textContent = 'Good'; hint.style.color = '#3b82f6'; }
+    else { fill.style.background = '#2a5c39'; hint.textContent = 'Strong'; hint.style.color = '#2a5c39'; }
+    checkPasswordMatch();
+  }
+
+  function checkPasswordMatch() {
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm');
+    const hint = document.getElementById('confirmHint');
+    const value = confirm.value;
+    if (!value) {
+      hint.textContent = '';
+      hint.className = 'confirm-hint';
+      confirm.style.borderColor = '';
+      confirm.style.boxShadow = '';
+      return;
+    }
+    if (value === password) {
+      hint.textContent = 'Passwords match';
+      hint.className = 'confirm-hint ok';
+      confirm.style.borderColor = '';
+      confirm.style.boxShadow = '';
+    } else {
+      hint.textContent = 'Passwords do not match';
+      hint.className = 'confirm-hint error';
+      confirm.style.borderColor = '#ef4444';
+      confirm.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+    }
   }
 
   // ── Consent modal ─────────────────────────────────────────
@@ -662,6 +753,7 @@
       const el = document.getElementById('confirm');
       el.style.borderColor = '#ef4444';
       el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      checkPasswordMatch();
       return;
     }
     document.getElementById('consentModal').style.display = 'flex';
