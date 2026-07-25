@@ -527,6 +527,8 @@
 <script>
   const allSurveys = {{ surveys | tojson | safe }};
   let cardIdx = 0;
+  // completed studies belong in My Studies — the stricter !s.status filter
+  // (from main) also keeps started/skipped out of the fresh card stack
   let activeSurveys = allSurveys.filter(s => !s.status);
   let cardHistory = [];
   let viewMode = localStorage.getItem('participantViewMode') || 'cards';
@@ -599,6 +601,10 @@
     const urgentPill = s.urgency === 'within_1_week'
       ? `<div class="meta-pill" style="color:#c05621;background:rgba(192,86,33,.08);border-color:rgba(192,86,33,.2)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Urgent</div>`
       : '';
+    // ive added this for verification — nudge pill if this study needs a stronger tier
+    const verifyPill = s.verification_satisfied === false
+      ? `<div class="meta-pill" style="color:#92400e;background:#FEF3C7;border-color:#f5d47a"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Verify to get paid</div>`
+      : '';
     const sessionPill = s.type === 'interview' && s.session_count
       ? `<div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${s.session_count} session${Number(s.session_count) === 1 ? '' : 's'}${s.sessions_per_week ? ` · ${s.sessions_per_week}/week` : ''}</div>`
       : '';
@@ -631,6 +637,7 @@
             ${sessionPill}
             <div class="meta-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ${spotsLabel(s.responses)}</div>
             ${urgentPill}
+            ${verifyPill}
           </div>
           <div class="card-footer-row">
             <div><div class="reward-big">${s.reward}</div><div class="reward-lbl">cash reward</div></div>
@@ -705,6 +712,7 @@
           </div>
           <div class="study-row-meta">
             <span>${s.type_label || cap(s.category)}</span><span>${s.time}</span>${s.type === 'interview' && s.session_count ? `<span>${s.session_count} session${Number(s.session_count) === 1 ? '' : 's'}${s.sessions_per_week ? ` · ${s.sessions_per_week}/week` : ''}</span>` : ''}<span>${spotsLabel(s.responses)}</span>${done}
+            ${s.verification_satisfied === false ? '<span>🔒 Verify to get paid</span>' : ''}
           </div>
           <div class="study-row-actions">
             <button class="list-secondary" onclick="doSkip()">Skip</button>
@@ -784,6 +792,10 @@
 
   async function doTake(id, link, isBuiltIn) {
     const s = activeSurveys.find(x => x.id === id) || allSurveys.find(x => x.id === id);
+    if (s && s.screening_required && !s.screening_passed) {
+      window.location.href = s.screening_url || `/surveys/${id}/screening`;
+      return;
+    }
     let bookingSlot = null;
     const hasExternalLink = !!(link && link !== '__builtin__');
     const format = ((s && s.format) || '').toLowerCase();
@@ -810,9 +822,21 @@
   async function doComplete(id) {
     const res = await fetch(`/surveys/${id}/complete`, { method: 'POST', credentials: 'same-origin' }).catch(()=>null);
     if (res && res.ok) {
-      const s = activeSurveys.find(x => x.id === id);
-      if (s) s.is_completed = true;
-      advanceFromCurrent('right', updateStats);
+      // ive added this for phase 4 (participant nudge) — send them to /verify if this
+      // study needed a stronger tier than they currently hold
+      const data = await res.json().catch(() => null);
+      if (data && data.needs_verification) {
+        window.location.href = '/verify?needs_tier=' + encodeURIComponent(data.required_verification_tier || 'tier_3') + (data.required_email_domains ? '&needs_domains=' + encodeURIComponent(data.required_email_domains) : '');
+        return;
+      }
+      // ive changed this — the finished study disappears from the home feed right away
+      // (it still shows up under My Studies)
+      const i = activeSurveys.findIndex(x => x.id === id);
+      if (i >= 0) {
+        flyOut('right', () => { activeSurveys.splice(i, 1); renderHome(); updateStats(); });
+      } else {
+        updateStats();
+      }
     }
   }
 

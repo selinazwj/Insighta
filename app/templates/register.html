@@ -353,6 +353,10 @@
       <div class="step-dot">2</div>
       <div class="step-info"><h4>Create Password</h4><p>Secure your account</p></div>
     </div>
+    <div class="panel-step {% if register_step|default(1) == 3 %}active{% endif %}" id="panelStep3">
+      <div class="step-dot">3</div>
+      <div class="step-info"><h4>Your Occupation</h4><p>Helps match you with studies</p></div>
+    </div>
   </div>
   <div class="panel-footer">
     <p>Already have an account, or want to use Google? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in or continue with Google →</a></p>
@@ -369,6 +373,10 @@
 
     <form method="POST" action="/register" id="registerForm">
       <input type="hidden" name="role" value="{{ register_role or '' }}">
+      <!-- ive added this for phase 4 — honeypot: humans never see it, bots autofill it -->
+      <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
+        style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;" aria-hidden="true">
+      <input type="hidden" name="captcha_token" value="{{ captcha_token or '' }}">
       <input type="hidden" name="next" value="{{ register_next or '' }}">
 
       <!-- STEP 1: Email + Verification -->
@@ -431,7 +439,7 @@
       <!-- STEP 2: Password -->
       <div class="step {% if register_step|default(1) == 2 %}active{% endif %}" id="step2">
         <div class="step-header">
-          <span class="step-eyebrow">Step 2 of 2</span>
+          <span class="step-eyebrow">Step 2 of 3</span>
           <h1>Finish your basics.</h1>
           <p>Add the core profile details we need to match studies and verify rewards.</p>
         </div>
@@ -553,8 +561,61 @@
           <div class="confirm-hint" id="confirmHint"></div>
         </div>
 
-        <button type="button" class="btn-next" onclick="requestConsent()">Create Account →</button>
+        <button type="button" class="btn-next" onclick="goToStep3()">Continue →</button>
         <button type="button" class="btn-back" onclick="backToStep1()">← Back</button>
+      </div>
+
+      <!-- STEP 3: Occupation -->
+      <div class="step {% if register_step|default(1) == 3 %}active{% endif %}" id="step3">
+        <div class="step-header">
+          <span class="step-eyebrow">Step 3 of 3</span>
+          <h1>What's your occupation?</h1>
+          <p>This helps us match you with relevant research studies. ive added this for verification</p>
+        </div>
+
+        <div class="form-group">
+          <label>Occupation <span class="badge-required">Required</span></label>
+          <select name="occupation" id="occupation" required>
+            <option value="">Select your occupation</option>
+            <optgroup label="Licensed professionals">
+              <option value="physician">Physician</option>
+              <option value="nurse">Nurse</option>
+              <option value="lawyer">Lawyer</option>
+              <option value="therapist">Therapist</option>
+              <option value="engineer">Engineer</option>
+            </optgroup>
+            <optgroup label="Professionals and students">
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+              <option value="it_professional">IT Professional</option>
+              <option value="researcher">Researcher</option>
+              <option value="marketer">Marketer</option>
+              <option value="business">Business</option>
+            </optgroup>
+            <optgroup label="General">
+              <option value="general_public">General Public</option>
+              <option value="other">Other</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- A managed challenge is used in configured environments. The signed
+             math fallback is kept only so local development works offline. -->
+        <div class="form-group">
+          {% if turnstile_site_key %}
+          <label>Security check <span class="badge-required">Required</span></label>
+          <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+          <div class="field-note">This helps us prevent automated and duplicate sign-ups.</div>
+          {% else %}
+          <label>Quick check: what is {{ captcha_question }}? <span class="badge-required">Required</span></label>
+          <input type="text" name="captcha_answer" id="captchaAnswer" inputmode="numeric"
+            placeholder="Your answer" maxlength="3" required>
+          <div class="field-note">Local development fallback. Production uses a managed bot check.</div>
+          {% endif %}
+        </div>
+
+        <button type="button" class="btn-next" onclick="requestConsent()">Create Account →</button>
+        <button type="button" class="btn-back" onclick="backToStep2()">← Back</button>
       </div>
 
     </form>
@@ -671,6 +732,51 @@
     window.scrollTo(0, 0);
   }
 
+  function goToStep3() {
+    // ive updated this — validate every required basics field (theirs) plus the
+    // password pair before moving on to the occupation step
+    let hasError = false;
+    let firstBad = null;
+    document.querySelectorAll('#step2 [required]').forEach(el => {
+      if (!el.value.trim()) {
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+        hasError = true;
+        if (!firstBad) firstBad = el;
+        el.addEventListener('input', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
+        el.addEventListener('change', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
+      } else {
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+      }
+    });
+    if (hasError) { if (firstBad) firstBad.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm').value;
+    if (password !== confirm) {
+      const el = document.getElementById('confirm');
+      el.style.borderColor = '#ef4444';
+      el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      return;
+    }
+
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step3').classList.add('active');
+    document.getElementById('panelStep2').classList.remove('active');
+    document.getElementById('panelStep2').classList.add('done');
+    document.getElementById('panelStep3').classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function backToStep2() {
+    document.getElementById('step3').classList.remove('active');
+    document.getElementById('step2').classList.add('active');
+    document.getElementById('panelStep3').classList.remove('active');
+    document.getElementById('panelStep2').classList.remove('done');
+    document.getElementById('panelStep2').classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
   // ── Password strength + requirements checklist ────────────
   function checkPasswordStrength(val) {
     const fill = document.getElementById('pwBarFill');
@@ -736,7 +842,10 @@
     const confirm = document.getElementById('confirm').value;
     let hasError = false;
 
-    document.querySelectorAll('#step2 [required]').forEach(el => {
+    // Occupation and the local-only CAPTCHA are on step 3.
+    ['password', 'confirm', 'occupation', 'captchaAnswer'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
       if (!el.value.trim()) {
         el.style.borderColor = '#ef4444';
         el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
@@ -782,12 +891,25 @@
   document.getElementById('panelStep1').classList.remove('active');
   document.getElementById('panelStep1').classList.add('done');
   document.getElementById('panelStep2').classList.add('active');
+  {% elif register_step|default(1) == 3 %}
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.remove('active');
+  document.getElementById('step3').classList.add('active');
+  document.getElementById('panelStep1').classList.remove('active');
+  document.getElementById('panelStep1').classList.add('done');
+  document.getElementById('panelStep2').classList.remove('active');
+  document.getElementById('panelStep2').classList.add('done');
+  document.getElementById('panelStep3').classList.add('active');
   {% else %}
   document.getElementById('step1').classList.add('active');
   document.getElementById('step2').classList.remove('active');
+  document.getElementById('step3').classList.remove('active');
   {% endif %}
   {% endif %}
 </script>
+{% if turnstile_site_key %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
 
 </body>
 </html>

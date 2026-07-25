@@ -34,7 +34,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from app.database import engine, get_db, SessionLocal
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent
+from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.quality_engine import (
@@ -49,6 +49,11 @@ from app.quality_engine import (
     resolve_excel_row_context,
     upsert_builtin_quality_check,
 )
+from app.screening_engine import (
+    evaluate_screening,
+    generate_screening_draft,
+    validate_researcher_edit,
+)
 
 configure_logging()
 logger = logging.getLogger("insighta.api")
@@ -60,7 +65,34 @@ from app.payouts import (
     release_response_payout,
     return_response_to_review,
 )
-from app.verification.routes import router as verification_router
+# ive added this for phase 4 — bot defense (rate limits, captcha, honeypot)
+from app.bot_defense import (
+    check_rate_limit,
+    client_ip,
+    make_captcha,
+    turnstile_site_key,
+    verify_bot_challenge,
+    honeypot_triggered,
+)
+from app.verification.assurance import (
+    HumanSignals,
+    TIER_BASIC,
+    TIER_HIGH,
+    TIER_LABELS,
+    TIER_RANK,
+    TIER_TRUSTED,
+    assess_human,
+    evidence_reference,
+    strongest_tier_for_methods,
+    tier_rank,
+    tier_satisfies,
+)
+from app.trust_engine import (
+    BLOCK as TRUST_BLOCK,
+    ParticipationInputs,
+    public_reason_codes,
+    recommend_participation,
+)
 from app.ai_growth.routes import router as ai_growth_router
 from app.ai_growth.security import is_safe_internal_next
 from app.ai_growth.jump import mark_latest_jump_completed_for_response
@@ -89,7 +121,6 @@ from app.seo import (
 
 app = FastAPI(title="Insighta")
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-app.include_router(verification_router)
 app.include_router(ai_growth_router)
 app.include_router(discovery_router)
 
@@ -175,6 +206,20 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 if auto_schema_bootstrap_enabled():
     Base.metadata.create_all(bind=engine)
 
+
+def ensure_verification_evidence_index():
+    """Enforce that one external proof cannot verify several participant accounts."""
+    with engine.begin() as conn:
+        conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS "
+            "uq_verification_method_evidence "
+            "ON verifications (method, evidence_ref)"
+        ))
+
+
+ensure_verification_evidence_index()
+
+
 def ensure_user_profile_columns():
     columns = {col["name"] for col in inspect(engine).get_columns("users")}
     profile_columns = {
@@ -195,6 +240,14 @@ def ensure_user_profile_columns():
         "race": "VARCHAR",
         "income_level": "VARCHAR",
         "lifestyle_tags": "VARCHAR",
+        "occupation": "VARCHAR",
+        "verification_status": "VARCHAR",
+        "verified_at": "TIMESTAMP",
+        "verified_tier": "VARCHAR",
+        "id_document_path": "VARCHAR",
+        "id_review_status": "VARCHAR",
+        "id_uploaded_at": "TIMESTAMP",
+        "verified_email": "VARCHAR",
         "referral_code": "VARCHAR",
         "invited_by_user_id": "INTEGER",
         "student_status": "VARCHAR",
@@ -241,6 +294,9 @@ def ensure_survey_listing_columns():
         "target_lifestyle_tags": "VARCHAR",
         "target_niche_requirements": "VARCHAR",
         "participant_benefits": "VARCHAR",
+        "required_occupation": "VARCHAR",
+        "required_verification_tier": "VARCHAR DEFAULT 'tier_3'",
+        "required_email_domains": "VARCHAR",
         "raffle_prize_type": "VARCHAR",
         "availability_slots": "TEXT",
         "interview_location": "VARCHAR",
@@ -307,6 +363,38 @@ def ensure_user_event_table():
 
 if auto_schema_bootstrap_enabled():
     ensure_user_event_table()
+
+
+def ensure_phase_two_trust_schema():
+    """Backfill columns added after the first screening release."""
+    screening_columns = {
+        col["name"] for col in inspect(engine).get_columns("screening_questions")
+    }
+    additions = {
+        "updated_at": "TIMESTAMP",
+        "approved_at": "TIMESTAMP",
+        "approved_by": "INTEGER",
+    }
+    risk_columns = {
+        col["name"] for col in inspect(engine).get_columns("risk_signal_events")
+    }
+    with engine.begin() as conn:
+        for name, column_type in additions.items():
+            if name not in screening_columns:
+                conn.execute(text(
+                    f"ALTER TABLE screening_questions ADD COLUMN {name} {column_type}"
+                ))
+        if "survey_id" not in risk_columns:
+            conn.execute(text(
+                "ALTER TABLE risk_signal_events ADD COLUMN survey_id INTEGER"
+            ))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_risk_signal_events_survey_id "
+            "ON risk_signal_events (survey_id)"
+        ))
+
+
+ensure_phase_two_trust_schema()
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
@@ -708,15 +796,6 @@ def _send_booking_confirmation_emails_for_response(response_id: int, booking_slo
         db.close()
 
 
-async def _send_survey_start_followup_after_delay(response_id: int, dashboard_url: str) -> None:
-    await asyncio.sleep(SURVEY_START_FOLLOWUP_DELAY_MINUTES * 60)
-    db = SessionLocal()
-    try:
-        _send_survey_start_followup_email(db, response_id, dashboard_url)
-    finally:
-        db.close()
-
-
 def _send_due_survey_start_followups(limit: int = 25) -> int:
     db = SessionLocal()
     sent_count = 0
@@ -751,17 +830,43 @@ async def _survey_start_followup_worker() -> None:
         await asyncio.sleep(SURVEY_START_FOLLOWUP_POLL_SECONDS)
 
 
+def _cleanup_expired_trust_data() -> None:
+    """Apply explicit retention limits to privacy-sensitive security telemetry."""
+    try:
+        signal_days = min(365, max(7, int(
+            os.environ.get("RISK_SIGNAL_RETENTION_DAYS", "90")
+        )))
+        decision_days = min(2555, max(90, int(
+            os.environ.get("TRUST_DECISION_RETENTION_DAYS", "730")
+        )))
+    except ValueError:
+        signal_days, decision_days = 90, 730
+    db = SessionLocal()
+    try:
+        now = datetime.utcnow()
+        db.query(RiskSignalEvent).filter(
+            RiskSignalEvent.created_at < now - timedelta(days=signal_days),
+        ).delete(synchronize_session=False)
+        db.query(ParticipationDecision).filter(
+            ParticipationDecision.created_at < now - timedelta(days=decision_days),
+        ).delete(synchronize_session=False)
+        db.commit()
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 async def start_survey_followup_worker() -> None:
+    _cleanup_expired_trust_data()
     asyncio.create_task(_survey_start_followup_worker())
 
 
 def _client_ip(request: Request) -> Optional[str]:
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip()[:120]
+        return _privacy_ref("analytics_network", forwarded.split(",")[0].strip())
     if request.client:
-        return request.client.host[:120]
+        return _privacy_ref("analytics_network", request.client.host)
     return None
 
 
@@ -930,14 +1035,179 @@ def _extract_client_meta(request: Request, current_user: User) -> dict:
         client_ip = request.client.host
     user_agent = request.headers.get("user-agent")
     fingerprint = request.headers.get("x-device-fingerprint")
+    fingerprint_confident = bool(fingerprint)
     if not fingerprint:
-        raw = f"{user_agent or ''}|{getattr(current_user, 'device_type', '') or ''}|{current_user.id}"
+        # This fallback is intentionally coarse. It can contribute to a review
+        # score, but is never treated as a stable identity or a sole block.
+        raw = f"{user_agent or ''}|{getattr(current_user, 'device_type', '') or ''}"
         fingerprint = hashlib.sha256(raw.encode()).hexdigest()[:32]
     return {
         "client_ip": client_ip,
         "user_agent": user_agent,
         "device_fingerprint": fingerprint,
+        "device_fingerprint_confident": fingerprint_confident,
     }
+
+
+def _privacy_ref(kind: str, value: Optional[str]) -> Optional[str]:
+    normalized = str(value or "").strip()
+    return evidence_reference(f"risk_{kind}", normalized) if normalized else None
+
+
+def _record_risk_signal(
+    db: Session,
+    request: Request,
+    *,
+    user: User,
+    event_type: str,
+    survey_id: Optional[int] = None,
+    bot_challenge_passed: Optional[bool] = None,
+    metadata: Optional[dict] = None,
+) -> RiskSignalEvent:
+    """Persist only HMAC references, never raw network or device identifiers."""
+    meta = _extract_client_meta(request, user)
+    row = RiskSignalEvent(
+        user_id=user.id,
+        survey_id=survey_id,
+        event_type=event_type,
+        network_ref=_privacy_ref("network", meta.get("client_ip")),
+        device_ref=(
+            _privacy_ref("device", meta.get("device_fingerprint"))
+            if meta.get("device_fingerprint_confident") else None
+        ),
+        bot_challenge_passed=bot_challenge_passed,
+        signal_metadata=metadata or {},
+    )
+    db.add(row)
+    return row
+
+
+def _human_assessment_for_request(
+    db: Session,
+    request: Request,
+    user: User,
+    *,
+    event_type: str,
+    survey_id: Optional[int] = None,
+    record_event: bool = True,
+):
+    """Build a human-risk assessment from persistent, low-sensitivity signals."""
+    now = datetime.utcnow()
+    meta = _extract_client_meta(request, user)
+    network_ref = _privacy_ref("network", meta.get("client_ip"))
+    device_ref = (
+        _privacy_ref("device", meta.get("device_fingerprint"))
+        if meta.get("device_fingerprint_confident") else None
+    )
+
+    accounts_on_device = 1
+    if device_ref:
+        accounts_on_device = max(1, db.query(
+            func.count(func.distinct(RiskSignalEvent.user_id))
+        ).filter(
+            RiskSignalEvent.device_ref == device_ref,
+            RiskSignalEvent.user_id.isnot(None),
+            RiskSignalEvent.created_at >= now - timedelta(days=90),
+        ).scalar() or 0)
+
+    registrations_from_ip_24h = 1
+    if network_ref:
+        registrations_from_ip_24h = max(1, db.query(RiskSignalEvent).filter(
+            RiskSignalEvent.network_ref == network_ref,
+            RiskSignalEvent.event_type == "registration",
+            RiskSignalEvent.created_at >= now - timedelta(hours=24),
+        ).count())
+
+    accounts_on_network_for_study = 1
+    study_actions_from_network_10m = 1
+    if network_ref and survey_id:
+        network_study_query = db.query(RiskSignalEvent).filter(
+            RiskSignalEvent.network_ref == network_ref,
+            RiskSignalEvent.survey_id == survey_id,
+            RiskSignalEvent.event_type.in_(["start", "completion"]),
+            RiskSignalEvent.created_at >= now - timedelta(days=90),
+        )
+        known_accounts = network_study_query.with_entities(
+            func.count(func.distinct(RiskSignalEvent.user_id))
+        ).scalar() or 0
+        current_user_seen = network_study_query.filter(
+            RiskSignalEvent.user_id == user.id,
+        ).first() is not None
+        accounts_on_network_for_study = max(
+            1,
+            int(known_accounts) + (0 if current_user_seen else 1),
+        )
+        study_actions_from_network_10m = max(
+            1,
+            network_study_query.filter(
+                RiskSignalEvent.created_at >= now - timedelta(minutes=10),
+            ).count() + 1,
+        )
+
+    rapid_actions = db.query(RiskSignalEvent).filter(
+        RiskSignalEvent.user_id == user.id,
+        RiskSignalEvent.created_at >= now - timedelta(minutes=5),
+    ).count()
+    prior_approved_responses = db.query(Response).filter(
+        Response.participant_id == user.id,
+        Response.payout_status.in_([APPROVED, LEGACY_RELEASED, "paid"]),
+    ).count()
+    prior_fraud_flags = db.query(ResponseQualityCheck).join(
+        Response,
+        Response.id == ResponseQualityCheck.response_id,
+    ).filter(
+        Response.participant_id == user.id,
+        ResponseQualityCheck.fraud_risk.is_(True),
+    ).count()
+    prior_fraud_flags += db.query(QualityBlacklist).filter(
+        QualityBlacklist.block_type == "user",
+        QualityBlacklist.block_value == str(user.id),
+    ).count()
+
+    latest_registration = db.query(RiskSignalEvent).filter(
+        RiskSignalEvent.user_id == user.id,
+        RiskSignalEvent.event_type == "registration",
+    ).order_by(RiskSignalEvent.created_at.desc()).first()
+    email_control_proved = db.query(Verification).filter(
+        Verification.user_id == user.id,
+        Verification.status == "verified",
+        Verification.method.in_(["email_otp", "institutional_email"]),
+    ).first() is not None or bool(
+        getattr(user, "verification_status", "") == "verified"
+        and getattr(user, "verified_email", None)
+    )
+    # Accounts created before risk telemetry existed have no historical
+    # challenge event. Treat proven email control as a neutral migration
+    # baseline rather than penalizing every legacy participant.
+    bot_challenge_passed = (
+        bool(latest_registration.bot_challenge_passed)
+        if latest_registration else email_control_proved
+    )
+
+    assessment = assess_human(HumanSignals(
+        bot_challenge_passed=bot_challenge_passed,
+        email_control_proved=email_control_proved,
+        accounts_on_device=accounts_on_device,
+        registrations_from_ip_24h=registrations_from_ip_24h,
+        accounts_on_network_for_study=accounts_on_network_for_study,
+        study_actions_from_network_10m=study_actions_from_network_10m,
+        rapid_actions=rapid_actions,
+        prior_approved_responses=prior_approved_responses,
+        prior_fraud_flags=prior_fraud_flags,
+    ))
+    if record_event:
+        _record_risk_signal(
+            db,
+            request,
+            user=user,
+            event_type=event_type,
+            survey_id=survey_id,
+            metadata={
+                "human_status": assessment.status,
+                "risk_score": assessment.risk_score,
+            },
+        )
+    return assessment
 
 
 def _get_quality_check_for_publisher(db: Session, check_id: int, publisher_id: int):
@@ -1014,6 +1284,14 @@ def _field_matches(target: Optional[str], user_val: Optional[str]) -> bool:
     if not user_val:
         return False
     return target.strip().lower() == user_val.strip().lower()
+
+def _occupation_matches(required: Optional[str], user_occupation: Optional[str]) -> bool:
+    # ive added this — a survey can require multiple occupations (comma separated,
+    # e.g. "physician,nurse"). blank means any occupation is welcome.
+    required_list = [o.strip().lower() for o in (required or "").split(",") if o.strip()]
+    if not required_list:
+        return True
+    return (user_occupation or "").strip().lower() in required_list
 
 FIELD_RELEVANCE_ALIASES = {
     "computer science & engineering": ["computer science", "engineering", "software", "developer", "coding", "programming", "technology", "tech"],
@@ -1285,6 +1563,19 @@ def _participant_study_action_label(survey: Survey) -> str:
 
 def _clean_target(val: Optional[str]) -> str:
     return '' if not val or val.strip().lower() == 'all' else val
+
+
+def _normalize_required_verification_tier(value: Optional[str]) -> str:
+    normalized = (value or TIER_BASIC).strip().lower()
+    if normalized == TIER_HIGH:
+        raise HTTPException(
+            400,
+            "High Assurance is temporarily unavailable. Choose Trusted or Basic.",
+        )
+    if normalized not in {TIER_TRUSTED, TIER_BASIC}:
+        return TIER_BASIC
+    return normalized
+
 
 def _join_form_list_with_other(values: list[str], other_value: Optional[str]) -> Optional[str]:
     cleaned = []
@@ -1708,6 +1999,11 @@ def _send_verification_email(email: str, purpose: str, code: str) -> tuple[bool,
         subject = "Insighta registration verification code"
         title = "Verify your email"
         body_text = "Use the following verification code to finish creating your Insighta account."
+    elif purpose == "verify_identity":
+        # ive added this for verification — copy for the identity verification OTP
+        subject = "Insighta identity verification code"
+        title = "Verify your identity"
+        body_text = "Use the following verification code to verify your identity and claim your payout."
     else:
         subject = "Insighta password reset verification code"
         title = "Reset your password"
@@ -1759,12 +2055,20 @@ async def check_email_exists(email: str, db: Session = Depends(get_db)):
 
 @app.post("/auth/send-code")
 async def send_auth_code(
+    request: Request,
     email: str = Form(...),
     purpose: str = Form(...),
     db: Session = Depends(get_db)
 ):
     normalized_email = _normalize_email(email)
     normalized_purpose = (purpose or "").strip().lower()
+
+    # ive added this for phase 4 — stop bots hammering the email sender
+    ip = client_ip(request)
+    if not check_rate_limit(f"send-code:ip:{ip}", max_hits=8, window_seconds=600):
+        return JSONResponse({"ok": False, "message": "Too many requests. Please wait a few minutes and try again."}, status_code=429)
+    if normalized_email and not check_rate_limit(f"send-code:email:{normalized_email}", max_hits=5, window_seconds=600):
+        return JSONResponse({"ok": False, "message": "Too many codes requested for this email. Please wait a few minutes."}, status_code=429)
 
     if not normalized_email:
         return JSONResponse({"ok": False, "message": "Please enter your email address first."}, status_code=400)
@@ -1884,12 +2188,22 @@ async def google_callback(
     google_id = str(userinfo.get("id", ""))
     name = userinfo.get("name") or userinfo.get("given_name")
 
-    if not email:
+    if not email or not google_id:
         return RedirectResponse("/login?oauth_error=Could+not+retrieve+email+from+Google.", status_code=302)
     if _is_email_blocked(db, email):
         return RedirectResponse(f"/login?oauth_error={urlencode({'': _blocked_auth_message()})[1:]}", status_code=302)
 
     user = db.query(User).filter(User.email == email).first()
+    evidence_owner = _verified_evidence_owner(
+        db,
+        method="google_oauth",
+        subject=google_id,
+    )
+    if evidence_owner and (not user or evidence_owner != user.id):
+        return RedirectResponse(
+            "/login?oauth_error=That+Google+account+is+already+linked+to+another+participant.",
+            status_code=302,
+        )
     is_new = False
     if not user:
         user = User(
@@ -1910,8 +2224,21 @@ async def google_callback(
         if not user.oauth_provider:
             user.oauth_provider = "google"
             user.oauth_id = google_id
-            db.commit()
         _ensure_user_referral_code(db, user, commit=True)
+    existing_tier = _current_assurance_tier(db, user)
+    _record_verified_evidence(
+        db,
+        user_id=user.id,
+        attribute="email_account_control",
+        method="google_oauth",
+        subject=google_id,
+        trust_score=0.45,
+    )
+    user.verification_status = "verified"
+    user.verified_email = email
+    user.verified_tier = existing_tier if _tier_rank(existing_tier) < _tier_rank(TIER_BASIC) else TIER_BASIC
+    user.verified_at = datetime.utcnow()
+    db.commit()
 
     return_to = _safe_auth_return(request.cookies.get(AUTH_RETURN_COOKIE))
     final_url = _post_auth_url_with_next(
@@ -1998,12 +2325,22 @@ async def linkedin_callback(
     linkedin_id = str(userinfo.get("sub", ""))
     name = userinfo.get("name") or userinfo.get("given_name")
 
-    if not email:
+    if not email or not linkedin_id:
         return RedirectResponse("/login?oauth_error=Could+not+retrieve+email+from+LinkedIn.", status_code=302)
     if _is_email_blocked(db, email):
         return RedirectResponse(f"/login?oauth_error={urlencode({'': _blocked_auth_message()})[1:]}", status_code=302)
 
     user = db.query(User).filter(User.email == email).first()
+    evidence_owner = _verified_evidence_owner(
+        db,
+        method="linkedin_oauth",
+        subject=linkedin_id,
+    )
+    if evidence_owner and (not user or evidence_owner != user.id):
+        return RedirectResponse(
+            "/login?oauth_error=That+LinkedIn+account+is+already+linked+to+another+participant.",
+            status_code=302,
+        )
     is_new = False
     if not user:
         user = User(
@@ -2024,8 +2361,21 @@ async def linkedin_callback(
         if not user.oauth_provider:
             user.oauth_provider = "linkedin"
             user.oauth_id = linkedin_id
-            db.commit()
         _ensure_user_referral_code(db, user, commit=True)
+    existing_tier = _current_assurance_tier(db, user)
+    _record_verified_evidence(
+        db,
+        user_id=user.id,
+        attribute="professional_account_control",
+        method="linkedin_oauth",
+        subject=linkedin_id,
+        trust_score=0.65,
+    )
+    user.verification_status = "verified"
+    user.verified_email = email
+    user.verified_tier = existing_tier if _tier_rank(existing_tier) < _tier_rank(TIER_TRUSTED) else TIER_TRUSTED
+    user.verified_at = datetime.utcnow()
+    db.commit()
 
     return_to = _safe_auth_return(request.cookies.get(AUTH_RETURN_COOKIE))
     final_url = _post_auth_url_with_next(
@@ -2334,6 +2684,19 @@ def login(
 ):
     next_url = _safe_auth_return(next, auth_return_to)
     normalized_email = _normalize_email(email or "")
+    # ive added this for phase 4 — slow down password guessing per ip
+    if not check_rate_limit(f"login:ip:{client_ip(request)}", max_hits=10, window_seconds=300):
+        normalized_role = role if role in {"participant", "researcher"} else ""
+        return no_store_response(templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Too many login attempts. Please wait a few minutes and try again.",
+            "success": None, "reset_error": None, "reset_success": None,
+            "reset_open": False, "login_email": normalized_email, "reset_email": "",
+            "login_next": next if is_safe_internal_next(next) else "",
+            "login_role": normalized_role,
+            "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
+        }))
+
     if _is_email_blocked(db, normalized_email):
         normalized_role = role if role in {"participant", "researcher"} else ""
         return no_store_response(templates.TemplateResponse("login.html", {
@@ -2458,6 +2821,8 @@ def show_register(
     pending_referral: Optional[str] = Cookie(None),
 ):
     normalized_role = role if role in {"participant", "researcher"} else ""
+    # ive added this for phase 4 — every register page load gets a fresh captcha
+    captcha_question, captcha_token = make_captcha()
     register_next = next if is_safe_internal_next(next) else ""
     referral_code = _normalize_referral_code(ref) or _normalize_referral_code(pending_referral)
     response = no_store_response(templates.TemplateResponse(
@@ -2470,6 +2835,8 @@ def show_register(
             "register_referral": referral_code,
             "register_values": {},
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
+            "captcha_question": captcha_question, "captcha_token": captcha_token,
+            "turnstile_site_key": turnstile_site_key(),
         }
     ))
     if normalized_role == "participant":
@@ -2495,6 +2862,7 @@ async def do_register(
     password = form.get("password") or ""
     confirm = form.get("confirm") or ""
     verification_code = form.get("verification_code") or ""
+    occupation = (form.get("occupation") or "").strip()
     referral_input = _normalize_referral_code(form.get("referral_code") or pending_referral)
     next_url = _safe_auth_return(form.get("next"), auth_return_to)
     role = (form.get("role") or "").strip().lower()
@@ -2514,6 +2882,8 @@ async def do_register(
     }
 
     def reg_error(msg, step: int = 1):
+        # phase 4 — reissue a fresh captcha with every error page
+        new_question, new_token = make_captcha()
         response = no_store_response(templates.TemplateResponse("register.html", {
             "request": request, "error": msg, "register_email": email,
             "register_phone": phone_number,
@@ -2524,6 +2894,8 @@ async def do_register(
             "register_referral": referral_input,
             "register_values": register_values,
             "participant_app": _auth_uses_participant_app(request, role, participant_app),
+            "captcha_question": new_question, "captcha_token": new_token,
+            "turnstile_site_key": turnstile_site_key(),
         }))
         if role == "researcher":
             _clear_participant_app(response, request)
@@ -2531,12 +2903,28 @@ async def do_register(
             _remember_pending_referral(response, request, referral_input)
         return response
 
+    # ive added these for phase 4 — bot checks before we even validate the form
+    if honeypot_triggered(form):
+        # dont tell the bot what went wrong
+        return reg_error("Something went wrong. Please try again.")
+    if not check_rate_limit(f"register:ip:{client_ip(request)}", max_hits=5, window_seconds=600):
+        return reg_error("Too many attempts. Please wait a few minutes and try again.")
+    challenge_ok = await verify_bot_challenge(
+        managed_token=form.get("cf-turnstile-response"),
+        fallback_token=form.get("captcha_token"),
+        fallback_answer=form.get("captcha_answer"),
+        remote_ip=client_ip(request),
+    )
+    if not challenge_ok:
+        return reg_error("We could not validate the anti-bot check. Please try again.", step=3)
+
     if not email: return reg_error("Email is required.")
     if _is_email_blocked(db, email):
         return reg_error(_blocked_auth_message())
     if password != confirm: return reg_error("Passwords do not match.", step=2)
     pw_error = _validate_registration_password(password)
     if pw_error: return reg_error(pw_error, step=2)
+    if not occupation: return reg_error("Occupation is required.", step=3)
     required_demo_fields = {
         "first_name": "First name is required.",
         "last_name": "Last name is required.",
@@ -2567,6 +2955,7 @@ async def do_register(
         email=email,
         password=pwd_context.hash(password),
         phone_number=phone_number or None,
+        occupation=occupation,
         first_name=register_values["first_name"],
         last_name=register_values["last_name"],
         username=register_values["username"],
@@ -2587,6 +2976,29 @@ async def do_register(
     if referral_error:
         return reg_error(referral_error)
     db.add(user)
+    db.flush()
+    user.verification_status = "verified"
+    user.verified_tier = TIER_BASIC
+    user.verified_email = email
+    user.verified_at = datetime.utcnow()
+    db.add(Verification(
+        user_id=user.id,
+        attribute="email_control",
+        method="email_otp",
+        status="verified",
+        trust_score=0.35,
+        evidence_ref=evidence_reference("email_otp", email),
+        verified_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(days=365),
+        verified_by="system",
+    ))
+    _record_risk_signal(
+        db,
+        request,
+        user=user,
+        event_type="registration",
+        bot_challenge_passed=True,
+    )
     db.commit()
     db.refresh(user)
     _record_user_event(
@@ -3112,6 +3524,10 @@ def _delete_survey_tree(db: Session, survey: Survey) -> None:
     db.query(SurveySegmentStats).filter(SurveySegmentStats.survey_id == survey_id).delete(synchronize_session=False)
     db.query(UserActivityEvent).filter(UserActivityEvent.survey_id == survey_id).delete(synchronize_session=False)
     db.query(ResponseQualityCheck).filter(ResponseQualityCheck.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(ParticipationDecision).filter(ParticipationDecision.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(RiskSignalEvent).filter(RiskSignalEvent.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(ScreeningAttempt).filter(ScreeningAttempt.survey_id == survey_id).delete(synchronize_session=False)
+    db.query(ScreeningQuestion).filter(ScreeningQuestion.survey_id == survey_id).delete(synchronize_session=False)
     db.query(Question).filter(Question.survey_id == survey_id).delete(synchronize_session=False)
     db.query(Notification).filter(Notification.survey_id == survey_id).delete(synchronize_session=False)
     db.query(Response).filter(Response.survey_id == survey_id).delete(synchronize_session=False)
@@ -3237,6 +3653,14 @@ def _participant_survey_payload(
         except Exception:
             availability_slots = []
 
+    # ive added this for verification — tell the participant up front if this
+    # study needs a stronger tier or a specific email domain they dont have yet
+    required_tier = getattr(s, "required_verification_tier", None) or "tier_3"
+    verification_satisfied = _verification_satisfies(current_user, s, db)
+    screening_questions = _approved_screening_questions(db, s.id)
+    screening_required = bool(screening_questions)
+    screening_passed = _screening_passed(db, s.id, current_user.id) if screening_required else True
+
     return {
         "id": s.id,
         "title": s.title,
@@ -3265,6 +3689,12 @@ def _participant_survey_payload(
         "sessions_per_week": getattr(s, "sessions_per_week", None),
         "urgency": getattr(s, 'urgency_level', None) or 'flexible',
         "incentive_type": getattr(s, 'incentive_type', None),
+        "required_verification_tier": required_tier,
+        "required_email_domains": getattr(s, "required_email_domains", None) or "",
+        "verification_satisfied": verification_satisfied,
+        "screening_required": screening_required,
+        "screening_passed": screening_passed,
+        "screening_url": f"/surveys/{s.id}/screening" if screening_required else "",
     }
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -3310,6 +3740,9 @@ def dashboard(
         if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
         if not _field_matches(getattr(s, 'target_income_level', None), getattr(current_user, 'income_level', None)): return False
         if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
+        # ive added this — occupation targeting is finally enforced: a physicians-only
+        # study no longer shows up for everyone
+        if not _occupation_matches(getattr(s, 'required_occupation', None), getattr(current_user, 'occupation', None)): return False
         return True
 
     participant_response_survey_ids = {
@@ -3507,6 +3940,9 @@ def dashboard_mobile(
         if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
         if not _field_matches(getattr(s, 'target_income_level', None), getattr(current_user, 'income_level', None)): return False
         if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
+        # ive added this — occupation targeting is finally enforced: a physicians-only
+        # study no longer shows up for everyone
+        if not _occupation_matches(getattr(s, 'required_occupation', None), getattr(current_user, 'occupation', None)): return False
         return True
 
     matched = [s for s in all_published if survey_matches(s)]
@@ -3541,6 +3977,9 @@ def dashboard_mobile(
         completed_cnt = completed_counts.get(s.id, 0)
         user_response = user_responses.get(s.id)
         is_completed = user_response and user_response.status == "completed"
+        # ive added this — completed studies only show in My Studies, not the mobile home feed
+        if is_completed:
+            continue
         form_link = _survey_external_start_url(s)
         display_reward = getattr(s, "admin_display_reward_amount", None)
         if display_reward is None:
@@ -3651,6 +4090,574 @@ def get_dashboard_stats(
 # Survey start / complete / modify
 # ---------------------------
 
+
+def _approved_screening_questions(db: Session, survey_id: int) -> list[ScreeningQuestion]:
+    latest_version = db.query(func.max(ScreeningQuestion.version)).filter(
+        ScreeningQuestion.survey_id == survey_id,
+        ScreeningQuestion.status == "approved",
+    ).scalar()
+    if not latest_version:
+        return []
+    return db.query(ScreeningQuestion).filter(
+        ScreeningQuestion.survey_id == survey_id,
+        ScreeningQuestion.version == latest_version,
+        ScreeningQuestion.status == "approved",
+    ).order_by(ScreeningQuestion.order_index.asc()).all()
+
+
+def _screening_passed(db: Session, survey_id: int, participant_id: int) -> bool:
+    questions = _approved_screening_questions(db, survey_id)
+    if not questions:
+        return True
+    version = questions[0].version
+    return db.query(ScreeningAttempt).filter(
+        ScreeningAttempt.survey_id == survey_id,
+        ScreeningAttempt.participant_id == participant_id,
+        ScreeningAttempt.version == version,
+        ScreeningAttempt.status == "passed",
+    ).first() is not None
+
+
+def _screening_status(db: Session, survey_id: int, participant_id: int) -> str:
+    questions = _approved_screening_questions(db, survey_id)
+    if not questions:
+        return "not_required"
+    version = questions[0].version
+    attempt = db.query(ScreeningAttempt).filter(
+        ScreeningAttempt.survey_id == survey_id,
+        ScreeningAttempt.participant_id == participant_id,
+        ScreeningAttempt.version == version,
+    ).order_by(ScreeningAttempt.completed_at.desc()).first()
+    return attempt.status if attempt else "not_started"
+
+
+def _participation_decision(
+    db: Session,
+    request: Request,
+    *,
+    participant: User,
+    survey: Survey,
+    stage: str,
+    response: Optional[Response] = None,
+    record_risk_event: bool = True,
+):
+    """Create one auditable recommendation from the separate trust checks."""
+    human = _human_assessment_for_request(
+        db,
+        request,
+        participant,
+        event_type=stage,
+        survey_id=survey.id,
+        record_event=record_risk_event,
+    )
+    eligibility_status = _screening_status(db, survey.id, participant.id)
+    assurance_status = (
+        "passed" if _verification_satisfies(participant, survey, db) else "required"
+    )
+    quality = None
+    if response:
+        quality = db.query(ResponseQualityCheck).filter(
+            ResponseQualityCheck.response_id == response.id,
+        ).order_by(ResponseQualityCheck.created_at.desc()).first()
+
+    quality_status = "not_available"
+    quality_score = None
+    fraud_risk = False
+    if quality:
+        quality_status = (
+            "needs_review"
+            if quality.review_status in {"pending", "needs_review"}
+            else quality.quality_label
+        )
+        quality_score = quality.quality_score
+        fraud_risk = bool(quality.fraud_risk)
+
+    inputs = ParticipationInputs(
+        human_status=human.status,
+        human_risk_score=human.risk_score,
+        eligibility_status=eligibility_status,
+        assurance_status=assurance_status,
+        quality_status=quality_status,
+        quality_score=quality_score,
+        fraud_risk=fraud_risk,
+    )
+    recommendation = recommend_participation(inputs, stage=stage)
+    approved_questions = _approved_screening_questions(db, survey.id)
+    row = ParticipationDecision(
+        participant_id=participant.id,
+        survey_id=survey.id,
+        response_id=response.id if response else None,
+        stage=stage,
+        human_status=human.status,
+        human_risk_score=human.risk_score,
+        eligibility_status=eligibility_status,
+        assurance_status=assurance_status,
+        quality_status=quality_status,
+        quality_score=quality_score,
+        outcome=recommendation.outcome,
+        reasons=[*human.reasons, *recommendation.reasons],
+        decision_snapshot={
+            "human_reason_count": len(human.reasons),
+            "screening_version": (
+                approved_questions[0].version
+                if approved_questions
+                else None
+            ),
+            "required_assurance": getattr(
+                survey, "required_verification_tier", None
+            ) or TIER_BASIC,
+        },
+    )
+    db.add(row)
+    return recommendation, row
+
+
+def _start_gate_response(recommendation, survey: Survey):
+    """Return a safe response for a blocked start, without leaking risk rules."""
+    codes = public_reason_codes(recommendation.reasons)
+    if "verification_required" in codes:
+        return JSONResponse({
+            "ok": False,
+            "verification_required": True,
+            "verification_url": (
+                f"/verify?{urlencode({'needs_tier': survey.required_verification_tier or TIER_BASIC})}"
+            ),
+        }, status_code=409)
+    return JSONResponse({
+        "ok": False,
+        "review_required": True,
+        "reason": "We need to review this participation attempt before the study can begin.",
+    }, status_code=403)
+
+
+def _screening_continue_url(survey: Survey) -> str:
+    external_url = _survey_external_start_url(survey)
+    if external_url:
+        return f"/surveys/{survey.id}/start-redirect?{urlencode({'next': external_url})}"
+    if getattr(survey, "form_url", None) == "__builtin__":
+        return f"/surveys/{survey.id}/take"
+    return "/dashboard"
+
+
+@app.get("/api/surveys/{survey_id}/screening")
+def get_screening_configuration(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    rows = db.query(ScreeningQuestion).filter(
+        ScreeningQuestion.survey_id == survey_id,
+    ).order_by(ScreeningQuestion.version.desc(), ScreeningQuestion.order_index.asc()).all()
+    attempt_rows = db.query(
+        ScreeningAttempt.version,
+        ScreeningAttempt.status,
+        func.count(ScreeningAttempt.id),
+    ).filter(
+        ScreeningAttempt.survey_id == survey_id,
+    ).group_by(ScreeningAttempt.version, ScreeningAttempt.status).all()
+    stats_by_version: dict[int, dict[str, int]] = {}
+    for version, status, count in attempt_rows:
+        version_stats = stats_by_version.setdefault(int(version), {
+            "total": 0, "passed": 0, "failed": 0, "review": 0,
+        })
+        version_stats["total"] += int(count or 0)
+        if status in version_stats:
+            version_stats[status] += int(count or 0)
+    return JSONResponse({
+        "survey_id": survey_id,
+        "versions": [{
+            "version": version,
+            **counts,
+            "pass_rate": round(
+                counts["passed"] / counts["total"] * 100, 1
+            ) if counts["total"] else None,
+        } for version, counts in sorted(stats_by_version.items(), reverse=True)],
+        "questions": [{
+            "id": row.id,
+            "version": row.version,
+            "attribute": row.attribute,
+            "prompt": row.prompt,
+            "question_type": row.question_type,
+            "options": row.options or [],
+            "accepted_answers": row.accepted_answers or [],
+            "rationale": row.rationale,
+            "sensitivity": row.sensitivity,
+            "source": row.source,
+            "status": row.status,
+            "order_index": row.order_index,
+            "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+            "approved_at": row.approved_at.isoformat() if row.approved_at else None,
+        } for row in rows],
+    })
+
+
+@app.get("/api/surveys/{survey_id}/trust-summary")
+def get_survey_trust_summary(
+    survey_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    grouped = db.query(
+        ParticipationDecision.stage,
+        ParticipationDecision.outcome,
+        func.count(ParticipationDecision.id),
+    ).filter(
+        ParticipationDecision.survey_id == survey_id,
+    ).group_by(
+        ParticipationDecision.stage,
+        ParticipationDecision.outcome,
+    ).all()
+    by_stage: dict[str, dict[str, int]] = {}
+    for stage, outcome, count in grouped:
+        by_stage.setdefault(stage, {"allow": 0, "review": 0, "block": 0})
+        by_stage[stage][outcome] = int(count or 0)
+
+    latest_decisions = db.query(ParticipationDecision).filter(
+        ParticipationDecision.survey_id == survey_id,
+    ).order_by(ParticipationDecision.created_at.desc()).limit(100).all()
+    return JSONResponse({
+        "survey_id": survey_id,
+        "by_stage": by_stage,
+        "recent": [{
+            "stage": row.stage,
+            "outcome": row.outcome,
+            "human_status": row.human_status,
+            "eligibility_status": row.eligibility_status,
+            "assurance_status": row.assurance_status,
+            "quality_status": row.quality_status,
+            "reason_codes": public_reason_codes(row.reasons or []),
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+        } for row in latest_decisions],
+    })
+
+
+@app.post("/api/surveys/{survey_id}/screening/draft")
+def create_screening_draft(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    if not check_rate_limit(
+        f"screening-draft:user:{current_user.id}",
+        max_hits=10,
+        window_seconds=3600,
+    ):
+        raise HTTPException(429, "Too many screening drafts. Please try again later.")
+
+    draft = generate_screening_draft(survey)
+    if not draft:
+        raise HTTPException(
+            400,
+            "Add at least one supported targeting requirement before generating a screener.",
+        )
+    latest_version = db.query(func.max(ScreeningQuestion.version)).filter(
+        ScreeningQuestion.survey_id == survey_id,
+    ).scalar() or 0
+    next_version = latest_version + 1
+    db.query(ScreeningQuestion).filter(
+        ScreeningQuestion.survey_id == survey_id,
+        ScreeningQuestion.status == "draft",
+    ).update({"status": "retired"}, synchronize_session=False)
+    for index, item in enumerate(draft):
+        db.add(ScreeningQuestion(
+            survey_id=survey_id,
+            version=next_version,
+            attribute=item["attribute"],
+            prompt=item["prompt"],
+            question_type=item["question_type"],
+            options=item["options"],
+            accepted_answers=item["accepted_answers"],
+            rationale=item.get("rationale"),
+            sensitivity="low",
+            source=item.get("source", "rules"),
+            status="draft",
+            order_index=index,
+        ))
+    _record_user_event(
+        db,
+        request,
+        "screening_draft_created",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={
+            "version": next_version,
+            "question_count": len(draft),
+            "user_role": "researcher",
+        },
+    )
+    db.commit()
+    return JSONResponse({
+        "ok": True,
+        "version": next_version,
+        "question_count": len(draft),
+        "status": "draft",
+        "message": "Draft created. Review and approve it before participants see it.",
+    })
+
+
+@app.put("/api/surveys/{survey_id}/screening/draft")
+async def update_screening_draft(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    body = await request.json()
+    try:
+        version = int(body.get("version"))
+    except (TypeError, ValueError):
+        raise HTTPException(400, "A valid draft version is required.")
+    rows = db.query(ScreeningQuestion).filter(
+        ScreeningQuestion.survey_id == survey_id,
+        ScreeningQuestion.version == version,
+        ScreeningQuestion.status == "draft",
+    ).order_by(ScreeningQuestion.order_index.asc()).all()
+    if not rows:
+        raise HTTPException(409, "That draft is no longer editable. Refresh and try again.")
+    baseline = [{
+        "attribute": row.attribute,
+        "prompt": row.prompt,
+        "question_type": row.question_type,
+        "options": row.options or [],
+        "accepted_answers": row.accepted_answers or [],
+        "rationale": row.rationale,
+        "source": row.source,
+        "sensitivity": row.sensitivity,
+    } for row in rows]
+    try:
+        edited = validate_researcher_edit(body.get("questions"), baseline)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+    rows_by_attribute = {row.attribute: row for row in rows}
+    for item in edited:
+        row = rows_by_attribute[item["attribute"]]
+        row.prompt = item["prompt"]
+        row.options = item["options"]
+        row.order_index = item["order_index"]
+        row.source = item["source"]
+        row.updated_at = datetime.utcnow()
+    _record_user_event(
+        db,
+        request,
+        "screening_draft_updated",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={
+            "version": version,
+            "question_count": len(rows),
+            "user_role": "researcher",
+        },
+    )
+    db.commit()
+    return JSONResponse({
+        "ok": True,
+        "version": version,
+        "question_count": len(rows),
+        "status": "draft",
+    })
+
+
+@app.post("/api/surveys/{survey_id}/screening/approve")
+async def approve_screening_draft(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    requested_version = body.get("version") if isinstance(body, dict) else None
+    if requested_version is not None:
+        try:
+            latest_version = int(requested_version)
+        except (TypeError, ValueError):
+            raise HTTPException(400, "A valid draft version is required.")
+    else:
+        latest_version = db.query(func.max(ScreeningQuestion.version)).filter(
+            ScreeningQuestion.survey_id == survey_id,
+            ScreeningQuestion.status == "draft",
+        ).scalar()
+    if not latest_version:
+        raise HTTPException(400, "No screening draft is waiting for approval.")
+    rows = db.query(ScreeningQuestion).filter(
+        ScreeningQuestion.survey_id == survey_id,
+        ScreeningQuestion.version == latest_version,
+        ScreeningQuestion.status == "draft",
+    ).all()
+    if not rows:
+        raise HTTPException(400, "The screening draft is empty.")
+    db.query(ScreeningQuestion).filter(
+        ScreeningQuestion.survey_id == survey_id,
+        ScreeningQuestion.status == "approved",
+    ).update({"status": "retired"}, synchronize_session=False)
+    for row in rows:
+        row.status = "approved"
+        row.approved_at = datetime.utcnow()
+        row.approved_by = current_user.id
+        row.updated_at = datetime.utcnow()
+    _record_user_event(
+        db,
+        request,
+        "screening_version_approved",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={
+            "version": latest_version,
+            "question_count": len(rows),
+            "user_role": "researcher",
+        },
+    )
+    db.commit()
+    return JSONResponse({
+        "ok": True,
+        "version": latest_version,
+        "question_count": len(rows),
+        "status": "approved",
+    })
+
+
+@app.get("/surveys/{survey_id}/screening", response_class=HTMLResponse)
+def participant_screening_page(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.status == "published",
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    questions = _approved_screening_questions(db, survey_id)
+    if not questions:
+        return RedirectResponse(_screening_continue_url(survey), status_code=303)
+    version = questions[0].version
+    attempt = db.query(ScreeningAttempt).filter(
+        ScreeningAttempt.survey_id == survey_id,
+        ScreeningAttempt.participant_id == current_user.id,
+        ScreeningAttempt.version == version,
+    ).order_by(ScreeningAttempt.started_at.desc()).first()
+    return no_store_response(templates.TemplateResponse("screening.html", {
+        "request": request,
+        "current_user": current_user,
+        "survey": survey,
+        "questions": questions,
+        "attempt": attempt,
+        "continue_url": _screening_continue_url(survey),
+    }))
+
+
+@app.post("/surveys/{survey_id}/screening", response_class=HTMLResponse)
+async def submit_participant_screening(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.status == "published",
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+    questions = _approved_screening_questions(db, survey_id)
+    if not questions:
+        return RedirectResponse(_screening_continue_url(survey), status_code=303)
+    version = questions[0].version
+    existing = db.query(ScreeningAttempt).filter(
+        ScreeningAttempt.survey_id == survey_id,
+        ScreeningAttempt.participant_id == current_user.id,
+        ScreeningAttempt.version == version,
+        ScreeningAttempt.status.in_(["passed", "failed", "review"]),
+    ).order_by(ScreeningAttempt.started_at.desc()).first()
+    if existing:
+        return RedirectResponse(f"/surveys/{survey_id}/screening", status_code=303)
+    if not check_rate_limit(
+        f"screening-submit:user:{current_user.id}:survey:{survey_id}",
+        max_hits=3,
+        window_seconds=3600,
+    ):
+        raise HTTPException(429, "Too many screening attempts. Please try again later.")
+
+    form = await request.form()
+    answers = {
+        row.attribute: (form.get(f"answer_{row.id}") or "").strip()
+        for row in questions
+    }
+    decision = evaluate_screening([{
+        "attribute": row.attribute,
+        "accepted_answers": row.accepted_answers or [],
+    } for row in questions], answers)
+    attempt = ScreeningAttempt(
+        survey_id=survey_id,
+        participant_id=current_user.id,
+        version=version,
+        answers=answers,
+        status=decision.status,
+        risk_score=decision.risk_score,
+        # Keep detailed mismatch reasons internal; the participant sees only the
+        # generic outcome so the accepted criteria cannot be learned by retries.
+        reasons=list(decision.reasons),
+        completed_at=datetime.utcnow(),
+    )
+    db.add(attempt)
+    _record_user_event(
+        db,
+        request,
+        "screening_completed",
+        user=current_user,
+        target_type="survey",
+        target_id=survey.id,
+        metadata={
+            "version": version,
+            "outcome": decision.status,
+            "user_role": "participant",
+        },
+    )
+    db.commit()
+    if decision.status == "passed":
+        return RedirectResponse(_screening_continue_url(survey), status_code=303)
+    return RedirectResponse(f"/surveys/{survey_id}/screening", status_code=303)
+
+
 @app.post("/surveys/{survey_id}/start")
 async def start_survey(
     survey_id: int,
@@ -3662,6 +4669,22 @@ async def start_survey(
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey: raise HTTPException(404, "Survey not found")
     if survey.status != "published": raise HTTPException(400, "Survey not published")
+    if not _screening_passed(db, survey_id, current_user.id):
+        return JSONResponse({
+            "ok": False,
+            "screening_required": True,
+            "screening_url": f"/surveys/{survey_id}/screening",
+        }, status_code=409)
+    trust_recommendation, _ = _participation_decision(
+        db,
+        request,
+        participant=current_user,
+        survey=survey,
+        stage="start",
+    )
+    if trust_recommendation.outcome == TRUST_BLOCK:
+        db.commit()
+        return _start_gate_response(trust_recommendation, survey)
 
     existing = db.query(Response).filter(
         Response.survey_id == survey_id, Response.participant_id == current_user.id
@@ -3725,12 +4748,6 @@ async def start_survey(
         db.commit()
         should_schedule_followup = True
 
-    if should_schedule_followup:
-        background_tasks.add_task(
-            _send_survey_start_followup_after_delay,
-            response.id,
-            _absolute_url(request, "/dashboard"),
-        )
     _record_user_event(
         db,
         request,
@@ -3768,6 +4785,24 @@ def start_survey_and_redirect(
         raise HTTPException(404, "Survey not found")
     if survey.status != "published":
         raise HTTPException(400, "Survey not published")
+    if not _screening_passed(db, survey_id, current_user.id):
+        return RedirectResponse(f"/surveys/{survey_id}/screening", status_code=303)
+    trust_recommendation, _ = _participation_decision(
+        db,
+        request,
+        participant=current_user,
+        survey=survey,
+        stage="start",
+    )
+    if trust_recommendation.outcome == TRUST_BLOCK:
+        db.commit()
+        codes = public_reason_codes(trust_recommendation.reasons)
+        if "verification_required" in codes:
+            return RedirectResponse(
+                f"/verify?{urlencode({'needs_tier': survey.required_verification_tier or TIER_BASIC})}",
+                status_code=303,
+            )
+        return RedirectResponse("/participation-review", status_code=303)
 
     target_url = (next_url or "").strip()
     if not (target_url.startswith("https://") or target_url.startswith("http://")):
@@ -3816,6 +4851,62 @@ def start_survey_and_redirect(
     return RedirectResponse(target_url, status_code=303)
 
 
+def _notify_publisher_response_ready(db: Session, survey: Survey, participant: User) -> None:
+    """
+    ive extracted this — both completion paths (external /complete and builtin
+    /submit) used to carry an identical 45-line copy of this. one place now:
+    creates the researchers bell notification (deduped) + sends them an email.
+    """
+    existing_notif = db.query(Notification).filter(
+        Notification.survey_id == survey.id,
+        Notification.participant_id == participant.id,
+        Notification.status == "pending",
+    ).first()
+    if not existing_notif:
+        db.add(Notification(
+            publisher_id=survey.publisher_id,
+            participant_id=participant.id,
+            survey_id=survey.id,
+            participant_email=participant.email,
+            survey_title=survey.title,
+            task_type=getattr(survey, "task_type", "survey") or "survey",
+            status="pending",
+        ))
+
+    publisher = db.query(User).filter(User.id == survey.publisher_id).first()
+    if publisher and publisher.email:
+        send_email(
+            to=publisher.email,
+            subject=f"[Insighta] New response ready for review: {survey.title}",
+            body=f"""
+            <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
+              <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
+              <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey and is awaiting your approval.</p>
+              <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
+                <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
+                <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
+                <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
+                <div style="font-size: 15px;">{participant.email}</div>
+                <div style="font-size: 13px; color: #8a8a82; margin-top: 12px; margin-bottom: 4px;">Reward</div>
+                <div style="font-size: 15px; font-weight: 600; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
+              </div>
+              <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                Review & Approve →
+              </a>
+            </div>
+            """
+        )
+
+
+def _verification_response_fields(user: User, survey: Survey, db: Session) -> dict:
+    """ive extracted this — the completion JSON both handlers return for the verify nudge"""
+    return {
+        "needs_verification": not _verification_satisfies(user, survey, db),
+        "required_verification_tier": getattr(survey, "required_verification_tier", None) or "tier_3",
+        "required_email_domains": getattr(survey, "required_email_domains", None) or "",
+    }
+
+
 @app.post("/surveys/{survey_id}/complete")
 def complete_survey(
     survey_id: int,
@@ -3826,6 +4917,22 @@ def complete_survey(
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey: raise HTTPException(404, "Survey not found")
     if survey.status != "published": raise HTTPException(400, "Survey not published")
+    if not _screening_passed(db, survey_id, current_user.id):
+        return JSONResponse({
+            "ok": False,
+            "screening_required": True,
+            "screening_url": f"/surveys/{survey_id}/screening",
+        }, status_code=409)
+    trust_recommendation, _ = _participation_decision(
+        db,
+        request,
+        participant=current_user,
+        survey=survey,
+        stage="completion",
+    )
+    if trust_recommendation.outcome == TRUST_BLOCK:
+        db.commit()
+        return _start_gate_response(trust_recommendation, survey)
 
     r = db.query(Response).filter(
         Response.survey_id == survey_id, Response.participant_id == current_user.id
@@ -3834,36 +4941,15 @@ def complete_survey(
     if not r:
         r = Response(survey_id=survey_id, participant_id=current_user.id, status="started")
         db.add(r)
+        db.flush()
 
     if r.status != "completed":
         r.status = "completed"
         r.completed_at = datetime.now(timezone.utc)
         r.payout_amount = survey.reward_amount
         mark_response_under_review(r)
-
-        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
-        if publisher and publisher.email:
-            send_email(
-                to=publisher.email,
-                subject=f"[Insighta] New response ready for review: {survey.title}",
-                body=f"""
-                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
-                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
-                  <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey and is awaiting your approval.</p>
-                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
-                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
-                    <div style="font-size: 15px;">{current_user.email}</div>
-                    <div style="font-size: 13px; color: #8a8a82; margin-top: 12px; margin-bottom: 4px;">Reward</div>
-                    <div style="font-size: 15px; font-weight: 600; color: #2d6a4f;">${survey.reward_amount:.2f}</div>
-                  </div>
-                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-                    Review & Approve →
-                  </a>
-                </div>
-                """
-            )
+        # bell notification + publisher email, shared with the builtin path
+        _notify_publisher_response_ready(db, survey, current_user)
         _record_user_event(
             db,
             request,
@@ -3881,8 +4967,27 @@ def complete_survey(
             },
         )
 
+    completion_recommendation, _ = _participation_decision(
+        db,
+        request,
+        participant=current_user,
+        survey=survey,
+        stage="completion",
+        response=r,
+        record_risk_event=False,
+    )
     db.commit()
-    return RedirectResponse(url="/dashboard", status_code=302)
+
+    # verify nudge fields — tell the frontend to send the participant to /verify
+    # if this survey needs a tier or email domain they dont have yet
+    return JSONResponse({
+        "message": "completed",
+        **_verification_response_fields(current_user, survey, db),
+        "trust_review": {
+            "status": completion_recommendation.outcome,
+            "reason_codes": public_reason_codes(completion_recommendation.reasons),
+        },
+    })
 
 
 @app.post("/surveys/{survey_id}/modify")
@@ -3899,6 +5004,14 @@ def modify_completed_survey(
         survey = db.query(Survey).filter(Survey.id == survey_id).first()
         r.status = "started"; r.completed_at = None
         return_response_to_review(db, r)
+        # ive added this — undoing a completion removes the pending bell notification,
+        # otherwise the researcher could approve a payout for a response thats no
+        # longer completed
+        db.query(Notification).filter(
+            Notification.survey_id == survey_id,
+            Notification.participant_id == current_user.id,
+            Notification.status == "pending",
+        ).delete()
         db.commit()
         return {"message": "Response modified"}
 
@@ -3917,15 +5030,48 @@ def get_notifications(
     notifs = db.query(Notification).filter(
         Notification.publisher_id == current_user.id
     ).order_by(Notification.created_at.desc()).all()
-    return JSONResponse([{
-        "id": n.id,
-        "participant_email": n.participant_email,
-        "survey_title": n.survey_title,
-        "task_type": _normalize_task_type(n.task_type),
-        "task_type_label": _task_type_label(n.task_type),
-        "status": n.status,
-        "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else "",
-    } for n in notifs])
+
+    # ive added this for verification — tell the researcher if the participant is verified
+    # so they can decide before approving payout (we warn but still allow)
+    # phase 3 — tier aware; email-domain feature — also domain aware, all via the helper
+    # ive optimized this — batch-load the surveys and participants in two queries
+    # instead of two queries PER notification (was an N+1)
+    survey_ids = {n.survey_id for n in notifs if n.survey_id}
+    participant_ids = {n.participant_id for n in notifs if n.participant_id}
+    surveys_by_id = {s.id: s for s in db.query(Survey).filter(Survey.id.in_(survey_ids)).all()} if survey_ids else {}
+    users_by_id = {u.id: u for u in db.query(User).filter(User.id.in_(participant_ids)).all()} if participant_ids else {}
+
+    def _verify_info(n):
+        survey = surveys_by_id.get(n.survey_id)
+        participant = users_by_id.get(n.participant_id)
+        required_tier = survey.required_verification_tier if survey else None
+        domains = _normalize_domains(getattr(survey, "required_email_domains", None) if survey else None)
+        requires = bool(required_tier in ("tier_1", "tier_2")) or bool(domains)
+        status = getattr(participant, "verification_status", "unverified") or "unverified"
+        participant_tier = _current_assurance_tier(db, participant) if participant else None
+        satisfied = bool(survey and participant and _verification_satisfies(participant, survey, db))
+        return requires, status, participant_tier, required_tier, domains, satisfied
+
+    payload = []
+    for n in notifs:
+        requires_verification, verification_status, participant_tier, required_tier, domains, satisfied = _verify_info(n)
+        payload.append({
+            "id": n.id,
+            "participant_id": n.participant_id,
+            "participant_email": n.participant_email,
+            "survey_title": n.survey_title,
+            "task_type": _normalize_task_type(n.task_type),
+            "task_type_label": _task_type_label(n.task_type),
+            "status": n.status,
+            "created_at": n.created_at.strftime("%b %d, %H:%M") if n.created_at else "",
+            "requires_verification": requires_verification,
+            "participant_verification_status": verification_status,
+            "participant_verified_tier": participant_tier,
+            "required_verification_tier": required_tier,
+            "required_email_domains": ", ".join(domains) if domains else "",
+            "verification_warning": requires_verification and not satisfied,
+        })
+    return JSONResponse(payload)
 
 
 @app.post("/api/notifications/{notif_id}/accept")
@@ -3948,9 +5094,22 @@ def accept_notification(
         Response.participant_id == notif.participant_id,
     ).first()
     if response:
-        release_response_payout(db, response)
         survey = db.query(Survey).filter(Survey.id == notif.survey_id).first()
         participant = db.query(User).filter(User.id == notif.participant_id).first()
+        payout_recommendation = None
+        if survey and participant:
+            payout_recommendation, _ = _participation_decision(
+                db,
+                request,
+                participant=participant,
+                survey=survey,
+                stage="payout",
+                response=response,
+                record_risk_event=False,
+            )
+        # This click is the human review/override. The automated recommendation
+        # is recorded, but it does not silently reject an otherwise valid person.
+        release_response_payout(db, response)
         if survey:
             _record_user_event(
                 db,
@@ -3963,6 +5122,10 @@ def accept_notification(
                     "study_title": survey.title,
                     "participant_id": notif.participant_id,
                     "participant_email": notif.participant_email,
+                    "trust_recommendation": (
+                        payout_recommendation.outcome
+                        if payout_recommendation else "not_available"
+                    ),
                     "source": "Notification",
                     "user_role": "researcher",
                 },
@@ -4051,6 +5214,9 @@ def get_pending_responses(current_user: User = Depends(get_current_user), db: Se
         quality = db.query(ResponseQualityCheck).filter(
             ResponseQualityCheck.response_id == r.id
         ).order_by(ResponseQualityCheck.created_at.desc()).first()
+        trust = db.query(ParticipationDecision).filter(
+            ParticipationDecision.response_id == r.id,
+        ).order_by(ParticipationDecision.created_at.desc()).first()
         result.append({
             "response_id": r.id, "survey_id": r.survey_id,
             "survey_title": survey.title if survey else "Unknown",
@@ -4062,6 +5228,11 @@ def get_pending_responses(current_user: User = Depends(get_current_user), db: Se
             "quality_label": quality.quality_label if quality else None,
             "fraud_risk": quality.fraud_risk if quality else None,
             "quality_reasons": quality.reasons if quality else [],
+            "trust_outcome": trust.outcome if trust else None,
+            "human_status": trust.human_status if trust else None,
+            "eligibility_status": trust.eligibility_status if trust else None,
+            "assurance_status": trust.assurance_status if trust else None,
+            "trust_reason_codes": public_reason_codes(trust.reasons or []) if trust else [],
         })
     return JSONResponse(result)
 
@@ -4155,11 +5326,16 @@ async def publish_interview(
     availability_notes: Optional[str] = Form(None), interview_location: Optional[str] = Form(None),
     urgency_level: Optional[str] = Form(None), deadline_date: Optional[str] = Form(None),
     incentive_type: Optional[str] = Form(None), per_person_gross: Optional[str] = Form(None),
+    required_verification_tier: str = Form(None),
+    required_email_domains: str = Form(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
     experience_list = form.getlist("target_experience_tags")
     lifestyle_list = form.getlist("target_lifestyle_tags")
+    # ive changed this — multiple required occupations, comma separated
+    occupation_list = [o for o in form.getlist("required_occupation") if o]
+    required_occupation = ",".join(occupation_list) if occupation_list else None
     target_education_min = _parse_optional_int(form.get("target_education_min"))
     target_education_max = _parse_optional_int(form.get("target_education_max"))
     availability_slots = (form.get("availability_slots") or "").strip()
@@ -4213,6 +5389,9 @@ async def publish_interview(
         target_income_level=_clean_target(form.get("target_income_level")),
         target_lifestyle_tags=",".join(lifestyle_list) if lifestyle_list else None,
         target_niche_requirements=_clean_target(form.get("target_niche_requirements")),
+        required_occupation=_clean_target(required_occupation),
+        required_verification_tier=_normalize_required_verification_tier(required_verification_tier),
+        required_email_domains=",".join(_normalize_domains(required_email_domains)) or None,
         availability_slots=availability_slots,
         interview_location=_clean_target(interview_location),
         session_count=session_count,
@@ -4378,6 +5557,9 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
         raise HTTPException(400, "Please complete Stripe onboarding first")
     pending = getattr(current_user, 'pending_earnings', 0.0) or 0.0
     if pending < 1.0: raise HTTPException(400, "Minimum withdrawal is $1.00")
+
+    # ive moved the verification gate to the researcher approval step — by the time
+    # funds are in pending_earnings the researcher already approved, so withdraw is clean
     try:
         transfer = stripe.Transfer.create(amount=int(pending * 100), currency="usd", destination=current_user.stripe_account_id, description=f"Insighta payout for user {current_user.id}")
         for r in db.query(Response).filter(
@@ -4390,6 +5572,471 @@ async def withdraw(request: Request, current_user: User = Depends(get_current_us
         return JSONResponse({"success": True, "amount": pending, "transfer_id": transfer.id})
     except stripe.error.StripeError as e:
         raise HTTPException(400, str(e))
+
+
+# ---------------------------
+# Identity verification
+# ---------------------------
+
+@app.get("/participation-review", response_class=HTMLResponse)
+def participation_review_page(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    return no_store_response(templates.TemplateResponse(
+        "participation_review.html",
+        {"request": request, "current_user": current_user},
+    ))
+
+
+def _tier_rank(tier: Optional[str]) -> int:
+    return tier_rank(tier)
+
+
+def _tier_satisfies(user_tier: Optional[str], required_tier: Optional[str]) -> bool:
+    return tier_satisfies(user_tier, required_tier)
+
+
+def _active_verification_methods(db: Session, user_id: int) -> set[str]:
+    now = datetime.utcnow()
+    rows = db.query(Verification).filter(
+        Verification.user_id == user_id,
+        Verification.status == "verified",
+        or_(Verification.expires_at.is_(None), Verification.expires_at > now),
+    ).all()
+    return {(row.method or "").strip().lower() for row in rows if row.method}
+
+
+def _current_assurance_tier(db: Session, user: User) -> Optional[str]:
+    """
+    Derive assurance from active evidence instead of trusting one mutable tier.
+
+    Legacy email/OAuth fields remain a temporary fallback for existing accounts,
+    but a legacy ID-upload tier is intentionally not accepted as high assurance.
+    """
+    methods = _active_verification_methods(db, user.id)
+    tier = strongest_tier_for_methods(methods)
+    if tier:
+        return tier
+    if getattr(user, "oauth_provider", None) == "linkedin" and getattr(user, "oauth_id", None):
+        return TIER_TRUSTED
+    if (
+        getattr(user, "verification_status", "unverified") == "verified"
+        and (getattr(user, "verified_email", None) or getattr(user, "email", None))
+    ):
+        return TIER_BASIC
+    return None
+
+
+def _verified_evidence_owner(
+    db: Session,
+    *,
+    method: str,
+    subject: str,
+    excluding_user_id: Optional[int] = None,
+) -> Optional[int]:
+    ref = evidence_reference(method, subject)
+    query = db.query(Verification).filter(
+        Verification.method == method,
+        Verification.evidence_ref == ref,
+        Verification.status == "verified",
+    )
+    if excluding_user_id is not None:
+        query = query.filter(Verification.user_id != excluding_user_id)
+    row = query.first()
+    return row.user_id if row else None
+
+
+def _record_verified_evidence(
+    db: Session,
+    *,
+    user_id: int,
+    attribute: str,
+    method: str,
+    subject: str,
+    trust_score: float,
+    valid_days: int = 365,
+) -> Verification:
+    ref = evidence_reference(method, subject)
+    existing = db.query(Verification).filter(
+        Verification.user_id == user_id,
+        Verification.method == method,
+        Verification.evidence_ref == ref,
+    ).first()
+    now = datetime.utcnow()
+    row = existing or Verification(user_id=user_id, method=method, evidence_ref=ref)
+    row.attribute = attribute
+    row.status = "verified"
+    row.trust_score = trust_score
+    row.verified_at = now
+    row.expires_at = now + timedelta(days=valid_days)
+    row.verified_by = "system"
+    if not existing:
+        db.add(row)
+    return row
+
+
+# ive added these for the email-domain feature
+def _email_domain(email: Optional[str]) -> str:
+    """pull the domain part of an email, lowercased. 'A@BU.edu' -> 'bu.edu'"""
+    if not email or "@" not in email:
+        return ""
+    return email.strip().lower().rsplit("@", 1)[-1]
+
+
+def _normalize_domains(raw: Optional[str]) -> list:
+    """
+    turn a researchers free-text box into a clean list of domains.
+    accepts commas/spaces and a leading @, so '@BU.edu, gmail.com' -> ['bu.edu','gmail.com']
+    """
+    if not raw:
+        return []
+    out = []
+    for part in re.split(r"[,\s]+", raw.strip()):
+        part = part.strip().lower().lstrip("@")
+        if part and part not in out:
+            out.append(part)
+    return out
+
+
+def _verified_email_for(user: User) -> str:
+    """the email a user has proven — the one they OTP'd, else their account email"""
+    return getattr(user, "verified_email", None) or getattr(user, "email", "") or ""
+
+
+def _domains_pretty(domains: list) -> str:
+    """['bu.edu','gmail.com'] -> '@bu.edu or @gmail.com' for friendly messages"""
+    tagged = ["@" + d for d in domains]
+    if len(tagged) <= 1:
+        return tagged[0] if tagged else ""
+    return ", ".join(tagged[:-1]) + " or " + tagged[-1]
+
+
+def _verification_satisfies(user: User, survey: Survey, db: Session) -> bool:
+    """
+    single source of truth: does this user satisfy this surveys verification rule?
+    checks tier AND (if set) that the users proven email is at an allowed domain.
+    """
+    required_tier = getattr(survey, "required_verification_tier", None) or "tier_3"
+    actual_tier = _current_assurance_tier(db, user)
+    if not _tier_satisfies(actual_tier, required_tier):
+        return False
+    domains = _normalize_domains(getattr(survey, "required_email_domains", None))
+    if domains and _email_domain(_verified_email_for(user)) not in domains:
+        return False
+    return True
+
+
+def _render_verify(request, current_user, db, *, error=None, notice=None, needs_domains=None, prefill_email=None, focus_tier=None, done=False):
+    # ive added this helper so the GET page and every error rerender share one context
+    assurance_tier = _current_assurance_tier(db, current_user)
+    is_verified = assurance_tier is not None
+    user_rank = _tier_rank(assurance_tier) if is_verified else 99
+    domains = _normalize_domains(needs_domains)
+    # show the email-verify method to anyone unverified, OR to a verified user who
+    # still needs to prove a specific domain (e.g. verified via gmail but study needs bu.edu)
+    show_email_verify = (not is_verified) or bool(domains)
+    prefill = prefill_email or getattr(current_user, "verified_email", None) or current_user.email
+    # ive added this — when the participant arrives from a study that requires a
+    # specific tier, only that tiers method is shown (tier_1 -> ID, tier_2 -> LinkedIn,
+    # tier_3 -> email). visiting /verify directly still shows every method.
+    focus_tier = focus_tier if focus_tier in TIER_RANK else None
+    return no_store_response(templates.TemplateResponse("verify.html", {
+        "request": request, "current_user": current_user, "error": error, "notice": notice,
+        "needs_domains": ", ".join(domains) if domains else None,
+        "prefill_email": prefill,
+        "show_email_verify": show_email_verify,
+        "focus_tier": focus_tier,
+        "assurance_tier": assurance_tier,
+        "assurance_label": TIER_LABELS.get(assurance_tier, "Not verified"),
+        "high_assurance_enabled": False,
+        # ive added this — right after a successful verification we show a clean
+        # "youre done" screen instead of advertising the other tiers again
+        "done": bool(done),
+        "linkedin_enabled": bool(LINKEDIN_CLIENT_ID),
+        # Verified users can still add stronger low-sensitivity evidence.
+        "can_upgrade_linkedin": user_rank > 2,
+        "can_upgrade_high": user_rank > 1,
+    }))
+
+
+@app.get("/verify", response_class=HTMLResponse)
+def verify_page(
+    request: Request,
+    verify_error: Optional[str] = None,
+    needs_tier: Optional[str] = None,
+    needs_domains: Optional[str] = None,
+    done: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # ive added this for verification — shows the OTP + LinkedIn + ID upload page
+    # needs_tier / needs_domains come from the survey completion redirect and tell
+    # the participant WHY theyre being sent here. done=1 means they JUST finished
+    # a verification step, so we show a clean success screen, not more tiers
+    domains = _normalize_domains(needs_domains)
+    notice = None
+    if domains:
+        notice = f"This study is limited to emails at: {', '.join(domains)}. Verify one of these addresses below to receive your payout."
+    elif needs_tier == TIER_HIGH:
+        notice = "This study requires High Assurance verification, which is temporarily unavailable while we integrate a privacy-reviewed provider."
+    elif needs_tier in TIER_RANK:
+        notice = f"This study requires {TIER_LABELS[needs_tier]}. Complete the available check below."
+    return _render_verify(request, current_user, db, error=verify_error, notice=notice,
+                          needs_domains=needs_domains, focus_tier=needs_tier, done=bool(done))
+
+
+@app.post("/verify/send-code")
+def verify_send_code(
+    email: Optional[str] = Form(None),
+    needs_domains: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # ive added this for verification — sends an OTP to whatever email theyre proving
+    # (defaults to their account email, but can be e.g. their @bu.edu address)
+    target_email = _normalize_email(email or "") or current_user.email
+    if not target_email or "@" not in target_email:
+        return JSONResponse({"ok": False, "message": "Please enter a valid email address first."}, status_code=400)
+    # ive added this so we dont even send a code to a wrong-domain email — the
+    # study restricts which domains count, so tell them right away
+    domains = _normalize_domains(needs_domains)
+    if domains and _email_domain(target_email) not in domains:
+        return JSONResponse({"ok": False, "message": f"This study only accepts emails ending in {_domains_pretty(domains)}. Please enter one of those."}, status_code=400)
+    # phase 4 — dont let one user spam the mailer
+    if not check_rate_limit(f"verify-send:user:{current_user.id}", max_hits=5, window_seconds=600):
+        return JSONResponse({"ok": False, "message": "Too many codes requested. Please wait a few minutes."}, status_code=429)
+    code = _issue_verification_code(db, target_email, "verify_identity")
+    _send_verification_email(target_email, "verify_identity", code)
+    return JSONResponse({
+        "ok": True,
+        "message": f"Verification code sent to {_mask_email(target_email)}."
+    })
+
+
+@app.post("/verify", response_class=HTMLResponse)
+def verify_user(
+    request: Request,
+    verification_code: str = Form(...),
+    email: Optional[str] = Form(None),
+    needs_domains: Optional[str] = Form(None),
+    needs_tier: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # ive added this for verification — checks the OTP for the given email, then
+    # records verified_email so domain-restricted studies can check it
+    target_email = _normalize_email(email or "") or current_user.email
+    # ive added this so a wrong-domain email is rejected here, not silently later
+    domains = _normalize_domains(needs_domains)
+    if domains and _email_domain(target_email) not in domains:
+        return _render_verify(request, current_user, db, needs_domains=needs_domains, prefill_email=target_email, focus_tier=needs_tier,
+            error=f"This study only accepts emails ending in {_domains_pretty(domains)}. Please verify one of those addresses.")
+    evidence_owner = _verified_evidence_owner(
+        db,
+        method="email_otp",
+        subject=target_email,
+        excluding_user_id=current_user.id,
+    )
+    if evidence_owner:
+        return _render_verify(
+            request,
+            current_user,
+            db,
+            needs_domains=needs_domains,
+            prefill_email=target_email,
+            focus_tier=needs_tier,
+            error="That verified email is already linked to another participant account.",
+        )
+    # phase 4 — a 6 digit code is brute-forceable, so cap the attempts hard
+    if not check_rate_limit(f"verify-otp:user:{current_user.id}", max_hits=5, window_seconds=600):
+        return _render_verify(request, current_user, db, needs_domains=needs_domains, prefill_email=target_email, focus_tier=needs_tier,
+            error="Too many attempts. Please wait a few minutes and request a new code.")
+    if not _consume_verification_code(db, target_email, "verify_identity", verification_code):
+        return _render_verify(request, current_user, db, needs_domains=needs_domains, prefill_email=target_email, focus_tier=needs_tier,
+            error="Invalid or expired verification code. Please request a new one.")
+    # they proved ownership of target_email
+    current_user.verified_email = target_email
+    current_user.verification_status = "verified"
+    _record_verified_evidence(
+        db,
+        user_id=current_user.id,
+        attribute="email_control",
+        method="email_otp",
+        subject=target_email,
+        trust_score=0.35,
+    )
+    # Store the derived cache for old UI/code paths. It is not the source of truth.
+    derived_tier = _current_assurance_tier(db, current_user) or TIER_BASIC
+    if _tier_rank(derived_tier) < _tier_rank(getattr(current_user, "verified_tier", None)):
+        current_user.verified_tier = derived_tier
+    elif not getattr(current_user, "verified_tier", None):
+        current_user.verified_tier = TIER_BASIC
+    current_user.verified_at = datetime.utcnow()
+    db.commit()
+    # done=1 shows the clean success screen instead of more tier options
+    return RedirectResponse("/verify?done=1", status_code=303)
+
+
+# ---------------------------
+# Raw ID collection is intentionally disabled
+# ---------------------------
+
+RAW_ID_DISABLED_MESSAGE = (
+    "Insighta no longer accepts or exposes raw identity documents. "
+    "High Assurance will return through a privacy-reviewed external provider."
+)
+
+
+@app.post("/verify/id-upload")
+async def verify_id_upload_disabled(current_user: User = Depends(get_current_user)):
+    raise HTTPException(410, RAW_ID_DISABLED_MESSAGE)
+
+
+@app.get("/researcher/id-document/{participant_id}")
+def researcher_view_id_document_disabled(
+    participant_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    raise HTTPException(410, RAW_ID_DISABLED_MESSAGE)
+
+
+@app.post("/researcher/id-reviews/{participant_id}/approve")
+def researcher_approve_id_disabled(
+    participant_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    raise HTTPException(410, RAW_ID_DISABLED_MESSAGE)
+
+
+@app.post("/researcher/id-reviews/{participant_id}/reject")
+def researcher_reject_id_disabled(
+    participant_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    raise HTTPException(410, RAW_ID_DISABLED_MESSAGE)
+
+
+@app.get("/researcher/id-reviews", response_class=HTMLResponse)
+def researcher_id_reviews_disabled(current_user: User = Depends(get_current_user)):
+    raise HTTPException(410, RAW_ID_DISABLED_MESSAGE)
+
+
+# ---------------------------
+# LinkedIn identity verification (phase 2b)
+# ---------------------------
+
+@app.get("/verify/linkedin")
+def verify_linkedin_start(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # ive added this for verification — start LinkedIn OAuth in verify mode for the logged in user
+    if not LINKEDIN_CLIENT_ID:
+        return RedirectResponse("/verify?verify_error=LinkedIn+verification+is+not+configured+yet.", status_code=302)
+    # phase 3 — allow upgrades: only skip if the user already holds tier_2 or better
+    if _tier_rank(_current_assurance_tier(db, current_user)) <= 2:
+        return RedirectResponse("/verify", status_code=302)
+    state = secrets.token_urlsafe(16)
+    params = urlencode({
+        "response_type": "code",
+        "client_id": LINKEDIN_CLIENT_ID,
+        "redirect_uri": f"{BASE_URL}/verify/linkedin/callback",
+        "state": state,
+        "scope": "openid profile email",
+    })
+    response = RedirectResponse(f"{LINKEDIN_AUTH_URL}?{params}", status_code=302)
+    # separate cookie from the login flow so the two dont clash
+    response.set_cookie("verify_oauth_state", state, max_age=300, **_cookie_policy(request))
+    return response
+
+
+@app.get("/verify/linkedin/callback")
+async def verify_linkedin_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # ive added this for verification — LinkedIn came back, mark the logged in user verified tier_2
+    if error:
+        return RedirectResponse("/verify?verify_error=LinkedIn+verification+was+cancelled.", status_code=302)
+
+    stored_state = request.cookies.get("verify_oauth_state")
+    if not state or state != stored_state:
+        return RedirectResponse("/verify?verify_error=Invalid+state.+Please+try+again.", status_code=302)
+
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(
+            LINKEDIN_TOKEN_URL,
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": f"{BASE_URL}/verify/linkedin/callback",
+                "client_id": LINKEDIN_CLIENT_ID,
+                "client_secret": LINKEDIN_CLIENT_SECRET,
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return RedirectResponse("/verify?verify_error=LinkedIn+token+exchange+failed.", status_code=302)
+
+        userinfo_resp = await client.get(
+            LINKEDIN_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        userinfo = userinfo_resp.json()
+
+    linkedin_id = str(userinfo.get("sub", ""))
+    if not linkedin_id:
+        return RedirectResponse("/verify?verify_error=Could+not+read+your+LinkedIn+profile.", status_code=302)
+    evidence_owner = _verified_evidence_owner(
+        db,
+        method="linkedin_oauth",
+        subject=linkedin_id,
+        excluding_user_id=current_user.id,
+    )
+    if evidence_owner:
+        return RedirectResponse(
+            "/verify?verify_error=That+LinkedIn+account+is+already+linked+to+another+participant.",
+            status_code=302,
+        )
+
+    # Keep the legacy login fields when available, and always store a separate
+    # verification evidence record so Google login and LinkedIn evidence can coexist.
+    if not current_user.oauth_provider:
+        current_user.oauth_provider = "linkedin"
+        current_user.oauth_id = linkedin_id
+    _record_verified_evidence(
+        db,
+        user_id=current_user.id,
+        attribute="professional_account_control",
+        method="linkedin_oauth",
+        subject=linkedin_id,
+        trust_score=0.65,
+    )
+    # record the linkedin email so domain-restricted studies can check it too
+    linkedin_email = _normalize_email(userinfo.get("email", ""))
+    if linkedin_email:
+        current_user.verified_email = linkedin_email
+    # LinkedIn confirms a professional identity so we mark tier_2 (OTP stays tier_3)
+    # phase 3 — never downgrade someone who already holds tier_1
+    if _tier_rank(getattr(current_user, "verified_tier", None)) > 2:
+        current_user.verified_tier = TIER_TRUSTED
+    current_user.verification_status = "verified"
+    current_user.verified_at = datetime.utcnow()
+    db.commit()
+
+    policy = _cookie_policy(request)
+    # done=1 shows the clean success screen instead of more tier options
+    resp = RedirectResponse("/verify?done=1", status_code=303)
+    resp.delete_cookie("verify_oauth_state", samesite=policy["samesite"], secure=policy["secure"])
+    return resp
 
 
 # ---------------------------
@@ -4481,6 +6128,8 @@ async def edit_survey_post(
     target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
     target_participation_format: str = Form(None), target_device: str = Form(None),
     target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
+    required_verification_tier: str = Form(None),
+    required_email_domains: str = Form(None),
     cover_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -4489,6 +6138,9 @@ async def edit_survey_post(
     target_education_max = _parse_optional_int(form.get("target_education_max"))
     experience_list = form.getlist("target_experience_tags")
     target_experience_tags = ",".join(experience_list) if experience_list else None
+    # ive changed this — multiple required occupations, comma separated
+    occupation_list = [o for o in form.getlist("required_occupation") if o]
+    required_occupation = ",".join(occupation_list) if occupation_list else None
     lifestyle_list = form.getlist("target_lifestyle_tags")
     target_lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
 
@@ -4527,6 +6179,9 @@ async def edit_survey_post(
     survey.target_income_level = _clean_target(target_income_level)
     survey.target_lifestyle_tags = target_lifestyle_tags
     survey.target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
+    survey.required_occupation = _clean_target(required_occupation)
+    survey.required_verification_tier = _normalize_required_verification_tier(required_verification_tier)
+    survey.required_email_domains = ",".join(_normalize_domains(required_email_domains)) or None
     _apply_survey_auto_filter_settings(survey, form)
 
     if cover_image and cover_image.filename:
@@ -6162,6 +7817,8 @@ async def publish_survey(
     target_year_in_school: str = Form(None), target_international_domestic: str = Form(None),
     target_participation_format: str = Form(None), target_device: str = Form(None),
     target_income_level: str = Form(None), raffle_prize_type: str = Form(None),
+    required_verification_tier: str = Form(None),
+    required_email_domains: str = Form(None),
     cover_image: UploadFile = File(None),
     admin_display_reward_amount: Optional[float] = Form(None),
     admin_publish: bool = False,
@@ -6181,6 +7838,10 @@ async def publish_survey(
     lifestyle_list = form.getlist("target_lifestyle_tags")
     target_lifestyle_tags = ",".join(lifestyle_list) if lifestyle_list else None
     target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
+    # ive changed this — researchers can now require MULTIPLE occupations (checkboxes),
+    # stored comma separated like the other multi-select fields
+    occupation_list = [o for o in form.getlist("required_occupation") if o]
+    required_occupation = ",".join(occupation_list) if occupation_list else None
     participant_benefits = _join_form_list_with_other(
         form.getlist("participant_benefits"),
         form.get("participant_benefits_other")
@@ -6294,6 +7955,9 @@ async def publish_survey(
         survey.target_income_level = _clean_target(target_income_level)
         survey.target_lifestyle_tags = target_lifestyle_tags
         survey.target_niche_requirements = target_niche_requirements
+        survey.required_occupation = _clean_target(required_occupation)
+        survey.required_verification_tier = _normalize_required_verification_tier(required_verification_tier)
+        survey.required_email_domains = ",".join(_normalize_domains(required_email_domains)) or None
         survey.participant_benefits = participant_benefits
         survey.availability_slots = availability_slots if is_interview_listing else None
         survey.interview_location = interview_location if is_interview_listing else None
@@ -6332,6 +7996,9 @@ async def publish_survey(
             target_income_level=_clean_target(target_income_level),
             target_lifestyle_tags=target_lifestyle_tags,
             target_niche_requirements=target_niche_requirements,
+            required_occupation=_clean_target(required_occupation),
+            required_verification_tier=_normalize_required_verification_tier(required_verification_tier),
+            required_email_domains=",".join(_normalize_domains(required_email_domains)) or None,
             participant_benefits=participant_benefits,
             availability_slots=availability_slots if is_interview_listing else None,
             interview_location=interview_location if is_interview_listing else None,
@@ -6647,6 +8314,25 @@ def survey_take(
     ).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
+    if not _screening_passed(db, survey_id, current_user.id):
+        return RedirectResponse(f"/surveys/{survey_id}/screening", status_code=303)
+    trust_recommendation, _ = _participation_decision(
+        db,
+        request,
+        participant=current_user,
+        survey=survey,
+        stage="start",
+        record_risk_event=False,
+    )
+    db.commit()
+    if trust_recommendation.outcome == TRUST_BLOCK:
+        codes = public_reason_codes(trust_recommendation.reasons)
+        if "verification_required" in codes:
+            return RedirectResponse(
+                f"/verify?{urlencode({'needs_tier': survey.required_verification_tier or TIER_BASIC})}",
+                status_code=303,
+            )
+        return RedirectResponse("/participation-review", status_code=303)
     return templates.TemplateResponse("survey_take.html", {
         "request": request,
         "survey": survey,
@@ -6852,9 +8538,27 @@ async def submit_answers(
         raise HTTPException(404, "Survey not found")
     if survey.status != "published":
         raise HTTPException(400, "Survey not published")
+    if not _screening_passed(db, survey_id, current_user.id):
+        return JSONResponse({
+            "ok": False,
+            "screening_required": True,
+            "screening_url": f"/surveys/{survey_id}/screening",
+        }, status_code=409)
+    trust_recommendation, _ = _participation_decision(
+        db,
+        request,
+        participant=current_user,
+        survey=survey,
+        stage="completion",
+    )
+    if trust_recommendation.outcome == TRUST_BLOCK:
+        db.commit()
+        return _start_gate_response(trust_recommendation, survey)
 
     body = await request.json()
     meta = _extract_client_meta(request, current_user)
+    stored_network_ref = _privacy_ref("response_network", meta["client_ip"])
+    stored_device_ref = _privacy_ref("response_device", meta["device_fingerprint"])
 
     r = db.query(Response).filter(
         Response.survey_id == survey_id,
@@ -6865,16 +8569,16 @@ async def submit_answers(
             survey_id=survey_id,
             participant_id=current_user.id,
             status="started",
-            client_ip=meta["client_ip"],
+            client_ip=stored_network_ref,
             user_agent=meta["user_agent"],
-            device_fingerprint=meta["device_fingerprint"],
+            device_fingerprint=stored_device_ref,
         )
         db.add(r)
         db.flush()
     else:
-        r.client_ip = meta["client_ip"]
+        r.client_ip = stored_network_ref
         r.user_agent = meta["user_agent"]
-        r.device_fingerprint = meta["device_fingerprint"]
+        r.device_fingerprint = stored_device_ref
 
     for item in body:
         existing = db.query(Answer).filter(
@@ -6895,28 +8599,8 @@ async def submit_answers(
         r.completed_at = datetime.now(timezone.utc)
         r.payout_amount = survey.reward_amount
         mark_response_under_review(r)
-
-        publisher = db.query(User).filter(User.id == survey.publisher_id).first()
-        if publisher and publisher.email:
-            send_email(
-                to=publisher.email,
-                subject=f"[Insighta] New response ready for review: {survey.title}",
-                body=f"""
-                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
-                  <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
-                  <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey.</p>
-                  <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
-                    <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
-                    <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Participant</div>
-                    <div style="font-size: 15px;">{current_user.email}</div>
-                  </div>
-                  <a href="https://insightaco.org/publisher" style="display: inline-block; padding: 12px 24px; background: #2d6a4f; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-                    Review & Approve →
-                  </a>
-                </div>
-                """
-            )
+        # bell notification + publisher email, shared with the external path
+        _notify_publisher_response_ready(db, survey, current_user)
 
     quality_payload = None
     try:
@@ -6931,11 +8615,26 @@ async def submit_answers(
     except Exception as exc:
         print(f"Quality check failed for response {r.id}: {exc}")
 
+    completion_recommendation, _ = _participation_decision(
+        db,
+        request,
+        participant=current_user,
+        survey=survey,
+        stage="completion",
+        response=r,
+        record_risk_event=False,
+    )
     db.commit()
     mark_latest_jump_completed_for_response(db, r)
-    body = {"message": "submitted successfully"}
+
+    # verify nudge fields — same check as /complete, for built-in surveys
+    body = {"message": "submitted successfully", **_verification_response_fields(current_user, survey, db)}
     if quality_payload:
         body["quality"] = quality_payload
+    body["trust_review"] = {
+        "status": completion_recommendation.outcome,
+        "reason_codes": public_reason_codes(completion_recommendation.reasons),
+    }
     return JSONResponse(body)
 
 
@@ -6971,11 +8670,15 @@ def get_survey_quality_results(
     payload = []
     for index, row in enumerate(rows):
         participant_email = None
+        trust = None
         if row.response_id:
             resp = db.query(Response).filter(Response.id == row.response_id).first()
             if resp:
                 participant = db.query(User).filter(User.id == resp.participant_id).first()
                 participant_email = participant.email if participant else None
+                trust = db.query(ParticipationDecision).filter(
+                    ParticipationDecision.response_id == resp.id,
+                ).order_by(ParticipationDecision.created_at.desc()).first()
         row_label = participant_email or _quality_row_label(index)
         payload.append({
             "id": row.id,
@@ -6996,6 +8699,11 @@ def get_survey_quality_results(
             "reviewer_label": row.reviewer_label,
             "llm_result_json": row.llm_result_json,
             "notes": row.notes,
+            "trust_outcome": trust.outcome if trust else None,
+            "human_status": trust.human_status if trust else None,
+            "eligibility_status": trust.eligibility_status if trust else None,
+            "assurance_status": trust.assurance_status if trust else None,
+            "trust_reason_codes": public_reason_codes(trust.reasons or []) if trust else [],
             "created_at": row.created_at.isoformat() if row.created_at else None,
         })
     return JSONResponse(payload)
@@ -7012,6 +8720,7 @@ def get_quality_check_detail(
     participant_email = None
     participant_name = None
     response_meta = None
+    trust_payload = None
     answers_payload = []
     submission_history = []
 
@@ -7021,10 +8730,25 @@ def get_quality_check_detail(
             participant = db.query(User).filter(User.id == resp.participant_id).first()
             participant_email = participant.email if participant else None
             participant_name = (participant.username or participant.email) if participant else None
+            trust = db.query(ParticipationDecision).filter(
+                ParticipationDecision.response_id == resp.id,
+            ).order_by(ParticipationDecision.created_at.desc()).first()
+            if trust:
+                trust_payload = {
+                    "outcome": trust.outcome,
+                    "human_status": trust.human_status,
+                    "human_risk_score": trust.human_risk_score,
+                    "eligibility_status": trust.eligibility_status,
+                    "assurance_status": trust.assurance_status,
+                    "quality_status": trust.quality_status,
+                    "reason_codes": public_reason_codes(trust.reasons or []),
+                    "created_at": trust.created_at.isoformat() if trust.created_at else None,
+                }
             response_meta = {
-                "client_ip": resp.client_ip,
-                "user_agent": resp.user_agent,
-                "device_fingerprint": resp.device_fingerprint,
+                # Researchers get useful presence/change indicators, not raw
+                # security identifiers that could identify a participant.
+                "network_signal_available": bool(resp.client_ip),
+                "device_signal_available": bool(resp.device_fingerprint),
                 "started_at": resp.started_at.isoformat() if resp.started_at else None,
                 "completed_at": resp.completed_at.isoformat() if resp.completed_at else None,
             }
@@ -7052,7 +8776,6 @@ def get_quality_check_detail(
                         "survey_title": h_survey.title if h_survey else "",
                         "status": h.status,
                         "completed_at": h.completed_at.isoformat() if h.completed_at else None,
-                        "client_ip": h.client_ip,
                     })
 
     display_rows = db.query(ResponseQualityCheck).filter(
@@ -7089,6 +8812,7 @@ def get_quality_check_detail(
         "reviewer_label": row.reviewer_label,
         "notes": row.notes,
         "response_meta": response_meta,
+        "trust": trust_payload,
         "answers": answers_payload,
         "raw_response_json": row.raw_response_json,
         "submission_history": submission_history,
@@ -7114,6 +8838,17 @@ async def review_quality_check(
 
     if action == "approve":
         row.review_status = "approved"
+        payout_recommendation = None
+        if response and participant:
+            payout_recommendation, _ = _participation_decision(
+                db,
+                request,
+                participant=participant,
+                survey=survey,
+                stage="payout",
+                response=response,
+                record_risk_event=False,
+            )
         if response:
             release_response_payout(db, response)
         if survey:
@@ -7128,6 +8863,10 @@ async def review_quality_check(
                     "study_title": survey.title,
                     "participant_id": response.participant_id if response else None,
                     "participant_email": participant.email if participant else None,
+                    "trust_recommendation": (
+                        payout_recommendation.outcome
+                        if payout_recommendation else "not_available"
+                    ),
                     "source": "Quality review",
                     "user_role": "researcher",
                 },

@@ -49,6 +49,20 @@
     .notif-type-interview { background: rgba(124,58,237,0.1); color: #7c3aed; }
     .notif-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
     .notif-email { font-size: 12px; color: var(--ink-muted); margin-bottom: 8px; }
+    /* ive added these for verification — show participant verification status to the researcher */
+    .notif-verify { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; margin-bottom: 8px; }
+    .notif-verify.warn { background: #FEF3C7; color: #92400E; }
+    .notif-verify.ok { background: rgba(45,106,79,0.1); color: var(--accent); }
+    /* ive added these — researcher-side ID review actions on the notification card */
+    .notif-id-review { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+    .notif-id-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .id-btn { font-family: inherit; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 7px; cursor: pointer; text-decoration: none; border: 1px solid var(--line); background: white; color: var(--ink-soft); transition: all .12s; }
+    .id-btn.view { color: var(--accent); border-color: var(--accent); }
+    .id-btn.view:hover { background: rgba(45,106,79,0.06); }
+    .id-btn.approve { background: var(--accent); border-color: var(--accent); color: white; }
+    .id-btn.approve:hover { background: #245c43; }
+    .id-btn.resend { color: #92400E; border-color: #f0c070; }
+    .id-btn.resend:hover { background: #FEF3C7; }
     .notif-time { font-size: 11px; color: var(--ink-muted); }
     .notif-actions { display: flex; gap: 8px; margin-top: 10px; }
     .notif-accept { flex: 1; padding: 6px 0; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
@@ -519,6 +533,21 @@
       const acceptActive = n.status === 'accepted';
       const rejectActive = n.status === 'rejected';
       const decided = acceptActive || rejectActive;
+      const tierLabel = t => ({
+        tier_1: 'High Assurance',
+        tier_2: 'Trusted participant',
+        tier_3: 'Basic human check'
+      }[t] || 'not verified');
+      let verifyHtml = '';
+      if (n.requires_verification) {
+        if (!n.verification_warning) {
+          verifyHtml = `<div class="notif-verify ok">✓ Participant verified (${tierLabel(n.participant_verified_tier)})</div>`;
+        } else if (n.participant_verification_status === 'verified') {
+          verifyHtml = `<div class="notif-verify warn">⚠ Verified ${tierLabel(n.participant_verified_tier)} — survey needs ${tierLabel(n.required_verification_tier)}</div>`;
+        } else {
+          verifyHtml = `<div class="notif-verify warn">⚠ Participant not verified</div>`;
+        }
+      }
       const actionHtml = `<div class="notif-actions">
         <button class="notif-accept ${acceptActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'accept')">
           ${acceptActive ? '✓ Accepted' : '✓ Accept'}
@@ -532,6 +561,7 @@
           <span class="notif-type-tag ${typeClass}">${typeLabel}</span>
           <div class="notif-title">${n.survey_title}</div>
           <div class="notif-email">📧 ${n.participant_email}</div>
+          ${verifyHtml}
           <div class="notif-time">${n.created_at}</div>
           ${actionHtml}
         </div>`;

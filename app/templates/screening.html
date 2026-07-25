@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study eligibility — Insighta</title>
+  {% include "_seo_head.html" %}
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--ink:#1a1a18;--muted:#73736c;--paper:#faf9f5;--warm:#f3f1ea;--line:#e0ddd3;--green:#2d6a4f;--red:#9b2c2c}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:'DM Sans',system-ui,sans-serif;padding:28px 18px 48px}
+    .shell{max-width:680px;margin:0 auto}
+    .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-weight:800;margin-bottom:28px}
+    .brand img{width:30px;height:30px;border-radius:8px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:34px;box-shadow:0 12px 34px rgba(26,26,24,.05)}
+    .eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--green);font-weight:800;margin-bottom:8px}
+    h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;font-weight:400;line-height:1.1;margin:0 0 10px}
+    .sub{font-size:14px;color:var(--muted);line-height:1.65;margin:0 0 26px}
+    .privacy{background:var(--warm);border:1px solid var(--line);border-radius:10px;padding:13px 15px;font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:24px}
+    .question{padding:20px 0;border-top:1px solid var(--line)}
+    .question:first-of-type{border-top:0}
+    .prompt{font-size:15px;font-weight:700;line-height:1.45;margin-bottom:11px}
+    .options{display:grid;gap:8px}
+    .option{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:11px 12px;cursor:pointer}
+    .option:hover{background:var(--warm)}
+    .option input{margin-top:3px;accent-color:var(--green)}
+    .btn{display:flex;width:100%;align-items:center;justify-content:center;border:0;border-radius:10px;padding:13px 18px;background:var(--green);color:#fff;text-decoration:none;font:700 14px 'DM Sans',sans-serif;cursor:pointer;margin-top:12px}
+    .btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+    .result{border-radius:12px;padding:18px;margin:18px 0;line-height:1.6}
+    .result.pass{background:#eef8f2;color:#245c43}
+    .result.fail{background:#fff5f5;color:var(--red)}
+    .result.review{background:#fff9e8;color:#7a4f08}
+    @media(max-width:560px){.card{padding:25px 20px}h1{font-size:29px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <a class="brand" href="/participant"><img src="/static/favicon.png" alt="">Insighta</a>
+    <section class="card">
+      <div class="eyebrow">Study eligibility</div>
+      <h1>{{ survey.title }}</h1>
+      <p class="sub">Answer a few short questions so we can check whether this particular study is a fit. This is separate from your account verification.</p>
+
+      {% if attempt and attempt.status == 'passed' %}
+      <div class="result pass"><strong>You're eligible.</strong><br>You can continue to the study.</div>
+      <a class="btn" href="{{ continue_url }}">Continue to study →</a>
+      {% elif attempt and attempt.status == 'failed' %}
+      <div class="result fail"><strong>This study isn't a match.</strong><br>Your answers did not match this study's current eligibility criteria. To protect the screening process, we do not reveal which response caused the result.</div>
+      <a class="btn secondary" href="/participant">Browse other studies</a>
+      {% elif attempt and attempt.status == 'review' %}
+      <div class="result review"><strong>We couldn't complete the check.</strong><br>Your screening result needs review. You cannot start this study yet.</div>
+      <a class="btn secondary" href="/participant">Back to studies</a>
+      {% else %}
+      <div class="privacy">These questions use low-sensitivity eligibility information. Insighta will not ask you to upload an ID here, and the questions are not used as a CAPTCHA.</div>
+      <form method="POST" action="/surveys/{{ survey.id }}/screening">
+        {% for question in questions %}
+        <fieldset class="question" style="border-left:0;border-right:0;border-bottom:0;margin:0;padding-left:0;padding-right:0;">
+          <legend class="prompt">{{ loop.index }}. {{ question.prompt }}</legend>
+          <div class="options">
+            {% for option in question.options or [] %}
+            <label class="option">
+              <input type="radio" name="answer_{{ question.id }}" value="{{ option }}" required>
+              <span>{{ option }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        {% endfor %}
+        <button class="btn" type="submit">Check eligibility →</button>
+      </form>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

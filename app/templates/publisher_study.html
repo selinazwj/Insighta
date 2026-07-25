@@ -332,6 +332,27 @@
       </div>
 
       <div class="action-group">
+        <div class="action-group-head">Eligibility screener</div>
+        <div class="action-row">
+          <div>
+            <div class="action-label">AI-assisted screening draft</div>
+            <div class="action-desc">Generate low-sensitivity questions from this study's structured criteria. Review them before approval.</div>
+          </div>
+          <button type="button" class="action-btn" onclick="generateScreener()">Generate draft</button>
+        </div>
+        <div id="screener-review" style="padding:14px 16px;font-size:12px;color:var(--ink3);line-height:1.55;">
+          Loading screener…
+        </div>
+      </div>
+
+      <div class="action-group">
+        <div class="action-group-head">Trust decisions</div>
+        <div id="trust-summary" style="padding:14px 16px;font-size:12px;color:var(--ink3);line-height:1.55;">
+          Loading trust summary…
+        </div>
+      </div>
+
+      <div class="action-group">
         <div class="action-group-head">Data</div>
         {% if survey.form_url == '__builtin__' %}
         <div class="action-row">
@@ -409,6 +430,137 @@
     }
   }
 
+  function escapeScreenerHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[c]));
+  }
+
+  let activeScreenerVersion = null;
+  let activeScreenerQuestions = [];
+
+  async function loadScreener() {
+    const root = document.getElementById('screener-review');
+    if (!root) return;
+    try {
+      const res = await fetch(`/api/surveys/${SURVEY_ID}/screening`, { credentials:'same-origin' });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const rows = data.questions || [];
+      if (!rows.length) {
+        root.innerHTML = 'No screener yet. Add structured targeting criteria, then generate a draft.';
+        return;
+      }
+      const newestVersion = Math.max(...rows.map(q => Number(q.version || 0)));
+      const newest = rows.filter(q => Number(q.version || 0) === newestVersion);
+      const status = newest[0]?.status || 'draft';
+      const stats = (data.versions || []).find(v => Number(v.version) === newestVersion);
+      activeScreenerVersion = newestVersion;
+      activeScreenerQuestions = newest;
+      root.innerHTML = `
+        <div style="font-weight:700;color:var(--ink);margin-bottom:8px;">Version ${newestVersion} · ${escapeScreenerHtml(status)}</div>
+        ${stats ? `<div style="margin-bottom:10px;">${stats.total} attempts · ${stats.passed} passed · ${stats.failed} did not qualify${stats.pass_rate === null ? '' : ` · ${stats.pass_rate}% pass rate`}</div>` : '<div style="margin-bottom:10px;">No participant attempts on this version yet.</div>'}
+        ${newest.map((q, i) => `
+          <div class="screening-editor" data-index="${i}" style="background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:7px 0;">
+            <label style="display:block;font-weight:600;color:var(--ink);margin-bottom:5px;">${i + 1}. Question</label>
+            ${status === 'draft'
+              ? `<input class="screening-prompt" value="${escapeScreenerHtml(q.prompt)}" maxlength="240" style="width:100%;padding:8px;border:1px solid var(--line2);border-radius:6px;font:inherit;color:var(--ink);">`
+              : `<div style="font-weight:600;color:var(--ink);">${escapeScreenerHtml(q.prompt)}</div>`}
+            ${status === 'draft'
+              ? `<label style="display:block;margin-top:8px;margin-bottom:4px;">Answer options, one per line</label><textarea class="screening-options" rows="${Math.min(8, Math.max(3, (q.options || []).length))}" style="width:100%;padding:8px;border:1px solid var(--line2);border-radius:6px;font:inherit;color:var(--ink);resize:vertical;">${escapeScreenerHtml((q.options || []).join('\n'))}</textarea>`
+              : `<div style="margin-top:4px;">Options: ${escapeScreenerHtml((q.options || []).join(' · '))}</div>`}
+            <div style="margin-top:5px;">Qualifying answer is locked to the study rule: <strong>${escapeScreenerHtml((q.accepted_answers || []).join(' / '))}</strong> · ${escapeScreenerHtml(q.source)}</div>
+          </div>
+        `).join('')}
+        ${status === 'draft' ? '<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="action-btn" onclick="saveScreenerDraft()">Save wording</button><button type="button" class="action-btn primary" onclick="approveScreener()">Approve this version</button></div>' : '<div style="color:var(--green);font-weight:700;margin-top:8px;">✓ Participants will see this approved version before starting.</div>'}
+        <div style="margin-top:10px;color:var(--ink3);">Previous approved versions remain in the audit history; participants already screened are tied to the version they answered.</div>
+      `;
+    } catch {
+      root.textContent = 'Screener unavailable.';
+    }
+  }
+
+  async function generateScreener() {
+    const root = document.getElementById('screener-review');
+    root.textContent = 'Generating a constrained draft…';
+    const res = await fetch(`/api/surveys/${SURVEY_ID}/screening/draft`, {
+      method:'POST', credentials:'same-origin'
+    }).catch(() => null);
+    if (!res || !res.ok) {
+      const data = res ? await res.json().catch(() => ({})) : {};
+      root.textContent = data.detail || 'Could not generate a draft.';
+      return;
+    }
+    await loadScreener();
+  }
+
+  async function saveScreenerDraft() {
+    const editors = Array.from(document.querySelectorAll('.screening-editor'));
+    const questions = editors.map((editor, index) => {
+      const original = activeScreenerQuestions[index];
+      return {
+        attribute: original.attribute,
+        prompt: editor.querySelector('.screening-prompt').value.trim(),
+        options: editor.querySelector('.screening-options').value
+          .split('\n').map(value => value.trim()).filter(Boolean),
+        accepted_answers: original.accepted_answers || []
+      };
+    });
+    const res = await fetch(`/api/surveys/${SURVEY_ID}/screening/draft`, {
+      method:'PUT',
+      credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ version:activeScreenerVersion, questions })
+    }).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : {};
+    if (!res || !res.ok) {
+      alert(data.detail || 'Could not save the wording.');
+      return false;
+    }
+    await loadScreener();
+    return true;
+  }
+
+  async function approveScreener() {
+    if (!confirm('Approve this exact question set? A new version is required for later changes.')) return;
+    const saved = await saveScreenerDraft();
+    if (!saved) return;
+    const res = await fetch(`/api/surveys/${SURVEY_ID}/screening/approve`, {
+      method:'POST',
+      credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ version:activeScreenerVersion })
+    }).catch(() => null);
+    if (!res || !res.ok) {
+      alert('Could not approve the screener.');
+      return;
+    }
+    await loadScreener();
+  }
+
+  async function loadTrustSummary() {
+    const root = document.getElementById('trust-summary');
+    if (!root) return;
+    try {
+      const res = await fetch(`/api/surveys/${SURVEY_ID}/trust-summary`, { credentials:'same-origin' });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const stages = Object.entries(data.by_stage || {});
+      if (!stages.length) {
+        root.textContent = 'No participation decisions have been recorded yet.';
+        return;
+      }
+      root.innerHTML = stages.map(([stage, counts]) => `
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);">
+          <strong style="color:var(--ink);text-transform:capitalize;">${escapeScreenerHtml(stage)}</strong>
+          <span>${counts.allow || 0} allowed · ${counts.review || 0} review · ${counts.block || 0} blocked</span>
+        </div>
+      `).join('') + '<div style="margin-top:9px;">Signals are privacy-minimized. Automated flags recommend review; they do not expose raw IP addresses or device identifiers.</div>';
+    } catch {
+      root.textContent = 'Trust summary unavailable.';
+    }
+  }
+
   async function loadForecast(force) {
     const loading = document.getElementById('ai-loading');
     const result  = document.getElementById('ai-result');
@@ -446,6 +598,9 @@
       alert(lines.join('\n') || 'No candidate predictions yet.');
     } catch { alert('Unavailable.'); }
   }
+
+  loadScreener();
+  loadTrustSummary();
 </script>
 <script>
   window.INSIGHTA_TRACKING = { surface: 'publisher_study', source: 'Publisher', userRole: 'researcher' };

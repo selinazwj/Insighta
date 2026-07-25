@@ -6,6 +6,7 @@ users.db
 *.csv
 test.db
 app/static/uploads/
+uploads/
 *.mov
 # Local databases may contain account or study data.
 survey.db

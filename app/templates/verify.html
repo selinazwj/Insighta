@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Participant Verification — Insighta</title>
+  {% include "_seo_head.html" %}
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="apple-touch-icon" href="/static/favicon.png">
+  <meta name="theme-color" content="#faf9f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a18;
+      --ink-soft: #4a4a44;
+      --ink-muted: #8a8a82;
+      --paper: #faf9f5;
+      --paper-warm: #f3f1ea;
+      --accent: #2d6a4f;
+      --accent-light: #52b788;
+      --line: #e0ddd3;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: white;
+      border: 0.5px solid var(--line);
+      border-radius: 12px;
+      padding: 56px 48px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 10px 32px rgba(26,26,24,0.05);
+    }
+
+    .shield-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(45,106,79,0.1);
+      border: 2px solid rgba(45,106,79,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 28px;
+      font-size: 36px;
+      animation: pop 0.4s ease;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: 32px;
+      color: var(--ink);
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--ink-muted);
+      font-weight: 300;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+
+    .info-box {
+      background: var(--paper-warm);
+      border: 0.5px solid var(--line);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      text-align: left;
+    }
+
+    .info-box .label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 6px;
+    }
+
+    .info-box .message {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 28px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .btn-primary:hover {
+      background: #245c43;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(45,106,79,0.25);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 28px;
+      background: transparent;
+      color: var(--ink-muted);
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .btn-secondary:hover {
+      background: var(--paper-warm);
+      border-color: var(--ink-muted);
+      color: var(--ink);
+    }
+
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-box {
+      background: #fff5f5;
+      color: #c53030;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      border: 1px solid #fed7d7;
+      text-align: left;
+    }
+
+    /* ive added this for phase 4 (participant nudge) — neutral notice, not an error */
+    .notice-box {
+      background: #fef9e7;
+      color: #92400e;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      border: 1px solid #f5d47a;
+      text-align: left;
+    }
+
+    /* OTP flow */
+    .code-row { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }
+    .code-row input {
+      flex: 1; height: 48px; padding: 0 14px;
+      border: 1px solid var(--line); border-radius: 10px;
+      font-family: var(--sans); font-size: 20px; font-weight: 600;
+      letter-spacing: 6px; text-align: center; color: var(--ink);
+      background: var(--paper-warm);
+    }
+    .code-row input:focus { outline: none; border-color: var(--accent); background: white; }
+    .btn-send-code {
+      height: 48px; padding: 0 18px; flex-shrink: 0;
+      background: white; color: var(--accent);
+      border: 1.5px solid var(--line); border-radius: 10px;
+      font-family: var(--sans); font-size: 14px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: all .2s;
+    }
+    .btn-send-code:hover { background: var(--paper-warm); border-color: var(--accent); }
+    .btn-send-code:disabled { opacity: 0.5; cursor: not-allowed; }
+    .code-hint { font-size: 13px; color: var(--ink-muted); margin: -2px 0 22px; text-align: left; }
+    .code-hint.success { color: var(--accent); }
+    .code-hint.error { color: #c53030; }
+
+    /* ive added these for verification — LinkedIn option (phase 2b) */
+    .or-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--ink-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+    .or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+    .btn-linkedin {
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 13px 28px; margin-bottom: 12px;
+      background: #0a66c2; color: white; border: none; border-radius: 10px;
+      font-family: var(--sans); font-size: 15px; font-weight: 600;
+      text-decoration: none; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-linkedin:hover { background: #084d94; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(10,102,194,0.25); }
+    .btn-linkedin svg { width: 18px; height: 18px; fill: currentColor; }
+
+    /* ive added these for verification — ID upload (phase 2c) + tier tags (phase 3) */
+    .tier-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 8px; border-radius: 100px; background: var(--paper-warm); border: 1px solid var(--line); color: var(--ink-muted); vertical-align: middle; margin-left: 6px; }
+    .id-upload-row { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }
+    .id-upload-row input[type="file"] {
+      flex: 1; padding: 12px 14px; font-family: var(--sans); font-size: 13px; color: var(--ink-soft);
+      border: 1px dashed var(--line); border-radius: 10px; background: var(--paper-warm); cursor: pointer;
+    }
+    .id-upload-row input[type="file"]::file-selector-button {
+      font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--accent);
+      background: white; border: 1px solid var(--line); border-radius: 8px;
+      padding: 6px 12px; margin-right: 10px; cursor: pointer;
+    }
+    .upgrade-title { font-size: 13px; font-weight: 700; color: var(--ink-soft); text-align: left; margin-bottom: 10px; }
+
+    @media (max-width: 480px) {
+      .card { padding: 40px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+{% macro high_assurance_block() %}
+  <div class="info-box">
+    <div class="label">High Assurance</div>
+    <div class="message">
+      Temporarily unavailable. Insighta does not accept raw ID uploads, and researchers
+      cannot view identity documents. This level will return through a privacy-reviewed
+      external provider that sends us only the verification result.
+    </div>
+  </div>
+{% endmacro %}
+
+{# ive made the linkedin button a macro too — it was pasted twice #}
+{% macro linkedin_button() %}
+  <a href="/verify/linkedin" class="btn-linkedin">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14zm1.78 13.02H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg>
+    Add LinkedIn evidence <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Trusted</span>
+  </a>
+{% endmacro %}
+
+{# ive made the email-verify step a macro so both branches share one copy #}
+{% macro email_verify_form() %}
+  <!-- ive added the email input for the email-domain feature — verify a specific address -->
+  <form method="POST" action="/verify" id="verifyForm">
+    <!-- carry the required domains so the server enforces them at verify time -->
+    <input type="hidden" name="needs_domains" id="needsDomains" value="{{ needs_domains or '' }}">
+    <!-- ive added this — keep the tier focus alive across error rerenders -->
+    <input type="hidden" name="needs_tier" value="{{ focus_tier or '' }}">
+    {% if needs_domains %}
+    <div class="field-hint" style="text-align:left;margin-bottom:8px;">Use an email ending in <strong>@{{ needs_domains.split(', ') | join(' or @') }}</strong>.</div>
+    {% endif %}
+    <input type="email" name="email" id="verifyEmail" value="{{ prefill_email or '' }}"
+      placeholder="you@example.com" autocomplete="email" required
+      style="width:100%;height:48px;padding:0 14px;border:1px solid var(--line);border-radius:10px;font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--paper-warm);margin-bottom:10px;">
+    <div class="code-row">
+      <input type="text" name="verification_code" id="verificationCode"
+        placeholder="6-digit code" maxlength="6" autocomplete="one-time-code"
+        inputmode="numeric" required>
+      <button type="button" class="btn-send-code" id="btnSendCode" onclick="sendVerifyCode()">
+        Send Code
+      </button>
+    </div>
+    <div class="code-hint" id="codeHint">Enter the email you want to verify, then click "Send Code".</div>
+    <button type="submit" class="btn-primary">Verify email &rarr; <span class="tier-tag" style="background:rgba(255,255,255,0.15);border-color:transparent;color:white;">Basic</span></button>
+  </form>
+{% endmacro %}
+
+<div class="card">
+  <!-- ive replaced the shield emoji with the insighta logo -->
+  <img src="/static/favicon.png" alt="Insighta" style="height:44px;display:block;margin:0 auto 28px;">
+
+  <!-- ive added this for phase 4 (participant nudge) — shown in either branch below -->
+  {% if notice %}
+  <div class="notice-box">{{ notice }}</div>
+  {% endif %}
+
+  {% if assurance_tier %}
+  <h1>{% if done %}Verification complete!{% elif show_email_verify %}One more step{% else %}You're verified{% endif %}</h1>
+  <p class="subtitle">
+    {% if done %}
+    You're all set — the researcher will see your verified status.<br>You can head back to your studies.
+    {% elif show_email_verify %}
+    You're verified, but this study needs a specific email.<br>Verify it below to receive your payout.
+    {% else %}
+    Your participant checks are up to date.<br>Individual studies may still ask eligibility questions.
+    {% endif %}
+  </p>
+
+  {% if error %}
+  <div class="error-box">{{ error }}</div>
+  {% endif %}
+
+  <div class="info-box">
+    <div class="label">Verification status</div>
+    <div class="message">✓ {{ assurance_label }}{% if current_user.verified_email %} — {{ current_user.verified_email }}{% endif %}</div>
+  </div>
+
+  {% if show_email_verify and not done and (not focus_tier or focus_tier == 'tier_3' or needs_domains) %}
+  {{ email_verify_form() }}
+  {% endif %}
+
+  <!-- ive added this for phase 3 — verified users can upgrade to a stronger tier -->
+  {# ive changed this — a tier focus narrows the upgrade options to just that method,
+     and right after a successful verification (done) we dont advertise tiers at all #}
+  {% set show_up_linkedin = not done and can_upgrade_linkedin and (not focus_tier or focus_tier == 'tier_2') %}
+  {% set show_up_high = not done and can_upgrade_high and (not focus_tier or focus_tier == 'tier_1') %}
+  {% if show_up_linkedin or show_up_high %}
+  <div class="upgrade-title">{% if focus_tier %}This study needs a stronger verification:{% else %}Upgrade your verification to unlock stricter studies:{% endif %}</div>
+
+  {% if show_up_linkedin %}
+  {{ linkedin_button() }}
+  {% endif %}
+
+  {% if show_up_high %}
+  {{ high_assurance_block() }}
+  {% endif %}
+  {% endif %}
+
+  <a href="/participant" class="btn-secondary">Back to Dashboard</a>
+
+  {% else %}
+  <h1>{% if done %}Verification complete{% else %}Complete a participant check{% endif %}</h1>
+  <p class="subtitle">
+    {% if done %}
+    Your latest verification evidence was saved.<br>You can return to your studies.
+    {% else %}
+    To claim your payout, verify your identity below.<br>
+    This takes just a moment.
+    {% endif %}
+  </p>
+
+  {% if error %}
+  <div class="error-box">{{ error }}</div>
+  {% endif %}
+
+  {% if not done %}
+
+  {# ive changed this — when a study demands a specific tier, only that tiers
+     method is shown. no focus (visiting /verify directly) shows all three. #}
+  {% if not focus_tier or focus_tier == 'tier_3' %}
+  <!-- ive added this for verification — OTP step (phase 2a) + email field -->
+  {{ email_verify_form() }}
+  {% endif %}
+
+  {% if not focus_tier %}<div class="or-divider">or</div>{% endif %}
+
+  {% if not focus_tier or focus_tier == 'tier_2' %}
+  <!-- ive added this for verification — LinkedIn OAuth (phase 2b) -->
+  {{ linkedin_button() }}
+  {% endif %}
+
+  {% if not focus_tier %}<div class="or-divider">or</div>{% endif %}
+
+  {% if not focus_tier or focus_tier == 'tier_1' %}
+  {{ high_assurance_block() }}
+  {% endif %}
+
+  {% endif %}
+
+  <a href="/participant" class="btn-secondary">Back to Dashboard</a>
+  {% endif %}
+</div>
+
+<script>
+  // ive added this for verification — request an OTP to the email theyre proving
+  async function sendVerifyCode() {
+    const btn = document.getElementById('btnSendCode');
+    const hint = document.getElementById('codeHint');
+    const emailEl = document.getElementById('verifyEmail');
+    const email = emailEl ? emailEl.value.trim() : '';
+    if (!email) { hint.textContent = 'Please enter an email address first.'; hint.className = 'code-hint error'; return; }
+    // ive added this so the server can reject a wrong-domain email before sending a code
+    const needsDomainsEl = document.getElementById('needsDomains');
+    const needs_domains = needsDomainsEl ? needsDomainsEl.value : '';
+    btn.disabled = true; btn.textContent = 'Sending...';
+    hint.textContent = ''; hint.className = 'code-hint';
+    try {
+      const res = await fetch('/verify/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ email, needs_domains })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        hint.textContent = data.message; hint.className = 'code-hint success';
+        let secs = 60;
+        const interval = setInterval(() => {
+          secs--;
+          btn.textContent = `Resend (${secs}s)`;
+          if (secs <= 0) { clearInterval(interval); btn.disabled = false; btn.textContent = 'Resend Code'; }
+        }, 1000);
+      } else {
+        hint.textContent = data.message; hint.className = 'code-hint error';
+        btn.disabled = false; btn.textContent = 'Send Code';
+      }
+    } catch {
+      hint.textContent = 'Network error. Please try again.'; hint.className = 'code-hint error';
+      btn.disabled = false; btn.textContent = 'Send Code';
+    }
+  }
+</script>
+
+</body>
+</html>

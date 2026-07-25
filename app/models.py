@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 
@@ -44,6 +44,20 @@ class User(Base):
     smoking = Column(String, nullable=True)
     cannabis_use = Column(String, nullable=True)
     language = Column(String, nullable=True)
+    
+    # ive added these for the verification feature (Phase 1)
+    occupation = Column(String, nullable=True)
+    verification_status = Column(String, default="unverified")
+    verified_at = Column(DateTime, nullable=True)
+    verified_tier = Column(String, nullable=True)
+    # Legacy-only quarantine fields. New uploads and researcher access are
+    # disabled; keep temporarily only for an explicitly approved retention job.
+    id_document_path = Column(String, nullable=True)
+    id_review_status = Column(String, nullable=True)
+    id_uploaded_at = Column(DateTime, nullable=True)
+    # ive added this for the email-domain feature — the email the participant proved via OTP
+    # (may differ from their account email, e.g. they verified their @bu.edu address)
+    verified_email = Column(String, nullable=True)
 
     # Student segmentation
     student_status = Column(String, nullable=True)
@@ -102,7 +116,14 @@ class Survey(Base):
     target_sport_frequency = Column(String, nullable=True)
     target_smoking = Column(String, nullable=True)
     target_cannabis_use = Column(String, nullable=True)
-
+    
+    # ive added these so researchers pick who can fill the survey
+    required_occupation = Column(String, nullable=True)
+    required_verification_tier = Column(String, default="tier_3")
+    # ive added this for the email-domain feature — comma separated allowed domains
+    # (no @, lowercase) e.g. "bu.edu,gmail.com". blank means any email is fine
+    required_email_domains = Column(String, nullable=True)
+    
     # Extended targeting fields
     target_student_status = Column(String, nullable=True)
     target_year_in_school = Column(String, nullable=True)
@@ -386,6 +407,9 @@ class QualityBlacklist(Base):
 # ======================
 class Verification(Base):
     __tablename__ = "verifications"
+    __table_args__ = (
+        UniqueConstraint("method", "evidence_ref", name="uq_verification_method_evidence"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -400,3 +424,104 @@ class Verification(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", backref="verifications")
+
+
+# ======================
+# Study eligibility screening
+# ======================
+class ScreeningQuestion(Base):
+    __tablename__ = "screening_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False, index=True)
+    version = Column(Integer, nullable=False, default=1)
+    attribute = Column(String, nullable=False)
+    prompt = Column(Text, nullable=False)
+    question_type = Column(String, nullable=False, default="single")
+    options = Column(JSON, nullable=False)
+    accepted_answers = Column(JSON, nullable=False)
+    rationale = Column(Text, nullable=True)
+    sensitivity = Column(String, nullable=False, default="low")
+    source = Column(String, nullable=False, default="rules")  # rules | ai_assisted | researcher_edited
+    status = Column(String, nullable=False, default="draft")  # draft | approved | retired
+    order_index = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    approved_at = Column(DateTime, nullable=True)
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    survey = relationship("Survey", backref="screening_questions")
+
+
+class ScreeningAttempt(Base):
+    __tablename__ = "screening_attempts"
+    __table_args__ = (
+        UniqueConstraint(
+            "survey_id",
+            "participant_id",
+            "version",
+            name="uq_screening_attempt_participant_version",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False, index=True)
+    participant_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    version = Column(Integer, nullable=False)
+    answers = Column(JSON, nullable=True)
+    status = Column(String, nullable=False, default="started")  # started | passed | failed | review
+    risk_score = Column(Float, nullable=False, default=0.0)
+    reasons = Column(JSON, nullable=True)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    survey = relationship("Survey", backref="screening_attempts")
+    participant = relationship("User", backref="screening_attempts")
+
+
+# ======================
+# Persistent trust signals and participation decisions
+# ======================
+class RiskSignalEvent(Base):
+    """Privacy-minimized security telemetry used by the human-risk engine."""
+
+    __tablename__ = "risk_signal_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=True, index=True)
+    event_type = Column(String, nullable=False, index=True)  # registration | start | completion
+    network_ref = Column(String, nullable=True, index=True)  # HMAC, never the raw IP
+    device_ref = Column(String, nullable=True, index=True)   # HMAC, never the raw fingerprint
+    bot_challenge_passed = Column(Boolean, nullable=True)
+    signal_metadata = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    user = relationship("User", backref="risk_signal_events")
+    survey = relationship("Survey", backref="risk_signal_events")
+
+
+class ParticipationDecision(Base):
+    """An auditable snapshot of the checks used at each participation gate."""
+
+    __tablename__ = "participation_decisions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    participant_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=True, index=True)
+    response_id = Column(Integer, ForeignKey("responses.id"), nullable=True, index=True)
+    stage = Column(String, nullable=False, index=True)  # registration | start | completion | payout
+    human_status = Column(String, nullable=False)
+    human_risk_score = Column(Float, nullable=False, default=0.0)
+    eligibility_status = Column(String, nullable=False, default="not_required")
+    assurance_status = Column(String, nullable=False, default="passed")
+    quality_status = Column(String, nullable=False, default="not_available")
+    quality_score = Column(Float, nullable=True)
+    outcome = Column(String, nullable=False, index=True)  # allow | review | block
+    reasons = Column(JSON, nullable=True)
+    decision_snapshot = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    participant = relationship("User", backref="participation_decisions")
+    survey = relationship("Survey", backref="participation_decisions")
+    response = relationship("Response", backref="participation_decisions")
