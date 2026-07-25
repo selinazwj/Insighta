@@ -2,6 +2,7 @@ fastapi==0.115.0
 uvicorn
 jinja2
 sqlalchemy
+alembic
 asyncpg
 python-multipart
 passlib[bcrypt]

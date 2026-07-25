@@ -3,6 +3,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
+from app.schema_bootstrap import auto_schema_bootstrap_enabled
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -19,7 +20,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Import Base only (not User/Survey/Response) to avoid circular import
 from app.models import Base
-Base.metadata.create_all(bind=engine)
+if auto_schema_bootstrap_enabled():
+    Base.metadata.create_all(bind=engine)
 
 def get_db():
     db = SessionLocal()
@@ -30,4 +32,3 @@ def get_db():
         raise
     finally:
         db.close()
-

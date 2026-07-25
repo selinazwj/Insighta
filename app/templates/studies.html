@@ -64,9 +64,6 @@
       <div class="study-grid" id="study-list">
         {% for survey in surveys %}
         <a class="study-card" href="{{ survey.share_path }}" aria-label="View {{ survey.title }} research study">
-          <div class="study-image-wrap">
-            <img class="study-image" src="{{ survey.image }}" alt="{{ survey.title }} research study cover" width="640" height="360" loading="{% if loop.index <= 3 %}eager{% else %}lazy{% endif %}" decoding="async">
-          </div>
           <div class="study-body">
             <div class="study-kicker">{{ survey.category_label }} · {{ survey.task_type_label }}</div>
             <h3 class="study-title">{{ survey.title }}</h3>

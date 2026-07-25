@@ -124,7 +124,8 @@ def main() -> int:
             published = client.get("/r/remote-work-habits")
             assert_contains(published, '<link rel="canonical" href="https://seo-test.insighta.invalid/r/remote-work-habits">', "study canonical")
             assert_contains(published, '"@type":"ResearchProject"', "research project schema")
-            assert_contains(published, '<img class="poster-image"', "crawlable study image")
+            assert_contains(published, '<div class="poster">', "study hero")
+            assert_contains(published, 'Create participant account', "study CTA")
             if published.headers.get("x-robots-tag"):
                 raise AssertionError("Published study unexpectedly received X-Robots-Tag")
 
