@@ -501,6 +501,10 @@
   async function doTake(id, link, isBuiltIn, e) {
     burst(e);
     const s = surveys.find(x => x.id === id);
+    if (s && s.screening_required && !s.screening_passed) {
+      window.location.href = s.screening_url || `/surveys/${id}/screening`;
+      return;
+    }
     const hasExternalLink = !!(link && link !== '__builtin__');
     const format = ((s && s.format) || '').toLowerCase();
     const typeLabel = ((s && s.type_label) || '').toLowerCase();

@@ -1,17 +1,10 @@
-"""
-ive registered all adapters here
-this is the single source of truth for which adapters exist
-"""
-from app.verification.adapters.self_declared import SelfDeclaredAdapter
+"""Registry for provider-backed verification adapters.
 
-# the registry — occupation_tag maps to adapter instance
-ADAPTERS = {
-  "self_declared": SelfDeclaredAdapter(),
-  # when you write more adapters, add them here:
-  # "physician": NPIRegistryAdapter(),
-  # "student": EduEmailAdapter(),
-  # "lawyer": BarDirectoryAdapter(),
-}
+No adapter is registered until it passes security and privacy review.
+Self-declaration is intentionally excluded.
+"""
+
+ADAPTERS = {}
 
 
 def get_adapter(tag: str):

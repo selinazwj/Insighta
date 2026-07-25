@@ -336,6 +336,11 @@
   }
 
   async function doTake(id, link, isBuiltIn) {
+    const s = surveys.find(x => x.id === id);
+    if (s && s.screening_required && !s.screening_passed) {
+      window.location.href = s.screening_url || `/surveys/${id}/screening`;
+      return;
+    }
     await fetch(`/surveys/${id}/start`, { method:'POST', credentials:'same-origin' }).catch(()=>{});
     if (isBuiltIn) { window.location.href = `/surveys/${id}/take`; }
     else {

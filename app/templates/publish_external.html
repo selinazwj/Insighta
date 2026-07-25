@@ -941,19 +941,19 @@
             <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
           </button>
           <div class="occ-dd-panel" id="occDDPanel">
-            <div class="occ-dd-group">Tier 1 — Licensed professionals</div>
+            <div class="occ-dd-group">Licensed professionals</div>
             {% for val, lab in [('physician','Physician'), ('nurse','Nurse'), ('lawyer','Lawyer'), ('therapist','Therapist'), ('engineer','Engineer')] %}
             <label class="occ-dd-item {{ 'on' if val in sel_occ }}">
               <input type="checkbox" name="required_occupation" value="{{ val }}" data-label="{{ lab }}" {{ 'checked' if val in sel_occ }} onchange="occDDChanged()"> {{ lab }}
             </label>
             {% endfor %}
-            <div class="occ-dd-group">Tier 2 — Professionals</div>
+            <div class="occ-dd-group">Professionals and students</div>
             {% for val, lab in [('student','Student'), ('teacher','Teacher'), ('it_professional','IT Professional'), ('researcher','Researcher'), ('marketer','Marketer'), ('business','Business')] %}
             <label class="occ-dd-item {{ 'on' if val in sel_occ }}">
               <input type="checkbox" name="required_occupation" value="{{ val }}" data-label="{{ lab }}" {{ 'checked' if val in sel_occ }} onchange="occDDChanged()"> {{ lab }}
             </label>
             {% endfor %}
-            <div class="occ-dd-group">Tier 3 — General</div>
+            <div class="occ-dd-group">General</div>
             {% for val, lab in [('general_public','General Public'), ('other','Other')] %}
             <label class="occ-dd-item {{ 'on' if val in sel_occ }}">
               <input type="checkbox" name="required_occupation" value="{{ val }}" data-label="{{ lab }}" {{ 'checked' if val in sel_occ }} onchange="occDDChanged()"> {{ lab }}
@@ -969,29 +969,29 @@
       <div class="field" style="margin-bottom:14px;">
         <label>Verification tier <span style="font-weight:400;color:var(--ink3);">(hover a card to see what it means)</span></label>
         <div class="tier-cards">
-          <label class="tier-card {{ 'selected' if cur_tier == 'tier_1' }}" onclick="pickTier(this)">
-            <input type="radio" name="required_verification_tier" value="tier_1" {{ 'checked' if cur_tier == 'tier_1' }}>
-            <span class="tier-card-badge">Tier 1</span>
-            <div class="tier-card-name">Strict</div>
-            <div class="tier-card-desc">Government ID, reviewed by an admin</div>
+          <label class="tier-card" style="opacity:.58;cursor:not-allowed;">
+            <input type="radio" name="required_verification_tier" value="tier_1" disabled>
+            <span class="tier-card-badge">High Assurance</span>
+            <div class="tier-card-name">Temporarily unavailable</div>
+            <div class="tier-card-desc">External privacy-reviewed provider required</div>
             <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Participants must upload a government ID document, which an admin reviews and approves before they can be paid. The strongest identity guarantee — use for sensitive or high-payout studies.</div>
+            <div class="tier-tip">Insighta no longer collects raw ID documents. This option will return after a provider integration that shares only the verification result.</div>
           </label>
           <label class="tier-card {{ 'selected' if cur_tier == 'tier_2' }}" onclick="pickTier(this)">
             <input type="radio" name="required_verification_tier" value="tier_2" {{ 'checked' if cur_tier == 'tier_2' }}>
-            <span class="tier-card-badge">Tier 2</span>
-            <div class="tier-card-name">Standard</div>
-            <div class="tier-card-desc">LinkedIn sign-in required</div>
+            <span class="tier-card-badge">Trusted</span>
+            <div class="tier-card-name">Trusted participant</div>
+            <div class="tier-card-desc">Basic check plus stronger reusable evidence</div>
             <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Participants verify by signing in with their LinkedIn account, confirming a real professional identity. Good for studies aimed at working professionals.</div>
+            <div class="tier-tip">Participants pass the basic human check and add a unique trusted signal such as LinkedIn. This is useful for most paid professional studies.</div>
           </label>
           <label class="tier-card {{ 'selected' if cur_tier == 'tier_3' }}" onclick="pickTier(this)">
             <input type="radio" name="required_verification_tier" value="tier_3" {{ 'checked' if cur_tier == 'tier_3' }}>
-            <span class="tier-card-badge">Tier 3</span>
-            <div class="tier-card-name">Basic</div>
-            <div class="tier-card-desc">Email code — the default</div>
+            <span class="tier-card-badge">Basic</span>
+            <div class="tier-card-name">Basic human check</div>
+            <div class="tier-card-desc">Email control plus automated abuse checks</div>
             <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Participants confirm a one-time code sent to their email. Add "Allowed email domains" below to restrict to specific communities, e.g. bu.edu for BU students only.</div>
+            <div class="tier-tip">Participants prove email control and pass automated bot and abuse checks. Study-specific eligibility is handled separately.</div>
           </label>
         </div>
       </div>
@@ -1002,7 +1002,7 @@
           value="{{ existing_survey.required_email_domains if existing_survey and existing_survey.required_email_domains else '' }}">
         <div class="field-hint">Only participants who verify an email at one of these domains can be paid. Separate multiple with commas. Leave blank to allow any email.</div>
       </div>
-      <div class="field-hint" style="margin-top:14px;">ive added this for verification — tier 3 (basic) is the default and allows general public participation.</div>
+      <div class="field-hint" style="margin-top:14px;">Basic is the default. Verification checks account trust; it does not replace study-specific screening.</div>
     </div>
 
     <!-- 06 QUALITY AUTO FILTER -->

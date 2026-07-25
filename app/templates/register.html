@@ -577,14 +577,14 @@
           <label>Occupation <span class="badge-required">Required</span></label>
           <select name="occupation" id="occupation" required>
             <option value="">Select your occupation</option>
-            <optgroup label="Tier 1 — Licensed Professionals">
+            <optgroup label="Licensed professionals">
               <option value="physician">Physician</option>
               <option value="nurse">Nurse</option>
               <option value="lawyer">Lawyer</option>
               <option value="therapist">Therapist</option>
               <option value="engineer">Engineer</option>
             </optgroup>
-            <optgroup label="Tier 2 — Professionals">
+            <optgroup label="Professionals and students">
               <option value="student">Student</option>
               <option value="teacher">Teacher</option>
               <option value="it_professional">IT Professional</option>
@@ -592,19 +592,26 @@
               <option value="marketer">Marketer</option>
               <option value="business">Business</option>
             </optgroup>
-            <optgroup label="Tier 3 — General">
+            <optgroup label="General">
               <option value="general_public">General Public</option>
               <option value="other">Other</option>
             </optgroup>
           </select>
         </div>
 
-        <!-- ive added this for phase 4 — quick math captcha so bots cant mass register -->
+        <!-- A managed challenge is used in configured environments. The signed
+             math fallback is kept only so local development works offline. -->
         <div class="form-group">
+          {% if turnstile_site_key %}
+          <label>Security check <span class="badge-required">Required</span></label>
+          <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+          <div class="field-note">This helps us prevent automated and duplicate sign-ups.</div>
+          {% else %}
           <label>Quick check: what is {{ captcha_question }}? <span class="badge-required">Required</span></label>
           <input type="text" name="captcha_answer" id="captchaAnswer" inputmode="numeric"
             placeholder="Your answer" maxlength="3" required>
-          <div class="field-note">This helps us keep bots out.</div>
+          <div class="field-note">Local development fallback. Production uses a managed bot check.</div>
+          {% endif %}
         </div>
 
         <button type="button" class="btn-next" onclick="requestConsent()">Create Account →</button>
@@ -835,9 +842,10 @@
     const confirm = document.getElementById('confirm').value;
     let hasError = false;
 
-    // ive added occupation + captcha here for phase 4 — theyre on step 3 with this button
+    // Occupation and the local-only CAPTCHA are on step 3.
     ['password', 'confirm', 'occupation', 'captchaAnswer'].forEach(id => {
       const el = document.getElementById(id);
+      if (!el) return;
       if (!el.value.trim()) {
         el.style.borderColor = '#ef4444';
         el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
@@ -899,6 +907,9 @@
   {% endif %}
   {% endif %}
 </script>
+{% if turnstile_site_key %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
 
 </body>
 </html>

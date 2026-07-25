@@ -1,16 +1,16 @@
+"""Retired self-declared adapter.
+
+Self-declaration is an eligibility input, not identity evidence, and therefore
+must never grant a verified status.
 """
-self-declared adapter — auto-passes everyone
-this is just to prove the plumbing works before we write real adapters
-"""
-from datetime import datetime, timedelta
+from datetime import datetime
 import uuid
 from app.verification.interface import VerificationSession, VerificationResult
 
 
 class SelfDeclaredAdapter:
   """
-  ive made this adapter just return 'verified' immediately
-  no actual checks, used for testing the flow
+  Compatibility stub that fails closed.
   """
   
   @property
@@ -21,20 +21,18 @@ class SelfDeclaredAdapter:
     # generate a fake session id
     session_id = f"self_{uuid.uuid4().hex[:12]}"
     
-    # immediately mark as verified (no actual work)
     return VerificationSession(
       session_id=session_id,
-      status="verified",
+      status="rejected",
       next_step="wait",
-      message="Auto-verified (self-declared mode)"
+      message="Self-declaration does not qualify as verification evidence."
     )
   
   def check(self, session_id: str, db) -> VerificationResult:
-    # always return verified
     return VerificationResult(
-      status="verified",
-      trust_score=0.5,  # low trust because its self-declared
+      status="rejected",
+      trust_score=0.0,
       verified_at=datetime.utcnow(),
-      expires_at=datetime.utcnow() + timedelta(days=365),
-      message="Self-declared verification"
+      expires_at=datetime.utcnow(),
+      message="Self-declaration does not qualify as verification evidence."
     )
