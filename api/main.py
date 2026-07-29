@@ -517,6 +517,52 @@ def send_email(to: str, subject: str, body: str, text_body: Optional[str] = None
         print(f"Email error: {error}")
         return False, error
 
+
+def send_email_batch(
+    messages: list[dict[str, Any]],
+    *,
+    idempotency_key: str,
+) -> tuple[bool, list[str], Optional[str]]:
+    """Send up to 100 messages with Resend's idempotent batch endpoint."""
+    if EMAIL_PROVIDER != "resend":
+        return False, [], "Batch email campaigns require EMAIL_PROVIDER=resend"
+    if not RESEND_API_KEY or not EMAIL_FROM:
+        return False, [], "Resend email configuration is incomplete"
+    if not messages:
+        return True, [], None
+    if len(messages) > 100:
+        return False, [], "Resend batches are limited to 100 messages"
+    try:
+        response = httpx.post(
+            "https://api.resend.com/emails/batch",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+                "User-Agent": "Insighta/1.0",
+                "Idempotency-Key": idempotency_key[:256],
+            },
+            json=messages,
+            timeout=20.0,
+        )
+        if response.is_success:
+            payload = response.json()
+            ids = [
+                str(item.get("id"))
+                for item in (payload.get("data") or [])
+                if isinstance(item, dict) and item.get("id")
+            ]
+            if len(ids) != len(messages):
+                return False, ids, "Resend returned an incomplete batch response"
+            return True, ids, None
+        error = f"Resend batch returned {response.status_code}: {response.text[:500]}"
+        print(f"Email batch error: {error}")
+        return False, [], error
+    except Exception as exc:
+        error = f"Resend batch request failed: {exc}"
+        print(f"Email batch error: {error}")
+        return False, [], error
+
+
 def send_support_alert_email(user: User, thread: SupportThread, message: SupportMessage):
     if not SUPPORT_ALERT_EMAIL:
         return
@@ -6791,6 +6837,289 @@ async def admin_reward_reminder_email(request: Request, db: Session = Depends(ge
         "sent_count": sent_count,
         "failed_count": len(failures),
         "failures": failures[:20],
+    })
+
+
+STUDY_RECOMMENDATION_CAMPAIGN_EVENT = "study_recommendation_campaign_authorized"
+STUDY_RECOMMENDATION_SENT_EVENT = "study_recommendation_email_sent"
+STUDY_RECOMMENDATION_UNSUBSCRIBED_EVENT = "study_recommendation_unsubscribed"
+
+
+def _study_email_unsubscribe_token(user_id: int) -> str:
+    signing_key = (
+        os.environ.get("ADMIN_KEY")
+        or os.environ.get("VERIFICATION_EVIDENCE_SECRET")
+        or ""
+    ).encode("utf-8")
+    if not signing_key:
+        return ""
+    return hmac.new(
+        signing_key,
+        f"study-recommendations:{user_id}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _study_email_unsubscribe_url(user_id: int) -> str:
+    return (
+        f"{BASE_URL.rstrip('/')}/email/preferences/study-recommendations/unsubscribe?"
+        f"{urlencode({'user_id': user_id, 'token': _study_email_unsubscribe_token(user_id)})}"
+    )
+
+
+def _study_recommendation_message(user: User, surveys: list[Survey]) -> dict[str, Any]:
+    first_name = html.escape((user.first_name or user.username or "").strip())
+    greeting = f"Hi {first_name}," if first_name else "Hi,"
+    cards = []
+    text_sections = []
+    for survey in surveys:
+        title = html.escape((survey.title or "").strip())
+        description = html.escape((survey.description or "").strip())
+        if len(description) > 430:
+            description = description[:427].rstrip() + "..."
+        display_reward = survey.admin_display_reward_amount
+        if display_reward is None:
+            display_reward = survey.reward_amount
+        reward_label = f"Up to ${float(display_reward or 0):,.0f}"
+        study_url = f"{BASE_URL.rstrip('/')}/r/{survey.share_slug}"
+        cards.append(f"""
+        <div style="border:1px solid #e0ddd3;border-radius:14px;padding:20px;margin:18px 0;">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#2d6a4f;margin-bottom:8px;">
+            {html.escape(reward_label)} · About {int(survey.estimated_time or 0)} minutes
+          </div>
+          <h2 style="font-size:20px;line-height:1.3;margin:0 0 10px;color:#1a1a18;">{title}</h2>
+          <p style="font-size:14px;line-height:1.6;color:#55554f;margin:0 0 16px;">{description}</p>
+          <a href="{html.escape(study_url, quote=True)}"
+             style="display:inline-block;background:#184e77;color:#fff;text-decoration:none;font-weight:700;padding:11px 18px;border-radius:9px;">
+            View study details
+          </a>
+        </div>
+        """)
+        text_sections.append(
+            f"{survey.title.strip()}\n"
+            f"{reward_label} · About {int(survey.estimated_time or 0)} minutes\n"
+            f"{survey.description.strip()}\n"
+            f"{study_url}"
+        )
+    unsubscribe_url = _study_email_unsubscribe_url(user.id)
+    body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;padding:26px 22px 34px;color:#1a1a18;">
+      <p style="font-size:16px;line-height:1.6;margin-top:0;">{greeting}</p>
+      <p style="font-size:16px;line-height:1.6;">
+        Two paid Boston University research opportunities are currently recruiting on Insighta.
+        Review the eligibility details below and apply if either study is a fit.
+      </p>
+      {''.join(cards)}
+      <p style="font-size:13px;line-height:1.55;color:#6f6f68;margin-top:24px;">
+        Participation is voluntary. Review each study page for eligibility, location, compensation,
+        and researcher contact details.
+      </p>
+      <p style="font-size:12px;line-height:1.5;color:#8a8a82;margin-top:22px;">
+        You received this email because you have an Insighta account.
+        <a href="{html.escape(unsubscribe_url, quote=True)}" style="color:#6f6f68;">Unsubscribe from study recommendations</a>.
+      </p>
+    </div>
+    """
+    text_body = (
+        f"{html.unescape(re.sub('<[^>]+>', '', greeting))}\n\n"
+        "Two paid Boston University research opportunities are currently recruiting on Insighta.\n\n"
+        + "\n\n".join(text_sections)
+        + "\n\nParticipation is voluntary. Review each study page for full details."
+        + f"\n\nUnsubscribe from study recommendations: {unsubscribe_url}"
+    )
+    message: dict[str, Any] = {
+        "from": EMAIL_FROM,
+        "to": [user.email],
+        "subject": "Two paid Boston University research opportunities",
+        "html": _with_email_brand_header(body),
+        "text": text_body,
+        "headers": {
+            "List-Unsubscribe": f"<{unsubscribe_url}>",
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+        "tags": [{"name": "campaign", "value": "bu-study-recommendations"}],
+    }
+    if EMAIL_REPLY_TO:
+        message["reply_to"] = EMAIL_REPLY_TO
+    return message
+
+
+@app.api_route(
+    "/email/preferences/study-recommendations/unsubscribe",
+    methods=["GET", "POST"],
+    response_class=HTMLResponse,
+)
+async def unsubscribe_study_recommendations(
+    request: Request,
+    user_id: int = Query(...),
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    expected = _study_email_unsubscribe_token(user_id)
+    if not expected or not hmac.compare_digest(token, expected):
+        raise HTTPException(403, "Invalid unsubscribe link")
+    existing = db.query(UserEvent.id).filter(
+        UserEvent.user_id == user_id,
+        UserEvent.event_name == STUDY_RECOMMENDATION_UNSUBSCRIBED_EVENT,
+    ).first()
+    if not existing:
+        db.add(UserEvent(
+            user_id=user_id,
+            event_name=STUDY_RECOMMENDATION_UNSUBSCRIBED_EVENT,
+            target_type="email_preference",
+            target_id="study_recommendations",
+            page_path=request.url.path,
+            metadata_json={"source": "one_click_unsubscribe"},
+        ))
+        db.commit()
+    return HTMLResponse("""
+    <!doctype html><html lang="en"><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Email preferences updated · Insighta</title>
+    <body style="font-family:Arial,sans-serif;background:#f7f6f1;margin:0;padding:48px 20px;color:#1a1a18;">
+      <main style="max-width:560px;margin:auto;background:white;border:1px solid #e0ddd3;border-radius:16px;padding:32px;">
+        <h1 style="font-size:24px;margin-top:0;color:#184e77;">Email preferences updated</h1>
+        <p style="line-height:1.6;">You will no longer receive study recommendation emails from Insighta.</p>
+        <a href="/" style="color:#184e77;">Return to Insighta</a>
+      </main>
+    </body></html>
+    """)
+
+
+@app.post("/internal/email-campaigns/{campaign_id}/send")
+async def send_authorized_study_email_campaign(
+    campaign_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    body = await request.json()
+    provided_token = str(body.get("token") or "")
+    campaign = db.query(UserEvent).filter(
+        UserEvent.event_name == STUDY_RECOMMENDATION_CAMPAIGN_EVENT,
+        UserEvent.target_type == "email_campaign",
+        UserEvent.target_id == campaign_id,
+    ).first()
+    if not campaign:
+        raise HTTPException(404, "Campaign not found")
+    campaign_metadata = dict(campaign.metadata_json or {})
+    expected_hash = str(campaign_metadata.get("token_sha256") or "")
+    provided_hash = hashlib.sha256(provided_token.encode("utf-8")).hexdigest()
+    if not expected_hash or not hmac.compare_digest(provided_hash, expected_hash):
+        raise HTTPException(403, "Invalid campaign token")
+
+    slugs = [str(value) for value in (campaign_metadata.get("study_slugs") or []) if value]
+    surveys = db.query(Survey).filter(
+        Survey.share_slug.in_(slugs),
+        Survey.status == "published",
+    ).all()
+    survey_by_slug = {survey.share_slug: survey for survey in surveys}
+    surveys = [survey_by_slug[slug] for slug in slugs if slug in survey_by_slug]
+    if len(surveys) != len(slugs):
+        raise HTTPException(409, "One or more authorized studies are not published")
+
+    opted_out_ids = {
+        row[0]
+        for row in db.query(UserEvent.user_id).filter(
+            UserEvent.event_name == STUDY_RECOMMENDATION_UNSUBSCRIBED_EVENT,
+            UserEvent.user_id.isnot(None),
+        ).all()
+    }
+    already_sent_ids = {
+        row[0]
+        for row in db.query(UserEvent.user_id).filter(
+            UserEvent.event_name == STUDY_RECOMMENDATION_SENT_EVENT,
+            UserEvent.target_type == "email_campaign",
+            UserEvent.target_id == campaign_id,
+            UserEvent.user_id.isnot(None),
+        ).all()
+    }
+    recipients = []
+    seen_emails = set()
+    for user in db.query(User).filter(User.email.isnot(None)).order_by(User.id).all():
+        normalized = _normalize_email(user.email or "")
+        if (
+            not normalized
+            or "@" not in normalized
+            or normalized in seen_emails
+            or user.id in opted_out_ids
+            or user.id in already_sent_ids
+        ):
+            continue
+        seen_emails.add(normalized)
+        user.email = normalized
+        recipients.append(user)
+
+    if bool(body.get("dry_run", True)):
+        return JSONResponse({
+            "dry_run": True,
+            "campaign_id": campaign_id,
+            "recipient_count": len(recipients),
+            "opted_out_count": len(opted_out_ids),
+            "already_sent_count": len(already_sent_ids),
+            "subject": "Two paid Boston University research opportunities",
+            "studies": [
+                {
+                    "title": survey.title.strip(),
+                    "url": f"{BASE_URL.rstrip('/')}/r/{survey.share_slug}",
+                    "reward": survey.admin_display_reward_amount
+                    if survey.admin_display_reward_amount is not None
+                    else survey.reward_amount,
+                    "estimated_time": survey.estimated_time,
+                }
+                for survey in surveys
+            ],
+        })
+
+    if body.get("confirm") != "SEND":
+        raise HTTPException(400, "Set confirm to SEND")
+    if campaign_metadata.get("status") != "ready":
+        raise HTTPException(409, f"Campaign status is {campaign_metadata.get('status')}")
+    campaign_metadata["status"] = "running"
+    campaign_metadata["started_at"] = datetime.utcnow().isoformat()
+    campaign.metadata_json = campaign_metadata
+    db.commit()
+
+    sent_count = 0
+    failures = []
+    for batch_index, start in enumerate(range(0, len(recipients), 100)):
+        batch_users = recipients[start:start + 100]
+        messages = [_study_recommendation_message(user, surveys) for user in batch_users]
+        sent, resend_ids, error = send_email_batch(
+            messages,
+            idempotency_key=f"insighta/{campaign_id}/batch/{batch_index}",
+        )
+        if not sent:
+            failures.append({
+                "batch_index": batch_index,
+                "recipient_count": len(batch_users),
+                "error": error or "Unknown Resend error",
+            })
+            break
+        for user, resend_id in zip(batch_users, resend_ids):
+            db.add(UserEvent(
+                user_id=user.id,
+                event_name=STUDY_RECOMMENDATION_SENT_EVENT,
+                target_type="email_campaign",
+                target_id=campaign_id,
+                metadata_json={"resend_email_id": resend_id, "study_slugs": slugs},
+            ))
+        db.commit()
+        sent_count += len(batch_users)
+
+    campaign_metadata = dict(campaign.metadata_json or {})
+    campaign_metadata["status"] = "sent" if not failures else "partial_failure"
+    campaign_metadata["finished_at"] = datetime.utcnow().isoformat()
+    campaign_metadata["sent_count"] = sent_count
+    campaign_metadata["failed_count"] = len(recipients) - sent_count
+    campaign.metadata_json = campaign_metadata
+    db.commit()
+    return JSONResponse({
+        "dry_run": False,
+        "campaign_id": campaign_id,
+        "recipient_count": len(recipients),
+        "sent_count": sent_count,
+        "failed_count": len(recipients) - sent_count,
+        "failures": failures,
     })
 
 
