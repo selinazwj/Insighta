@@ -101,6 +101,26 @@ reward_setup_reminder_email
 - Remove or disable the FastAPI startup polling loop after the runner is wired.
 - Add a small script or endpoint for local/manual execution.
 
+## Pilot Implementation Notes
+
+The first PR now creates a generic `background_jobs` table and wires the
+existing survey start follow-up email into it.
+
+Manual run:
+
+```bash
+python scripts/run_due_jobs.py --limit 25
+```
+
+Suggested deployment step:
+
+- Run the Alembic migration so `background_jobs` exists.
+- Add a scheduled command that runs `python scripts/run_due_jobs.py --limit 25`
+  every minute or every few minutes.
+- Keep `INSIGHTA_ENABLE_LEGACY_FOLLOWUP_WORKER` unset in normal deploys. Set it
+  to `1` only as a temporary rollback path to re-enable the old FastAPI startup
+  polling loop.
+
 ## Coordination Notes
 
 - Coordinate with A before adding job tables or migration files.
