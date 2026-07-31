@@ -421,6 +421,12 @@ BASE_URL = os.environ.get("BASE_URL", "https://insightaco.org")
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+
+def _local_dev_email_codes_enabled(request: Request) -> bool:
+    if os.environ.get("LOCAL_DEV_EMAIL_CODES") == "1":
+        return True
+    host = (request.url.hostname or "").lower()
+    return host in {"127.0.0.1", "localhost", "0.0.0.0"}
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
@@ -2153,6 +2159,13 @@ async def send_auth_code(
     code, created_new = _issue_verification_code(db, normalized_email, normalized_purpose)
     sent, send_error = _send_verification_email(normalized_email, normalized_purpose, code)
     if not sent:
+        if _local_dev_email_codes_enabled(request):
+            print(f"Local dev verification code for {normalized_email} ({normalized_purpose}): {code}")
+            return JSONResponse({
+                "ok": True,
+                "message": f"Local dev mode: use verification code {code}.",
+                "dev_code": code,
+            })
         if created_new:
             db.query(EmailVerificationCode).filter(
                 EmailVerificationCode.email == normalized_email,
@@ -2166,6 +2179,14 @@ async def send_auth_code(
             "ok": False,
             "message": "We could not send the verification email. Please try again in a moment."
         }, status_code=502)
+
+    if _local_dev_email_codes_enabled(request):
+        print(f"Local dev verification code for {normalized_email} ({normalized_purpose}): {code}")
+        return JSONResponse({
+            "ok": True,
+            "message": f"Verification code sent to {_mask_email(normalized_email)}. Local dev code: {code}",
+            "dev_code": code,
+        })
 
     return JSONResponse({
         "ok": True,
