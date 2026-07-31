@@ -246,6 +246,26 @@ class UserEvent(Base):
 
 
 # ======================
+# Background jobs
+# ======================
+class BackgroundJob(Base):
+    __tablename__ = "background_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    job_type = Column(String, nullable=False, index=True)
+    status = Column(String, default="pending", nullable=False, index=True)
+    payload_json = Column(JSON, nullable=True)
+    dedupe_key = Column(String, unique=True, index=True, nullable=True)
+    attempts = Column(Integer, default=0, nullable=False)
+    max_attempts = Column(Integer, default=3, nullable=False)
+    run_after = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    locked_at = Column(DateTime, nullable=True)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# ======================
 # Feedback
 # ======================
 class Feedback(Base):

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query, BackgroundTasks
+from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse, PlainTextResponse, Response as HTTPResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -34,9 +34,16 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from app.database import engine, get_db, SessionLocal
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision
+from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision, BackgroundJob
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
+from app.jobs.service import (
+    BOOKING_CONFIRMATION_EMAIL,
+    SURVEY_START_FOLLOWUP_EMAIL,
+    enqueue_booking_confirmation_job,
+    enqueue_survey_start_followup_job,
+    run_due_jobs,
+)
 from app.quality_engine import (
     anthropic_api_key_configured,
     batch_anomaly_scores_for_features,
@@ -408,6 +415,9 @@ VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS = 60
 VERIFICATION_CODE_MAX_PER_HOUR = 5
 SURVEY_START_FOLLOWUP_DELAY_MINUTES = int(os.environ.get("SURVEY_START_FOLLOWUP_DELAY_MINUTES", "5"))
 SURVEY_START_FOLLOWUP_POLL_SECONDS = int(os.environ.get("SURVEY_START_FOLLOWUP_POLL_SECONDS", "60"))
+ENABLE_LEGACY_FOLLOWUP_WORKER = os.environ.get(
+    "INSIGHTA_ENABLE_LEGACY_FOLLOWUP_WORKER", "0"
+).strip().lower() in {"1", "true", "yes", "on"}
 
 # ---------------------------
 # OAuth 2.0 configuration
@@ -417,6 +427,12 @@ BASE_URL = os.environ.get("BASE_URL", "https://insightaco.org")
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+
+def _local_dev_email_codes_enabled(request: Request) -> bool:
+    if os.environ.get("LOCAL_DEV_EMAIL_CODES") == "1":
+        return True
+    host = (request.url.hostname or "").lower()
+    return host in {"127.0.0.1", "localhost", "0.0.0.0"}
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
@@ -775,17 +791,72 @@ The Insighta Team"""
         print(f"Survey start follow-up email error for response {response_id}: {error}")
 
 
-def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: User, booking_slot: str) -> None:
-    if not booking_slot or not _uses_booking_flow(getattr(survey, "task_type", None)):
+def _survey_start_followup_run_after(response: Response) -> datetime:
+    scheduled_at = response.start_followup_scheduled_at or datetime.utcnow()
+    return scheduled_at + timedelta(minutes=SURVEY_START_FOLLOWUP_DELAY_MINUTES)
+
+
+def _enqueue_survey_start_followup_if_needed(db: Session, response: Response) -> Optional[BackgroundJob]:
+    if not response or response.start_followup_sent_at:
+        return None
+    if not response.start_followup_scheduled_at:
+        response.start_followup_scheduled_at = datetime.utcnow()
+    return enqueue_survey_start_followup_job(
+        db,
+        response_id=response.id,
+        run_after=_survey_start_followup_run_after(response),
+    )
+
+
+def _enqueue_due_survey_start_followup_jobs(db: Session, *, limit: int = 25) -> int:
+    due_before = datetime.utcnow() - timedelta(minutes=SURVEY_START_FOLLOWUP_DELAY_MINUTES)
+    due_responses = db.query(Response).filter(
+        Response.start_followup_scheduled_at.isnot(None),
+        Response.start_followup_sent_at.is_(None),
+        Response.start_followup_scheduled_at <= due_before,
+    ).order_by(Response.start_followup_scheduled_at.asc()).limit(limit).all()
+    enqueued = 0
+    for response in due_responses:
+        job = _enqueue_survey_start_followup_if_needed(db, response)
+        if job:
+            enqueued += 1
+    if enqueued:
+        db.commit()
+    return enqueued
+
+
+def _handle_survey_start_followup_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    response_id = int(payload.get("response_id") or 0)
+    if response_id <= 0:
+        raise ValueError("Missing response_id for survey start follow-up job")
+    response = db.query(Response).filter(Response.id == response_id).first()
+    if not response or response.start_followup_sent_at:
         return
+    participant = db.query(User).filter(User.id == response.participant_id).first()
+    survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+    if not participant or not participant.email or not survey:
+        return
+    dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
+    _send_survey_start_followup_email(db, response_id, dashboard_url)
+    db.refresh(response)
+    if not response.start_followup_sent_at:
+        raise RuntimeError(f"Survey start follow-up email was not sent for response {response_id}")
+
+
+def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: User, booking_slot: str) -> int:
+    if not booking_slot or not _uses_booking_flow(getattr(survey, "task_type", None)):
+        return 0
     booking_label = _booking_slots_label(booking_slot)
     publisher = db.query(User).filter(User.id == survey.publisher_id).first()
     study_url = f"{BASE_URL.rstrip('/')}/publisher/study/{survey.id}"
     dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
     location = getattr(survey, "interview_location", None) or "The researcher will share the exact location."
     participant_name = participant.first_name or participant.username or participant.email
+    sent_count = 0
+    failures = []
     if participant.email:
-        send_email(
+        sent, error = send_email(
             participant.email,
             f"[Insighta] Your time is booked for {survey.title}",
             f"""
@@ -804,8 +875,12 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
             </div>
             """
         )
+        if sent:
+            sent_count += 1
+        else:
+            failures.append(error or "participant booking confirmation email failed")
     if publisher and publisher.email:
-        send_email(
+        sent, error = send_email(
             publisher.email,
             f"[Insighta] New in-person booking: {survey.title}",
             f"""
@@ -822,6 +897,13 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
             </div>
             """
         )
+        if sent:
+            sent_count += 1
+        else:
+            failures.append(error or "publisher booking confirmation email failed")
+    if failures:
+        raise RuntimeError("; ".join(failures))
+    return sent_count
 
 
 def _send_booking_confirmation_emails_for_response(response_id: int, booking_slot: str) -> None:
@@ -838,26 +920,44 @@ def _send_booking_confirmation_emails_for_response(response_id: int, booking_slo
         db.close()
 
 
-def _send_due_survey_start_followups(limit: int = 25) -> int:
+def _handle_booking_confirmation_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    response_id = int(payload.get("response_id") or 0)
+    booking_slot = str(payload.get("booking_slot") or "").strip()
+    if response_id <= 0:
+        raise ValueError("Missing response_id for booking confirmation job")
+    if not booking_slot:
+        return
+    response = db.query(Response).filter(Response.id == response_id).first()
+    if not response:
+        return
+    survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+    participant = db.query(User).filter(User.id == response.participant_id).first()
+    if not survey or not participant:
+        return
+    _send_booking_confirmation_emails(db, survey, participant, booking_slot)
+
+
+BACKGROUND_JOB_HANDLERS = {
+    SURVEY_START_FOLLOWUP_EMAIL: _handle_survey_start_followup_job,
+    BOOKING_CONFIRMATION_EMAIL: _handle_booking_confirmation_job,
+}
+
+
+def run_due_background_jobs(limit: int = 25) -> dict[str, int]:
     db = SessionLocal()
-    sent_count = 0
     try:
-        due_before = datetime.utcnow() - timedelta(minutes=SURVEY_START_FOLLOWUP_DELAY_MINUTES)
-        due_responses = db.query(Response).filter(
-            Response.start_followup_scheduled_at.isnot(None),
-            Response.start_followup_sent_at.is_(None),
-            Response.start_followup_scheduled_at <= due_before,
-        ).order_by(Response.start_followup_scheduled_at.asc()).limit(limit).all()
-        dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
-        for response in due_responses:
-            before_sent = response.start_followup_sent_at
-            _send_survey_start_followup_email(db, response.id, dashboard_url)
-            db.refresh(response)
-            if not before_sent and response.start_followup_sent_at:
-                sent_count += 1
-        return sent_count
+        enqueued = _enqueue_due_survey_start_followup_jobs(db, limit=limit)
+        result = run_due_jobs(db, BACKGROUND_JOB_HANDLERS, limit=limit)
+        result["enqueued"] = enqueued
+        return result
     finally:
         db.close()
+
+
+def _send_due_survey_start_followups(limit: int = 25) -> int:
+    result = run_due_background_jobs(limit=limit)
+    return result.get("succeeded", 0)
 
 
 async def _survey_start_followup_worker() -> None:
@@ -900,7 +1000,8 @@ def _cleanup_expired_trust_data() -> None:
 @app.on_event("startup")
 async def start_survey_followup_worker() -> None:
     _cleanup_expired_trust_data()
-    asyncio.create_task(_survey_start_followup_worker())
+    if ENABLE_LEGACY_FOLLOWUP_WORKER:
+        asyncio.create_task(_survey_start_followup_worker())
 
 
 def _client_ip(request: Request) -> Optional[str]:
@@ -2141,6 +2242,13 @@ async def send_auth_code(
     code, created_new = _issue_verification_code(db, normalized_email, normalized_purpose)
     sent, send_error = _send_verification_email(normalized_email, normalized_purpose, code)
     if not sent:
+        if _local_dev_email_codes_enabled(request):
+            print(f"Local dev verification code for {normalized_email} ({normalized_purpose}): {code}")
+            return JSONResponse({
+                "ok": True,
+                "message": f"Local dev mode: use verification code {code}.",
+                "dev_code": code,
+            })
         if created_new:
             db.query(EmailVerificationCode).filter(
                 EmailVerificationCode.email == normalized_email,
@@ -2154,6 +2262,14 @@ async def send_auth_code(
             "ok": False,
             "message": "We could not send the verification email. Please try again in a moment."
         }, status_code=502)
+
+    if _local_dev_email_codes_enabled(request):
+        print(f"Local dev verification code for {normalized_email} ({normalized_purpose}): {code}")
+        return JSONResponse({
+            "ok": True,
+            "message": f"Verification code sent to {_mask_email(normalized_email)}. Local dev code: {code}",
+            "dev_code": code,
+        })
 
     return JSONResponse({
         "ok": True,
@@ -4687,7 +4803,6 @@ async def submit_participant_screening(
 async def start_survey(
     survey_id: int,
     request: Request,
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -4773,6 +4888,15 @@ async def start_survey(
         db.commit()
         should_schedule_followup = True
 
+    if should_schedule_followup and response:
+        _enqueue_survey_start_followup_if_needed(db, response)
+    if should_send_booking_email and booking_slot and response:
+        enqueue_booking_confirmation_job(
+            db,
+            response_id=response.id,
+            booking_slot=booking_slot,
+        )
+
     _record_user_event(
         db,
         request,
@@ -4791,9 +4915,6 @@ async def start_survey(
         },
     )
     db.commit()
-
-    if should_send_booking_email and booking_slot:
-        background_tasks.add_task(_send_booking_confirmation_emails_for_response, response.id, booking_slot)
 
     return {"message": "Survey started successfully"}
 
@@ -4833,6 +4954,7 @@ def start_survey_and_redirect(
     if not (target_url.startswith("https://") or target_url.startswith("http://")):
         target_url = _participant_dashboard_url(request)
 
+    should_schedule_followup = False
     response = db.query(Response).filter(
         Response.survey_id == survey_id,
         Response.participant_id == current_user.id,
@@ -4847,13 +4969,18 @@ def start_survey_and_redirect(
         db.add(response)
         db.commit()
         db.refresh(response)
+        should_schedule_followup = True
     elif response.status != "completed":
         response.status = "started"
         response.completed_at = None
         response.started_at = datetime.now(timezone.utc)
         if not response.start_followup_sent_at and not response.start_followup_scheduled_at:
             response.start_followup_scheduled_at = datetime.utcnow()
+            should_schedule_followup = True
         db.commit()
+
+    if should_schedule_followup and response:
+        _enqueue_survey_start_followup_if_needed(db, response)
 
     _record_user_event(
         db,
