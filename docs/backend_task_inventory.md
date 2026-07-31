@@ -117,6 +117,9 @@ writes outside the web request.
 The fifth phase keeps dashboard rendering off the Claude path: dashboard pages
 read only cached respondent predictions, enqueue missing recommendation refresh
 jobs, and let the runner refill `respondent_predictions` asynchronously.
+The final phase moves trust telemetry retention cleanup out of FastAPI startup:
+startup now only enqueues a daily `trust_data_cleanup` maintenance job, and the
+runner deletes expired risk signal and participation decision rows.
 
 Manual run:
 

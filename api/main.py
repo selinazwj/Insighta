@@ -43,11 +43,13 @@ from app.jobs.service import (
     QUALITY_EXCEL_IMPORT,
     REWARD_SETUP_REMINDER_EMAIL,
     SURVEY_START_FOLLOWUP_EMAIL,
+    TRUST_DATA_CLEANUP,
     enqueue_booking_confirmation_job,
     enqueue_dashboard_recommendations_refresh_job,
     enqueue_quality_excel_import_job,
     enqueue_reward_setup_reminder_job,
     enqueue_survey_start_followup_job,
+    enqueue_trust_data_cleanup_job,
     run_due_jobs,
 )
 from app.quality_engine import (
@@ -1021,12 +1023,21 @@ def _handle_dashboard_recommendations_refresh_job(db: Session, job: BackgroundJo
     recommend_surveys_for_user(db, surveys, user, use_cache=True)
 
 
+def _handle_trust_data_cleanup_job(db: Session, job: BackgroundJob) -> None:
+    result = _cleanup_expired_trust_data_in_session(db)
+    job.payload_json = {
+        **(job.payload_json or {}),
+        "result": result,
+    }
+
+
 BACKGROUND_JOB_HANDLERS = {
     SURVEY_START_FOLLOWUP_EMAIL: _handle_survey_start_followup_job,
     BOOKING_CONFIRMATION_EMAIL: _handle_booking_confirmation_job,
     REWARD_SETUP_REMINDER_EMAIL: _handle_reward_setup_reminder_job,
     QUALITY_EXCEL_IMPORT: _handle_quality_excel_import_job,
     DASHBOARD_RECOMMENDATIONS_REFRESH: _handle_dashboard_recommendations_refresh_job,
+    TRUST_DATA_CLEANUP: _handle_trust_data_cleanup_job,
 }
 
 
@@ -1058,8 +1069,7 @@ async def _survey_start_followup_worker() -> None:
         await asyncio.sleep(SURVEY_START_FOLLOWUP_POLL_SECONDS)
 
 
-def _cleanup_expired_trust_data() -> None:
-    """Apply explicit retention limits to privacy-sensitive security telemetry."""
+def _trust_retention_days() -> tuple[int, int]:
     try:
         signal_days = min(365, max(7, int(
             os.environ.get("RISK_SIGNAL_RETENTION_DAYS", "90")
@@ -1069,23 +1079,43 @@ def _cleanup_expired_trust_data() -> None:
         )))
     except ValueError:
         signal_days, decision_days = 90, 730
+    return signal_days, decision_days
+
+
+def _cleanup_expired_trust_data_in_session(db: Session) -> dict[str, int]:
+    """Apply explicit retention limits to privacy-sensitive security telemetry."""
+    signal_days, decision_days = _trust_retention_days()
+    now = datetime.utcnow()
+    deleted_signals = db.query(RiskSignalEvent).filter(
+        RiskSignalEvent.created_at < now - timedelta(days=signal_days),
+    ).delete(synchronize_session=False)
+    deleted_decisions = db.query(ParticipationDecision).filter(
+        ParticipationDecision.created_at < now - timedelta(days=decision_days),
+    ).delete(synchronize_session=False)
+    return {
+        "risk_signal_events_deleted": deleted_signals,
+        "participation_decisions_deleted": deleted_decisions,
+    }
+
+
+def _cleanup_expired_trust_data() -> dict[str, int]:
     db = SessionLocal()
     try:
-        now = datetime.utcnow()
-        db.query(RiskSignalEvent).filter(
-            RiskSignalEvent.created_at < now - timedelta(days=signal_days),
-        ).delete(synchronize_session=False)
-        db.query(ParticipationDecision).filter(
-            ParticipationDecision.created_at < now - timedelta(days=decision_days),
-        ).delete(synchronize_session=False)
+        result = _cleanup_expired_trust_data_in_session(db)
         db.commit()
+        return result
     finally:
         db.close()
 
 
 @app.on_event("startup")
 async def start_survey_followup_worker() -> None:
-    _cleanup_expired_trust_data()
+    db = SessionLocal()
+    try:
+        enqueue_trust_data_cleanup_job(db)
+        db.commit()
+    finally:
+        db.close()
     if ENABLE_LEGACY_FOLLOWUP_WORKER:
         asyncio.create_task(_survey_start_followup_worker())
 

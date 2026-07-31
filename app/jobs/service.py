@@ -19,6 +19,7 @@ BOOKING_CONFIRMATION_EMAIL = "booking_confirmation_email"
 REWARD_SETUP_REMINDER_EMAIL = "reward_setup_reminder_email"
 QUALITY_EXCEL_IMPORT = "quality_excel_import"
 DASHBOARD_RECOMMENDATIONS_REFRESH = "dashboard_recommendations_refresh"
+TRUST_DATA_CLEANUP = "trust_data_cleanup"
 
 JobHandler = Callable[[Session, BackgroundJob], None]
 
@@ -147,6 +148,22 @@ def enqueue_dashboard_recommendations_refresh_job(
         payload={"user_id": user_id, "survey_ids": normalized_ids},
         run_after=run_after,
         dedupe_key=f"{DASHBOARD_RECOMMENDATIONS_REFRESH}:{refresh_window}:user:{user_id}:surveys:{ids_key}",
+        max_attempts=2,
+    )
+
+
+def enqueue_trust_data_cleanup_job(
+    db: Session,
+    *,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    cleanup_window = (run_after or datetime.utcnow()).strftime("%Y%m%d")
+    return enqueue_job(
+        db,
+        job_type=TRUST_DATA_CLEANUP,
+        payload={"cleanup_window": cleanup_window},
+        run_after=run_after,
+        dedupe_key=f"{TRUST_DATA_CLEANUP}:{cleanup_window}",
         max_attempts=2,
     )
 
