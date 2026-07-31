@@ -95,19 +95,6 @@
       padding: 28px;
       color: white;
     }
-    .poster-image {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .poster.has-image::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(24, 78, 119, 0.05), rgba(24, 78, 119, 0.62));
-    }
     .poster-title { position: relative; z-index: 1; max-width: 760px; }
     .eyebrow {
       display: inline-flex;
@@ -254,10 +241,7 @@
   <main class="layout">
     <section>
       <article class="hero">
-        <div class="poster {% if study_image %}has-image{% endif %}">
-          {% if study_image %}
-            <img class="poster-image" src="{{ study_image }}" alt="{{ survey.title }} research study cover" width="1200" height="525" fetchpriority="high" decoding="async">
-          {% endif %}
+        <div class="poster">
           <div class="poster-title">
             <span class="eyebrow">{{ task_type_label or "Research study" }}</span>
             <h1>{{ survey.title }}</h1>

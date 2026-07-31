@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone, date, time
 from urllib.parse import urlencode
 from xml.sax.saxutils import escape as xml_escape
 from io import BytesIO
+import logging
 import random
 import re
 import shutil
@@ -34,6 +35,8 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from app.database import engine, get_db, SessionLocal
 from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision
+from app.schema_bootstrap import auto_schema_bootstrap_enabled
+from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.quality_engine import (
     anthropic_api_key_configured,
     batch_anomaly_scores_for_features,
@@ -51,6 +54,9 @@ from app.screening_engine import (
     generate_screening_draft,
     validate_researcher_edit,
 )
+
+configure_logging()
+logger = logging.getLogger("insighta.api")
 from app.payouts import (
     APPROVED,
     LEGACY_RELEASED,
@@ -143,6 +149,34 @@ def _is_public_seo_path(path: str) -> bool:
     return False
 
 @app.middleware("http")
+async def log_request_timing(request: Request, call_next):
+    started_at = request_timer_start()
+    response = None
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        duration_ms = request_duration_ms(started_at)
+        status_code = response.status_code if response is not None else 500
+        request_id = request_id_from(request)
+        log_extra = {
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": status_code,
+            "duration_ms": round(duration_ms, 2),
+            "request_id": request_id,
+        }
+        message = (
+            "request method=%s path=%s status=%s duration_ms=%.2f request_id=%s"
+            % (request.method, request.url.path, status_code, duration_ms, request_id or "-")
+        )
+        if duration_ms >= slow_request_threshold_ms():
+            logger.warning("slow_%s", message, extra=log_extra)
+        else:
+            logger.info(message, extra=log_extra)
+
+
+@app.middleware("http")
 async def apply_seo_and_delivery_headers(request: Request, call_next):
     response = await call_next(request)
     path = request.url.path
@@ -169,7 +203,8 @@ def no_store_response(response):
     return response
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-Base.metadata.create_all(bind=engine)
+if auto_schema_bootstrap_enabled():
+    Base.metadata.create_all(bind=engine)
 
 
 def ensure_verification_evidence_index():
@@ -240,7 +275,8 @@ def ensure_user_profile_columns():
         except Exception:
             pass
 
-ensure_user_profile_columns()
+if auto_schema_bootstrap_enabled():
+    ensure_user_profile_columns()
 
 def ensure_survey_listing_columns():
     columns = {col["name"] for col in inspect(engine).get_columns("surveys")}
@@ -281,7 +317,8 @@ def ensure_survey_listing_columns():
             if name not in columns:
                 conn.execute(text(f"ALTER TABLE surveys ADD COLUMN {name} {column_type}"))
 
-ensure_survey_listing_columns()
+if auto_schema_bootstrap_enabled():
+    ensure_survey_listing_columns()
 
 def ensure_response_tracking_columns():
     columns = {col["name"] for col in inspect(engine).get_columns("responses")}
@@ -301,7 +338,8 @@ def ensure_response_tracking_columns():
             if name not in columns:
                 conn.execute(text(f"ALTER TABLE responses ADD COLUMN {name} {column_type}"))
 
-ensure_response_tracking_columns()
+if auto_schema_bootstrap_enabled():
+    ensure_response_tracking_columns()
 
 def ensure_user_event_table():
     id_type = "SERIAL PRIMARY KEY" if engine.dialect.name == "postgresql" else "INTEGER PRIMARY KEY AUTOINCREMENT"
@@ -323,7 +361,8 @@ def ensure_user_event_table():
             )
         """))
 
-ensure_user_event_table()
+if auto_schema_bootstrap_enabled():
+    ensure_user_event_table()
 
 
 def ensure_phase_two_trust_schema():
@@ -753,15 +792,6 @@ def _send_booking_confirmation_emails_for_response(response_id: int, booking_slo
         participant = db.query(User).filter(User.id == response.participant_id).first()
         if survey and participant:
             _send_booking_confirmation_emails(db, survey, participant, booking_slot)
-    finally:
-        db.close()
-
-
-async def _send_survey_start_followup_after_delay(response_id: int, dashboard_url: str) -> None:
-    await asyncio.sleep(SURVEY_START_FOLLOWUP_DELAY_MINUTES * 60)
-    db = SessionLocal()
-    try:
-        _send_survey_start_followup_email(db, response_id, dashboard_url)
     finally:
         db.close()
 
@@ -1616,6 +1646,35 @@ def _quality_row_label(index: int = 0) -> str:
 def _normalize_email(value: Optional[str]) -> str:
     return (value or "").strip().lower()
 
+DEFAULT_BLOCKED_EMAILS = {
+    "edward.websterjr@gmail.com",
+}
+
+def _configured_blocked_emails() -> set[str]:
+    configured = os.environ.get("BLOCKED_EMAILS") or ""
+    return {
+        _normalize_email(email)
+        for email in configured.split(",")
+        if _normalize_email(email)
+    }
+
+def _is_email_blocked(db: Session, email: Optional[str]) -> bool:
+    normalized = _normalize_email(email)
+    if not normalized:
+        return False
+    if normalized in DEFAULT_BLOCKED_EMAILS or normalized in _configured_blocked_emails():
+        return True
+    try:
+        return db.query(QualityBlacklist).filter(
+            QualityBlacklist.block_type == "email",
+            QualityBlacklist.block_value == normalized,
+        ).first() is not None
+    except Exception:
+        return False
+
+def _blocked_auth_message() -> str:
+    return "This account is not available. Please contact Insighta support if you believe this is a mistake."
+
 MOBILE_USER_AGENT_TOKENS = ("mobile", "android", "iphone", "ipad")
 
 def _is_mobile_request(request: Request) -> bool:
@@ -1988,6 +2047,8 @@ async def check_email_exists(email: str, db: Session = Depends(get_db)):
     normalized = _normalize_email(email)
     if not normalized:
         return JSONResponse({"exists": False})
+    if _is_email_blocked(db, normalized):
+        return JSONResponse({"exists": False})
     exists = db.query(User).filter(User.email == normalized).first() is not None
     return JSONResponse({"exists": exists})
 
@@ -2013,6 +2074,8 @@ async def send_auth_code(
         return JSONResponse({"ok": False, "message": "Please enter your email address first."}, status_code=400)
     if normalized_purpose not in {"register", "reset_password"}:
         return JSONResponse({"ok": False, "message": "Unsupported verification purpose."}, status_code=400)
+    if _is_email_blocked(db, normalized_email):
+        return JSONResponse({"ok": False, "message": _blocked_auth_message()}, status_code=403)
 
     existing_user = db.query(User).filter(User.email == normalized_email).first()
 
@@ -2127,6 +2190,8 @@ async def google_callback(
 
     if not email or not google_id:
         return RedirectResponse("/login?oauth_error=Could+not+retrieve+email+from+Google.", status_code=302)
+    if _is_email_blocked(db, email):
+        return RedirectResponse(f"/login?oauth_error={urlencode({'': _blocked_auth_message()})[1:]}", status_code=302)
 
     user = db.query(User).filter(User.email == email).first()
     evidence_owner = _verified_evidence_owner(
@@ -2262,6 +2327,8 @@ async def linkedin_callback(
 
     if not email or not linkedin_id:
         return RedirectResponse("/login?oauth_error=Could+not+retrieve+email+from+LinkedIn.", status_code=302)
+    if _is_email_blocked(db, email):
+        return RedirectResponse(f"/login?oauth_error={urlencode({'': _blocked_auth_message()})[1:]}", status_code=302)
 
     user = db.query(User).filter(User.email == email).first()
     evidence_owner = _verified_evidence_owner(
@@ -2617,7 +2684,6 @@ def login(
 ):
     next_url = _safe_auth_return(next, auth_return_to)
     normalized_email = _normalize_email(email or "")
-
     # ive added this for phase 4 — slow down password guessing per ip
     if not check_rate_limit(f"login:ip:{client_ip(request)}", max_hits=10, window_seconds=300):
         normalized_role = role if role in {"participant", "researcher"} else ""
@@ -2631,6 +2697,17 @@ def login(
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }))
 
+    if _is_email_blocked(db, normalized_email):
+        normalized_role = role if role in {"participant", "researcher"} else ""
+        return no_store_response(templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": _blocked_auth_message(),
+            "success": None, "reset_error": None, "reset_success": None,
+            "reset_open": False, "login_email": normalized_email, "reset_email": "",
+            "login_next": next_url,
+            "login_role": normalized_role,
+            "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
+        }))
     try:
         user = db.query(User).filter(User.email == normalized_email).first()
     except Exception as e:
@@ -2687,6 +2764,14 @@ def password_reset(
     db: Session = Depends(get_db)
 ):
     normalized_email = _normalize_email(email)
+    if _is_email_blocked(db, normalized_email):
+        return no_store_response(templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": None, "success": None,
+            "reset_error": _blocked_auth_message(), "reset_success": None,
+            "reset_open": True,
+            "login_email": "", "reset_email": normalized_email,
+        }))
     user = db.query(User).filter(User.email == normalized_email).first()
 
     def reset_error(msg):
@@ -2834,6 +2919,8 @@ async def do_register(
         return reg_error("We could not validate the anti-bot check. Please try again.", step=3)
 
     if not email: return reg_error("Email is required.")
+    if _is_email_blocked(db, email):
+        return reg_error(_blocked_auth_message())
     if password != confirm: return reg_error("Passwords do not match.", step=2)
     pw_error = _validate_registration_password(password)
     if pw_error: return reg_error(pw_error, step=2)
@@ -2958,6 +3045,8 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:
         raise HTTPException(401, "User not found")
+    if _is_email_blocked(db, user.email):
+        raise HTTPException(403, "Account unavailable")
     return user
 
 
@@ -3472,10 +3561,74 @@ URGENCY_RANK = {
     "flexible":       1,
 }
 
-def _participant_survey_payload(s: Survey, db: Session, current_user: User, user_response: Optional[Response] = None) -> dict:
-    completed_cnt = db.query(Response).filter(
-        Response.survey_id == s.id, Response.status == "completed"
-    ).count()
+def _dashboard_candidate_limit() -> int:
+    try:
+        return int(os.environ.get("INSIGHTA_DASHBOARD_CANDIDATE_LIMIT", "100"))
+    except ValueError:
+        return 100
+
+
+def _dashboard_ai_recommendations_enabled() -> bool:
+    value = os.environ.get("INSIGHTA_DASHBOARD_AI_RECOMMENDATIONS", "1").strip().lower()
+    return value not in {"0", "false", "no", "off"}
+
+
+def _limit_dashboard_candidates(surveys: list[Survey]) -> list[Survey]:
+    limit = _dashboard_candidate_limit()
+    if limit <= 0 or len(surveys) <= limit:
+        return surveys
+    return sorted(
+        surveys,
+        key=lambda s: s.published_at.timestamp() if s.published_at else 0,
+        reverse=True,
+    )[:limit]
+
+
+def _completed_counts_for_surveys(db: Session, survey_ids: list[int]) -> dict[int, int]:
+    if not survey_ids:
+        return {}
+    return {
+        survey_id: int(completed_count or 0)
+        for survey_id, completed_count in db.query(Response.survey_id, func.count(Response.id))
+        .filter(Response.survey_id.in_(survey_ids), Response.status == "completed")
+        .group_by(Response.survey_id)
+        .all()
+    }
+
+
+def _user_responses_for_surveys(db: Session, user_id: int, survey_ids: list[int]) -> dict[int, Response]:
+    if not survey_ids:
+        return {}
+    result: dict[int, Response] = {}
+    rows = db.query(Response).filter(
+        Response.participant_id == user_id,
+        Response.survey_id.in_(survey_ids),
+    ).order_by(Response.id.asc()).all()
+    for response in rows:
+        result.setdefault(response.survey_id, response)
+    return result
+
+
+def _surveys_by_id(db: Session, survey_ids: list[int]) -> dict[int, Survey]:
+    if not survey_ids:
+        return {}
+    return {
+        survey.id: survey
+        for survey in db.query(Survey).filter(Survey.id.in_(survey_ids)).all()
+    }
+
+
+def _participant_survey_payload(
+    s: Survey,
+    db: Session,
+    current_user: User,
+    user_response: Optional[Response] = None,
+    completed_count: Optional[int] = None,
+) -> dict:
+    if completed_count is None:
+        completed_count = db.query(Response).filter(
+            Response.survey_id == s.id, Response.status == "completed"
+        ).count()
     if user_response is None:
         user_response = db.query(Response).filter(
             Response.survey_id == s.id, Response.participant_id == current_user.id
@@ -3523,7 +3676,7 @@ def _participant_survey_payload(s: Survey, db: Session, current_user: User, user
         "category": s.category,
         "time": f"{s.estimated_time} min",
         "reward": f"${display_reward:.2f}",
-        "responses": f"{completed_cnt}/{s.target_responses}",
+        "responses": f"{completed_count}/{s.target_responses}",
         "img": s.image_url if s.image_url else category_images.get(s.category, "/static/psych.jpg"),
         "is_started": response_status == "started",
         "is_completed": response_status == "completed",
@@ -3593,17 +3746,20 @@ def dashboard(
         return True
 
     participant_response_survey_ids = {
-        row[0] for row in db.query(Response.survey_id).filter(
-            Response.participant_id == current_user.id
-        ).all()
+        row[0] for row in db.query(Response.survey_id).filter(Response.participant_id == current_user.id).all()
     }
     matched = [
         s for s in all_published
         if s.id not in participant_response_survey_ids and survey_matches(s)
     ]
+    matched = _limit_dashboard_candidates(matched)
 
     # Blend Claude's completion estimate with field/major relevance from the participant profile.
-    recommendation_map = recommend_surveys_for_user(db, matched, current_user, use_cache=True)
+    recommendation_map = (
+        recommend_surveys_for_user(db, matched, current_user, use_cache=True)
+        if _dashboard_ai_recommendations_enabled()
+        else {}
+    )
     matched.sort(
         key=lambda s: (
             _recommendation_sort_score(s, current_user, recommendation_map.get(s.id, {})),
@@ -3613,16 +3769,19 @@ def dashboard(
     )
 
     surveys_data = []
+    matched_ids = [s.id for s in matched]
+    completed_counts = _completed_counts_for_surveys(db, matched_ids)
+    user_responses = _user_responses_for_surveys(db, current_user.id, matched_ids)
     for s in matched:
         llm_rec = recommendation_map.get(s.id, {})
-        user_response = db.query(Response).filter(
-            Response.survey_id == s.id, Response.participant_id == current_user.id
-        ).first()
-        # ive added this — once a study is completed it belongs in My Studies,
-        # not the home feed
-        if user_response and user_response.status == "completed":
-            continue
-        payload = _participant_survey_payload(s, db, current_user, user_response)
+        user_response = user_responses.get(s.id)
+        payload = _participant_survey_payload(
+            s,
+            db,
+            current_user,
+            user_response,
+            completed_count=completed_counts.get(s.id, 0),
+        )
         payload.update({
             "completion_probability": llm_rec.get("completion_probability"),
             "field_fit_score": _field_relevance_score(s, current_user),
@@ -3678,11 +3837,22 @@ def participant_my_studies(
         Response.participant_id == current_user.id
     ).order_by(Response.started_at.desc()).all()
 
+    survey_ids = [response.survey_id for response in responses]
+    surveys_by_id = _surveys_by_id(db, survey_ids)
+    completed_counts = _completed_counts_for_surveys(db, survey_ids)
     surveys_data = []
     for response in responses:
-        survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+        survey = surveys_by_id.get(response.survey_id)
         if survey:
-            surveys_data.append(_participant_survey_payload(survey, db, current_user, response))
+            surveys_data.append(
+                _participant_survey_payload(
+                    survey,
+                    db,
+                    current_user,
+                    response,
+                    completed_count=completed_counts.get(survey.id, 0),
+                )
+            )
 
     return templates.TemplateResponse("participant_my_studies.html", {
         "request": request,
@@ -3703,11 +3873,22 @@ def participant_earnings(
         Response.status == "completed"
     ).order_by(Response.completed_at.desc()).all()
 
+    survey_ids = [response.survey_id for response in responses]
+    surveys_by_id = _surveys_by_id(db, survey_ids)
+    completed_counts = _completed_counts_for_surveys(db, survey_ids)
     surveys_data = []
     for response in responses:
-        survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+        survey = surveys_by_id.get(response.survey_id)
         if survey:
-            surveys_data.append(_participant_survey_payload(survey, db, current_user, response))
+            surveys_data.append(
+                _participant_survey_payload(
+                    survey,
+                    db,
+                    current_user,
+                    response,
+                    completed_count=completed_counts.get(survey.id, 0),
+                )
+            )
 
     return templates.TemplateResponse("participant_earnings.html", {
         "request": request,
@@ -3765,9 +3946,14 @@ def dashboard_mobile(
         return True
 
     matched = [s for s in all_published if survey_matches(s)]
+    matched = _limit_dashboard_candidates(matched)
 
     # Blend Claude's completion estimate with field/major relevance from the participant profile.
-    recommendation_map = recommend_surveys_for_user(db, matched, current_user, use_cache=True)
+    recommendation_map = (
+        recommend_surveys_for_user(db, matched, current_user, use_cache=True)
+        if _dashboard_ai_recommendations_enabled()
+        else {}
+    )
     matched.sort(
         key=lambda s: (
             _recommendation_sort_score(s, current_user, recommendation_map.get(s.id, {})),
@@ -3783,14 +3969,13 @@ def dashboard_mobile(
     }
 
     surveys_data = []
+    matched_ids = [s.id for s in matched]
+    completed_counts = _completed_counts_for_surveys(db, matched_ids)
+    user_responses = _user_responses_for_surveys(db, current_user.id, matched_ids)
     for s in matched:
         llm_rec = recommendation_map.get(s.id, {})
-        completed_cnt = db.query(Response).filter(
-            Response.survey_id == s.id, Response.status == "completed"
-        ).count()
-        user_response = db.query(Response).filter(
-            Response.survey_id == s.id, Response.participant_id == current_user.id
-        ).first()
+        completed_cnt = completed_counts.get(s.id, 0)
+        user_response = user_responses.get(s.id)
         is_completed = user_response and user_response.status == "completed"
         # ive added this — completed studies only show in My Studies, not the mobile home feed
         if is_completed:
@@ -4563,12 +4748,6 @@ async def start_survey(
         db.commit()
         should_schedule_followup = True
 
-    if should_schedule_followup:
-        background_tasks.add_task(
-            _send_survey_start_followup_after_delay,
-            response.id,
-            _absolute_url(request, "/dashboard"),
-        )
     _record_user_event(
         db,
         request,
@@ -6615,6 +6794,84 @@ async def admin_reward_reminder_email(request: Request, db: Session = Depends(ge
     })
 
 
+@app.get("/admin/blocked-users")
+async def admin_blocked_users(admin_key: str = Query(None), db: Session = Depends(get_db)):
+    if not _admin_key_matches(admin_key):
+        raise HTTPException(403, "Unauthorized")
+    rows = db.query(QualityBlacklist).filter(
+        QualityBlacklist.block_type == "email",
+    ).order_by(QualityBlacklist.created_at.desc()).all()
+    seen = set()
+    result = []
+    for email in sorted(DEFAULT_BLOCKED_EMAILS):
+        normalized = _normalize_email(email)
+        if not normalized:
+            continue
+        seen.add(normalized)
+        result.append({
+            "email": normalized,
+            "reason": "Blocked by default risk-control list",
+            "source": "built_in",
+            "created_at": "",
+        })
+    for row in rows:
+        normalized = _normalize_email(row.block_value)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        result.append({
+            "email": normalized,
+            "reason": row.reason or "",
+            "source": "database",
+            "created_at": row.created_at.isoformat() if row.created_at else "",
+        })
+    return JSONResponse({"blocked_users": result, "count": len(result)})
+
+
+@app.post("/admin/blocked-users")
+async def admin_block_user_by_email(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+    email = _normalize_email(body.get("email"))
+    reason = (body.get("reason") or "Blocked by admin").strip()[:500]
+    if not email or "@" not in email:
+        raise HTTPException(400, "Please provide a valid email address")
+    if email in DEFAULT_BLOCKED_EMAILS:
+        return JSONResponse({
+            "message": "Email is already blocked",
+            "email": email,
+            "source": "built_in",
+            "created": False,
+        })
+    existing = db.query(QualityBlacklist).filter(
+        QualityBlacklist.block_type == "email",
+        QualityBlacklist.block_value == email,
+    ).first()
+    if existing:
+        if reason and existing.reason != reason:
+            existing.reason = reason
+            db.commit()
+        return JSONResponse({
+            "message": "Email is already blocked",
+            "email": email,
+            "source": "database",
+            "created": False,
+        })
+    db.add(QualityBlacklist(
+        block_type="email",
+        block_value=email,
+        reason=reason,
+    ))
+    db.commit()
+    return JSONResponse({
+        "message": "Email blocked",
+        "email": email,
+        "source": "database",
+        "created": True,
+    })
+
+
 @app.post("/admin/api/ai-fill")
 async def admin_ai_fill(request: Request):
     try:
@@ -6655,6 +6912,9 @@ async def admin_publish_survey(request: Request, db: Session = Depends(get_db)):
     if not _admin_key_matches(form.get("admin_key")):
         raise HTTPException(403, "Unauthorized")
     admin_user = _get_admin_publisher_user(db)
+    admin_payment_mode = (form.get("admin_payment_mode") or "demo").strip().lower()
+    if admin_payment_mode not in {"demo", "stripe"}:
+        admin_payment_mode = "demo"
     display_amount_raw = (form.get("admin_display_reward_amount") or "").strip()
     display_amount = float(display_amount_raw) if display_amount_raw else None
     return await publish_survey(
@@ -6693,6 +6953,7 @@ async def admin_publish_survey(request: Request, db: Session = Depends(get_db)):
         cover_image=form.get("cover_image"),
         admin_display_reward_amount=display_amount,
         admin_publish=True,
+        admin_payment_mode=admin_payment_mode,
         admin_redirect_key=form.get("admin_key"),
         current_user=admin_user,
         db=db,
@@ -7561,10 +7822,15 @@ async def publish_survey(
     cover_image: UploadFile = File(None),
     admin_display_reward_amount: Optional[float] = Form(None),
     admin_publish: bool = False,
+    admin_payment_mode: str = "demo",
     admin_redirect_key: Optional[str] = None,
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
+    admin_payment_mode = (admin_payment_mode or form.get("admin_payment_mode") or "demo").strip().lower()
+    if admin_payment_mode not in {"demo", "stripe"}:
+        admin_payment_mode = "demo"
+    admin_uses_stripe = bool(admin_publish and admin_payment_mode == "stripe")
     target_education_min = _parse_optional_int(form.get("target_education_min"))
     target_education_max = _parse_optional_int(form.get("target_education_max"))
     experience_list = form.getlist("target_experience_tags")
@@ -7621,14 +7887,16 @@ async def publish_survey(
     else:
         per_person_gross_value = _parse_optional_float(per_person_gross)
         total_budget_value = _parse_optional_float(total_budget)
-        if admin_publish and not per_person_gross_value and not total_budget_value:
+        if admin_uses_stripe and not per_person_gross_value and not total_budget_value:
+            raise HTTPException(400, "Stripe admin publish requires a per-person or total budget.")
+        if admin_publish and not admin_uses_stripe and not per_person_gross_value and not total_budget_value:
             ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
         elif per_person_gross_value is not None and per_person_gross_value > 0:
             ppg = per_person_gross_value
         elif total_budget_value is not None and total_budget_value > 0:
             ppg = total_budget_value / (int(target_responses) * session_count)
         else: ppg = 5.0
-        if not (admin_publish and ppg == 0.0):
+        if not (admin_publish and not admin_uses_stripe and ppg == 0.0):
             rate, reward = calculate_commission(ppg)
             total = round(ppg * int(target_responses) * session_count, 2)
     total = round(total * timeline_multiplier(urgency_level), 2)
@@ -7695,7 +7963,7 @@ async def publish_survey(
         survey.interview_location = interview_location if is_interview_listing else None
         survey.session_count = session_count if is_interview_listing else None
         survey.sessions_per_week = sessions_per_week if is_interview_listing else None
-        survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish else None
+        survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish and not admin_uses_stripe else None
         _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
         db.commit()
@@ -7736,7 +8004,7 @@ async def publish_survey(
             interview_location=interview_location if is_interview_listing else None,
             session_count=session_count if is_interview_listing else None,
             sessions_per_week=sessions_per_week if is_interview_listing else None,
-            admin_display_reward_amount=admin_display_reward_amount if admin_publish else None,
+            admin_display_reward_amount=admin_display_reward_amount if admin_publish and not admin_uses_stripe else None,
             image_url=image_url, status="draft", published_at=None, closed_at=None,
         )
         _ensure_survey_share_slug(db, survey)
@@ -7752,7 +8020,7 @@ async def publish_survey(
             metadata={"study_title": survey.title, "source": "Publish flow", "user_role": "researcher"},
         )
 
-    if admin_publish:
+    if admin_publish and not admin_uses_stripe:
         survey.status = "published"
         survey.payment_status = "admin_demo"
         survey.published_at = datetime.utcnow()
@@ -7768,6 +8036,9 @@ async def publish_survey(
         db.commit()
         redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
         return RedirectResponse(f"/admin/publish?{redirect_qs}", status_code=303)
+
+    if admin_uses_stripe and not stripe.api_key:
+        raise HTTPException(503, "Stripe is not configured. Use demo mode or add STRIPE_SECRET_KEY.")
 
     # Handle no-pay incentives, missing Stripe key, and Stripe checkout
     if is_no_pay or not stripe.api_key:
@@ -7788,6 +8059,10 @@ async def publish_survey(
         return RedirectResponse("/publisher", status_code=303)
 
     success_url = f"https://insightaco.org/payment/success?survey_id={survey.id}"
+    cancel_url = "https://insightaco.org/publisher"
+    if admin_uses_stripe:
+        success_url = f"https://insightaco.org/payment/success?survey_id={survey.id}&admin=1"
+        cancel_url = f"https://insightaco.org/admin#publish"
     if is_volunteer:
         stripe_description = f"Volunteer recruitment fee: ${volunteer_platform_fee(target_responses):.2f} per 10 participants"
     else:
@@ -7797,8 +8072,12 @@ async def publish_survey(
         line_items=[{"price_data": {"currency": "usd", "product_data": {"name": f"Survey: {survey.title}", "description": stripe_description}, "unit_amount": int(round(total * 100))}, "quantity": 1}],
         mode="payment",
         success_url=success_url,
-        cancel_url="https://insightaco.org/publisher",
-        metadata={"survey_id": str(survey.id), "publisher_id": str(current_user.id)}
+        cancel_url=cancel_url,
+        metadata={
+            "survey_id": str(survey.id),
+            "publisher_id": str(current_user.id),
+            "source": "admin_publish_stripe" if admin_uses_stripe else "researcher_publish",
+        }
     )
     survey.stripe_payment_intent_id = session.id; db.commit()
     return RedirectResponse(session.url, status_code=303)
@@ -8697,8 +8976,8 @@ async def blacklist_from_quality_check(
     block_type = (body.get("block_type") or "").strip().lower()
     reason = body.get("reason") or "Marked from quality review"
 
-    if block_type not in {"ip", "user", "device"}:
-        raise HTTPException(400, "block_type must be ip, user, or device")
+    if block_type not in {"ip", "user", "device", "email"}:
+        raise HTTPException(400, "block_type must be ip, user, device, or email")
 
     block_value = None
     if row.response_id:
@@ -8710,6 +8989,9 @@ async def blacklist_from_quality_check(
                 block_value = str(resp.participant_id)
             elif block_type == "device":
                 block_value = resp.device_fingerprint
+            elif block_type == "email" and resp.participant_id:
+                participant = db.query(User).filter(User.id == resp.participant_id).first()
+                block_value = _normalize_email(participant.email if participant else "")
 
     if not block_value:
         raise HTTPException(400, "No value available to blacklist for this record")
