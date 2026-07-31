@@ -17,6 +17,7 @@ FAILED = "failed"
 SURVEY_START_FOLLOWUP_EMAIL = "survey_start_followup_email"
 BOOKING_CONFIRMATION_EMAIL = "booking_confirmation_email"
 REWARD_SETUP_REMINDER_EMAIL = "reward_setup_reminder_email"
+QUALITY_EXCEL_IMPORT = "quality_excel_import"
 
 JobHandler = Callable[[Session, BackgroundJob], None]
 
@@ -97,6 +98,35 @@ def enqueue_reward_setup_reminder_job(
         run_after=run_after,
         dedupe_key=f"{REWARD_SETUP_REMINDER_EMAIL}:{campaign_key}:user:{user_id}:email:{email_key}",
         max_attempts=3,
+    )
+
+
+def enqueue_quality_excel_import_job(
+    db: Session,
+    *,
+    survey_id: int,
+    user_id: int,
+    upload_path: str,
+    filename: str,
+    auto_approve: bool,
+    auto_approve_min_score: float | None = None,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    upload_key = hashlib.sha256(upload_path.encode("utf-8")).hexdigest()[:16]
+    return enqueue_job(
+        db,
+        job_type=QUALITY_EXCEL_IMPORT,
+        payload={
+            "survey_id": survey_id,
+            "user_id": user_id,
+            "upload_path": upload_path,
+            "filename": filename,
+            "auto_approve": auto_approve,
+            "auto_approve_min_score": auto_approve_min_score,
+        },
+        run_after=run_after,
+        dedupe_key=f"{QUALITY_EXCEL_IMPORT}:survey:{survey_id}:upload:{upload_key}",
+        max_attempts=2,
     )
 
 

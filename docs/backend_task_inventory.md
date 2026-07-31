@@ -110,6 +110,10 @@ for booking confirmation emails, replacing the previous FastAPI
 The third phase moves the admin reward setup reminder blast into the same queue,
 so the admin request only schedules recipient jobs and the runner sends them in
 bounded batches.
+The fourth phase moves Excel quality imports into the queue: uploads are saved
+under `private_uploads/quality_imports`, the API returns a job id immediately,
+and the runner performs workbook parsing, anomaly scoring, LLM review, and DB
+writes outside the web request.
 
 Manual run:
 

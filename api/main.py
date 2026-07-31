@@ -39,9 +39,11 @@ from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.jobs.service import (
     BOOKING_CONFIRMATION_EMAIL,
+    QUALITY_EXCEL_IMPORT,
     REWARD_SETUP_REMINDER_EMAIL,
     SURVEY_START_FOLLOWUP_EMAIL,
     enqueue_booking_confirmation_job,
+    enqueue_quality_excel_import_job,
     enqueue_reward_setup_reminder_job,
     enqueue_survey_start_followup_job,
     run_due_jobs,
@@ -134,6 +136,10 @@ app.include_router(ai_growth_router)
 app.include_router(discovery_router)
 
 BASE_DIR = Path(__file__).resolve().parent
+QUALITY_IMPORT_UPLOAD_DIR = Path(os.environ.get(
+    "QUALITY_IMPORT_UPLOAD_DIR",
+    str(BASE_DIR.parent / "private_uploads" / "quality_imports"),
+))
 templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -957,10 +963,39 @@ def _handle_reward_setup_reminder_job(db: Session, job: BackgroundJob) -> None:
         raise RuntimeError(error or f"Reward setup reminder email was not sent for user {user_id}")
 
 
+def _handle_quality_excel_import_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    survey_id = int(payload.get("survey_id") or 0)
+    user_id = int(payload.get("user_id") or 0)
+    upload_path = str(payload.get("upload_path") or "").strip()
+    filename = str(payload.get("filename") or "upload.xlsx").strip() or "upload.xlsx"
+    if survey_id <= 0 or user_id <= 0 or not upload_path:
+        raise ValueError("Missing survey_id, user_id, or upload_path for quality Excel import job")
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == user_id,
+    ).first()
+    if not survey:
+        raise ValueError(f"Survey {survey_id} not found for quality Excel import job")
+    path = Path(upload_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Quality Excel upload file not found: {upload_path}")
+    content = path.read_bytes()
+    _process_quality_excel_import(
+        db,
+        survey=survey,
+        filename=filename,
+        content=content,
+        auto_approve=bool(payload.get("auto_approve")),
+        auto_approve_min_score=payload.get("auto_approve_min_score"),
+    )
+
+
 BACKGROUND_JOB_HANDLERS = {
     SURVEY_START_FOLLOWUP_EMAIL: _handle_survey_start_followup_job,
     BOOKING_CONFIRMATION_EMAIL: _handle_booking_confirmation_job,
     REWARD_SETUP_REMINDER_EMAIL: _handle_reward_setup_reminder_job,
+    QUALITY_EXCEL_IMPORT: _handle_quality_excel_import_job,
 }
 
 
@@ -9568,33 +9603,20 @@ async def auto_approve_quality_by_score(
     })
 
 
-@app.post("/api/surveys/{survey_id}/quality/import-excel")
-def import_excel_for_quality_check(
-    survey_id: int,
-    file: UploadFile = File(...),
-    auto_approve: Optional[str] = Form(None),
-    auto_approve_min_score: Optional[float] = Form(None),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    survey = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.publisher_id == current_user.id,
-    ).first()
-    if not survey:
-        raise HTTPException(404, "Survey not found")
-
-    filename = file.filename or "upload.xlsx"
-    lower_name = filename.lower()
-    if not (lower_name.endswith(".xlsx") or lower_name.endswith(".xlsm")):
-        raise HTTPException(400, "Only .xlsx/.xlsm files are supported for now")
-
+def _process_quality_excel_import(
+    db: Session,
+    *,
+    survey: Survey,
+    filename: str,
+    content: bytes,
+    auto_approve: bool,
+    auto_approve_min_score: Optional[float],
+) -> dict:
     try:
         from openpyxl import load_workbook
     except Exception:
         raise HTTPException(500, "openpyxl is required. Please install dependency first.")
 
-    content = file.file.read()
     try:
         workbook = load_workbook(BytesIO(content), data_only=True)
     except Exception as exc:
@@ -9612,6 +9634,7 @@ def import_excel_for_quality_check(
     if not any(headers):
         raise HTTPException(400, "Header row is empty")
 
+    survey_id = survey.id
     replaced_rows = db.query(ResponseQualityCheck).filter(
         ResponseQualityCheck.survey_id == survey_id,
         ResponseQualityCheck.source_type == "excel",
@@ -9697,7 +9720,7 @@ def import_excel_for_quality_check(
     llm_rows_reviewed = 0
     llm_rows_failed = 0
     created_checks: List[ResponseQualityCheck] = []
-    use_auto_approve = str(auto_approve or "").strip().lower() in {"1", "true", "yes", "on"}
+    use_auto_approve = bool(auto_approve)
     auto_min_score = _parse_auto_approve_min_score(auto_approve_min_score if use_auto_approve else 100)
 
     for index, item in enumerate(parsed_rows):
@@ -9737,7 +9760,7 @@ def import_excel_for_quality_check(
         auto_approved_count, auto_rejected_count = apply_auto_approve_checks(created_checks, auto_min_score)
 
     db.commit()
-    return JSONResponse({
+    return {
         "message": "excel imported and quality checks generated",
         "survey_id": survey_id,
         "imported_rows": imported,
@@ -9755,7 +9778,56 @@ def import_excel_for_quality_check(
             "rows_failed": llm_rows_failed,
             "api_key_configured": anthropic_api_key_configured(),
         },
-    })
+    }
+
+
+@app.post("/api/surveys/{survey_id}/quality/import-excel")
+def import_excel_for_quality_check(
+    survey_id: int,
+    file: UploadFile = File(...),
+    auto_approve: Optional[str] = Form(None),
+    auto_approve_min_score: Optional[float] = Form(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    filename = file.filename or "upload.xlsx"
+    lower_name = filename.lower()
+    if not (lower_name.endswith(".xlsx") or lower_name.endswith(".xlsm")):
+        raise HTTPException(400, "Only .xlsx/.xlsm files are supported for now")
+
+    content = file.file.read()
+    if not content:
+        raise HTTPException(400, "Excel file is empty")
+
+    QUALITY_IMPORT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    upload_name = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{survey_id}_{uuid.uuid4().hex}_{Path(filename).name}"
+    upload_path = QUALITY_IMPORT_UPLOAD_DIR / upload_name
+    upload_path.write_bytes(content)
+
+    use_auto_approve = str(auto_approve or "").strip().lower() in {"1", "true", "yes", "on"}
+    job = enqueue_quality_excel_import_job(
+        db,
+        survey_id=survey_id,
+        user_id=current_user.id,
+        upload_path=str(upload_path),
+        filename=filename,
+        auto_approve=use_auto_approve,
+        auto_approve_min_score=auto_approve_min_score if use_auto_approve else None,
+    )
+    db.commit()
+    return JSONResponse({
+        "message": "quality import queued",
+        "queued": True,
+        "job_id": job.id,
+        "survey_id": survey_id,
+    }, status_code=202)
 
 
 
