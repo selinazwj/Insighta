@@ -38,10 +38,19 @@ from app.models import Base, User, Survey, Response, Feedback, Notification, Ema
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.jobs.service import (
+    ADMIN_BULK_EMAIL,
     BOOKING_CONFIRMATION_EMAIL,
+    DASHBOARD_RECOMMENDATIONS_REFRESH,
+    QUALITY_EXCEL_IMPORT,
+    REWARD_SETUP_REMINDER_EMAIL,
     SURVEY_START_FOLLOWUP_EMAIL,
+    TRUST_DATA_CLEANUP,
+    enqueue_admin_bulk_email_job,
     enqueue_booking_confirmation_job,
+    enqueue_dashboard_recommendations_refresh_job,
+    enqueue_quality_excel_import_job,
     enqueue_survey_start_followup_job,
+    enqueue_trust_data_cleanup_job,
     run_due_jobs,
 )
 from app.quality_engine import (
@@ -102,7 +111,7 @@ from app.trust_engine import (
 from app.ai_growth.routes import router as ai_growth_router
 from app.ai_growth.security import is_safe_internal_next
 from app.ai_growth.jump import mark_latest_jump_completed_for_response
-from app.ai_growth.prediction import recommend_surveys_for_user
+from app.ai_growth.prediction import cached_recommendations_for_user, recommend_surveys_for_user
 from app.ai_growth.models import JumpEvent, RespondentPrediction, SurveySegmentStats, UserActivityEvent
 from app.discovery.router import router as discovery_router
 from app.discovery.discovery import discover as discover_channels
@@ -131,6 +140,10 @@ app.include_router(ai_growth_router)
 app.include_router(discovery_router)
 
 BASE_DIR = Path(__file__).resolve().parent
+QUALITY_IMPORT_UPLOAD_DIR = Path(os.environ.get(
+    "QUALITY_IMPORT_UPLOAD_DIR",
+    str(BASE_DIR.parent / "private_uploads" / "quality_imports"),
+))
 templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -747,6 +760,36 @@ The Insighta Team"""
     return send_email(user.email, subject, body, text_body=text_body)
 
 
+def _admin_bulk_email_line_html(line: str) -> str:
+    escaped = html.escape(line.strip())
+    return re.sub(
+        r"(https?://[^\s<]+)",
+        r'<a href="\1" style="color:#168aad;font-weight:700;">\1</a>',
+        escaped,
+    )
+
+
+def _admin_bulk_email_body(message: str) -> str:
+    paragraphs = []
+    for block in re.split(r"\n\s*\n", (message or "").strip()):
+        lines = [_admin_bulk_email_line_html(line) for line in block.splitlines() if line.strip()]
+        if lines:
+            paragraphs.append(f"<p>{'<br>'.join(lines)}</p>")
+    body_html = "\n".join(paragraphs) or "<p></p>"
+    return f"""
+    <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 22px; color: #1a1a18; line-height: 1.65;">
+      {body_html}
+      <p style="margin-top:24px;">Warmly,<br>The Insighta Team</p>
+    </div>
+    """
+
+
+def _send_admin_bulk_email(user: User, subject: str, message: str) -> tuple[bool, Optional[str]]:
+    if not user.email:
+        return False, "Missing user email"
+    return send_email(user.email, subject, _admin_bulk_email_body(message), text_body=message)
+
+
 def _send_survey_start_followup_email(db: Session, response_id: int, dashboard_url: str) -> None:
     response = db.query(Response).filter(Response.id == response_id).first()
     if not response or getattr(response, "start_followup_sent_at", None):
@@ -938,9 +981,108 @@ def _handle_booking_confirmation_job(db: Session, job: BackgroundJob) -> None:
     _send_booking_confirmation_emails(db, survey, participant, booking_slot)
 
 
+def _handle_reward_setup_reminder_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    user_id = int(payload.get("user_id") or 0)
+    if user_id <= 0:
+        raise ValueError("Missing user_id for reward setup reminder job")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.email:
+        return
+    sent, error = _send_reward_setup_reminder_email(user)
+    if not sent:
+        raise RuntimeError(error or f"Reward setup reminder email was not sent for user {user_id}")
+
+
+def _handle_admin_bulk_email_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    user_id = int(payload.get("user_id") or 0)
+    subject = str(payload.get("subject") or "").strip()
+    message = str(payload.get("message") or "").strip()
+    if user_id <= 0:
+        raise ValueError("Missing user_id for admin bulk email job")
+    if not subject or not message:
+        raise ValueError("Missing subject or message for admin bulk email job")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.email:
+        return
+    sent, error = _send_admin_bulk_email(user, subject, message)
+    if not sent:
+        raise RuntimeError(error or f"Admin bulk email was not sent for user {user_id}")
+
+
+def _handle_quality_excel_import_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    survey_id = int(payload.get("survey_id") or 0)
+    user_id = int(payload.get("user_id") or 0)
+    upload_path = str(payload.get("upload_path") or "").strip()
+    filename = str(payload.get("filename") or "upload.xlsx").strip() or "upload.xlsx"
+    if survey_id <= 0 or user_id <= 0 or not upload_path:
+        raise ValueError("Missing survey_id, user_id, or upload_path for quality Excel import job")
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == user_id,
+    ).first()
+    if not survey:
+        raise ValueError(f"Survey {survey_id} not found for quality Excel import job")
+    path = Path(upload_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Quality Excel upload file not found: {upload_path}")
+    content = path.read_bytes()
+    _process_quality_excel_import(
+        db,
+        survey=survey,
+        filename=filename,
+        content=content,
+        auto_approve=bool(payload.get("auto_approve")),
+        auto_approve_min_score=payload.get("auto_approve_min_score"),
+    )
+
+
+def _handle_dashboard_recommendations_refresh_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    user_id = int(payload.get("user_id") or 0)
+    survey_ids = payload.get("survey_ids") or []
+    if user_id <= 0:
+        raise ValueError("Missing user_id for dashboard recommendations refresh job")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return
+    normalized_ids = []
+    for survey_id in survey_ids:
+        try:
+            normalized_id = int(survey_id)
+        except (TypeError, ValueError):
+            continue
+        if normalized_id > 0:
+            normalized_ids.append(normalized_id)
+    if not normalized_ids:
+        return
+    surveys = db.query(Survey).filter(
+        Survey.id.in_(normalized_ids),
+        Survey.status == "published",
+    ).all()
+    if not surveys:
+        return
+    recommend_surveys_for_user(db, surveys, user, use_cache=True)
+
+
+def _handle_trust_data_cleanup_job(db: Session, job: BackgroundJob) -> None:
+    result = _cleanup_expired_trust_data_in_session(db)
+    job.payload_json = {
+        **(job.payload_json or {}),
+        "result": result,
+    }
+
+
 BACKGROUND_JOB_HANDLERS = {
+    ADMIN_BULK_EMAIL: _handle_admin_bulk_email_job,
     SURVEY_START_FOLLOWUP_EMAIL: _handle_survey_start_followup_job,
     BOOKING_CONFIRMATION_EMAIL: _handle_booking_confirmation_job,
+    REWARD_SETUP_REMINDER_EMAIL: _handle_reward_setup_reminder_job,
+    QUALITY_EXCEL_IMPORT: _handle_quality_excel_import_job,
+    DASHBOARD_RECOMMENDATIONS_REFRESH: _handle_dashboard_recommendations_refresh_job,
+    TRUST_DATA_CLEANUP: _handle_trust_data_cleanup_job,
 }
 
 
@@ -972,8 +1114,7 @@ async def _survey_start_followup_worker() -> None:
         await asyncio.sleep(SURVEY_START_FOLLOWUP_POLL_SECONDS)
 
 
-def _cleanup_expired_trust_data() -> None:
-    """Apply explicit retention limits to privacy-sensitive security telemetry."""
+def _trust_retention_days() -> tuple[int, int]:
     try:
         signal_days = min(365, max(7, int(
             os.environ.get("RISK_SIGNAL_RETENTION_DAYS", "90")
@@ -983,23 +1124,43 @@ def _cleanup_expired_trust_data() -> None:
         )))
     except ValueError:
         signal_days, decision_days = 90, 730
+    return signal_days, decision_days
+
+
+def _cleanup_expired_trust_data_in_session(db: Session) -> dict[str, int]:
+    """Apply explicit retention limits to privacy-sensitive security telemetry."""
+    signal_days, decision_days = _trust_retention_days()
+    now = datetime.utcnow()
+    deleted_signals = db.query(RiskSignalEvent).filter(
+        RiskSignalEvent.created_at < now - timedelta(days=signal_days),
+    ).delete(synchronize_session=False)
+    deleted_decisions = db.query(ParticipationDecision).filter(
+        ParticipationDecision.created_at < now - timedelta(days=decision_days),
+    ).delete(synchronize_session=False)
+    return {
+        "risk_signal_events_deleted": deleted_signals,
+        "participation_decisions_deleted": deleted_decisions,
+    }
+
+
+def _cleanup_expired_trust_data() -> dict[str, int]:
     db = SessionLocal()
     try:
-        now = datetime.utcnow()
-        db.query(RiskSignalEvent).filter(
-            RiskSignalEvent.created_at < now - timedelta(days=signal_days),
-        ).delete(synchronize_session=False)
-        db.query(ParticipationDecision).filter(
-            ParticipationDecision.created_at < now - timedelta(days=decision_days),
-        ).delete(synchronize_session=False)
+        result = _cleanup_expired_trust_data_in_session(db)
         db.commit()
+        return result
     finally:
         db.close()
 
 
 @app.on_event("startup")
 async def start_survey_followup_worker() -> None:
-    _cleanup_expired_trust_data()
+    db = SessionLocal()
+    try:
+        enqueue_trust_data_cleanup_job(db)
+        db.commit()
+    finally:
+        db.close()
     if ENABLE_LEGACY_FOLLOWUP_WORKER:
         asyncio.create_task(_survey_start_followup_worker())
 
@@ -3731,6 +3892,21 @@ def _limit_dashboard_candidates(surveys: list[Survey]) -> list[Survey]:
     )[:limit]
 
 
+def _cached_dashboard_recommendations(db: Session, surveys: list[Survey], user: User) -> dict[int, dict]:
+    if not _dashboard_ai_recommendations_enabled() or not surveys:
+        return {}
+    recommendations = cached_recommendations_for_user(db, surveys, user)
+    missing_ids = [survey.id for survey in surveys if survey.id not in recommendations]
+    if missing_ids:
+        enqueue_dashboard_recommendations_refresh_job(
+            db,
+            user_id=user.id,
+            survey_ids=missing_ids,
+        )
+        db.commit()
+    return recommendations
+
+
 def _completed_counts_for_surveys(db: Session, survey_ids: list[int]) -> dict[int, int]:
     if not survey_ids:
         return {}
@@ -3898,12 +4074,8 @@ def dashboard(
     ]
     matched = _limit_dashboard_candidates(matched)
 
-    # Blend Claude's completion estimate with field/major relevance from the participant profile.
-    recommendation_map = (
-        recommend_surveys_for_user(db, matched, current_user, use_cache=True)
-        if _dashboard_ai_recommendations_enabled()
-        else {}
-    )
+    # Use cached Claude recommendations only; refresh missing cache in the job runner.
+    recommendation_map = _cached_dashboard_recommendations(db, matched, current_user)
     matched.sort(
         key=lambda s: (
             _recommendation_sort_score(s, current_user, recommendation_map.get(s.id, {})),
@@ -4089,12 +4261,8 @@ def dashboard_mobile(
     matched = [s for s in all_published if survey_matches(s)]
     matched = _limit_dashboard_candidates(matched)
 
-    # Blend Claude's completion estimate with field/major relevance from the participant profile.
-    recommendation_map = (
-        recommend_surveys_for_user(db, matched, current_user, use_cache=True)
-        if _dashboard_ai_recommendations_enabled()
-        else {}
-    )
+    # Use cached Claude recommendations only; refresh missing cache in the job runner.
+    recommendation_map = _cached_dashboard_recommendations(db, matched, current_user)
     matched.sort(
         key=lambda s: (
             _recommendation_sort_score(s, current_user, recommendation_map.get(s.id, {})),
@@ -6861,12 +7029,28 @@ async def admin_verify(request: Request):
     return JSONResponse({"success": True})
 
 
+@app.post("/admin/users/bulk-email")
 @app.post("/admin/users/reward-reminder-email")
-async def admin_reward_reminder_email(request: Request, db: Session = Depends(get_db)):
+async def admin_bulk_email(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
     if not _admin_key_matches(body.get("admin_key")):
         raise HTTPException(403, "Unauthorized")
     dry_run = bool(body.get("dry_run", True))
+    subject = (body.get("subject") or "Complete your Insighta profile and payout setup").strip()
+    message = (body.get("message") or """Quick reminder from Insighta: to make sure rewards can be matched, reviewed, and paid correctly, please complete your Insighta profile.
+
+If you participate in paid studies, you will also need to connect Stripe before rewards can be paid out.
+
+Profile: https://insightaco.org/profile
+Stripe payouts: https://insightaco.org/connect/onboard""").strip()
+    if not subject:
+        raise HTTPException(400, "Email subject is required")
+    if not message:
+        raise HTTPException(400, "Email message is required")
+    if len(subject) > 180:
+        raise HTTPException(400, "Email subject is too long")
+    if len(message) > 5000:
+        raise HTTPException(400, "Email message is too long")
     users = db.query(User).filter(User.email.isnot(None)).order_by(User.created_at.desc()).all()
     recipients: list[User] = []
     seen_emails = set()
@@ -6882,23 +7066,27 @@ async def admin_reward_reminder_email(request: Request, db: Session = Depends(ge
             "recipient_count": len(recipients),
         })
 
-    sent_count = 0
-    failures = []
+    campaign_key = datetime.utcnow().strftime("%Y%m%d")
+    queued_count = 0
     for user in recipients:
-        sent, error = _send_reward_setup_reminder_email(user)
-        if sent:
-            sent_count += 1
-        else:
-            failures.append({
-                "email": user.email,
-                "error": error or "Unknown email error",
-            })
+        enqueue_admin_bulk_email_job(
+            db,
+            user_id=user.id,
+            email=user.email or "",
+            subject=subject,
+            message=message,
+            campaign_key=campaign_key,
+        )
+        queued_count += 1
+    db.commit()
     return JSONResponse({
         "dry_run": False,
         "recipient_count": len(recipients),
-        "sent_count": sent_count,
-        "failed_count": len(failures),
-        "failures": failures[:20],
+        "queued_count": queued_count,
+        "sent_count": 0,
+        "failed_count": 0,
+        "campaign_key": campaign_key,
+        "subject": subject,
     })
 
 
@@ -9489,33 +9677,20 @@ async def auto_approve_quality_by_score(
     })
 
 
-@app.post("/api/surveys/{survey_id}/quality/import-excel")
-def import_excel_for_quality_check(
-    survey_id: int,
-    file: UploadFile = File(...),
-    auto_approve: Optional[str] = Form(None),
-    auto_approve_min_score: Optional[float] = Form(None),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    survey = db.query(Survey).filter(
-        Survey.id == survey_id,
-        Survey.publisher_id == current_user.id,
-    ).first()
-    if not survey:
-        raise HTTPException(404, "Survey not found")
-
-    filename = file.filename or "upload.xlsx"
-    lower_name = filename.lower()
-    if not (lower_name.endswith(".xlsx") or lower_name.endswith(".xlsm")):
-        raise HTTPException(400, "Only .xlsx/.xlsm files are supported for now")
-
+def _process_quality_excel_import(
+    db: Session,
+    *,
+    survey: Survey,
+    filename: str,
+    content: bytes,
+    auto_approve: bool,
+    auto_approve_min_score: Optional[float],
+) -> dict:
     try:
         from openpyxl import load_workbook
     except Exception:
         raise HTTPException(500, "openpyxl is required. Please install dependency first.")
 
-    content = file.file.read()
     try:
         workbook = load_workbook(BytesIO(content), data_only=True)
     except Exception as exc:
@@ -9533,6 +9708,7 @@ def import_excel_for_quality_check(
     if not any(headers):
         raise HTTPException(400, "Header row is empty")
 
+    survey_id = survey.id
     replaced_rows = db.query(ResponseQualityCheck).filter(
         ResponseQualityCheck.survey_id == survey_id,
         ResponseQualityCheck.source_type == "excel",
@@ -9618,7 +9794,7 @@ def import_excel_for_quality_check(
     llm_rows_reviewed = 0
     llm_rows_failed = 0
     created_checks: List[ResponseQualityCheck] = []
-    use_auto_approve = str(auto_approve or "").strip().lower() in {"1", "true", "yes", "on"}
+    use_auto_approve = bool(auto_approve)
     auto_min_score = _parse_auto_approve_min_score(auto_approve_min_score if use_auto_approve else 100)
 
     for index, item in enumerate(parsed_rows):
@@ -9658,7 +9834,7 @@ def import_excel_for_quality_check(
         auto_approved_count, auto_rejected_count = apply_auto_approve_checks(created_checks, auto_min_score)
 
     db.commit()
-    return JSONResponse({
+    return {
         "message": "excel imported and quality checks generated",
         "survey_id": survey_id,
         "imported_rows": imported,
@@ -9676,7 +9852,56 @@ def import_excel_for_quality_check(
             "rows_failed": llm_rows_failed,
             "api_key_configured": anthropic_api_key_configured(),
         },
-    })
+    }
+
+
+@app.post("/api/surveys/{survey_id}/quality/import-excel")
+def import_excel_for_quality_check(
+    survey_id: int,
+    file: UploadFile = File(...),
+    auto_approve: Optional[str] = Form(None),
+    auto_approve_min_score: Optional[float] = Form(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Survey not found")
+
+    filename = file.filename or "upload.xlsx"
+    lower_name = filename.lower()
+    if not (lower_name.endswith(".xlsx") or lower_name.endswith(".xlsm")):
+        raise HTTPException(400, "Only .xlsx/.xlsm files are supported for now")
+
+    content = file.file.read()
+    if not content:
+        raise HTTPException(400, "Excel file is empty")
+
+    QUALITY_IMPORT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    upload_name = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{survey_id}_{uuid.uuid4().hex}_{Path(filename).name}"
+    upload_path = QUALITY_IMPORT_UPLOAD_DIR / upload_name
+    upload_path.write_bytes(content)
+
+    use_auto_approve = str(auto_approve or "").strip().lower() in {"1", "true", "yes", "on"}
+    job = enqueue_quality_excel_import_job(
+        db,
+        survey_id=survey_id,
+        user_id=current_user.id,
+        upload_path=str(upload_path),
+        filename=filename,
+        auto_approve=use_auto_approve,
+        auto_approve_min_score=auto_approve_min_score if use_auto_approve else None,
+    )
+    db.commit()
+    return JSONResponse({
+        "message": "quality import queued",
+        "queued": True,
+        "job_id": job.id,
+        "survey_id": survey_id,
+    }, status_code=202)
 
 
 

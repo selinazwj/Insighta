@@ -704,9 +704,15 @@
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(payload.detail || payload.message || 'Upload failed');
       status.className = 'quality-import-status success';
-      status.textContent = `Imported ${payload.imported_rows || 0} rows. Quality checks are ready.`;
+      status.textContent = payload.queued
+        ? `Import queued. Job #${payload.job_id || ''} will process in the background.`
+        : `Imported ${payload.imported_rows || 0} rows. Quality checks are ready.`;
       input.value = '';
-      await loadQualityResults();
+      if (payload.queued) {
+        setTimeout(loadQualityResults, 3000);
+      } else {
+        await loadQualityResults();
+      }
     } catch (e) {
       status.className = 'quality-import-status error';
       status.textContent = e.message || 'Upload failed.';

@@ -27,7 +27,7 @@ Recommended order:
 | --- | --- | --- | --- | --- | --- |
 | Survey start follow-up email | `api/main.py` `_send_survey_start_followup_email`, `_send_due_survey_start_followups`, `_survey_start_followup_worker` | Response start schedules `start_followup_scheduled_at`; startup worker polls due rows | Uses email provider; current startup loop is unreliable on serverless and can duplicate work on multi-instance deploys | P0 | Replace startup loop with persisted `email_followup` jobs and a manual/cron runner |
 | Booking confirmation emails | `api/main.py` `_send_booking_confirmation_emails`, `_send_booking_confirmation_emails_for_response` | Participant books interview slots | Sends two external emails in user flow; failures should retry without blocking booking | P1 | Enqueue `booking_confirmation` job after booking is saved |
-| Reward setup reminder bulk email | `api/main.py` `/admin/users/reward-reminder-email` | Admin action | Loops through all users and sends external emails; can time out and partially fail | P1 | Admin endpoint creates a `reward_reminder_batch` job and returns job id |
+| Admin bulk email | `api/main.py` `/admin/users/bulk-email` | Admin action | Loops through all users and sends external emails; can time out and partially fail | P1 | Admin endpoint creates one queued email job per recipient and returns queued count |
 | Welcome email | `api/main.py` `_send_welcome_followup_email` | Registration / profile completion | Email failure should not affect auth/profile flow; should retry | P1 | Enqueue `welcome_email` job after user record commits |
 | Verification/password code email | `api/main.py` `_send_verification_email`, `/auth/send-code`, `/password-reset`, `/verify/send-code` | User requests code | User-facing, so needs fast path; provider failures should be recorded and rate-limited | P2 | Keep synchronous until job runner supports high-priority immediate jobs |
 | Support alert email | `api/main.py` `send_support_alert_email` | User sends support message | Alert delivery should retry; support message save should not depend on email provider | P2 | Enqueue `support_alert` after support message commits |
@@ -107,6 +107,19 @@ The first PR creates a generic `background_jobs` table and wires the existing
 survey start follow-up email into it. The second phase reuses the same runner
 for booking confirmation emails, replacing the previous FastAPI
 `BackgroundTasks` path with persisted jobs that can retry provider failures.
+The third phase moves admin bulk email into the same queue, so the admin can
+write a custom subject/body, the request only schedules recipient jobs, and the
+runner sends them through the configured email provider in bounded batches.
+The fourth phase moves Excel quality imports into the queue: uploads are saved
+under `private_uploads/quality_imports`, the API returns a job id immediately,
+and the runner performs workbook parsing, anomaly scoring, LLM review, and DB
+writes outside the web request.
+The fifth phase keeps dashboard rendering off the Claude path: dashboard pages
+read only cached respondent predictions, enqueue missing recommendation refresh
+jobs, and let the runner refill `respondent_predictions` asynchronously.
+The final phase moves trust telemetry retention cleanup out of FastAPI startup:
+startup now only enqueues a daily `trust_data_cleanup` maintenance job, and the
+runner deletes expired risk signal and participation decision rows.
 
 Manual run:
 

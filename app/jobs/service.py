@@ -16,6 +16,11 @@ FAILED = "failed"
 
 SURVEY_START_FOLLOWUP_EMAIL = "survey_start_followup_email"
 BOOKING_CONFIRMATION_EMAIL = "booking_confirmation_email"
+REWARD_SETUP_REMINDER_EMAIL = "reward_setup_reminder_email"
+ADMIN_BULK_EMAIL = "admin_bulk_email"
+QUALITY_EXCEL_IMPORT = "quality_excel_import"
+DASHBOARD_RECOMMENDATIONS_REFRESH = "dashboard_recommendations_refresh"
+TRUST_DATA_CLEANUP = "trust_data_cleanup"
 
 JobHandler = Callable[[Session, BackgroundJob], None]
 
@@ -77,6 +82,118 @@ def enqueue_booking_confirmation_job(
         run_after=run_after,
         dedupe_key=f"{BOOKING_CONFIRMATION_EMAIL}:response:{response_id}:slot:{slot_key}",
         max_attempts=3,
+    )
+
+
+def enqueue_reward_setup_reminder_job(
+    db: Session,
+    *,
+    user_id: int,
+    email: str,
+    campaign_key: str,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    email_key = hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()[:16]
+    return enqueue_job(
+        db,
+        job_type=REWARD_SETUP_REMINDER_EMAIL,
+        payload={"user_id": user_id, "email": email, "campaign_key": campaign_key},
+        run_after=run_after,
+        dedupe_key=f"{REWARD_SETUP_REMINDER_EMAIL}:{campaign_key}:user:{user_id}:email:{email_key}",
+        max_attempts=3,
+    )
+
+
+def enqueue_admin_bulk_email_job(
+    db: Session,
+    *,
+    user_id: int,
+    email: str,
+    subject: str,
+    message: str,
+    campaign_key: str,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    email_key = hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()[:16]
+    subject_key = hashlib.sha256(subject.strip().encode("utf-8")).hexdigest()[:12]
+    return enqueue_job(
+        db,
+        job_type=ADMIN_BULK_EMAIL,
+        payload={
+            "user_id": user_id,
+            "email": email,
+            "subject": subject,
+            "message": message,
+            "campaign_key": campaign_key,
+        },
+        run_after=run_after,
+        dedupe_key=f"{ADMIN_BULK_EMAIL}:{campaign_key}:user:{user_id}:email:{email_key}:subject:{subject_key}",
+        max_attempts=3,
+    )
+
+
+def enqueue_quality_excel_import_job(
+    db: Session,
+    *,
+    survey_id: int,
+    user_id: int,
+    upload_path: str,
+    filename: str,
+    auto_approve: bool,
+    auto_approve_min_score: float | None = None,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    upload_key = hashlib.sha256(upload_path.encode("utf-8")).hexdigest()[:16]
+    return enqueue_job(
+        db,
+        job_type=QUALITY_EXCEL_IMPORT,
+        payload={
+            "survey_id": survey_id,
+            "user_id": user_id,
+            "upload_path": upload_path,
+            "filename": filename,
+            "auto_approve": auto_approve,
+            "auto_approve_min_score": auto_approve_min_score,
+        },
+        run_after=run_after,
+        dedupe_key=f"{QUALITY_EXCEL_IMPORT}:survey:{survey_id}:upload:{upload_key}",
+        max_attempts=2,
+    )
+
+
+def enqueue_dashboard_recommendations_refresh_job(
+    db: Session,
+    *,
+    user_id: int,
+    survey_ids: list[int],
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    normalized_ids = sorted({int(survey_id) for survey_id in survey_ids if int(survey_id) > 0})
+    ids_key = hashlib.sha256(",".join(str(survey_id) for survey_id in normalized_ids).encode("utf-8")).hexdigest()[:16]
+    refresh_window = (run_after or datetime.utcnow()).strftime("%Y%m%d%H")
+    return enqueue_job(
+        db,
+        job_type=DASHBOARD_RECOMMENDATIONS_REFRESH,
+        payload={"user_id": user_id, "survey_ids": normalized_ids},
+        run_after=run_after,
+        dedupe_key=f"{DASHBOARD_RECOMMENDATIONS_REFRESH}:{refresh_window}:user:{user_id}:surveys:{ids_key}",
+        max_attempts=2,
+    )
+
+
+def enqueue_trust_data_cleanup_job(
+    db: Session,
+    *,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    cleanup_window = (run_after or datetime.utcnow()).strftime("%Y%m%d")
+    return enqueue_job(
+        db,
+        job_type=TRUST_DATA_CLEANUP,
+        payload={"cleanup_window": cleanup_window},
+        run_after=run_after,
+        dedupe_key=f"{TRUST_DATA_CLEANUP}:{cleanup_window}",
+        max_attempts=2,
     )
 
 

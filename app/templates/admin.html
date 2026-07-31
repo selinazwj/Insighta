@@ -386,9 +386,16 @@
         <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
       </div>
       <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;">
-        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Email reminder</div>
-        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Email all users to complete their profile and connect Stripe before rewards.</div>
-        <button id="rewardReminderBtn" class="btn-refresh" style="margin-top:10px;" onclick="sendRewardReminder()">Send reminder</button>
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Email all users</div>
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Write a custom email and queue it for every valid user email through the configured email provider.</div>
+        <input id="bulkEmailSubject" style="width:100%;box-sizing:border-box;margin-top:10px;padding:10px;border:0.5px solid var(--line);border-radius:8px;font-size:13px;" value="Complete your Insighta profile and payout setup" placeholder="Subject">
+        <textarea id="bulkEmailMessage" style="width:100%;box-sizing:border-box;margin-top:8px;min-height:120px;padding:10px;border:0.5px solid var(--line);border-radius:8px;font-size:13px;line-height:1.5;resize:vertical;" placeholder="Message">Quick reminder from Insighta: to make sure rewards can be matched, reviewed, and paid correctly, please complete your Insighta profile.
+
+If you participate in paid studies, you will also need to connect Stripe before rewards can be paid out.
+
+Profile: https://insightaco.org/profile
+Stripe payouts: https://insightaco.org/connect/onboard</textarea>
+        <button id="rewardReminderBtn" class="btn-refresh" style="margin-top:10px;" onclick="sendRewardReminder()">Queue email</button>
       </div>
     </div>
   </div>
@@ -756,14 +763,22 @@
   async function sendRewardReminder() {
     if (!adminKey) return;
     const btn = document.getElementById('rewardReminderBtn');
+    const subjectInput = document.getElementById('bulkEmailSubject');
+    const messageInput = document.getElementById('bulkEmailMessage');
+    const subject = (subjectInput?.value || '').trim();
+    const message = (messageInput?.value || '').trim();
+    if (!subject || !message) {
+      alert('Please enter both a subject and message.');
+      return;
+    }
     const original = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Checking...';
     try {
-      const preview = await fetch('/admin/users/reward-reminder-email', {
+      const preview = await fetch('/admin/users/bulk-email', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ admin_key: adminKey, dry_run: true })
+        body: JSON.stringify({ admin_key: adminKey, dry_run: true, subject, message })
       });
       if (!preview.ok) throw new Error((await preview.json().catch(()=>({}))).detail || 'Could not preview recipients');
       const data = await preview.json();
@@ -772,18 +787,18 @@
         alert('No users with valid email addresses found.');
         return;
       }
-      if (!confirm(`Send the profile and Stripe reminder email to ${count} user${count === 1 ? '' : 's'}?`)) return;
-      btn.textContent = 'Sending...';
-      const res = await fetch('/admin/users/reward-reminder-email', {
+      if (!confirm(`Queue "${subject}" for ${count} user${count === 1 ? '' : 's'}?`)) return;
+      btn.textContent = 'Queueing...';
+      const res = await fetch('/admin/users/bulk-email', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ admin_key: adminKey, dry_run: false })
+        body: JSON.stringify({ admin_key: adminKey, dry_run: false, subject, message })
       });
       const result = await res.json().catch(()=>({}));
-      if (!res.ok) throw new Error(result.detail || 'Could not send reminder emails');
-      alert(`Reminder sent to ${result.sent_count || 0}/${result.recipient_count || count} user${(result.recipient_count || count) === 1 ? '' : 's'}.${result.failed_count ? ` Failed: ${result.failed_count}.` : ''}`);
+      if (!res.ok) throw new Error(result.detail || 'Could not queue reminder emails');
+      alert(`Email queued for ${result.queued_count || 0}/${result.recipient_count || count} user${(result.recipient_count || count) === 1 ? '' : 's'}.`);
     } catch(err) {
-      alert(err.message || 'Reminder email failed.');
+      alert(err.message || 'Email queueing failed.');
     } finally {
       btn.disabled = false;
       btn.textContent = original;
