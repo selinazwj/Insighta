@@ -5,7 +5,6 @@ from unittest.mock import patch
 from app.verification.assurance import (
     HumanSignals,
     TIER_BASIC,
-    TIER_HIGH,
     TIER_TRUSTED,
     assess_human,
     evidence_reference,
@@ -43,12 +42,11 @@ class VerificationAssuranceTests(unittest.TestCase):
         self.assertIsNone(strongest_tier_for_methods(["self_declared"]))
         self.assertEqual(strongest_tier_for_methods(["email_otp"]), TIER_BASIC)
         self.assertEqual(strongest_tier_for_methods(["linkedin_oauth"]), TIER_TRUSTED)
-        self.assertEqual(strongest_tier_for_methods(["identity_provider"]), TIER_HIGH)
+        self.assertIsNone(strongest_tier_for_methods(["identity_provider"]))
 
     def test_stronger_assurance_satisfies_lower_requirement(self):
         self.assertTrue(tier_satisfies(TIER_TRUSTED, TIER_BASIC))
         self.assertFalse(tier_satisfies(TIER_BASIC, TIER_TRUSTED))
-        self.assertFalse(tier_satisfies(TIER_TRUSTED, TIER_HIGH))
 
     def test_evidence_references_are_normalized_and_scoped_by_method(self):
         first = evidence_reference("email_otp", " Person@Example.com ")

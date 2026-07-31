@@ -148,24 +148,6 @@
     .occ-dd-item.on{color:var(--ink);font-weight:600;}
     .occ-dd-item input{accent-color:var(--green);width:14px;height:14px;flex-shrink:0;}
 
-    /* ── VERIFICATION: big tier cards with hover tooltips (ive restyled this) ── */
-    .tier-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px;}
-    .tier-card{position:relative;display:block;padding:20px 18px 18px;background:var(--bg);border:1px solid var(--line2);border-radius:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;text-align:left;}
-    .tier-card:hover{border-color:var(--green-m);box-shadow:0 4px 14px rgba(59,124,79,.09);}
-    .tier-card input{position:absolute;opacity:0;pointer-events:none;}
-    .tier-card.selected{border-color:var(--green);background:var(--green-l);box-shadow:0 0 0 1px var(--green);}
-    .tier-card-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--green);background:var(--green-l);border:.5px solid var(--green-m);border-radius:100px;padding:3px 10px;margin-bottom:12px;}
-    .tier-card.selected .tier-card-badge{background:var(--green);color:#fff;border-color:var(--green);}
-    .tier-card-name{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:4px;}
-    .tier-card-desc{font-size:12px;color:var(--ink-muted);line-height:1.55;}
-    .tier-card-check{position:absolute;top:14px;right:14px;width:19px;height:19px;border-radius:50%;border:1.5px solid var(--line2);display:flex;align-items:center;justify-content:center;background:var(--bg);}
-    .tier-card.selected .tier-card-check{background:var(--green);border-color:var(--green);}
-    .tier-card-check svg{width:10px;height:10px;stroke:#fff;stroke-width:3;fill:none;display:none;}
-    .tier-card.selected .tier-card-check svg{display:block;}
-    .tier-tip{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);width:235px;background:var(--ink);color:#fff;font-size:12px;font-weight:400;line-height:1.55;padding:11px 14px;border-radius:9px;z-index:70;opacity:0;visibility:hidden;transition:opacity .15s;pointer-events:none;box-shadow:0 10px 26px rgba(26,26,24,.25);text-align:left;}
-    .tier-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--ink);}
-    .tier-card:hover .tier-tip{opacity:1;visibility:visible;}
-    @media (max-width:760px){.tier-cards{grid-template-columns:1fr;}}
     .checkbox-item.checked { border-color: var(--accent); background: rgba(45,106,79,0.06); color: var(--ink); }
 
     .slot-builder { border: 1.5px solid var(--line); border-radius: 12px; padding: 16px; background: var(--paper); }
@@ -619,35 +601,13 @@
         <div class="label-desc">Select all that apply. Leave empty to allow any occupation.</div>
       </div>
 
-      <!-- Verification is account assurance. Researchers never receive identity documents. -->
-      <div class="form-group" style="margin-bottom: 16px;">
-        <label>Participant verification <span style="font-weight:300;text-transform:none;letter-spacing:0;">(hover a card to see what it means)</span></label>
-        <div class="tier-cards" style="grid-template-columns:repeat(2,1fr);">
-          <label class="tier-card" onclick="pickTier(this)">
-            <input type="radio" name="required_verification_tier" value="tier_2">
-            <span class="tier-card-badge">Trusted</span>
-            <div class="tier-card-name">Trusted participant</div>
-            <div class="tier-card-desc">Basic human check plus stronger reusable account evidence</div>
-            <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Use for paid interviews where you want stronger account confidence. Insighta and researchers do not collect or view raw IDs.</div>
-          </label>
-          <label class="tier-card selected" onclick="pickTier(this)">
-            <input type="radio" name="required_verification_tier" value="tier_3" checked>
-            <span class="tier-card-badge">Basic</span>
-            <div class="tier-card-name">Basic human check</div>
-            <div class="tier-card-desc">Email control plus automated abuse checks — the default</div>
-            <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Participants prove email control and pass automated bot and abuse checks. Use screening questions separately for eligibility.</div>
-          </label>
-        </div>
-      </div>
-      <!-- ive added this for the email-domain feature — restrict Tier 3 email verification to specific domains -->
+      <div class="label-desc" style="margin:0 0 16px;">Every participant completes Insighta's basic human and abuse checks. Occupation requirements are confirmed with a study-specific screening question instead of being inferred from a signup profile.</div>
       <div class="form-group" style="margin-top:16px;">
         <label>Allowed email domains <span style="font-weight:300;text-transform:none;letter-spacing:0;">(optional, for email verification)</span></label>
         <input type="text" name="required_email_domains" placeholder="e.g. bu.edu, gmail.com">
         <div class="label-desc">Only participants who verify an email at one of these domains can be paid. Separate multiple with commas. Leave blank to allow any email.</div>
       </div>
-      <div class="label-desc" style="margin-top:14px;">Basic is the default. Verification checks account trust; screening checks study eligibility.</div>
+      <div class="label-desc" style="margin-top:14px;">Account checks establish basic trust. Screening questions decide study eligibility.</div>
     </div>
 
     <!-- SUBMIT -->
@@ -937,7 +897,7 @@
     input.closest('.checkbox-item').classList.toggle('checked', input.checked);
   }
 
-  // ── ive added these — occupation multiselect dropdown + tier cards ──
+  // ── Occupation multiselect dropdown ──
   function toggleOccDD() { document.getElementById('occDD').classList.toggle('open'); }
 
   function occDDChanged() {
@@ -963,12 +923,6 @@
     const dd = document.getElementById('occDD');
     if (dd && !dd.contains(e.target)) dd.classList.remove('open');
   });
-
-  function pickTier(card) {
-    document.querySelectorAll('.tier-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    card.querySelector('input').checked = true;
-  }
 
   // ── Select color fix ──────────────────────────────────────
   document.querySelectorAll('select').forEach(s => {

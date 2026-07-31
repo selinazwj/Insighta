@@ -77,7 +77,6 @@ from app.bot_defense import (
 from app.verification.assurance import (
     HumanSignals,
     TIER_BASIC,
-    TIER_HIGH,
     TIER_LABELS,
     TIER_RANK,
     TIER_TRUSTED,
@@ -244,9 +243,6 @@ def ensure_user_profile_columns():
         "verification_status": "VARCHAR",
         "verified_at": "TIMESTAMP",
         "verified_tier": "VARCHAR",
-        "id_document_path": "VARCHAR",
-        "id_review_status": "VARCHAR",
-        "id_uploaded_at": "TIMESTAMP",
         "verified_email": "VARCHAR",
         "referral_code": "VARCHAR",
         "invited_by_user_id": "INTEGER",
@@ -1331,14 +1327,6 @@ def _field_matches(target: Optional[str], user_val: Optional[str]) -> bool:
         return False
     return target.strip().lower() == user_val.strip().lower()
 
-def _occupation_matches(required: Optional[str], user_occupation: Optional[str]) -> bool:
-    # ive added this — a survey can require multiple occupations (comma separated,
-    # e.g. "physician,nurse"). blank means any occupation is welcome.
-    required_list = [o.strip().lower() for o in (required or "").split(",") if o.strip()]
-    if not required_list:
-        return True
-    return (user_occupation or "").strip().lower() in required_list
-
 FIELD_RELEVANCE_ALIASES = {
     "computer science & engineering": ["computer science", "engineering", "software", "developer", "coding", "programming", "technology", "tech"],
     "data science / ai": ["data science", "data", "ai", "artificial intelligence", "machine learning", "ml", "analytics", "algorithm"],
@@ -1613,10 +1601,10 @@ def _clean_target(val: Optional[str]) -> str:
 
 def _normalize_required_verification_tier(value: Optional[str]) -> str:
     normalized = (value or TIER_BASIC).strip().lower()
-    if normalized == TIER_HIGH:
+    if normalized == "tier_1":
         raise HTTPException(
             400,
-            "High Assurance is temporarily unavailable. Choose Trusted or Basic.",
+            "Legacy ID-based assurance is no longer supported.",
         )
     if normalized not in {TIER_TRUSTED, TIER_BASIC}:
         return TIER_BASIC
@@ -2908,7 +2896,6 @@ async def do_register(
     password = form.get("password") or ""
     confirm = form.get("confirm") or ""
     verification_code = form.get("verification_code") or ""
-    occupation = (form.get("occupation") or "").strip()
     referral_input = _normalize_referral_code(form.get("referral_code") or pending_referral)
     next_url = _safe_auth_return(form.get("next"), auth_return_to)
     role = (form.get("role") or "").strip().lower()
@@ -2962,7 +2949,7 @@ async def do_register(
         remote_ip=client_ip(request),
     )
     if not challenge_ok:
-        return reg_error("We could not validate the anti-bot check. Please try again.", step=3)
+        return reg_error("We could not validate the anti-bot check. Please try again.", step=2)
 
     if not email: return reg_error("Email is required.")
     if _is_email_blocked(db, email):
@@ -2970,7 +2957,6 @@ async def do_register(
     if password != confirm: return reg_error("Passwords do not match.", step=2)
     pw_error = _validate_registration_password(password)
     if pw_error: return reg_error(pw_error, step=2)
-    if not occupation: return reg_error("Occupation is required.", step=3)
     required_demo_fields = {
         "first_name": "First name is required.",
         "last_name": "Last name is required.",
@@ -3001,7 +2987,6 @@ async def do_register(
         email=email,
         password=pwd_context.hash(password),
         phone_number=phone_number or None,
-        occupation=occupation,
         first_name=register_values["first_name"],
         last_name=register_values["last_name"],
         username=register_values["username"],
@@ -3786,9 +3771,6 @@ def dashboard(
         if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
         if not _field_matches(getattr(s, 'target_income_level', None), getattr(current_user, 'income_level', None)): return False
         if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
-        # ive added this — occupation targeting is finally enforced: a physicians-only
-        # study no longer shows up for everyone
-        if not _occupation_matches(getattr(s, 'required_occupation', None), getattr(current_user, 'occupation', None)): return False
         return True
 
     participant_response_survey_ids = {
@@ -3986,9 +3968,6 @@ def dashboard_mobile(
         if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
         if not _field_matches(getattr(s, 'target_income_level', None), getattr(current_user, 'income_level', None)): return False
         if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
-        # ive added this — occupation targeting is finally enforced: a physicians-only
-        # study no longer shows up for everyone
-        if not _occupation_matches(getattr(s, 'required_occupation', None), getattr(current_user, 'occupation', None)): return False
         return True
 
     matched = [s for s in all_published if survey_matches(s)]
@@ -5783,9 +5762,8 @@ def _render_verify(request, current_user, db, *, error=None, notice=None, needs_
     # still needs to prove a specific domain (e.g. verified via gmail but study needs bu.edu)
     show_email_verify = (not is_verified) or bool(domains)
     prefill = prefill_email or getattr(current_user, "verified_email", None) or current_user.email
-    # ive added this — when the participant arrives from a study that requires a
-    # specific tier, only that tiers method is shown (tier_1 -> ID, tier_2 -> LinkedIn,
-    # tier_3 -> email). visiting /verify directly still shows every method.
+    # Legacy Trusted studies still route participants to LinkedIn; new studies
+    # use the standard account check plus concrete email/screening requirements.
     focus_tier = focus_tier if focus_tier in TIER_RANK else None
     return no_store_response(templates.TemplateResponse("verify.html", {
         "request": request, "current_user": current_user, "error": error, "notice": notice,
@@ -5795,14 +5773,12 @@ def _render_verify(request, current_user, db, *, error=None, notice=None, needs_
         "focus_tier": focus_tier,
         "assurance_tier": assurance_tier,
         "assurance_label": TIER_LABELS.get(assurance_tier, "Not verified"),
-        "high_assurance_enabled": False,
         # ive added this — right after a successful verification we show a clean
         # "youre done" screen instead of advertising the other tiers again
         "done": bool(done),
         "linkedin_enabled": bool(LINKEDIN_CLIENT_ID),
         # Verified users can still add stronger low-sensitivity evidence.
-        "can_upgrade_linkedin": user_rank > 2,
-        "can_upgrade_high": user_rank > 1,
+        "can_upgrade_linkedin": bool(LINKEDIN_CLIENT_ID) and user_rank > 2,
     }))
 
 
@@ -5816,7 +5792,7 @@ def verify_page(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # ive added this for verification — shows the OTP + LinkedIn + ID upload page
+    # Account verification uses email control and optional LinkedIn evidence.
     # needs_tier / needs_domains come from the survey completion redirect and tell
     # the participant WHY theyre being sent here. done=1 means they JUST finished
     # a verification step, so we show a clean success screen, not more tiers
@@ -5824,8 +5800,6 @@ def verify_page(
     notice = None
     if domains:
         notice = f"This study is limited to emails at: {', '.join(domains)}. Verify one of these addresses below to receive your payout."
-    elif needs_tier == TIER_HIGH:
-        notice = "This study requires High Assurance verification, which is temporarily unavailable while we integrate a privacy-reviewed provider."
     elif needs_tier in TIER_RANK:
         notice = f"This study requires {TIER_LABELS[needs_tier]}. Complete the available check below."
     return _render_verify(request, current_user, db, error=verify_error, notice=notice,
@@ -5922,50 +5896,6 @@ def verify_user(
     db.commit()
     # done=1 shows the clean success screen instead of more tier options
     return RedirectResponse("/verify?done=1", status_code=303)
-
-
-# ---------------------------
-# Raw ID collection is intentionally disabled
-# ---------------------------
-
-RAW_ID_DISABLED_MESSAGE = (
-    "Insighta no longer accepts or exposes raw identity documents. "
-    "High Assurance will return through a privacy-reviewed external provider."
-)
-
-
-@app.post("/verify/id-upload")
-async def verify_id_upload_disabled(current_user: User = Depends(get_current_user)):
-    raise HTTPException(410, RAW_ID_DISABLED_MESSAGE)
-
-
-@app.get("/researcher/id-document/{participant_id}")
-def researcher_view_id_document_disabled(
-    participant_id: int,
-    current_user: User = Depends(get_current_user),
-):
-    raise HTTPException(410, RAW_ID_DISABLED_MESSAGE)
-
-
-@app.post("/researcher/id-reviews/{participant_id}/approve")
-def researcher_approve_id_disabled(
-    participant_id: int,
-    current_user: User = Depends(get_current_user),
-):
-    raise HTTPException(410, RAW_ID_DISABLED_MESSAGE)
-
-
-@app.post("/researcher/id-reviews/{participant_id}/reject")
-def researcher_reject_id_disabled(
-    participant_id: int,
-    current_user: User = Depends(get_current_user),
-):
-    raise HTTPException(410, RAW_ID_DISABLED_MESSAGE)
-
-
-@app.get("/researcher/id-reviews", response_class=HTMLResponse)
-def researcher_id_reviews_disabled(current_user: User = Depends(get_current_user)):
-    raise HTTPException(410, RAW_ID_DISABLED_MESSAGE)
 
 
 # ---------------------------
@@ -6070,8 +6000,7 @@ async def verify_linkedin_callback(
     linkedin_email = _normalize_email(userinfo.get("email", ""))
     if linkedin_email:
         current_user.verified_email = linkedin_email
-    # LinkedIn confirms a professional identity so we mark tier_2 (OTP stays tier_3)
-    # phase 3 — never downgrade someone who already holds tier_1
+    # Store LinkedIn as additional reusable account evidence.
     if _tier_rank(getattr(current_user, "verified_tier", None)) > 2:
         current_user.verified_tier = TIER_TRUSTED
     current_user.verification_status = "verified"
@@ -6226,7 +6155,13 @@ async def edit_survey_post(
     survey.target_lifestyle_tags = target_lifestyle_tags
     survey.target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
     survey.required_occupation = _clean_target(required_occupation)
-    survey.required_verification_tier = _normalize_required_verification_tier(required_verification_tier)
+    # The redesigned form no longer exposes assurance tiers. Preserve any
+    # stronger legacy study requirement instead of silently weakening it when
+    # the researcher edits an unrelated field.
+    if required_verification_tier is not None:
+        survey.required_verification_tier = _normalize_required_verification_tier(
+            required_verification_tier
+        )
     survey.required_email_domains = ",".join(_normalize_domains(required_email_domains)) or None
     _apply_survey_auto_filter_settings(survey, form)
 
@@ -8285,7 +8220,10 @@ async def publish_survey(
         survey.target_lifestyle_tags = target_lifestyle_tags
         survey.target_niche_requirements = target_niche_requirements
         survey.required_occupation = _clean_target(required_occupation)
-        survey.required_verification_tier = _normalize_required_verification_tier(required_verification_tier)
+        if required_verification_tier is not None:
+            survey.required_verification_tier = _normalize_required_verification_tier(
+                required_verification_tier
+            )
         survey.required_email_domains = ",".join(_normalize_domains(required_email_domains)) or None
         survey.participant_benefits = participant_benefits
         survey.availability_slots = availability_slots if is_interview_listing else None

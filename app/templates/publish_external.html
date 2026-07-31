@@ -207,24 +207,6 @@
     .occ-dd-item.on{color:var(--ink);font-weight:600;}
     .occ-dd-item input{accent-color:var(--green);width:14px;height:14px;flex-shrink:0;}
 
-    /* ── VERIFICATION: big tier cards with hover tooltips (ive restyled this) ── */
-    .tier-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px;}
-    .tier-card{position:relative;display:block;padding:20px 18px 18px;background:var(--bg);border:1px solid var(--line2);border-radius:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;text-align:left;}
-    .tier-card:hover{border-color:var(--green-m);box-shadow:0 4px 14px rgba(59,124,79,.09);}
-    .tier-card input{position:absolute;opacity:0;pointer-events:none;}
-    .tier-card.selected{border-color:var(--green);background:var(--green-l);box-shadow:0 0 0 1px var(--green);}
-    .tier-card-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--green);background:var(--green-l);border:.5px solid var(--green-m);border-radius:100px;padding:3px 10px;margin-bottom:12px;}
-    .tier-card.selected .tier-card-badge{background:var(--green);color:#fff;border-color:var(--green);}
-    .tier-card-name{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:4px;}
-    .tier-card-desc{font-size:12px;color:var(--ink3);line-height:1.55;}
-    .tier-card-check{position:absolute;top:14px;right:14px;width:19px;height:19px;border-radius:50%;border:1.5px solid var(--line2);display:flex;align-items:center;justify-content:center;background:var(--bg);}
-    .tier-card.selected .tier-card-check{background:var(--green);border-color:var(--green);}
-    .tier-card-check svg{width:10px;height:10px;stroke:#fff;stroke-width:3;fill:none;display:none;}
-    .tier-card.selected .tier-card-check svg{display:block;}
-    .tier-tip{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);width:235px;background:var(--ink);color:#fff;font-size:12px;font-weight:400;line-height:1.55;padding:11px 14px;border-radius:9px;z-index:70;opacity:0;visibility:hidden;transition:opacity .15s;pointer-events:none;box-shadow:0 10px 26px rgba(26,26,24,.25);text-align:left;}
-    .tier-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--ink);}
-    .tier-card:hover .tier-tip{opacity:1;visibility:visible;}
-    @media (max-width:760px){.tier-cards{grid-template-columns:1fr;}}
 
     /* ── SECTION DIVIDER ── */
     .sub-label{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);padding:14px 0 8px;border-top:.5px solid var(--line);margin-top:6px;}
@@ -964,45 +946,14 @@
         <div class="field-hint">Select all that apply. Leave empty to allow any occupation.</div>
       </div>
 
-      <!-- ive restyled this — big tier cards, hover any card for a plain-english explanation -->
-      {% set cur_tier = existing_survey.required_verification_tier if existing_survey and existing_survey.required_verification_tier else 'tier_3' %}
-      <div class="field" style="margin-bottom:14px;">
-        <label>Verification tier <span style="font-weight:400;color:var(--ink3);">(hover a card to see what it means)</span></label>
-        <div class="tier-cards">
-          <label class="tier-card" style="opacity:.58;cursor:not-allowed;">
-            <input type="radio" name="required_verification_tier" value="tier_1" disabled>
-            <span class="tier-card-badge">High Assurance</span>
-            <div class="tier-card-name">Temporarily unavailable</div>
-            <div class="tier-card-desc">External privacy-reviewed provider required</div>
-            <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Insighta no longer collects raw ID documents. This option will return after a provider integration that shares only the verification result.</div>
-          </label>
-          <label class="tier-card {{ 'selected' if cur_tier == 'tier_2' }}" onclick="pickTier(this)">
-            <input type="radio" name="required_verification_tier" value="tier_2" {{ 'checked' if cur_tier == 'tier_2' }}>
-            <span class="tier-card-badge">Trusted</span>
-            <div class="tier-card-name">Trusted participant</div>
-            <div class="tier-card-desc">Basic check plus stronger reusable evidence</div>
-            <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Participants pass the basic human check and add a unique trusted signal such as LinkedIn. This is useful for most paid professional studies.</div>
-          </label>
-          <label class="tier-card {{ 'selected' if cur_tier == 'tier_3' }}" onclick="pickTier(this)">
-            <input type="radio" name="required_verification_tier" value="tier_3" {{ 'checked' if cur_tier == 'tier_3' }}>
-            <span class="tier-card-badge">Basic</span>
-            <div class="tier-card-name">Basic human check</div>
-            <div class="tier-card-desc">Email control plus automated abuse checks</div>
-            <span class="tier-card-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-            <div class="tier-tip">Participants prove email control and pass automated bot and abuse checks. Study-specific eligibility is handled separately.</div>
-          </label>
-        </div>
-      </div>
-      <!-- ive added this for the email-domain feature — restrict Tier 3 email verification to specific domains -->
+      <div class="field-hint" style="margin:0 0 16px;">Every participant completes Insighta's basic human and abuse checks. Occupation requirements are confirmed with a study-specific screening question instead of being inferred from a signup profile.</div>
       <div class="field" style="margin-top:16px;">
         <label>Allowed email domains <span style="font-weight:400;color:var(--ink3);">(optional, for email verification)</span></label>
         <input type="text" name="required_email_domains" placeholder="e.g. bu.edu, gmail.com"
           value="{{ existing_survey.required_email_domains if existing_survey and existing_survey.required_email_domains else '' }}">
         <div class="field-hint">Only participants who verify an email at one of these domains can be paid. Separate multiple with commas. Leave blank to allow any email.</div>
       </div>
-      <div class="field-hint" style="margin-top:14px;">Basic is the default. Verification checks account trust; it does not replace study-specific screening.</div>
+      <div class="field-hint" style="margin-top:14px;">Account checks establish basic trust. Screening questions decide study eligibility.</div>
     </div>
 
     <!-- 06 QUALITY AUTO FILTER -->
@@ -1345,7 +1296,7 @@
   // ── CHECKBOXES ──
   function syncCheck(input) { input.closest('.check-item').classList.toggle('checked', input.checked); }
 
-  // ── ive added these — occupation multiselect dropdown + tier cards ──
+  // ── Occupation multiselect dropdown ──
   function toggleOccDD() { document.getElementById('occDD').classList.toggle('open'); }
 
   function occDDChanged() {
@@ -1372,12 +1323,6 @@
     const dd = document.getElementById('occDD');
     if (dd && !dd.contains(e.target)) dd.classList.remove('open');
   });
-
-  function pickTier(card) {
-    document.querySelectorAll('.tier-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    card.querySelector('input').checked = true;
-  }
 
   // reflect any preselected occupations (edit flow) in the dropdown label
   occDDChanged();

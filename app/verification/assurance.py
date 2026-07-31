@@ -18,20 +18,17 @@ import os
 from typing import Iterable, Optional
 
 
-TIER_HIGH = "tier_1"
 TIER_TRUSTED = "tier_2"
 TIER_BASIC = "tier_3"
 
 TIER_RANK = {
-    TIER_HIGH: 1,
     TIER_TRUSTED: 2,
     TIER_BASIC: 3,
 }
 
 TIER_LABELS = {
-    TIER_HIGH: "High assurance",
-    TIER_TRUSTED: "Trusted participant",
-    TIER_BASIC: "Basic human check",
+    TIER_TRUSTED: "Account and professional checks complete",
+    TIER_BASIC: "Account check complete",
 }
 
 # A method is evidence, not a tier by itself. These sets describe the strongest
@@ -47,13 +44,6 @@ TRUSTED_METHODS = frozenset({
     "professional_registry",
     "trusted_history",
 })
-HIGH_ASSURANCE_METHODS = frozenset({
-    # Reserved for a privacy-reviewed provider integration. Raw uploads to
-    # Insighta or researcher visual review are intentionally not accepted.
-    "identity_provider",
-})
-
-
 def tier_rank(tier: Optional[str]) -> int:
     return TIER_RANK.get(tier or "", 99)
 
@@ -64,8 +54,6 @@ def tier_satisfies(actual: Optional[str], required: Optional[str]) -> bool:
 
 def strongest_tier_for_methods(methods: Iterable[str]) -> Optional[str]:
     normalized = {str(method or "").strip().lower() for method in methods}
-    if normalized & HIGH_ASSURANCE_METHODS:
-        return TIER_HIGH
     if normalized & TRUSTED_METHODS:
         return TIER_TRUSTED
     if normalized & BASIC_METHODS:
