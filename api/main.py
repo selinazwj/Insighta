@@ -39,8 +39,10 @@ from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.jobs.service import (
     BOOKING_CONFIRMATION_EMAIL,
+    REWARD_SETUP_REMINDER_EMAIL,
     SURVEY_START_FOLLOWUP_EMAIL,
     enqueue_booking_confirmation_job,
+    enqueue_reward_setup_reminder_job,
     enqueue_survey_start_followup_job,
     run_due_jobs,
 )
@@ -942,9 +944,23 @@ def _handle_booking_confirmation_job(db: Session, job: BackgroundJob) -> None:
     _send_booking_confirmation_emails(db, survey, participant, booking_slot)
 
 
+def _handle_reward_setup_reminder_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    user_id = int(payload.get("user_id") or 0)
+    if user_id <= 0:
+        raise ValueError("Missing user_id for reward setup reminder job")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.email:
+        return
+    sent, error = _send_reward_setup_reminder_email(user)
+    if not sent:
+        raise RuntimeError(error or f"Reward setup reminder email was not sent for user {user_id}")
+
+
 BACKGROUND_JOB_HANDLERS = {
     SURVEY_START_FOLLOWUP_EMAIL: _handle_survey_start_followup_job,
     BOOKING_CONFIRMATION_EMAIL: _handle_booking_confirmation_job,
+    REWARD_SETUP_REMINDER_EMAIL: _handle_reward_setup_reminder_job,
 }
 
 
@@ -6947,23 +6963,24 @@ async def admin_reward_reminder_email(request: Request, db: Session = Depends(ge
             "recipient_count": len(recipients),
         })
 
-    sent_count = 0
-    failures = []
+    campaign_key = datetime.utcnow().strftime("%Y%m%d")
+    queued_count = 0
     for user in recipients:
-        sent, error = _send_reward_setup_reminder_email(user)
-        if sent:
-            sent_count += 1
-        else:
-            failures.append({
-                "email": user.email,
-                "error": error or "Unknown email error",
-            })
+        enqueue_reward_setup_reminder_job(
+            db,
+            user_id=user.id,
+            email=user.email or "",
+            campaign_key=campaign_key,
+        )
+        queued_count += 1
+    db.commit()
     return JSONResponse({
         "dry_run": False,
         "recipient_count": len(recipients),
-        "sent_count": sent_count,
-        "failed_count": len(failures),
-        "failures": failures[:20],
+        "queued_count": queued_count,
+        "sent_count": 0,
+        "failed_count": 0,
+        "campaign_key": campaign_key,
     })
 
 

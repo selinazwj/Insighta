@@ -772,18 +772,18 @@
         alert('No users with valid email addresses found.');
         return;
       }
-      if (!confirm(`Send the profile and Stripe reminder email to ${count} user${count === 1 ? '' : 's'}?`)) return;
-      btn.textContent = 'Sending...';
+      if (!confirm(`Queue the profile and Stripe reminder email for ${count} user${count === 1 ? '' : 's'}?`)) return;
+      btn.textContent = 'Queueing...';
       const res = await fetch('/admin/users/reward-reminder-email', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ admin_key: adminKey, dry_run: false })
       });
       const result = await res.json().catch(()=>({}));
-      if (!res.ok) throw new Error(result.detail || 'Could not send reminder emails');
-      alert(`Reminder sent to ${result.sent_count || 0}/${result.recipient_count || count} user${(result.recipient_count || count) === 1 ? '' : 's'}.${result.failed_count ? ` Failed: ${result.failed_count}.` : ''}`);
+      if (!res.ok) throw new Error(result.detail || 'Could not queue reminder emails');
+      alert(`Reminder queued for ${result.queued_count || 0}/${result.recipient_count || count} user${(result.recipient_count || count) === 1 ? '' : 's'}.`);
     } catch(err) {
-      alert(err.message || 'Reminder email failed.');
+      alert(err.message || 'Reminder email queueing failed.');
     } finally {
       btn.disabled = false;
       btn.textContent = original;

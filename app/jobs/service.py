@@ -16,6 +16,7 @@ FAILED = "failed"
 
 SURVEY_START_FOLLOWUP_EMAIL = "survey_start_followup_email"
 BOOKING_CONFIRMATION_EMAIL = "booking_confirmation_email"
+REWARD_SETUP_REMINDER_EMAIL = "reward_setup_reminder_email"
 
 JobHandler = Callable[[Session, BackgroundJob], None]
 
@@ -76,6 +77,25 @@ def enqueue_booking_confirmation_job(
         payload={"response_id": response_id, "booking_slot": booking_slot},
         run_after=run_after,
         dedupe_key=f"{BOOKING_CONFIRMATION_EMAIL}:response:{response_id}:slot:{slot_key}",
+        max_attempts=3,
+    )
+
+
+def enqueue_reward_setup_reminder_job(
+    db: Session,
+    *,
+    user_id: int,
+    email: str,
+    campaign_key: str,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    email_key = hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()[:16]
+    return enqueue_job(
+        db,
+        job_type=REWARD_SETUP_REMINDER_EMAIL,
+        payload={"user_id": user_id, "email": email, "campaign_key": campaign_key},
+        run_after=run_after,
+        dedupe_key=f"{REWARD_SETUP_REMINDER_EMAIL}:{campaign_key}:user:{user_id}:email:{email_key}",
         max_attempts=3,
     )
 

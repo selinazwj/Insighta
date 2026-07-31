@@ -107,6 +107,9 @@ The first PR creates a generic `background_jobs` table and wires the existing
 survey start follow-up email into it. The second phase reuses the same runner
 for booking confirmation emails, replacing the previous FastAPI
 `BackgroundTasks` path with persisted jobs that can retry provider failures.
+The third phase moves the admin reward setup reminder blast into the same queue,
+so the admin request only schedules recipient jobs and the runner sends them in
+bounded batches.
 
 Manual run:
 
