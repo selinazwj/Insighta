@@ -17,6 +17,7 @@ FAILED = "failed"
 SURVEY_START_FOLLOWUP_EMAIL = "survey_start_followup_email"
 BOOKING_CONFIRMATION_EMAIL = "booking_confirmation_email"
 REWARD_SETUP_REMINDER_EMAIL = "reward_setup_reminder_email"
+ADMIN_BULK_EMAIL = "admin_bulk_email"
 QUALITY_EXCEL_IMPORT = "quality_excel_import"
 DASHBOARD_RECOMMENDATIONS_REFRESH = "dashboard_recommendations_refresh"
 TRUST_DATA_CLEANUP = "trust_data_cleanup"
@@ -99,6 +100,34 @@ def enqueue_reward_setup_reminder_job(
         payload={"user_id": user_id, "email": email, "campaign_key": campaign_key},
         run_after=run_after,
         dedupe_key=f"{REWARD_SETUP_REMINDER_EMAIL}:{campaign_key}:user:{user_id}:email:{email_key}",
+        max_attempts=3,
+    )
+
+
+def enqueue_admin_bulk_email_job(
+    db: Session,
+    *,
+    user_id: int,
+    email: str,
+    subject: str,
+    message: str,
+    campaign_key: str,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    email_key = hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()[:16]
+    subject_key = hashlib.sha256(subject.strip().encode("utf-8")).hexdigest()[:12]
+    return enqueue_job(
+        db,
+        job_type=ADMIN_BULK_EMAIL,
+        payload={
+            "user_id": user_id,
+            "email": email,
+            "subject": subject,
+            "message": message,
+            "campaign_key": campaign_key,
+        },
+        run_after=run_after,
+        dedupe_key=f"{ADMIN_BULK_EMAIL}:{campaign_key}:user:{user_id}:email:{email_key}:subject:{subject_key}",
         max_attempts=3,
     )
 

@@ -38,16 +38,17 @@ from app.models import Base, User, Survey, Response, Feedback, Notification, Ema
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.jobs.service import (
+    ADMIN_BULK_EMAIL,
     BOOKING_CONFIRMATION_EMAIL,
     DASHBOARD_RECOMMENDATIONS_REFRESH,
     QUALITY_EXCEL_IMPORT,
     REWARD_SETUP_REMINDER_EMAIL,
     SURVEY_START_FOLLOWUP_EMAIL,
     TRUST_DATA_CLEANUP,
+    enqueue_admin_bulk_email_job,
     enqueue_booking_confirmation_job,
     enqueue_dashboard_recommendations_refresh_job,
     enqueue_quality_excel_import_job,
-    enqueue_reward_setup_reminder_job,
     enqueue_survey_start_followup_job,
     enqueue_trust_data_cleanup_job,
     run_due_jobs,
@@ -763,6 +764,36 @@ The Insighta Team"""
     return send_email(user.email, subject, body, text_body=text_body)
 
 
+def _admin_bulk_email_line_html(line: str) -> str:
+    escaped = html.escape(line.strip())
+    return re.sub(
+        r"(https?://[^\s<]+)",
+        r'<a href="\1" style="color:#168aad;font-weight:700;">\1</a>',
+        escaped,
+    )
+
+
+def _admin_bulk_email_body(message: str) -> str:
+    paragraphs = []
+    for block in re.split(r"\n\s*\n", (message or "").strip()):
+        lines = [_admin_bulk_email_line_html(line) for line in block.splitlines() if line.strip()]
+        if lines:
+            paragraphs.append(f"<p>{'<br>'.join(lines)}</p>")
+    body_html = "\n".join(paragraphs) or "<p></p>"
+    return f"""
+    <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 22px; color: #1a1a18; line-height: 1.65;">
+      {body_html}
+      <p style="margin-top:24px;">Warmly,<br>The Insighta Team</p>
+    </div>
+    """
+
+
+def _send_admin_bulk_email(user: User, subject: str, message: str) -> tuple[bool, Optional[str]]:
+    if not user.email:
+        return False, "Missing user email"
+    return send_email(user.email, subject, _admin_bulk_email_body(message), text_body=message)
+
+
 def _send_survey_start_followup_email(db: Session, response_id: int, dashboard_url: str) -> None:
     response = db.query(Response).filter(Response.id == response_id).first()
     if not response or getattr(response, "start_followup_sent_at", None):
@@ -967,6 +998,23 @@ def _handle_reward_setup_reminder_job(db: Session, job: BackgroundJob) -> None:
         raise RuntimeError(error or f"Reward setup reminder email was not sent for user {user_id}")
 
 
+def _handle_admin_bulk_email_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    user_id = int(payload.get("user_id") or 0)
+    subject = str(payload.get("subject") or "").strip()
+    message = str(payload.get("message") or "").strip()
+    if user_id <= 0:
+        raise ValueError("Missing user_id for admin bulk email job")
+    if not subject or not message:
+        raise ValueError("Missing subject or message for admin bulk email job")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.email:
+        return
+    sent, error = _send_admin_bulk_email(user, subject, message)
+    if not sent:
+        raise RuntimeError(error or f"Admin bulk email was not sent for user {user_id}")
+
+
 def _handle_quality_excel_import_job(db: Session, job: BackgroundJob) -> None:
     payload = job.payload_json or {}
     survey_id = int(payload.get("survey_id") or 0)
@@ -1032,6 +1080,7 @@ def _handle_trust_data_cleanup_job(db: Session, job: BackgroundJob) -> None:
 
 
 BACKGROUND_JOB_HANDLERS = {
+    ADMIN_BULK_EMAIL: _handle_admin_bulk_email_job,
     SURVEY_START_FOLLOWUP_EMAIL: _handle_survey_start_followup_job,
     BOOKING_CONFIRMATION_EMAIL: _handle_booking_confirmation_job,
     REWARD_SETUP_REMINDER_EMAIL: _handle_reward_setup_reminder_job,
@@ -7045,12 +7094,28 @@ async def admin_verify(request: Request):
     return JSONResponse({"success": True})
 
 
+@app.post("/admin/users/bulk-email")
 @app.post("/admin/users/reward-reminder-email")
-async def admin_reward_reminder_email(request: Request, db: Session = Depends(get_db)):
+async def admin_bulk_email(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
     if not _admin_key_matches(body.get("admin_key")):
         raise HTTPException(403, "Unauthorized")
     dry_run = bool(body.get("dry_run", True))
+    subject = (body.get("subject") or "Complete your Insighta profile and payout setup").strip()
+    message = (body.get("message") or """Quick reminder from Insighta: to make sure rewards can be matched, reviewed, and paid correctly, please complete your Insighta profile.
+
+If you participate in paid studies, you will also need to connect Stripe before rewards can be paid out.
+
+Profile: https://insightaco.org/profile
+Stripe payouts: https://insightaco.org/connect/onboard""").strip()
+    if not subject:
+        raise HTTPException(400, "Email subject is required")
+    if not message:
+        raise HTTPException(400, "Email message is required")
+    if len(subject) > 180:
+        raise HTTPException(400, "Email subject is too long")
+    if len(message) > 5000:
+        raise HTTPException(400, "Email message is too long")
     users = db.query(User).filter(User.email.isnot(None)).order_by(User.created_at.desc()).all()
     recipients: list[User] = []
     seen_emails = set()
@@ -7069,10 +7134,12 @@ async def admin_reward_reminder_email(request: Request, db: Session = Depends(ge
     campaign_key = datetime.utcnow().strftime("%Y%m%d")
     queued_count = 0
     for user in recipients:
-        enqueue_reward_setup_reminder_job(
+        enqueue_admin_bulk_email_job(
             db,
             user_id=user.id,
             email=user.email or "",
+            subject=subject,
+            message=message,
             campaign_key=campaign_key,
         )
         queued_count += 1
@@ -7084,6 +7151,7 @@ async def admin_reward_reminder_email(request: Request, db: Session = Depends(ge
         "sent_count": 0,
         "failed_count": 0,
         "campaign_key": campaign_key,
+        "subject": subject,
     })
 
 
