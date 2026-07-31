@@ -533,17 +533,12 @@
       const acceptActive = n.status === 'accepted';
       const rejectActive = n.status === 'rejected';
       const decided = acceptActive || rejectActive;
-      const tierLabel = t => ({
-        tier_1: 'High Assurance',
-        tier_2: 'Trusted participant',
-        tier_3: 'Basic human check'
-      }[t] || 'not verified');
       let verifyHtml = '';
       if (n.requires_verification) {
         if (!n.verification_warning) {
-          verifyHtml = `<div class="notif-verify ok">✓ Participant verified (${tierLabel(n.participant_verified_tier)})</div>`;
+          verifyHtml = `<div class="notif-verify ok">✓ Participant account checks complete</div>`;
         } else if (n.participant_verification_status === 'verified') {
-          verifyHtml = `<div class="notif-verify warn">⚠ Verified ${tierLabel(n.participant_verified_tier)} — survey needs ${tierLabel(n.required_verification_tier)}</div>`;
+          verifyHtml = `<div class="notif-verify warn">⚠ Participant needs an additional study verification</div>`;
         } else {
           verifyHtml = `<div class="notif-verify warn">⚠ Participant not verified</div>`;
         }

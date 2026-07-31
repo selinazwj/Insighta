@@ -50,11 +50,6 @@ class User(Base):
     verification_status = Column(String, default="unverified")
     verified_at = Column(DateTime, nullable=True)
     verified_tier = Column(String, nullable=True)
-    # Legacy-only quarantine fields. New uploads and researcher access are
-    # disabled; keep temporarily only for an explicitly approved retention job.
-    id_document_path = Column(String, nullable=True)
-    id_review_status = Column(String, nullable=True)
-    id_uploaded_at = Column(DateTime, nullable=True)
     # ive added this for the email-domain feature — the email the participant proved via OTP
     # (may differ from their account email, e.g. they verified their @bu.edu address)
     verified_email = Column(String, nullable=True)
