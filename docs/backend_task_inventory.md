@@ -103,8 +103,10 @@ reward_setup_reminder_email
 
 ## Pilot Implementation Notes
 
-The first PR now creates a generic `background_jobs` table and wires the
-existing survey start follow-up email into it.
+The first PR creates a generic `background_jobs` table and wires the existing
+survey start follow-up email into it. The second phase reuses the same runner
+for booking confirmation emails, replacing the previous FastAPI
+`BackgroundTasks` path with persisted jobs that can retry provider failures.
 
 Manual run:
 

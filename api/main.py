@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query, BackgroundTasks
+from fastapi import FastAPI, APIRouter, Request, Form, Depends, HTTPException, Cookie, UploadFile, File, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse, PlainTextResponse, Response as HTTPResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -38,7 +38,9 @@ from app.models import Base, User, Survey, Response, Feedback, Notification, Ema
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.jobs.service import (
+    BOOKING_CONFIRMATION_EMAIL,
     SURVEY_START_FOLLOWUP_EMAIL,
+    enqueue_booking_confirmation_job,
     enqueue_survey_start_followup_job,
     run_due_jobs,
 )
@@ -846,33 +848,19 @@ def _handle_survey_start_followup_job(db: Session, job: BackgroundJob) -> None:
         raise RuntimeError(f"Survey start follow-up email was not sent for response {response_id}")
 
 
-BACKGROUND_JOB_HANDLERS = {
-    SURVEY_START_FOLLOWUP_EMAIL: _handle_survey_start_followup_job,
-}
-
-
-def run_due_background_jobs(limit: int = 25) -> dict[str, int]:
-    db = SessionLocal()
-    try:
-        enqueued = _enqueue_due_survey_start_followup_jobs(db, limit=limit)
-        result = run_due_jobs(db, BACKGROUND_JOB_HANDLERS, limit=limit)
-        result["enqueued"] = enqueued
-        return result
-    finally:
-        db.close()
-
-
-def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: User, booking_slot: str) -> None:
+def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: User, booking_slot: str) -> int:
     if not booking_slot or not _uses_booking_flow(getattr(survey, "task_type", None)):
-        return
+        return 0
     booking_label = _booking_slots_label(booking_slot)
     publisher = db.query(User).filter(User.id == survey.publisher_id).first()
     study_url = f"{BASE_URL.rstrip('/')}/publisher/study/{survey.id}"
     dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
     location = getattr(survey, "interview_location", None) or "The researcher will share the exact location."
     participant_name = participant.first_name or participant.username or participant.email
+    sent_count = 0
+    failures = []
     if participant.email:
-        send_email(
+        sent, error = send_email(
             participant.email,
             f"[Insighta] Your time is booked for {survey.title}",
             f"""
@@ -891,8 +879,12 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
             </div>
             """
         )
+        if sent:
+            sent_count += 1
+        else:
+            failures.append(error or "participant booking confirmation email failed")
     if publisher and publisher.email:
-        send_email(
+        sent, error = send_email(
             publisher.email,
             f"[Insighta] New in-person booking: {survey.title}",
             f"""
@@ -909,6 +901,13 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
             </div>
             """
         )
+        if sent:
+            sent_count += 1
+        else:
+            failures.append(error or "publisher booking confirmation email failed")
+    if failures:
+        raise RuntimeError("; ".join(failures))
+    return sent_count
 
 
 def _send_booking_confirmation_emails_for_response(response_id: int, booking_slot: str) -> None:
@@ -921,6 +920,41 @@ def _send_booking_confirmation_emails_for_response(response_id: int, booking_slo
         participant = db.query(User).filter(User.id == response.participant_id).first()
         if survey and participant:
             _send_booking_confirmation_emails(db, survey, participant, booking_slot)
+    finally:
+        db.close()
+
+
+def _handle_booking_confirmation_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    response_id = int(payload.get("response_id") or 0)
+    booking_slot = str(payload.get("booking_slot") or "").strip()
+    if response_id <= 0:
+        raise ValueError("Missing response_id for booking confirmation job")
+    if not booking_slot:
+        return
+    response = db.query(Response).filter(Response.id == response_id).first()
+    if not response:
+        return
+    survey = db.query(Survey).filter(Survey.id == response.survey_id).first()
+    participant = db.query(User).filter(User.id == response.participant_id).first()
+    if not survey or not participant:
+        return
+    _send_booking_confirmation_emails(db, survey, participant, booking_slot)
+
+
+BACKGROUND_JOB_HANDLERS = {
+    SURVEY_START_FOLLOWUP_EMAIL: _handle_survey_start_followup_job,
+    BOOKING_CONFIRMATION_EMAIL: _handle_booking_confirmation_job,
+}
+
+
+def run_due_background_jobs(limit: int = 25) -> dict[str, int]:
+    db = SessionLocal()
+    try:
+        enqueued = _enqueue_due_survey_start_followup_jobs(db, limit=limit)
+        result = run_due_jobs(db, BACKGROUND_JOB_HANDLERS, limit=limit)
+        result["enqueued"] = enqueued
+        return result
     finally:
         db.close()
 
@@ -4790,7 +4824,6 @@ async def submit_participant_screening(
 async def start_survey(
     survey_id: int,
     request: Request,
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -4878,6 +4911,12 @@ async def start_survey(
 
     if should_schedule_followup and response:
         _enqueue_survey_start_followup_if_needed(db, response)
+    if should_send_booking_email and booking_slot and response:
+        enqueue_booking_confirmation_job(
+            db,
+            response_id=response.id,
+            booking_slot=booking_slot,
+        )
 
     _record_user_event(
         db,
@@ -4897,9 +4936,6 @@ async def start_survey(
         },
     )
     db.commit()
-
-    if should_send_booking_email and booking_slot:
-        background_tasks.add_task(_send_booking_confirmation_emails_for_response, response.id, booking_slot)
 
     return {"message": "Survey started successfully"}
 

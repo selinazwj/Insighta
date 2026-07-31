@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timedelta
 from typing import Any, Callable
 
@@ -14,6 +15,7 @@ DONE = "done"
 FAILED = "failed"
 
 SURVEY_START_FOLLOWUP_EMAIL = "survey_start_followup_email"
+BOOKING_CONFIRMATION_EMAIL = "booking_confirmation_email"
 
 JobHandler = Callable[[Session, BackgroundJob], None]
 
@@ -56,6 +58,24 @@ def enqueue_survey_start_followup_job(
         payload={"response_id": response_id},
         run_after=run_after,
         dedupe_key=f"{SURVEY_START_FOLLOWUP_EMAIL}:response:{response_id}",
+        max_attempts=3,
+    )
+
+
+def enqueue_booking_confirmation_job(
+    db: Session,
+    *,
+    response_id: int,
+    booking_slot: str,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    slot_key = hashlib.sha256(booking_slot.encode("utf-8")).hexdigest()[:16]
+    return enqueue_job(
+        db,
+        job_type=BOOKING_CONFIRMATION_EMAIL,
+        payload={"response_id": response_id, "booking_slot": booking_slot},
+        run_after=run_after,
+        dedupe_key=f"{BOOKING_CONFIRMATION_EMAIL}:response:{response_id}:slot:{slot_key}",
         max_attempts=3,
     )
 
