@@ -114,6 +114,9 @@ The fourth phase moves Excel quality imports into the queue: uploads are saved
 under `private_uploads/quality_imports`, the API returns a job id immediately,
 and the runner performs workbook parsing, anomaly scoring, LLM review, and DB
 writes outside the web request.
+The fifth phase keeps dashboard rendering off the Claude path: dashboard pages
+read only cached respondent predictions, enqueue missing recommendation refresh
+jobs, and let the runner refill `respondent_predictions` asynchronously.
 
 Manual run:
 

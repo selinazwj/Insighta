@@ -351,6 +351,16 @@ def _get_cached_prediction(db: Session, survey_id: int, participant_id: int) -> 
     return _prediction_from_cache(cached) if cached else None
 
 
+def cached_recommendations_for_user(db: Session, surveys: list[Survey], user: User) -> dict[int, dict]:
+    """Return dashboard recommendation cache only; never calls Claude."""
+    recommendations: dict[int, dict] = {}
+    for survey in surveys:
+        cached = _get_cached_prediction(db, survey.id, user.id)
+        if cached:
+            recommendations[survey.id] = cached
+    return recommendations
+
+
 def _save_prediction_cache(db: Session, result: dict) -> None:
     if not result.get("llm_ok"):
         return

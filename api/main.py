@@ -39,10 +39,12 @@ from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.jobs.service import (
     BOOKING_CONFIRMATION_EMAIL,
+    DASHBOARD_RECOMMENDATIONS_REFRESH,
     QUALITY_EXCEL_IMPORT,
     REWARD_SETUP_REMINDER_EMAIL,
     SURVEY_START_FOLLOWUP_EMAIL,
     enqueue_booking_confirmation_job,
+    enqueue_dashboard_recommendations_refresh_job,
     enqueue_quality_excel_import_job,
     enqueue_reward_setup_reminder_job,
     enqueue_survey_start_followup_job,
@@ -107,7 +109,7 @@ from app.trust_engine import (
 from app.ai_growth.routes import router as ai_growth_router
 from app.ai_growth.security import is_safe_internal_next
 from app.ai_growth.jump import mark_latest_jump_completed_for_response
-from app.ai_growth.prediction import recommend_surveys_for_user
+from app.ai_growth.prediction import cached_recommendations_for_user, recommend_surveys_for_user
 from app.ai_growth.models import JumpEvent, RespondentPrediction, SurveySegmentStats, UserActivityEvent
 from app.discovery.router import router as discovery_router
 from app.discovery.discovery import discover as discover_channels
@@ -991,11 +993,40 @@ def _handle_quality_excel_import_job(db: Session, job: BackgroundJob) -> None:
     )
 
 
+def _handle_dashboard_recommendations_refresh_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    user_id = int(payload.get("user_id") or 0)
+    survey_ids = payload.get("survey_ids") or []
+    if user_id <= 0:
+        raise ValueError("Missing user_id for dashboard recommendations refresh job")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return
+    normalized_ids = []
+    for survey_id in survey_ids:
+        try:
+            normalized_id = int(survey_id)
+        except (TypeError, ValueError):
+            continue
+        if normalized_id > 0:
+            normalized_ids.append(normalized_id)
+    if not normalized_ids:
+        return
+    surveys = db.query(Survey).filter(
+        Survey.id.in_(normalized_ids),
+        Survey.status == "published",
+    ).all()
+    if not surveys:
+        return
+    recommend_surveys_for_user(db, surveys, user, use_cache=True)
+
+
 BACKGROUND_JOB_HANDLERS = {
     SURVEY_START_FOLLOWUP_EMAIL: _handle_survey_start_followup_job,
     BOOKING_CONFIRMATION_EMAIL: _handle_booking_confirmation_job,
     REWARD_SETUP_REMINDER_EMAIL: _handle_reward_setup_reminder_job,
     QUALITY_EXCEL_IMPORT: _handle_quality_excel_import_job,
+    DASHBOARD_RECOMMENDATIONS_REFRESH: _handle_dashboard_recommendations_refresh_job,
 }
 
 
@@ -3797,6 +3828,21 @@ def _limit_dashboard_candidates(surveys: list[Survey]) -> list[Survey]:
     )[:limit]
 
 
+def _cached_dashboard_recommendations(db: Session, surveys: list[Survey], user: User) -> dict[int, dict]:
+    if not _dashboard_ai_recommendations_enabled() or not surveys:
+        return {}
+    recommendations = cached_recommendations_for_user(db, surveys, user)
+    missing_ids = [survey.id for survey in surveys if survey.id not in recommendations]
+    if missing_ids:
+        enqueue_dashboard_recommendations_refresh_job(
+            db,
+            user_id=user.id,
+            survey_ids=missing_ids,
+        )
+        db.commit()
+    return recommendations
+
+
 def _completed_counts_for_surveys(db: Session, survey_ids: list[int]) -> dict[int, int]:
     if not survey_ids:
         return {}
@@ -3967,12 +4013,8 @@ def dashboard(
     ]
     matched = _limit_dashboard_candidates(matched)
 
-    # Blend Claude's completion estimate with field/major relevance from the participant profile.
-    recommendation_map = (
-        recommend_surveys_for_user(db, matched, current_user, use_cache=True)
-        if _dashboard_ai_recommendations_enabled()
-        else {}
-    )
+    # Use cached Claude recommendations only; refresh missing cache in the job runner.
+    recommendation_map = _cached_dashboard_recommendations(db, matched, current_user)
     matched.sort(
         key=lambda s: (
             _recommendation_sort_score(s, current_user, recommendation_map.get(s.id, {})),
@@ -4161,12 +4203,8 @@ def dashboard_mobile(
     matched = [s for s in all_published if survey_matches(s)]
     matched = _limit_dashboard_candidates(matched)
 
-    # Blend Claude's completion estimate with field/major relevance from the participant profile.
-    recommendation_map = (
-        recommend_surveys_for_user(db, matched, current_user, use_cache=True)
-        if _dashboard_ai_recommendations_enabled()
-        else {}
-    )
+    # Use cached Claude recommendations only; refresh missing cache in the job runner.
+    recommendation_map = _cached_dashboard_recommendations(db, matched, current_user)
     matched.sort(
         key=lambda s: (
             _recommendation_sort_score(s, current_user, recommendation_map.get(s.id, {})),

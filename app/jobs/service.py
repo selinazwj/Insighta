@@ -18,6 +18,7 @@ SURVEY_START_FOLLOWUP_EMAIL = "survey_start_followup_email"
 BOOKING_CONFIRMATION_EMAIL = "booking_confirmation_email"
 REWARD_SETUP_REMINDER_EMAIL = "reward_setup_reminder_email"
 QUALITY_EXCEL_IMPORT = "quality_excel_import"
+DASHBOARD_RECOMMENDATIONS_REFRESH = "dashboard_recommendations_refresh"
 
 JobHandler = Callable[[Session, BackgroundJob], None]
 
@@ -126,6 +127,26 @@ def enqueue_quality_excel_import_job(
         },
         run_after=run_after,
         dedupe_key=f"{QUALITY_EXCEL_IMPORT}:survey:{survey_id}:upload:{upload_key}",
+        max_attempts=2,
+    )
+
+
+def enqueue_dashboard_recommendations_refresh_job(
+    db: Session,
+    *,
+    user_id: int,
+    survey_ids: list[int],
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    normalized_ids = sorted({int(survey_id) for survey_id in survey_ids if int(survey_id) > 0})
+    ids_key = hashlib.sha256(",".join(str(survey_id) for survey_id in normalized_ids).encode("utf-8")).hexdigest()[:16]
+    refresh_window = (run_after or datetime.utcnow()).strftime("%Y%m%d%H")
+    return enqueue_job(
+        db,
+        job_type=DASHBOARD_RECOMMENDATIONS_REFRESH,
+        payload={"user_id": user_id, "survey_ids": normalized_ids},
+        run_after=run_after,
+        dedupe_key=f"{DASHBOARD_RECOMMENDATIONS_REFRESH}:{refresh_window}:user:{user_id}:surveys:{ids_key}",
         max_attempts=2,
     )
 
