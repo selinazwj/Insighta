@@ -72,8 +72,6 @@ def _shared_rate_limit_client():
 def _shared_rate_limit(key: str, max_hits: int, window_seconds: int) -> Optional[bool]:
     client = _shared_rate_limit_client()
     if client is None:
-        if (os.environ.get("REDIS_URL") or "").strip() and _is_production():
-            return False
         return None
     now_ms = int(time.time() * 1000)
     rate_key_secret = (
@@ -100,8 +98,6 @@ def _shared_rate_limit(key: str, max_hits: int, window_seconds: int) -> Optional
         )
         return bool(allowed)
     except Exception:
-        if _is_production():
-            return False
         return None
 
 
