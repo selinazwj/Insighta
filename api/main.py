@@ -455,6 +455,9 @@ LINKEDIN_AUTH_URL = "https://www.linkedin.com/oauth/v2/authorization"
 LINKEDIN_TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
 LINKEDIN_USERINFO_URL = "https://api.linkedin.com/v2/userinfo"
 
+def _linkedin_redirect_uri(path: str) -> str:
+    return f"{BASE_URL.rstrip('/')}{path}"
+
 def _email_plain_text(body: str) -> str:
     text_body = re.sub(r"(?i)<br\s*/?>", "\n", body or "")
     text_body = re.sub(r"(?i)</p\s*>", "\n\n", text_body)
@@ -2585,7 +2588,7 @@ def linkedin_login(request: Request):
     params = urlencode({
         "response_type": "code",
         "client_id": LINKEDIN_CLIENT_ID,
-        "redirect_uri": f"{BASE_URL}/auth/linkedin/callback",
+        "redirect_uri": _linkedin_redirect_uri("/auth/linkedin/callback"),
         "state": state,
         "scope": "openid profile email",
     })
@@ -2615,7 +2618,7 @@ async def linkedin_callback(
             data={
                 "grant_type": "authorization_code",
                 "code": code,
-                "redirect_uri": f"{BASE_URL}/auth/linkedin/callback",
+                "redirect_uri": _linkedin_redirect_uri("/auth/linkedin/callback"),
                 "client_id": LINKEDIN_CLIENT_ID,
                 "client_secret": LINKEDIN_CLIENT_SECRET,
             },
@@ -6213,7 +6216,7 @@ def verify_linkedin_start(
     params = urlencode({
         "response_type": "code",
         "client_id": LINKEDIN_CLIENT_ID,
-        "redirect_uri": f"{BASE_URL}/verify/linkedin/callback",
+        "redirect_uri": _linkedin_redirect_uri("/verify/linkedin/callback"),
         "state": state,
         "scope": "openid profile email",
     })
@@ -6246,7 +6249,7 @@ async def verify_linkedin_callback(
             data={
                 "grant_type": "authorization_code",
                 "code": code,
-                "redirect_uri": f"{BASE_URL}/verify/linkedin/callback",
+                "redirect_uri": _linkedin_redirect_uri("/verify/linkedin/callback"),
                 "client_id": LINKEDIN_CLIENT_ID,
                 "client_secret": LINKEDIN_CLIENT_SECRET,
             },
