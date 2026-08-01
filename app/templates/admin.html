@@ -291,6 +291,10 @@
       <svg viewBox="0 0 24 24"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/><circle cx="7" cy="5" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="7" cy="19" r="1"/></svg>
       Activity log
     </button>
+    <button class="nav-item" id="nav-email" onclick="switchPanel('email')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6l9-6"/></svg>
+      Email
+    </button>
     <button class="nav-item" id="nav-feedback" onclick="switchPanel('feedback')">
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Feedback
@@ -385,17 +389,48 @@
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Block abusive users by email across login, signup, OAuth, and active sessions.</div>
         <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
       </div>
-      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;">
+      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('email')">
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Email all users</div>
-        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Write a custom email and queue it for every valid user email through the configured email provider.</div>
-        <input id="bulkEmailSubject" style="width:100%;box-sizing:border-box;margin-top:10px;padding:10px;border:0.5px solid var(--line);border-radius:8px;font-size:13px;" value="Complete your Insighta profile and payout setup" placeholder="Subject">
-        <textarea id="bulkEmailMessage" style="width:100%;box-sizing:border-box;margin-top:8px;min-height:120px;padding:10px;border:0.5px solid var(--line);border-radius:8px;font-size:13px;line-height:1.5;resize:vertical;" placeholder="Message">Quick reminder from Insighta: to make sure rewards can be matched, reviewed, and paid correctly, please complete your Insighta profile.
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Open the bulk email composer and queue custom messages through the configured email provider.</div>
+        <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EMAIL PANEL ── -->
+  <div class="panel" id="panel-email">
+    <div style="max-width:920px;">
+      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;overflow:hidden;">
+        <div style="padding:18px 20px;border-bottom:0.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--ink);">Email all users</div>
+            <div style="font-size:12px;color:var(--ink3);line-height:1.5;margin-top:3px;">Compose one message and queue it for every valid user email. Delivery uses the configured email provider.</div>
+          </div>
+          <button id="rewardReminderBtn" class="btn-refresh" onclick="sendRewardReminder()">Queue email</button>
+        </div>
+        <div style="padding:20px;display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start;">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Subject</label>
+            <input id="bulkEmailSubject" style="width:100%;box-sizing:border-box;padding:12px;border:0.5px solid var(--line2);border-radius:8px;font:500 14px var(--sans);color:var(--ink);background:var(--bg2);" value="Complete your Insighta profile and payout setup" placeholder="Subject">
+            <label style="display:block;font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px;">Message</label>
+            <textarea id="bulkEmailMessage" style="width:100%;box-sizing:border-box;min-height:320px;padding:12px;border:0.5px solid var(--line2);border-radius:8px;font:500 14px/1.55 var(--sans);color:var(--ink);background:var(--bg2);resize:vertical;" placeholder="Message">Quick reminder from Insighta: to make sure rewards can be matched, reviewed, and paid correctly, please complete your Insighta profile.
 
 If you participate in paid studies, you will also need to connect Stripe before rewards can be paid out.
 
 Profile: https://insightaco.org/profile
 Stripe payouts: https://insightaco.org/connect/onboard</textarea>
-        <button id="rewardReminderBtn" class="btn-refresh" style="margin-top:10px;" onclick="sendRewardReminder()">Queue email</button>
+          </div>
+          <div style="background:var(--bg2);border:0.5px solid var(--line);border-radius:10px;padding:16px;">
+            <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:8px;">Send behavior</div>
+            <div style="font-size:12px;color:var(--ink3);line-height:1.6;">The admin request only queues jobs. The background runner sends emails in batches, so this page will not hang while delivery is happening.</div>
+            <div style="height:0.5px;background:var(--line);margin:14px 0;"></div>
+            <div style="font-size:12px;color:var(--ink2);line-height:1.7;">
+              <div><strong>Recipients:</strong> all valid user emails</div>
+              <div><strong>Links:</strong> pasted URLs become clickable</div>
+              <div><strong>Provider:</strong> Resend/Gmail config</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -662,7 +697,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
   let currentPanel = 'overview';
 
   // ── PANEL SWITCH ──
-  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', activity:'Activity log', feedback:'Feedback review', support:'Support inbox', blocks:'User blocks', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
+  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', activity:'Activity log', email:'Email', feedback:'Feedback review', support:'Support inbox', blocks:'User blocks', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
 
   async function login() {
     const input = document.getElementById('adminKeyInput');
@@ -693,6 +728,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
       supportPollTimer = setInterval(loadSupportThreads, 8000);
       if (window.location.hash === '#analytics') switchPanel('analytics');
       if (window.location.hash === '#activity') switchPanel('activity');
+      if (window.location.hash === '#email') switchPanel('email');
       if (window.location.hash === '#listings') switchPanel('listings');
       if (window.location.hash === '#support') switchPanel('support');
       if (window.location.hash === '#blocks') switchPanel('blocks');
