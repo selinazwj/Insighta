@@ -619,7 +619,20 @@
       return;
     }
     const labels = picked.map(input => slotLabel(study.availability_slots[parseInt(input.value, 10)]));
-    await startStudy(study.id, labels);
+    const res = await startStudy(study.id, labels);
+    if (!res || !res.ok) {
+      const data = res ? await res.json().catch(() => ({})) : {};
+      if (data.screening_required && data.screening_url) {
+        window.location.href = data.screening_url;
+        return;
+      }
+      if (data.verification_required) {
+        window.location.href = data.verification_url || '/verify';
+        return;
+      }
+      alert(data.detail || data.reason || 'Could not save this time. Please try again.');
+      return;
+    }
     study.booking_slots = labels;
     study.booking_slot = labels.join('; ');
     closeSlotModal();
