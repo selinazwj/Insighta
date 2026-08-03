@@ -199,6 +199,13 @@ class VerificationIntegrationTests(unittest.TestCase):
                 )
                 self.assertNotIn("High Assurance", response.text)
                 self.assertNotIn("Tier 1", response.text)
+                if path == "/publish_interview":
+                    self.assertRegex(
+                        response.text,
+                        r'<div class="form-section" data-wizard-step="4" hidden>\s*'
+                        r'<div class="section-header">\s*'
+                        r'<div class="section-icon">05</div>',
+                    )
 
     def test_editing_preserves_stronger_legacy_study_requirement(self):
         from app.models import Survey
