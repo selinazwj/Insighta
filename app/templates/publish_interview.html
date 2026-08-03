@@ -554,14 +554,8 @@
       </div>
     </div>
 
-    <div class="wizard-nav">
-      <button type="button" class="btn-step back" id="wizardBack" onclick="changeWizardStep(-1)">Back</button>
-      <div class="wizard-note">Your entries stay in this form while you move between steps.</div>
-      <button type="button" class="btn-step next" id="wizardNext" onclick="changeWizardStep(1)">Continue</button>
-    </div>
-
     <!-- VERIFICATION REQUIREMENTS -->
-    <div class="form-section">
+    <div class="form-section" data-wizard-step="4" hidden>
       <div class="section-header">
         <div class="section-icon">05</div>
         <div><h2>Verification requirements</h2><p>Specify participant credentials needed to take this study</p></div>
@@ -608,6 +602,12 @@
         <div class="label-desc">Only participants who verify an email at one of these domains can be paid. Separate multiple with commas. Leave blank to allow any email.</div>
       </div>
       <div class="label-desc" style="margin-top:14px;">Account checks establish basic trust. Screening questions decide study eligibility.</div>
+    </div>
+
+    <div class="wizard-nav">
+      <button type="button" class="btn-step back" id="wizardBack" onclick="changeWizardStep(-1)">Back</button>
+      <div class="wizard-note">Your entries stay in this form while you move between steps.</div>
+      <button type="button" class="btn-step next" id="wizardNext" onclick="changeWizardStep(1)">Continue</button>
     </div>
 
     <!-- SUBMIT -->
