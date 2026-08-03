@@ -347,9 +347,9 @@
       </div>
 
       <div class="form-group" id="onlineLinkRow" {% if not is_online_interview %}style="display:none;"{% endif %}>
-        <label>Online meeting or booking link</label>
-        <div class="label-desc">Optional. Add Zoom, Teams, Calendly, or another link participants should use after choosing a time.</div>
-        <input type="url" name="scheduling_link" placeholder="https://zoom.us/j/... or https://calendly.com/...">
+        <label>Online meeting link</label>
+        <div class="label-desc">Optional. Add Zoom, Teams, or Meet. Participants choose a time below, and Insighta includes this link in their booking confirmation.</div>
+        <input type="url" name="scheduling_link" placeholder="https://zoom.us/j/... or https://meet.google.com/....">
       </div>
 
       <div class="form-group" id="locationRow" {% if is_online_interview %}style="display:none;"{% endif %}>
@@ -360,7 +360,7 @@
 
       <div class="form-group">
         <label>Bookable times</label>
-        <div class="label-desc">Drag across the calendar to mark every start time participants can book. Each selected cell uses your session duration above.</div>
+        <div class="label-desc">Drag across the calendar to mark every start time participants can book. Insighta records these bookings and immediately emails both sides.</div>
         <div class="slot-builder">
           <div class="calendar-tools">
             <div class="calendar-nav">

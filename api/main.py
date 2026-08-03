@@ -897,7 +897,14 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
     publisher = db.query(User).filter(User.id == survey.publisher_id).first()
     study_url = f"{BASE_URL.rstrip('/')}/publisher/study/{survey.id}"
     dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
-    location = getattr(survey, "interview_location", None) or "The researcher will share the exact location."
+    is_online = _is_online_interview_survey(survey)
+    session_kind = "online interview" if is_online else "in-person study"
+    details_label = "Meeting link" if is_online else "Location"
+    details = (
+        _survey_external_start_url(survey)
+        if is_online
+        else getattr(survey, "interview_location", None)
+    ) or "The researcher will share the details before the session."
     participant_name = participant.first_name or participant.username or participant.email
     sent_count = 0
     failures = []
@@ -913,8 +920,8 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
               <div style="background:#f5f3ee;border-radius:10px;padding:16px 18px;margin:18px 0;">
                 <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Time</div>
                 <div style="font-size:17px;font-weight:700;margin-bottom:10px;">{html.escape(booking_label)}</div>
-                <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Location</div>
-                <div style="font-size:15px;">{html.escape(location)}</div>
+                <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">{details_label}</div>
+                <div style="font-size:15px;">{html.escape(details)}</div>
               </div>
               <p>If something changes, reply to this email and a real person will help.</p>
               <p><a href="{dashboard_url}" style="color:#3b7c4f;font-weight:700;">Back to your dashboard</a></p>
@@ -928,7 +935,7 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
     if publisher and publisher.email:
         sent, error = send_email(
             publisher.email,
-            f"[Insighta] New in-person booking: {survey.title}",
+            f"[Insighta] New {session_kind} booking: {survey.title}",
             f"""
             <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:28px 22px;color:#1a1a18;line-height:1.6;">
               <h2 style="margin:0 0 10px;font-size:22px;">New participant booking</h2>
@@ -950,6 +957,28 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
     if failures:
         raise RuntimeError("; ".join(failures))
     return sent_count
+
+
+def _deliver_or_queue_booking_confirmation(
+    db: Session,
+    *,
+    survey: Survey,
+    participant: User,
+    response: Response,
+    booking_slot: str,
+) -> bool:
+    """Send booking mail now; persist a retry only when delivery fails."""
+    try:
+        _send_booking_confirmation_emails(db, survey, participant, booking_slot)
+        return True
+    except Exception as exc:
+        print(f"Booking confirmation email deferred for response {response.id}: {exc}")
+        enqueue_booking_confirmation_job(
+            db,
+            response_id=response.id,
+            booking_slot=booking_slot,
+        )
+        return False
 
 
 def _send_booking_confirmation_emails_for_response(response_id: int, booking_slot: str) -> None:
@@ -1828,24 +1857,27 @@ def _survey_has_external_start_link(survey: Survey) -> bool:
 
 def _is_online_interview_survey(survey: Survey) -> bool:
     task_type = _normalize_task_type(getattr(survey, "task_type", None))
+    participation_format = (getattr(survey, "target_participation_format", None) or "").strip().lower()
+    # target_participation_format also recognizes listings created by the old
+    # interview form, which accidentally stored online interviews as in_person.
+    if participation_format in {"video interview", "online interview", "remote live session"}:
+        return True
     if task_type != "interview":
         return False
     if _is_research_participation_demo_survey(survey):
         return True
-    participation_format = (getattr(survey, "target_participation_format", None) or "").strip().lower()
     form_url = _survey_external_start_url(survey).lower()
     return (
-        participation_format in {"video interview", "online interview", "remote live session"}
-        or "calendly.com" in form_url
+        "calendly.com" in form_url
         or "zoom.us" in form_url
         or "meet.google.com" in form_url
     )
 
 def _participant_study_type_label(survey: Survey) -> Optional[str]:
     task_type = _normalize_task_type(getattr(survey, "task_type", None))
+    if _uses_booking_flow(getattr(survey, "task_type", None)) and _is_online_interview_survey(survey):
+        return "Online interview"
     if task_type == "interview":
-        if _is_online_interview_survey(survey):
-            return "Online interview"
         participation_format = (getattr(survey, "target_participation_format", None) or "").strip().lower()
         if participation_format in {"in-person study", "in person", "in-person"}:
             return "In-person study"
@@ -1856,8 +1888,12 @@ def _participant_study_type_label(survey: Survey) -> Optional[str]:
 
 def _participant_study_action_label(survey: Survey) -> str:
     task_type = _normalize_task_type(getattr(survey, "task_type", None))
+    if _uses_booking_flow(getattr(survey, "task_type", None)) and _is_online_interview_survey(survey):
+        return "Schedule interview"
     if task_type == "interview":
-        return "Schedule interview" if _is_online_interview_survey(survey) else "Book time"
+        return "Book time"
+    if task_type == "in_person":
+        return "Book time"
     return "Take study"
 
 def _clean_target(val: Optional[str]) -> str:
@@ -3724,7 +3760,10 @@ def publisher_schedule(
 ):
     interviews = db.query(Survey).filter(
         Survey.publisher_id == current_user.id,
-        Survey.task_type == "interview",
+        Survey.task_type.in_([
+            "interview", "online_interview", "remote_interview",
+            "in_person", "in-person", "in_person_study",
+        ]),
     ).order_by(Survey.created_at.desc()).all()
     schedule_items = []
     for survey in interviews:
@@ -3738,12 +3777,12 @@ def publisher_schedule(
                 availability_slots = []
         rows = db.query(Response, User).join(User, User.id == Response.participant_id).filter(
             Response.survey_id == survey.id,
-            Response.booking_slot.isnot(None),
         ).order_by(Response.started_at.desc()).all()
         bookings = [{
+            "response_id": response.id,
             "participant": user.email,
             "participant_name": user.username or user.email,
-            "slot": _booking_slots_label(response.booking_slot),
+            "slot": _booking_slots_label(response.booking_slot) or "External scheduling / meeting link",
             "slots": _parse_booking_slots(response.booking_slot),
             "status": response.status,
             "started_at": response.started_at,
@@ -3793,12 +3832,12 @@ def publisher_study(
     if _uses_booking_flow(getattr(survey, "task_type", None)):
         rows = db.query(Response, User).join(User, User.id == Response.participant_id).filter(
             Response.survey_id == survey_id,
-            Response.booking_slot.isnot(None),
         ).order_by(Response.started_at.desc()).all()
         booking_rows = [
             {
+                "response_id": response.id,
                 "participant": user.email,
-                "slot": _booking_slots_label(response.booking_slot),
+                "slot": _booking_slots_label(response.booking_slot) or "External scheduling / meeting link",
                 "slots": _parse_booking_slots(response.booking_slot),
                 "status": response.status,
                 "started_at": response.started_at,
@@ -3967,6 +4006,7 @@ def _participant_survey_payload(
     }
     form_link = _survey_external_start_url(s)
     response_status = user_response.status if user_response else None
+    is_live_study = _uses_booking_flow(getattr(s, "task_type", None))
     display_reward = getattr(s, "admin_display_reward_amount", None)
     if display_reward is None:
         display_reward = s.reward_amount
@@ -4007,10 +4047,16 @@ def _participant_survey_payload(
         "is_started": response_status == "started",
         "is_completed": response_status == "completed",
         "is_skipped": response_status == "skipped",
+        "is_live_study": is_live_study,
+        "is_online_interview": _is_online_interview_survey(s),
+        "awaiting_interview": bool(
+            is_live_study and response_status not in {None, "completed", "skipped"}
+        ),
         "status": response_status,
         "booking_slot": getattr(user_response, "booking_slot", None) if user_response else None,
         "booking_slots": _parse_booking_slots(getattr(user_response, "booking_slot", None)) if user_response else [],
         "availability_slots": availability_slots,
+        "has_native_booking": bool(is_live_study and availability_slots),
         "session_count": getattr(s, "session_count", None),
         "sessions_per_week": getattr(s, "sessions_per_week", None),
         "urgency": getattr(s, 'urgency_level', None) or 'flexible',
@@ -5016,6 +5062,12 @@ async def start_survey(
     should_schedule_followup = False
     should_send_booking_email = False
     response = existing
+    is_live_study = _uses_booking_flow(getattr(survey, "task_type", None))
+    next_response_status = (
+        "scheduled" if booking_slots and is_live_study
+        else "scheduling" if is_live_study
+        else "started"
+    )
 
     if booking_slots and _uses_booking_flow(getattr(survey, "task_type", None)):
         existing_bookings = db.query(Response).filter(
@@ -5033,7 +5085,7 @@ async def start_survey(
         response = Response(
             survey_id=survey_id,
             participant_id=current_user.id,
-            status="started",
+            status=next_response_status,
             booking_slot=booking_slot,
             start_followup_scheduled_at=datetime.utcnow(),
         )
@@ -5043,7 +5095,7 @@ async def start_survey(
         should_schedule_followup = True
         should_send_booking_email = bool(booking_slot)
     elif response.status != "completed":
-        response.status = "started"
+        response.status = next_response_status
         response.completed_at = None
         response.started_at = datetime.now(timezone.utc)
         if booking_slot:
@@ -5063,9 +5115,11 @@ async def start_survey(
     if should_schedule_followup and response:
         _enqueue_survey_start_followup_if_needed(db, response)
     if should_send_booking_email and booking_slot and response:
-        enqueue_booking_confirmation_job(
+        _deliver_or_queue_booking_confirmation(
             db,
-            response_id=response.id,
+            survey=survey,
+            participant=current_user,
+            response=response,
             booking_slot=booking_slot,
         )
 
@@ -5127,6 +5181,8 @@ def start_survey_and_redirect(
         target_url = _participant_dashboard_url(request)
 
     should_schedule_followup = False
+    is_live_study = _uses_booking_flow(getattr(survey, "task_type", None))
+    redirect_status = "scheduling" if is_live_study else "started"
     response = db.query(Response).filter(
         Response.survey_id == survey_id,
         Response.participant_id == current_user.id,
@@ -5135,7 +5191,7 @@ def start_survey_and_redirect(
         response = Response(
             survey_id=survey_id,
             participant_id=current_user.id,
-            status="started",
+            status=redirect_status,
             start_followup_scheduled_at=datetime.utcnow(),
         )
         db.add(response)
@@ -5143,7 +5199,7 @@ def start_survey_and_redirect(
         db.refresh(response)
         should_schedule_followup = True
     elif response.status != "completed":
-        response.status = "started"
+        response.status = redirect_status
         response.completed_at = None
         response.started_at = datetime.now(timezone.utc)
         if not response.start_followup_sent_at and not response.start_followup_scheduled_at:
@@ -5199,13 +5255,15 @@ def _notify_publisher_response_ready(db: Session, survey: Survey, participant: U
 
     publisher = db.query(User).filter(User.id == survey.publisher_id).first()
     if publisher and publisher.email:
+        is_live_study = _uses_booking_flow(getattr(survey, "task_type", None))
+        completion_label = "live interview" if is_live_study else "survey"
         send_email(
             to=publisher.email,
-            subject=f"[Insighta] New response ready for review: {survey.title}",
+            subject=f"[Insighta] {completion_label.title()} ready for payout review: {survey.title}",
             body=f"""
             <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #1a1a18;">
               <h2 style="font-size: 22px; margin-bottom: 8px;">📋 Response Ready for Review</h2>
-              <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your survey and is awaiting your approval.</p>
+              <p style="color: #8a8a82; margin-bottom: 24px;">A participant has completed your {completion_label} and is awaiting your payout approval.</p>
               <div style="background: #f3f1ea; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;">
                 <div style="font-size: 13px; color: #8a8a82; margin-bottom: 4px;">Survey</div>
                 <div style="font-size: 17px; font-weight: 600; margin-bottom: 12px;">{survey.title}</div>
@@ -5241,6 +5299,12 @@ def complete_survey(
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey: raise HTTPException(404, "Survey not found")
     if survey.status != "published": raise HTTPException(400, "Survey not published")
+    if _uses_booking_flow(getattr(survey, "task_type", None)):
+        return JSONResponse({
+            "ok": False,
+            "interview_confirmation_required": True,
+            "detail": "The researcher confirms completion after the live interview.",
+        }, status_code=409)
     if not _screening_passed(db, survey_id, current_user.id):
         return JSONResponse({
             "ok": False,
@@ -5314,18 +5378,78 @@ def complete_survey(
     })
 
 
+@app.post("/api/surveys/{survey_id}/bookings/{response_id}/complete")
+def confirm_live_interview_complete(
+    survey_id: int,
+    response_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey:
+        raise HTTPException(404, "Study not found")
+    if not _uses_booking_flow(getattr(survey, "task_type", None)):
+        raise HTTPException(400, "This action is only available for live studies.")
+    response = db.query(Response).filter(
+        Response.id == response_id,
+        Response.survey_id == survey_id,
+    ).first()
+    if not response:
+        raise HTTPException(404, "Booking not found")
+    participant = db.query(User).filter(User.id == response.participant_id).first()
+    if not participant:
+        raise HTTPException(404, "Participant not found")
+
+    if response.status != "completed":
+        response.status = "completed"
+        response.completed_at = datetime.now(timezone.utc)
+        response.payout_amount = survey.reward_amount
+        mark_response_under_review(response)
+        _notify_publisher_response_ready(db, survey, participant)
+        _record_user_event(
+            db,
+            request,
+            "live_interview_completed",
+            user=current_user,
+            target_type="survey",
+            target_id=survey.id,
+            metadata={
+                "study_title": survey.title,
+                "participant_id": participant.id,
+                "source": "Researcher schedule",
+                "user_role": "researcher",
+            },
+        )
+        db.commit()
+
+    return {
+        "ok": True,
+        "status": response.status,
+        "payout_status": response.payout_status,
+        "message": "Interview marked complete and sent to payout review.",
+    }
+
+
 @app.post("/surveys/{survey_id}/modify")
 def modify_completed_survey(
     survey_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    survey = db.query(Survey).filter(Survey.id == survey_id).first()
+    if survey and _uses_booking_flow(getattr(survey, "task_type", None)):
+        return JSONResponse({
+            "detail": "Live interview completion is managed by the researcher."
+        }, status_code=409)
     r = db.query(Response).filter(
         Response.survey_id == survey_id, Response.participant_id == current_user.id
     ).first()
 
     if r and r.status == "completed":
-        survey = db.query(Survey).filter(Survey.id == survey_id).first()
         r.status = "started"; r.completed_at = None
         return_response_to_review(db, r)
         # ive added this — undoing a completion removes the pending bell notification,
@@ -5411,12 +5535,17 @@ def accept_notification(
     ).first()
     if not notif:
         raise HTTPException(404, "Notification not found")
-    notif.status = "accepted"
 
     response = db.query(Response).filter(
         Response.survey_id == notif.survey_id,
         Response.participant_id == notif.participant_id,
     ).first()
+    if response and response.status != "completed":
+        raise HTTPException(
+            409,
+            "The study must be confirmed complete before payout approval.",
+        )
+    notif.status = "accepted"
     if response:
         survey = db.query(Survey).filter(Survey.id == notif.survey_id).first()
         participant = db.query(User).filter(User.id == notif.participant_id).first()
@@ -5681,9 +5810,14 @@ async def publish_interview(
         per_person_value = 0.0
     reward = 0.0 if is_no_pay else per_person_value
 
+    normalized_interview_format = (interview_format or "").strip().lower()
+    is_online_interview = normalized_interview_format in {"online", "video", "remote"}
+
     survey = Survey(
         publisher_id=current_user.id, title=title, description=description,
-        form_url=scheduling_link or "", task_type="in_person", category=category,
+        form_url=scheduling_link or "",
+        task_type="interview" if is_online_interview else "in_person",
+        category=category,
         estimated_time=estimated_time, reward_amount=reward, per_person_gross=reward,
         total_budget=round(reward * target_responses * session_count, 2), commission_rate=0.0, payment_status="paid",
         target_responses=target_responses, urgency_level=_clean_target(urgency_level),

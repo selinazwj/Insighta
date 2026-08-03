@@ -2,6 +2,7 @@ import os
 import re
 import unittest
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -33,6 +34,7 @@ class VerificationIntegrationTests(unittest.TestCase):
         from app.models import (
             ParticipationDecision,
             EmailVerificationCode,
+            Notification,
             RiskSignalEvent,
             Response,
             ScreeningAttempt,
@@ -47,6 +49,7 @@ class VerificationIntegrationTests(unittest.TestCase):
         try:
             db.query(ParticipationDecision).delete()
             db.query(RiskSignalEvent).delete()
+            db.query(Notification).delete()
             db.query(ScreeningAttempt).delete()
             db.query(ScreeningQuestion).delete()
             db.query(Verification).delete()
@@ -394,6 +397,124 @@ class VerificationIntegrationTests(unittest.TestCase):
             response.json()["by_stage"]["start"]["allow"],
             1,
         )
+
+    def test_online_interview_requires_researcher_completion_before_payout(self):
+        from app.models import Notification, Response, Survey, User
+        from app.payouts import APPROVED, UNDER_REVIEW
+
+        slot = "Tue, Aug 11, 10:00 - 10:30"
+        db = self.SessionLocal()
+        try:
+            interview = Survey(
+                publisher_id=self.publisher_id,
+                title="Online student interview",
+                description="A live online interview",
+                form_url="https://zoom.us/j/123456",
+                task_type="interview",
+                category="research",
+                estimated_time=30,
+                reward_amount=25.0,
+                target_responses=5,
+                status="published",
+                payment_status="paid",
+                target_participation_format="Video interview",
+                availability_slots='[{"date":"2026-08-11","start":"10:00","end":"10:30","label":"Tue, Aug 11, 10:00 - 10:30"}]',
+                session_count=1,
+            )
+            db.add(interview)
+            db.commit()
+            db.refresh(interview)
+            interview_id = interview.id
+        finally:
+            db.close()
+
+        with patch("api.main.send_email", return_value=(True, None)) as send_email_mock:
+            response = self.client.post(
+                f"/surveys/{interview_id}/start",
+                json={"booking_slot": slot, "booking_slots": [slot]},
+                cookies={"user_id": str(self.participant_id)},
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(send_email_mock.call_count, 2)
+
+        db = self.SessionLocal()
+        try:
+            booking = db.query(Response).filter(
+                Response.survey_id == interview_id,
+                Response.participant_id == self.participant_id,
+            ).one()
+            self.assertEqual(booking.status, "scheduled")
+            self.assertEqual(booking.booking_slot, slot)
+            response_id = booking.id
+        finally:
+            db.close()
+
+        response = self.client.get(
+            "/my-studies",
+            cookies={"user_id": str(self.participant_id)},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Interview scheduled", response.text)
+        self.assertIn("After researcher confirmation", response.text)
+
+        response = self.client.get(
+            "/publisher/schedule",
+            cookies={"user_id": str(self.publisher_id)},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Confirm interview completed", response.text)
+        self.assertIn(slot, response.text)
+
+        response = self.client.get(
+            f"/publisher/study/{interview_id}",
+            cookies={"user_id": str(self.publisher_id)},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Confirm interview completed", response.text)
+
+        response = self.client.post(
+            f"/surveys/{interview_id}/complete",
+            cookies={"user_id": str(self.participant_id)},
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertTrue(response.json()["interview_confirmation_required"])
+
+        with patch("api.main.send_email", return_value=(True, None)):
+            response = self.client.post(
+                f"/api/surveys/{interview_id}/bookings/{response_id}/complete",
+                cookies={"user_id": str(self.publisher_id)},
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["payout_status"], UNDER_REVIEW)
+
+        db = self.SessionLocal()
+        try:
+            booking = db.query(Response).filter(Response.id == response_id).one()
+            notification = db.query(Notification).filter(
+                Notification.survey_id == interview_id,
+                Notification.participant_id == self.participant_id,
+            ).one()
+            self.assertEqual(booking.status, "completed")
+            self.assertEqual(booking.payout_status, UNDER_REVIEW)
+            notification_id = notification.id
+        finally:
+            db.close()
+
+        with patch("api.main.send_email", return_value=(True, None)):
+            response = self.client.post(
+                f"/api/notifications/{notification_id}/accept",
+                cookies={"user_id": str(self.publisher_id)},
+            )
+        self.assertEqual(response.status_code, 200)
+
+        db = self.SessionLocal()
+        try:
+            booking = db.query(Response).filter(Response.id == response_id).one()
+            participant = db.query(User).filter(User.id == self.participant_id).one()
+            self.assertEqual(booking.payout_status, APPROVED)
+            self.assertEqual(participant.pending_earnings, 25.0)
+        finally:
+            db.close()
 
 
 if __name__ == "__main__":

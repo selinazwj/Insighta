@@ -236,6 +236,11 @@
             <div class="ov-item" style="grid-column:span 2;">
               <div class="ov-label">{{ row.participant }} · {{ row.status | capitalize }}</div>
               <div class="ov-value">{{ row.slot }}</div>
+              {% if row.status != 'completed' %}
+              <button type="button" class="action-btn" style="margin-top:8px;" onclick="confirmStudyInterviewComplete({{ row.response_id }}, this)">Confirm interview completed</button>
+              {% else %}
+              <div style="margin-top:6px;color:var(--green);font-size:12px;font-weight:700;">Awaiting payout review</div>
+              {% endif %}
             </div>
             {% endfor %}
           {% else %}
@@ -428,6 +433,25 @@
     } catch {
       prompt('Copy this link', SHARE_URL);
     }
+  }
+
+  async function confirmStudyInterviewComplete(responseId, button) {
+    if (!confirm('Confirm that this interview took place and send it to payout review?')) return;
+    button.disabled = true;
+    const original = button.textContent;
+    button.textContent = 'Saving…';
+    const res = await fetch(`/api/surveys/${SURVEY_ID}/bookings/${responseId}/complete`, {
+      method:'POST', credentials:'same-origin'
+    }).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : {};
+    if (!res || !res.ok) {
+      alert(data.detail || 'Could not confirm this interview.');
+      button.disabled = false;
+      button.textContent = original;
+      return;
+    }
+    button.outerHTML = '<div style="margin-top:6px;color:var(--green);font-size:12px;font-weight:700;">Awaiting payout review</div>';
+    alert('Interview completed. Review the new notification to approve or reject payout.');
   }
 
   function escapeScreenerHtml(value) {
