@@ -7288,7 +7288,13 @@ async def send_authorized_study_email_campaign(
     }
     recipients = []
     seen_emails = set()
-    for user in db.query(User).filter(User.email.isnot(None)).order_by(User.id).all():
+    candidate_users = db.query(User).filter(User.email.isnot(None))
+    # A campaign is authorized for the users who existed when that authorization
+    # was created. New registrations belong to a future campaign and must not
+    # silently expand a previously reviewed dry-run.
+    if campaign.created_at:
+        candidate_users = candidate_users.filter(User.created_at <= campaign.created_at)
+    for user in candidate_users.order_by(User.id).all():
         normalized = _normalize_email(user.email or "")
         if (
             not normalized
