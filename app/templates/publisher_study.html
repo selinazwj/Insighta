@@ -469,7 +469,9 @@
             ${status === 'draft'
               ? `<label style="display:block;margin-top:8px;margin-bottom:4px;">Answer options, one per line</label><textarea class="screening-options" rows="${Math.min(8, Math.max(3, (q.options || []).length))}" style="width:100%;padding:8px;border:1px solid var(--line2);border-radius:6px;font:inherit;color:var(--ink);resize:vertical;">${escapeScreenerHtml((q.options || []).join('\n'))}</textarea>`
               : `<div style="margin-top:4px;">Options: ${escapeScreenerHtml((q.options || []).join(' · '))}</div>`}
-            <div style="margin-top:5px;">Qualifying answer is locked to the study rule: <strong>${escapeScreenerHtml((q.accepted_answers || []).join(' / '))}</strong> · ${escapeScreenerHtml(q.source)}</div>
+            ${q.question_type === 'single_context'
+              ? `<div style="margin-top:5px;"><strong>Context check:</strong> no single answer decides eligibility · ${escapeScreenerHtml(q.source)}</div>`
+              : `<div style="margin-top:5px;">Qualifying answer is locked to the study rule: <strong>${escapeScreenerHtml((q.accepted_answers || []).join(' / '))}</strong> · ${escapeScreenerHtml(q.source)}</div>`}
           </div>
         `).join('')}
         ${status === 'draft' ? '<div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="action-btn" onclick="saveScreenerDraft()">Save wording</button><button type="button" class="action-btn primary" onclick="approveScreener()">Approve this version</button></div>' : '<div style="color:var(--green);font-weight:700;margin-top:8px;">✓ Participants will see this approved version before starting.</div>'}

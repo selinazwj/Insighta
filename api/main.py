@@ -4936,6 +4936,7 @@ async def submit_participant_screening(
     }
     decision = evaluate_screening([{
         "attribute": row.attribute,
+        "question_type": row.question_type,
         "accepted_answers": row.accepted_answers or [],
     } for row in questions], answers)
     attempt = ScreeningAttempt(

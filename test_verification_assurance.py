@@ -106,8 +106,14 @@ class ScreeningEngineTests(unittest.TestCase):
 
     def test_draft_uses_only_structured_low_sensitivity_criteria(self):
         draft = deterministic_draft(self.SurveyStub())
-        self.assertEqual([row["attribute"] for row in draft], ["occupation", "student_status"])
+        self.assertEqual([row["attribute"] for row in draft], [
+            "student_enrollment",
+            "student_program_area",
+            "student_course_load",
+            "student_status",
+        ])
         self.assertTrue(all(row["sensitivity"] == "low" for row in draft))
+        self.assertNotIn("occupation", [row["attribute"] for row in draft])
 
     def test_ai_cannot_change_accepted_answers_or_add_sensitive_prompt(self):
         baseline = deterministic_draft(self.SurveyStub())
@@ -123,16 +129,48 @@ class ScreeningEngineTests(unittest.TestCase):
 
     def test_screening_decision_is_deterministic(self):
         questions = deterministic_draft(self.SurveyStub())
-        passed = evaluate_screening(questions, {
-            "occupation": "student",
-            "student_status": "Full-time student",
-        })
-        failed = evaluate_screening(questions, {
-            "occupation": "Other",
-            "student_status": "Full-time student",
-        })
+        passing_answers = {
+            question["attribute"]: question["accepted_answers"][0]
+            for question in questions
+        }
+        passed = evaluate_screening(questions, passing_answers)
+        failing_answers = dict(passing_answers)
+        enrollment = next(
+            question for question in questions
+            if question["attribute"] == "student_enrollment"
+        )
+        failing_answers["student_enrollment"] = next(
+            option for option in enrollment["options"]
+            if option not in enrollment["accepted_answers"]
+        )
+        failed = evaluate_screening(questions, failing_answers)
         self.assertEqual(passed.status, "passed")
         self.assertEqual(failed.status, "failed")
+
+    def test_student_context_answers_do_not_decide_eligibility(self):
+        questions = deterministic_draft(self.SurveyStub())
+        answers = {
+            question["attribute"]: question["accepted_answers"][0]
+            for question in questions
+        }
+        for question in questions:
+            if question["question_type"] == "single_context":
+                answers[question["attribute"]] = question["options"][-1]
+        self.assertEqual(evaluate_screening(questions, answers).status, "passed")
+
+    def test_occupation_codes_are_humanized_without_duplicate_options(self):
+        survey = self.SurveyStub()
+        survey.required_occupation = "it_professional,teacher"
+        draft = deterministic_draft(survey)
+        occupation = draft[0]
+        self.assertEqual(
+            set(occupation["accepted_answers"]),
+            {"IT Professional", "Teacher"},
+        )
+        self.assertEqual(
+            len({option.casefold() for option in occupation["options"]}),
+            len(occupation["options"]),
+        )
 
     def test_researcher_can_edit_wording_but_not_eligibility_rule(self):
         baseline = deterministic_draft(self.SurveyStub())

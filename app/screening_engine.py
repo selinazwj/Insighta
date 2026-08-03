@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 import os
+import secrets
 from typing import Any, Iterable, Mapping, Optional
 
 
@@ -48,6 +49,9 @@ PROHIBITED_PROMPT_TERMS = frozenset({
 
 EDITABLE_ATTRIBUTES = frozenset({
     "occupation",
+    "student_enrollment",
+    "student_program_area",
+    "student_course_load",
     "student_status",
     "year_in_school",
     "participation_format",
@@ -55,6 +59,22 @@ EDITABLE_ATTRIBUTES = frozenset({
     "language",
     "state",
 })
+
+OCCUPATION_LABELS = {
+    "physician": "Physician",
+    "nurse": "Nurse",
+    "lawyer": "Lawyer",
+    "therapist": "Therapist",
+    "engineer": "Engineer",
+    "student": "Student",
+    "teacher": "Teacher",
+    "it_professional": "IT Professional",
+    "researcher": "Researcher",
+    "marketer": "Marketer",
+    "business": "Business",
+    "general_public": "General Public",
+    "other": "Other",
+}
 
 
 @dataclass(frozen=True)
@@ -72,10 +92,13 @@ def _split_values(value: Any) -> list[str]:
     else:
         raw_values = str(value).replace("|", ",").split(",")
     out: list[str] = []
+    seen: set[str] = set()
     for raw in raw_values:
         item = str(raw or "").strip()
-        if item and item.lower() not in {"all", "any", "both"} and item not in out:
+        normalized = item.casefold()
+        if item and normalized not in {"all", "any", "both"} and normalized not in seen:
             out.append(item)
+            seen.add(normalized)
     return out
 
 
@@ -86,16 +109,30 @@ def _question(
     accepted: Iterable[str],
     distractors: Iterable[str],
     rationale: str,
+    question_type: str = "single",
+    all_answers_are_context: bool = False,
 ) -> dict[str, Any]:
     accepted_values = _split_values(list(accepted))
     options: list[str] = []
-    for value in [*accepted_values, *_split_values(list(distractors)), "Prefer not to say"]:
-        if value and value not in options:
+    max_distractors = max(0, 7 - len(accepted_values))
+    values = [
+        *accepted_values,
+        *_split_values(list(distractors))[:max_distractors],
+        "Prefer not to say",
+    ]
+    seen_options: set[str] = set()
+    for value in values:
+        normalized = value.casefold()
+        if value and normalized not in seen_options:
             options.append(value)
+            seen_options.add(normalized)
+    secrets.SystemRandom().shuffle(options)
+    if all_answers_are_context:
+        accepted_values = list(options)
     return {
         "attribute": attribute,
         "prompt": prompt,
-        "question_type": "single",
+        "question_type": question_type,
         "options": options[:8],
         "accepted_answers": accepted_values,
         "rationale": rationale,
@@ -106,6 +143,65 @@ def _question(
 
 def deterministic_draft(survey: Any, *, limit: int = 5) -> list[dict[str, Any]]:
     """Create auditable questions from non-sensitive structured targeting fields."""
+    required_occupations = _split_values(getattr(survey, "required_occupation", None))
+    student_only = (
+        len(required_occupations) == 1
+        and required_occupations[0].casefold() == "student"
+    )
+
+    questions: list[dict[str, Any]] = []
+    if student_only:
+        questions.extend([
+            _question(
+                attribute="student_enrollment",
+                prompt="Which statement best describes your current enrollment?",
+                accepted=[
+                    "Currently enrolled in a degree, diploma, or certificate program (including a scheduled break between terms)",
+                ],
+                distractors=[
+                    "Accepted to a program, but have not started yet",
+                    "Taking individual courses without being enrolled in a program",
+                    "Previously enrolled, but not currently",
+                    "Not currently enrolled",
+                ],
+                rationale="Confirms the study's Student requirement without asking the participant to select an occupation label.",
+            ),
+            _question(
+                attribute="student_program_area",
+                prompt="What broad area best matches your current program or major?",
+                accepted=[],
+                distractors=[
+                    "Arts and humanities",
+                    "Business and economics",
+                    "Education",
+                    "Engineering, computing, or technology",
+                    "Health or life sciences",
+                    "Social or behavioral sciences",
+                    "Interdisciplinary, undecided, or another area",
+                ],
+                rationale="Collects a low-sensitivity student-context answer; no single option determines eligibility.",
+                question_type="single_context",
+                all_answers_are_context=True,
+            ),
+            _question(
+                attribute="student_course_load",
+                prompt="During your current or most recent academic term, what best describes your course load?",
+                accepted=[],
+                distractors=[
+                    "1 course or fewer than 6 credits/units",
+                    "2 courses or about 6–8 credits/units",
+                    "3 courses or about 9–11 credits/units",
+                    "4 or more courses or 12+ credits/units",
+                    "Research, thesis, dissertation, co-op, or placement",
+                    "My institution uses a different course-load system",
+                    "Not sure",
+                ],
+                rationale="Collects a low-sensitivity course-load context answer without assuming every institution uses the same credit system.",
+                question_type="single_context",
+                all_answers_are_context=True,
+            ),
+        ])
+
     specs = [
         (
             "occupation",
@@ -150,11 +246,17 @@ def deterministic_draft(survey: Any, *, limit: int = 5) -> list[dict[str, Any]]:
             ["Massachusetts", "California", "New York", "Texas", "Florida", "Other"],
         ),
     ]
-    questions: list[dict[str, Any]] = []
     for attribute, model_field, prompt, distractors in specs:
         accepted = _split_values(getattr(survey, model_field, None))
         if not accepted:
             continue
+        if attribute == "occupation" and student_only:
+            continue
+        if attribute == "occupation":
+            accepted = [
+                OCCUPATION_LABELS.get(value.casefold(), value)
+                for value in accepted
+            ]
         questions.append(_question(
             attribute=attribute,
             prompt=prompt,
@@ -164,7 +266,7 @@ def deterministic_draft(survey: Any, *, limit: int = 5) -> list[dict[str, Any]]:
         ))
         if len(questions) >= limit:
             break
-    return questions
+    return questions[:limit]
 
 
 def _contains_prohibited_term(prompt: str) -> bool:
@@ -309,7 +411,9 @@ def generate_screening_draft(survey: Any, *, use_ai: bool = True) -> list[dict[s
                 "content": (
                     "Rewrite the following deterministic eligibility questions so they are clear, "
                     "neutral, and difficult to answer accidentally. Return only a JSON array. "
-                    "Keep every attribute and accepted_answers exactly unchanged. You may add "
+                    "Keep every attribute, question_type, and accepted_answers exactly unchanged. "
+                    "Questions whose question_type is single_context are low-sensitivity context "
+                    "checks: do not imply that one answer controls eligibility. You may add "
                     "plausible non-deceptive options. Do not ask for ID numbers, exact date of "
                     "birth, biometrics, diagnoses, medical records, or other sensitive data. "
                     "These questions test study eligibility, not whether someone is human.\n\n"
@@ -338,10 +442,13 @@ def evaluate_screening(
     for question in questions:
         attribute = str(question.get("attribute") or "")
         answer = str(answers.get(attribute) or "").strip()
+        question_type = str(question.get("question_type") or "single")
         accepted = {value.lower() for value in _split_values(question.get("accepted_answers"))}
         if not answer:
             missing += 1
             reasons.append(f"Missing answer for {attribute}")
+        elif question_type == "single_context":
+            continue
         elif accepted and answer.lower() not in accepted:
             failed += 1
             reasons.append(f"Does not meet the {attribute.replace('_', ' ')} requirement")
