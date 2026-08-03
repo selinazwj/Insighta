@@ -398,7 +398,15 @@
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          alert(data.detail || 'Could not save this time. Please choose another slot.');
+          if (data.screening_required && data.screening_url) {
+            window.location.href = data.screening_url;
+            return;
+          }
+          if (data.verification_required) {
+            window.location.href = data.verification_url || '/verify';
+            return;
+          }
+          alert(data.detail || data.reason || 'Could not save this time. Please try again.');
           return;
         }
       } catch {

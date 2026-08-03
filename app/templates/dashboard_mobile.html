@@ -811,7 +811,20 @@
       s.booking_slots = Array.isArray(bookingSlot) ? bookingSlot : [bookingSlot];
       s.booking_slot = s.booking_slots.join('; ');
     }
-    await startStudy(id, bookingSlot);
+    const res = await startStudy(id, bookingSlot);
+    if (!res || !res.ok) {
+      const data = res ? await res.json().catch(() => ({})) : {};
+      if (data.screening_required && data.screening_url) {
+        window.location.href = data.screening_url;
+        return;
+      }
+      if (data.verification_required) {
+        window.location.href = data.verification_url || '/verify';
+        return;
+      }
+      alert(data.detail || data.reason || 'Could not save this time. Please try again.');
+      return;
+    }
     if (isBuiltIn) { window.location.href = `/surveys/${id}/take`; }
     else {
       window.open(link, '_blank');

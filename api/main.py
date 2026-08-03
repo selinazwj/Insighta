@@ -4985,6 +4985,7 @@ async def start_survey(
             "ok": False,
             "screening_required": True,
             "screening_url": f"/surveys/{survey_id}/screening",
+            "detail": "Complete the study eligibility check before choosing a time.",
         }, status_code=409)
     trust_recommendation, _ = _participation_decision(
         db,

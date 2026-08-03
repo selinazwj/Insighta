@@ -338,6 +338,11 @@ class VerificationIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 409)
         self.assertTrue(response.json()["screening_required"])
+        self.assertEqual(
+            response.json()["screening_url"],
+            f"/surveys/{self.survey_id}/screening",
+        )
+        self.assertIn("eligibility check", response.json()["detail"])
 
         from app.models import ScreeningQuestion
 
