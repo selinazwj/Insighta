@@ -513,11 +513,16 @@
       ['video interview', 'online interview', 'remote live session'].includes(format) ||
       String(link || '').toLowerCase().includes('calendly.com')
     );
-    if (s && s.type === 'interview' && !hasExternalLink && !isOnlineInterview && Array.isArray(s.availability_slots) && s.availability_slots.length) {
+    if (s && s.is_live_study && s.has_native_booking && Array.isArray(s.availability_slots) && s.availability_slots.length) {
       openSlotModal(s, link, isBuiltIn);
       return;
     }
     await startStudy(id);
+    if (s && s.is_live_study) {
+      if (link) window.open(link, '_blank');
+      window.location.href = '/my-studies';
+      return;
+    }
     if (isBuiltIn) { window.location.href = `/surveys/${id}/take`; }
     else {
       window.open(link, '_blank');
@@ -636,6 +641,10 @@
     study.booking_slots = labels;
     study.booking_slot = labels.join('; ');
     closeSlotModal();
+    if (study.is_live_study) {
+      window.location.href = '/my-studies';
+      return;
+    }
     if (isBuiltIn) { window.location.href = `/surveys/${study.id}/take`; }
     else if (link) { window.open(link, '_blank'); }
     else { alert('Your time has been saved. The researcher will follow up with details.'); }

@@ -545,10 +545,10 @@
       }
       const actionHtml = `<div class="notif-actions">
         <button class="notif-accept ${acceptActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'accept')">
-          ${acceptActive ? '✓ Accepted' : '✓ Accept'}
+          ${acceptActive ? '✓ Payout approved' : '✓ Approve payout'}
         </button>
         <button class="notif-reject ${rejectActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'reject')">
-          ${rejectActive ? '✕ Rejected' : '✕ Reject'}
+          ${rejectActive ? '✕ Payout rejected' : '✕ Reject payout'}
         </button>
       </div>`;
       return `
