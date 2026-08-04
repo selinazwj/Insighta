@@ -121,6 +121,19 @@
     .confirm-hint.error { color: #c53030; font-weight: 600; }
     .confirm-hint.ok { color: var(--green-d); font-weight: 600; }
 
+    .turnstile-shell { min-height: 65px; }
+    .turnstile-status { min-height: 18px; }
+    .turnstile-status.success { color: var(--green-d); font-weight: 600; }
+    .turnstile-status.error { color: #c53030; font-weight: 600; }
+    .btn-turnstile-retry {
+      display: inline-flex; align-items: center; justify-content: center; height: 34px;
+      margin-top: 8px; padding: 0 14px; border: 0.5px solid var(--green-m);
+      border-radius: 17px; background: var(--paper); color: var(--green-d);
+      font-family: var(--sans); font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .btn-turnstile-retry[hidden] { display: none; }
+    .btn-turnstile-retry:hover { background: var(--green-l); }
+
     .btn-next, .btn-submit { width: 100%; height: 42px; background: var(--green); color: white; border: none; border-radius: 20px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; margin-top: 8px; }
     .btn-next:hover, .btn-submit:hover { background: var(--green-d); transform: none; box-shadow: none; }
     .btn-back { width: 100%; height: 42px; background: transparent; color: var(--ink-muted); border: 0.5px solid var(--line2); border-radius: 20px; font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; transition: background .15s; margin-top: 8px; }
@@ -562,7 +575,11 @@
         <div class="form-group">
           {% if turnstile_site_key %}
           <label>Security check <span class="badge-required">Required</span></label>
-          <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+          <div class="turnstile-shell">
+            <div id="turnstileWidget" data-sitekey="{{ turnstile_site_key }}"></div>
+          </div>
+          <div class="field-note turnstile-status" id="turnstileStatus" aria-live="polite">Loading security check…</div>
+          <button type="button" class="btn-turnstile-retry" id="turnstileRetry" onclick="retryTurnstile()" hidden>Try security check again</button>
           <div class="field-note">This helps us prevent automated and duplicate sign-ups.</div>
           {% else %}
           <label>Quick check: what is {{ captcha_question }}? <span class="badge-required">Required</span></label>
@@ -647,6 +664,92 @@
     }
   }
 
+  // ── Managed security check ───────────────────────────────
+  // Step 2 is display:none on initial load. Render Turnstile explicitly only
+  // after the step is visible so the challenge can measure a real viewport.
+  let turnstileWidgetId = null;
+  let turnstileVerified = false;
+
+  function setTurnstileStatus(message, state) {
+    const status = document.getElementById('turnstileStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.className = 'field-note turnstile-status' + (state ? ' ' + state : '');
+  }
+
+  function showTurnstileRetry(show) {
+    const button = document.getElementById('turnstileRetry');
+    if (button) button.hidden = !show;
+  }
+
+  function onTurnstileSuccess() {
+    turnstileVerified = true;
+    setTurnstileStatus('Security check complete.', 'success');
+    showTurnstileRetry(false);
+  }
+
+  function onTurnstileError(errorCode) {
+    turnstileVerified = false;
+    const code = String(errorCode || 'unknown');
+    const family = code.slice(0, 3);
+    if (family === '300' || family === '600') {
+      setTurnstileStatus('We could not confirm this browser. Turn off any VPN or blocker, then try again. (Error ' + code + ')', 'error');
+    } else if (family === '110' || family === '400') {
+      setTurnstileStatus('The security check is temporarily misconfigured. Please contact support. (Error ' + code + ')', 'error');
+    } else {
+      setTurnstileStatus('The security check could not load. Please try again. (Error ' + code + ')', 'error');
+    }
+    showTurnstileRetry(true);
+    return true;
+  }
+
+  function onTurnstileExpired() {
+    turnstileVerified = false;
+    setTurnstileStatus('The security check expired. Please complete it again.', 'error');
+    showTurnstileRetry(true);
+  }
+
+  function renderTurnstileIfNeeded() {
+    const container = document.getElementById('turnstileWidget');
+    const step2 = document.getElementById('step2');
+    if (!container || !step2 || !step2.classList.contains('active')) return;
+    if (!window.turnstile) {
+      setTurnstileStatus('Loading security check…', '');
+      return;
+    }
+    if (turnstileWidgetId !== null) return;
+    try {
+      turnstileWidgetId = window.turnstile.render(container, {
+        sitekey: container.dataset.sitekey,
+        callback: onTurnstileSuccess,
+        'error-callback': onTurnstileError,
+        'expired-callback': onTurnstileExpired,
+        'timeout-callback': onTurnstileExpired,
+        retry: 'auto',
+        'retry-interval': 3000,
+        'refresh-expired': 'auto'
+      });
+    } catch (error) {
+      turnstileWidgetId = null;
+      onTurnstileError('render');
+    }
+  }
+
+  function onTurnstileLoad() {
+    renderTurnstileIfNeeded();
+  }
+
+  function retryTurnstile() {
+    turnstileVerified = false;
+    setTurnstileStatus('Retrying security check…', '');
+    showTurnstileRetry(false);
+    if (window.turnstile && turnstileWidgetId !== null) {
+      window.turnstile.reset(turnstileWidgetId);
+      return;
+    }
+    renderTurnstileIfNeeded();
+  }
+
   // ── Step navigation ───────────────────────────────────────
   function goToStep2() {
     const email = document.getElementById('email').value.trim();
@@ -682,6 +785,7 @@
     document.getElementById('panelStep1').classList.add('done');
     document.getElementById('panelStep2').classList.add('active');
     window.scrollTo(0, 0);
+    window.requestAnimationFrame(renderTurnstileIfNeeded);
   }
 
   function backToStep1() {
@@ -778,6 +882,13 @@
       checkPasswordMatch();
       return;
     }
+    const turnstileContainer = document.getElementById('turnstileWidget');
+    if (turnstileContainer && !turnstileVerified) {
+      setTurnstileStatus('Please complete the security check before creating your account.', 'error');
+      showTurnstileRetry(true);
+      turnstileContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     document.getElementById('consentModal').style.display = 'flex';
     document.getElementById('consentCheckbox').checked = false;
     document.getElementById('btnAgree').classList.remove('enabled');
@@ -809,9 +920,13 @@
   document.getElementById('step2').classList.remove('active');
   {% endif %}
   {% endif %}
+
+  if (document.getElementById('step2').classList.contains('active')) {
+    window.requestAnimationFrame(renderTurnstileIfNeeded);
+  }
 </script>
 {% if turnstile_site_key %}
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit" async defer></script>
 {% endif %}
 
 </body>
