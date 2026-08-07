@@ -131,6 +131,8 @@ Suggested deployment step:
 
 - Run the Alembic migration so `background_jobs` exists.
 - Set a long random `CRON_SECRET` in production.
+- Set `BACKGROUND_JOB_ALERT_EMAIL` if job final-failure alerts should go to a
+  different inbox than `SUPPORT_ALERT_EMAIL`.
 - Vercel Cron calls `/internal/jobs/run-due` every five minutes; the
   endpoint only runs when the request includes `Authorization: Bearer
   <CRON_SECRET>`.

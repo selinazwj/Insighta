@@ -427,6 +427,7 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 EMAIL_FROM = os.environ.get("EMAIL_FROM") or EMAIL_ADDRESS
 EMAIL_REPLY_TO = os.environ.get("EMAIL_REPLY_TO")
 SUPPORT_ALERT_EMAIL = os.environ.get("SUPPORT_ALERT_EMAIL", "vfsa@bu.edu")
+BACKGROUND_JOB_ALERT_EMAIL = os.environ.get("BACKGROUND_JOB_ALERT_EMAIL", SUPPORT_ALERT_EMAIL)
 VERIFICATION_CODE_EXPIRE_MINUTES = 10
 VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS = 60
 VERIFICATION_CODE_MAX_PER_HOUR = 5
@@ -1122,11 +1123,92 @@ BACKGROUND_JOB_HANDLERS = {
 }
 
 
+def _background_job_alert_payload(job: BackgroundJob) -> dict[str, Any]:
+    payload = job.payload_json or {}
+    safe_payload = {}
+    safe_keys = {
+        "user_id",
+        "email",
+        "survey_id",
+        "survey_ids",
+        "response_id",
+        "filename",
+        "campaign_key",
+        "cleanup_window",
+        "auto_approve",
+        "auto_approve_min_score",
+    }
+    for key, value in payload.items():
+        if key in safe_keys or key.endswith("_id") or key.endswith("_ids"):
+            safe_payload[key] = value
+    return safe_payload
+
+
+def _notify_background_job_failure(
+    db: Session,
+    job: BackgroundJob,
+    error: str,
+    final_failure: bool,
+) -> None:
+    if not final_failure or not BACKGROUND_JOB_ALERT_EMAIL:
+        return
+    payload = _background_job_alert_payload(job)
+    payload_lines = "\n".join(f"- {key}: {value}" for key, value in payload.items()) or "- none"
+    subject = f"Insighta background job failed: {job.job_type}"
+    admin_url = f"{BASE_URL.rstrip('/')}/admin#jobs"
+    text_body = f"""A background job reached final failure.
+
+Job ID: {job.id}
+Type: {job.job_type}
+Attempts: {job.attempts}/{job.max_attempts}
+Error: {error}
+
+Safe context:
+{payload_lines}
+
+Review jobs: {admin_url}
+"""
+    escaped_payload = html.escape(payload_lines)
+    body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 28px 22px; color: #1a1a18; line-height: 1.6;">
+      <h2 style="margin:0 0 16px;color:#b91c1c;">Background job failed</h2>
+      <p>A background job reached final failure and will not retry automatically.</p>
+      <table style="border-collapse:collapse;width:100%;margin:18px 0;">
+        <tr><td style="padding:6px 0;color:#6b7280;">Job ID</td><td style="padding:6px 0;font-weight:700;">{job.id}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;">Type</td><td style="padding:6px 0;font-weight:700;">{html.escape(job.job_type or '')}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;">Attempts</td><td style="padding:6px 0;font-weight:700;">{job.attempts}/{job.max_attempts}</td></tr>
+      </table>
+      <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;margin:16px 0;">
+        <div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:6px;">Error</div>
+        <pre style="white-space:pre-wrap;font-family:Menlo,Consolas,monospace;font-size:12px;margin:0;color:#7f1d1d;">{html.escape(error[:2000])}</pre>
+      </div>
+      <div style="background:#fafaf8;border:1px solid #eeece6;border-radius:10px;padding:14px 16px;margin:16px 0;">
+        <div style="font-size:12px;font-weight:700;color:#4a4a44;margin-bottom:6px;">Safe context</div>
+        <pre style="white-space:pre-wrap;font-family:Menlo,Consolas,monospace;font-size:12px;margin:0;color:#4a4a44;">{escaped_payload}</pre>
+      </div>
+      <p><a href="{html.escape(admin_url, quote=True)}" style="display:inline-block;background:#3b7c4f;color:#fff;text-decoration:none;border-radius:8px;padding:10px 14px;font-weight:700;">Open admin jobs</a></p>
+    </div>
+    """
+    sent, send_error = send_email(
+        BACKGROUND_JOB_ALERT_EMAIL,
+        subject,
+        body,
+        text_body=text_body,
+    )
+    if not sent:
+        print(f"Background job failure alert failed for job {job.id}: {send_error}")
+
+
 def run_due_background_jobs(limit: int = 25) -> dict[str, int]:
     db = SessionLocal()
     try:
         enqueued = _enqueue_due_survey_start_followup_jobs(db, limit=limit)
-        result = run_due_jobs(db, BACKGROUND_JOB_HANDLERS, limit=limit)
+        result = run_due_jobs(
+            db,
+            BACKGROUND_JOB_HANDLERS,
+            limit=limit,
+            on_failure=_notify_background_job_failure,
+        )
         result["enqueued"] = enqueued
         return result
     finally:

@@ -23,6 +23,7 @@ DASHBOARD_RECOMMENDATIONS_REFRESH = "dashboard_recommendations_refresh"
 TRUST_DATA_CLEANUP = "trust_data_cleanup"
 
 JobHandler = Callable[[Session, BackgroundJob], None]
+JobFailureCallback = Callable[[Session, BackgroundJob, str, bool], None]
 
 
 def enqueue_job(
@@ -222,16 +223,18 @@ def mark_done(db: Session, job: BackgroundJob) -> None:
     db.commit()
 
 
-def mark_failed(db: Session, job: BackgroundJob, error: str) -> None:
+def mark_failed(db: Session, job: BackgroundJob, error: str) -> bool:
     job.last_error = error[:2000]
     job.locked_at = None
     job.updated_at = datetime.utcnow()
-    if job.attempts >= job.max_attempts:
+    final_failure = job.attempts >= job.max_attempts
+    if final_failure:
         job.status = FAILED
     else:
         job.status = PENDING
         job.run_after = datetime.utcnow() + timedelta(minutes=min(60, 2 ** max(job.attempts - 1, 0)))
     db.commit()
+    return final_failure
 
 
 def run_due_jobs(
@@ -239,6 +242,7 @@ def run_due_jobs(
     handlers: dict[str, JobHandler],
     *,
     limit: int = 25,
+    on_failure: JobFailureCallback | None = None,
 ) -> dict[str, int]:
     claimed = claim_due_jobs(db, limit=limit)
     processed = 0
@@ -249,7 +253,10 @@ def run_due_jobs(
         processed += 1
         handler = handlers.get(job.job_type)
         if not handler:
-            mark_failed(db, job, f"No handler registered for job_type={job.job_type}")
+            error = f"No handler registered for job_type={job.job_type}"
+            final_failure = mark_failed(db, job, error)
+            if on_failure:
+                on_failure(db, job, error, final_failure)
             failed += 1
             continue
         try:
@@ -257,7 +264,10 @@ def run_due_jobs(
             mark_done(db, job)
             succeeded += 1
         except Exception as exc:
-            mark_failed(db, job, str(exc))
+            error = str(exc)
+            final_failure = mark_failed(db, job, error)
+            if on_failure:
+                on_failure(db, job, error, final_failure)
             failed += 1
     return {
         "claimed": len(claimed),

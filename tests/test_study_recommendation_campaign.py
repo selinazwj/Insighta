@@ -147,6 +147,61 @@ class StudyRecommendationCampaignTest(unittest.TestCase):
         self.assertNotIn("message", pending_job["payload"])
         self.assertNotIn("subject", pending_job["payload"])
 
+    def test_final_background_job_failure_sends_safe_alert(self):
+        db = main.SessionLocal()
+        db.add(BackgroundJob(
+            job_type="unknown_job_type",
+            status="pending",
+            payload_json={
+                "user_id": 456,
+                "email": "participant@example.com",
+                "message": "This private email body should not be exposed.",
+            },
+            attempts=0,
+            max_attempts=1,
+        ))
+        db.commit()
+        db.close()
+
+        captured = []
+
+        def fake_send_email(to, subject, body, text_body=None):
+            captured.append({
+                "to": to,
+                "subject": subject,
+                "body": body,
+                "text_body": text_body,
+            })
+            return True, None
+
+        with patch.object(main, "send_email", side_effect=fake_send_email):
+            result = main.run_due_background_jobs(limit=5)
+
+        self.assertEqual(result["failed"], 1)
+        self.assertEqual(len(captured), 1)
+        self.assertIn("unknown_job_type", captured[0]["subject"])
+        self.assertIn("user_id", captured[0]["text_body"])
+        self.assertNotIn("private email body", captured[0]["body"])
+        self.assertNotIn("private email body", captured[0]["text_body"])
+
+    def test_retryable_background_job_failure_does_not_alert(self):
+        db = main.SessionLocal()
+        db.add(BackgroundJob(
+            job_type="unknown_job_type",
+            status="pending",
+            payload_json={"user_id": 789},
+            attempts=0,
+            max_attempts=2,
+        ))
+        db.commit()
+        db.close()
+
+        with patch.object(main, "send_email") as send_email_mock:
+            result = main.run_due_background_jobs(limit=5)
+
+        self.assertEqual(result["failed"], 1)
+        send_email_mock.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
