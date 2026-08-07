@@ -149,6 +149,34 @@ class StudyRecommendationCampaignTest(unittest.TestCase):
         self.assertNotIn("message", pending_job["payload"])
         self.assertNotIn("subject", pending_job["payload"])
 
+    def test_admin_can_manually_run_due_background_jobs(self):
+        client = TestClient(main.app)
+        unauthorized = client.post(
+            "/admin/background-jobs/run-due",
+            json={"admin_key": "wrong", "limit": 25},
+        )
+        self.assertEqual(unauthorized.status_code, 403)
+
+        with patch.object(main, "run_due_background_jobs", return_value={
+            "claimed": 2,
+            "processed": 2,
+            "succeeded": 1,
+            "failed": 1,
+            "skipped": 0,
+            "enqueued": 0,
+            "stale_recovered": 0,
+            "stale_failed": 0,
+        }) as run_mock:
+            response = client.post(
+                "/admin/background-jobs/run-due",
+                json={"admin_key": "test-admin-key", "limit": 999},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(response.json()["claimed"], 2)
+        run_mock.assert_called_once_with(limit=100)
+
     def test_final_background_job_failure_sends_safe_alert(self):
         db = main.SessionLocal()
         db.add(BackgroundJob(

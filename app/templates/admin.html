@@ -463,8 +463,12 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
           <div class="analytics-title">Recent background jobs</div>
           <div class="analytics-sub">Cron runs these jobs outside user requests, so email sends and heavy refreshes do not block the app.</div>
         </div>
-        <button class="btn-refresh" onclick="loadBackgroundJobs()">Refresh</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-run" id="runJobsBtn" onclick="runDueBackgroundJobs()">Run due jobs</button>
+          <button class="btn-refresh" onclick="loadBackgroundJobs()">Refresh</button>
+        </div>
       </div>
+      <div id="jobsRunStatus" class="warn-box" style="display:none;"></div>
       <div id="jobsTable">
         <div class="empty"><div class="empty-sub">Open this panel to load background jobs.</div></div>
       </div>
@@ -1007,6 +1011,41 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
       <thead><tr><th>Job</th><th>Status</th><th>Attempts</th><th>Run after</th><th>Updated</th><th>Context</th><th>Error</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
+  }
+
+  async function runDueBackgroundJobs() {
+    if (!adminKey) return;
+    const btn = document.getElementById('runJobsBtn');
+    const status = document.getElementById('jobsRunStatus');
+    if (!confirm('Run due background jobs now? This may send queued emails and process imports.')) return;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+    if (status) {
+      status.style.display = 'block';
+      status.textContent = 'Running due background jobs...';
+    }
+    try {
+      const res = await fetch('/admin/background-jobs/run-due', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, limit: 25 })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not run due jobs');
+      if (status) {
+        status.textContent = `Runner finished: claimed ${data.claimed || 0}, succeeded ${data.succeeded || 0}, failed ${data.failed || 0}, stale recovered ${data.stale_recovered || 0}.`;
+      }
+      await loadBackgroundJobs();
+    } catch (err) {
+      if (status) {
+        status.style.display = 'block';
+        status.textContent = err.message || 'Could not run due jobs';
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   }
 
   function renderJobPayload(payload) {

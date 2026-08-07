@@ -7348,6 +7348,20 @@ async def admin_background_jobs(
     })
 
 
+@app.post("/admin/background-jobs/run-due")
+async def admin_run_due_background_jobs(request: Request):
+    body = await request.json()
+    if not _admin_key_matches(body.get("admin_key")):
+        raise HTTPException(403, "Unauthorized")
+    try:
+        limit = int(body.get("limit", 25))
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Invalid limit")
+    limit = min(100, max(1, limit))
+    result = run_due_background_jobs(limit=limit)
+    return JSONResponse({"ok": True, **result})
+
+
 @app.post("/admin/users/bulk-email")
 @app.post("/admin/users/reward-reminder-email")
 async def admin_bulk_email(request: Request, db: Session = Depends(get_db)):
