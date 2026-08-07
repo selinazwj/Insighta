@@ -24,6 +24,7 @@ TRUST_DATA_CLEANUP = "trust_data_cleanup"
 
 JobHandler = Callable[[Session, BackgroundJob], None]
 JobFailureCallback = Callable[[Session, BackgroundJob, str, bool], None]
+DEFAULT_STALE_RUNNING_MINUTES = 15
 
 
 def enqueue_job(
@@ -198,6 +199,45 @@ def enqueue_trust_data_cleanup_job(
     )
 
 
+def recover_stale_running_jobs(
+    db: Session,
+    *,
+    stale_after_minutes: int = DEFAULT_STALE_RUNNING_MINUTES,
+    now: datetime | None = None,
+    on_failure: JobFailureCallback | None = None,
+) -> dict[str, int]:
+    now = now or datetime.utcnow()
+    cutoff = now - timedelta(minutes=max(1, stale_after_minutes))
+    jobs = db.query(BackgroundJob).filter(
+        BackgroundJob.status == RUNNING,
+        BackgroundJob.locked_at.isnot(None),
+        BackgroundJob.locked_at < cutoff,
+    ).order_by(BackgroundJob.locked_at.asc(), BackgroundJob.id.asc()).all()
+    recovered = 0
+    failed = 0
+    final_failures: list[tuple[BackgroundJob, str]] = []
+    for job in jobs:
+        locked_at = job.locked_at
+        error = f"Recovered stale running job locked at {locked_at or 'unknown'}"
+        job.locked_at = None
+        job.updated_at = now
+        job.last_error = error
+        if job.attempts >= job.max_attempts:
+            job.status = FAILED
+            failed += 1
+            final_failures.append((job, error))
+        else:
+            job.status = PENDING
+            job.run_after = now
+            recovered += 1
+    if jobs:
+        db.commit()
+    if on_failure:
+        for job, error in final_failures:
+            on_failure(db, job, error, True)
+    return {"stale_recovered": recovered, "stale_failed": failed}
+
+
 def claim_due_jobs(db: Session, *, limit: int = 25, now: datetime | None = None) -> list[BackgroundJob]:
     now = now or datetime.utcnow()
     jobs = db.query(BackgroundJob).filter(
@@ -244,6 +284,7 @@ def run_due_jobs(
     limit: int = 25,
     on_failure: JobFailureCallback | None = None,
 ) -> dict[str, int]:
+    stale_result = recover_stale_running_jobs(db, on_failure=on_failure)
     claimed = claim_due_jobs(db, limit=limit)
     processed = 0
     succeeded = 0
@@ -275,4 +316,5 @@ def run_due_jobs(
         "succeeded": succeeded,
         "failed": failed,
         "skipped": skipped,
+        **stale_result,
     }

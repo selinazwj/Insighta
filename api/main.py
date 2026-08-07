@@ -41,6 +41,7 @@ from app.jobs.service import (
     ADMIN_BULK_EMAIL,
     BOOKING_CONFIRMATION_EMAIL,
     DASHBOARD_RECOMMENDATIONS_REFRESH,
+    DEFAULT_STALE_RUNNING_MINUTES,
     DONE,
     FAILED,
     PENDING,
@@ -7331,7 +7332,7 @@ async def admin_background_jobs(
     stale_running = db.query(func.count(BackgroundJob.id)).filter(
         BackgroundJob.status == RUNNING,
         BackgroundJob.locked_at.isnot(None),
-        BackgroundJob.locked_at < now - timedelta(minutes=15),
+        BackgroundJob.locked_at < now - timedelta(minutes=DEFAULT_STALE_RUNNING_MINUTES),
     ).scalar() or 0
     recent_jobs = (
         db.query(BackgroundJob)

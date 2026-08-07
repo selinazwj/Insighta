@@ -1,6 +1,7 @@
 import hashlib
 import os
 import unittest
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 
@@ -13,6 +14,7 @@ os.environ["ADMIN_KEY"] = "test-admin-key"
 from fastapi.testclient import TestClient
 
 from api import main
+from app.jobs.service import FAILED, PENDING, RUNNING, recover_stale_running_jobs
 from app.models import BackgroundJob, Survey, User, UserEvent
 
 
@@ -201,6 +203,63 @@ class StudyRecommendationCampaignTest(unittest.TestCase):
 
         self.assertEqual(result["failed"], 1)
         send_email_mock.assert_not_called()
+
+    def test_stale_running_job_recovers_to_pending(self):
+        locked_at = datetime.utcnow() - timedelta(minutes=30)
+        db = main.SessionLocal()
+        job = BackgroundJob(
+            job_type="admin_bulk_email",
+            status=RUNNING,
+            payload_json={"user_id": 321},
+            attempts=1,
+            max_attempts=3,
+            locked_at=locked_at,
+        )
+        db.add(job)
+        db.commit()
+        job_id = job.id
+
+        result = recover_stale_running_jobs(db, now=datetime.utcnow())
+        recovered = db.query(BackgroundJob).filter(BackgroundJob.id == job_id).first()
+        db.close()
+
+        self.assertEqual(result["stale_recovered"], 1)
+        self.assertEqual(result["stale_failed"], 0)
+        self.assertEqual(recovered.status, PENDING)
+        self.assertIsNone(recovered.locked_at)
+        self.assertIn("Recovered stale running job", recovered.last_error)
+
+    def test_stale_running_job_at_max_attempts_fails_and_calls_back(self):
+        locked_at = datetime.utcnow() - timedelta(minutes=30)
+        callbacks = []
+        db = main.SessionLocal()
+        job = BackgroundJob(
+            job_type="admin_bulk_email",
+            status=RUNNING,
+            payload_json={"user_id": 654},
+            attempts=3,
+            max_attempts=3,
+            locked_at=locked_at,
+        )
+        db.add(job)
+        db.commit()
+        job_id = job.id
+
+        result = recover_stale_running_jobs(
+            db,
+            now=datetime.utcnow(),
+            on_failure=lambda session, failed_job, error, final: callbacks.append(
+                (failed_job.id, error, final)
+            ),
+        )
+        failed = db.query(BackgroundJob).filter(BackgroundJob.id == job_id).first()
+        db.close()
+
+        self.assertEqual(result["stale_recovered"], 0)
+        self.assertEqual(result["stale_failed"], 1)
+        self.assertEqual(failed.status, FAILED)
+        self.assertEqual(callbacks[0][0], job_id)
+        self.assertTrue(callbacks[0][2])
 
 
 if __name__ == "__main__":
