@@ -61,9 +61,12 @@ GitHub Actions runs both checks from `.github/workflows/seo-check.yml`.
 1. Configure one HTTPS canonical origin in both `BASE_URL` and `SEO_SITE_URL`.
 2. Generate a long random `ADMIN_KEY`; the application no longer accepts a built-in default key.
 3. Configure Stripe, email, OAuth, and Anthropic credentials only in the deployment secret store.
-4. Deploy, then inspect `/robots.txt` and `/sitemap.xml` on the production host.
-5. Add the site to Google Search Console and Bing Webmaster Tools; submit the sitemap.
-6. Validate representative homepage, directory, category, and study URLs with search-engine inspection tools.
-7. Replace the product-aligned Privacy and Terms drafts with counsel-approved, entity- and jurisdiction-specific versions before public production use.
+4. Set `CRON_SECRET` so Vercel Cron can call `/internal/jobs/run-due`.
+5. Set `BACKGROUND_JOB_ALERT_EMAIL` if job failure alerts should go somewhere other than `SUPPORT_ALERT_EMAIL`.
+6. Deploy, then inspect `/robots.txt` and `/sitemap.xml` on the production host.
+7. Open `/admin#jobs`, confirm job stats load, and click `Run due jobs` once when ready to verify the runner.
+8. Add the site to Google Search Console and Bing Webmaster Tools; submit the sitemap.
+9. Validate representative homepage, directory, category, and study URLs with search-engine inspection tools.
+10. Replace the product-aligned Privacy and Terms drafts with counsel-approved, entity- and jurisdiction-specific versions before public production use.
 
-See `SEO_IMPLEMENTATION.md` for the full audit, implementation map, and operating guidance. The broader original product documentation remains in `Insighta_README_current_v2.md`.
+See `SEO_IMPLEMENTATION.md` for the full SEO audit, implementation map, and operating guidance. See `docs/background_jobs_runbook.md` for background job rollout, verification, and rollback steps. The broader original product documentation remains in `Insighta_README_current_v2.md`.
