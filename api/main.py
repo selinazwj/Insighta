@@ -1129,6 +1129,26 @@ def run_due_background_jobs(limit: int = 25) -> dict[str, int]:
         db.close()
 
 
+def _cron_secret_matches(request: Request) -> bool:
+    expected = (os.environ.get("CRON_SECRET") or "").strip()
+    provided = request.headers.get("authorization", "")
+    return bool(expected and provided) and hmac.compare_digest(
+        provided,
+        f"Bearer {expected}",
+    )
+
+
+@app.api_route("/internal/jobs/run-due", methods=["GET", "POST"])
+def internal_run_due_background_jobs(
+    request: Request,
+    limit: int = Query(25, ge=1, le=100),
+) -> JSONResponse:
+    if not _cron_secret_matches(request):
+        raise HTTPException(403, "Unauthorized")
+    result = run_due_background_jobs(limit=limit)
+    return JSONResponse({"ok": True, **result})
+
+
 def _send_due_survey_start_followups(limit: int = 25) -> int:
     result = run_due_background_jobs(limit=limit)
     return result.get("succeeded", 0)

@@ -130,8 +130,11 @@ python scripts/run_due_jobs.py --limit 25
 Suggested deployment step:
 
 - Run the Alembic migration so `background_jobs` exists.
-- Add a scheduled command that runs `python scripts/run_due_jobs.py --limit 25`
-  every minute or every few minutes.
+- Set a long random `CRON_SECRET` in production.
+- Vercel Cron calls `/internal/jobs/run-due` every five minutes; the
+  endpoint only runs when the request includes `Authorization: Bearer
+  <CRON_SECRET>`.
+- For local/manual recovery, run `python scripts/run_due_jobs.py --limit 25`.
 - Keep `INSIGHTA_ENABLE_LEGACY_FOLLOWUP_WORKER` unset in normal deploys. Set it
   to `1` only as a temporary rollback path to re-enable the old FastAPI startup
   polling loop.
