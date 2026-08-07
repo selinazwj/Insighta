@@ -152,6 +152,9 @@
     .cat-pill{font-size:11px;font-weight:600;padding:2px 9px;border-radius:10px;background:var(--bg3);color:var(--ink2);border:0.5px solid var(--line);}
     .status-pill{font-size:11px;font-weight:600;padding:2px 9px;border-radius:10px;}
     .s-pending{background:var(--amber-l);color:#92400e;}
+    .s-running{background:#eff6ff;color:#1d4ed8;}
+    .s-done{background:var(--green-l);color:var(--green);}
+    .s-failed{background:var(--red-l);color:#b91c1c;}
     .s-credited{background:var(--green-l);color:var(--green);}
     .s-rejected{background:var(--bg3);color:var(--ink3);}
     .fb-user{font-size:12px;color:var(--ink3);}
@@ -295,6 +298,10 @@
       <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6l9-6"/></svg>
       Email
     </button>
+    <button class="nav-item" id="nav-jobs" onclick="switchPanel('jobs')">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><circle cx="18" cy="18" r="2"/></svg>
+      Jobs
+    </button>
     <button class="nav-item" id="nav-feedback" onclick="switchPanel('feedback')">
       <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Feedback
@@ -394,6 +401,11 @@
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Open the bulk email composer and queue custom messages through the configured email provider.</div>
         <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
       </div>
+      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('jobs')">
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Background jobs</div>
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Check queued emails, recommendation refreshes, imports, and cleanup jobs.</div>
+        <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
+      </div>
     </div>
   </div>
 
@@ -431,6 +443,30 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── JOBS PANEL ── -->
+  <div class="panel" id="panel-jobs">
+    <div class="analytics-grid" id="jobStats">
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Pending</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Running</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Done</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Failed</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Due now</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Stale running</div></div>
+    </div>
+    <div class="analytics-box">
+      <div class="analytics-head">
+        <div>
+          <div class="analytics-title">Recent background jobs</div>
+          <div class="analytics-sub">Cron runs these jobs outside user requests, so email sends and heavy refreshes do not block the app.</div>
+        </div>
+        <button class="btn-refresh" onclick="loadBackgroundJobs()">Refresh</button>
+      </div>
+      <div id="jobsTable">
+        <div class="empty"><div class="empty-sub">Open this panel to load background jobs.</div></div>
       </div>
     </div>
   </div>
@@ -690,6 +726,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
   let supportThreads = [];
   let listings = [];
   let analytics = null;
+  let backgroundJobs = null;
   let activityRows = [];
   let activityState = { offset: 0, limit: 100, total: 0, loading: false };
   let selectedThreadId = null;
@@ -697,7 +734,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
   let currentPanel = 'overview';
 
   // ── PANEL SWITCH ──
-  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', activity:'Activity log', email:'Email', feedback:'Feedback review', support:'Support inbox', blocks:'User blocks', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
+  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', activity:'Activity log', email:'Email', jobs:'Background jobs', feedback:'Feedback review', support:'Support inbox', blocks:'User blocks', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
 
   async function login() {
     const input = document.getElementById('adminKeyInput');
@@ -729,6 +766,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
       if (window.location.hash === '#analytics') switchPanel('analytics');
       if (window.location.hash === '#activity') switchPanel('activity');
       if (window.location.hash === '#email') switchPanel('email');
+      if (window.location.hash === '#jobs') switchPanel('jobs');
       if (window.location.hash === '#listings') switchPanel('listings');
       if (window.location.hash === '#support') switchPanel('support');
       if (window.location.hash === '#blocks') switchPanel('blocks');
@@ -752,6 +790,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
     if (id === 'listings') loadListings();
     if (id === 'analytics') loadAnalytics();
     if (id === 'activity') loadActivity(true);
+    if (id === 'jobs') loadBackgroundJobs();
     if (id === 'blocks') loadBlockedUsers();
     if (id === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
@@ -762,6 +801,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
     else if (currentPanel === 'listings') loadListings();
     else if (currentPanel === 'analytics') loadAnalytics();
     else if (currentPanel === 'activity') loadActivity(true);
+    else if (currentPanel === 'jobs') loadBackgroundJobs();
     else if (currentPanel === 'blocks') loadBlockedUsers();
     else if (currentPanel === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
@@ -909,6 +949,80 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
       btn.disabled = false;
       btn.textContent = original;
     }
+  }
+
+  // ── BACKGROUND JOBS ──
+  async function loadBackgroundJobs() {
+    const stats = document.getElementById('jobStats');
+    const table = document.getElementById('jobsTable');
+    if (!adminKey || !stats || !table) return;
+    table.innerHTML = '<div class="empty"><div class="empty-sub">Loading background jobs...</div></div>';
+    try {
+      const res = await fetch(`/admin/background-jobs?admin_key=${encodeURIComponent(adminKey)}&limit=50&_=${Date.now()}`, { cache:'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not load background jobs');
+      backgroundJobs = data;
+      renderBackgroundJobs();
+    } catch (err) {
+      table.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message || 'Could not load background jobs')}</div></div>`;
+    }
+  }
+
+  function renderBackgroundJobs() {
+    const stats = document.getElementById('jobStats');
+    const table = document.getElementById('jobsTable');
+    const data = backgroundJobs || {};
+    const counts = data.counts || {};
+    const statRows = [
+      ['Pending', counts.pending || 0],
+      ['Running', counts.running || 0],
+      ['Done', counts.done || 0],
+      ['Failed', counts.failed || 0],
+      ['Due now', data.due_pending || 0],
+      ['Stale running', data.stale_running || 0],
+    ];
+    stats.innerHTML = statRows.map(([label, value]) => `
+      <div class="analytics-card"><div class="analytics-num">${esc(value)}</div><div class="analytics-label">${esc(label)}</div></div>
+    `).join('');
+
+    const jobs = data.jobs || [];
+    if (!jobs.length) {
+      table.innerHTML = '<div class="empty"><div class="empty-title">No background jobs yet</div><div class="empty-sub">Queued emails, imports, recommendations, and cleanup jobs will appear here.</div></div>';
+      return;
+    }
+    const rows = jobs.map(job => {
+      const status = job.status || 'unknown';
+      const payload = renderJobPayload(job.payload || {});
+      return `<tr>
+        <td><div class="listing-title">#${job.id}</div><div class="listing-desc">${esc(job.job_type || '')}</div></td>
+        <td><span class="status-pill s-${escAttr(status)}">${esc(status)}</span></td>
+        <td>${esc(job.attempts ?? 0)} / ${esc(job.max_attempts ?? 0)}</td>
+        <td>${formatDateTime(job.run_after)}</td>
+        <td>${formatDateTime(job.updated_at)}</td>
+        <td>${payload}</td>
+        <td>${job.last_error ? `<span style="color:#b91c1c;">${esc(job.last_error)}</span>` : '—'}</td>
+      </tr>`;
+    }).join('');
+    table.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>Job</th><th>Status</th><th>Attempts</th><th>Run after</th><th>Updated</th><th>Context</th><th>Error</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+
+  function renderJobPayload(payload) {
+    const entries = Object.entries(payload || {});
+    if (!entries.length) return '—';
+    return entries.slice(0, 5).map(([key, value]) => {
+      const text = Array.isArray(value) ? value.join(', ') : String(value);
+      return `<div><strong>${esc(key)}:</strong> ${esc(text)}</div>`;
+    }).join('');
+  }
+
+  function formatDateTime(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleString();
   }
 
   // ── ANALYTICS ──

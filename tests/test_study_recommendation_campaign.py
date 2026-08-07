@@ -13,13 +13,15 @@ os.environ["ADMIN_KEY"] = "test-admin-key"
 from fastapi.testclient import TestClient
 
 from api import main
-from app.models import Survey, User, UserEvent
+from app.models import BackgroundJob, Survey, User, UserEvent
 
 
 class StudyRecommendationCampaignTest(unittest.TestCase):
-    def test_campaign_dry_run_send_and_unsubscribe(self):
+    def setUp(self):
         main.Base.metadata.drop_all(bind=main.engine)
         main.Base.metadata.create_all(bind=main.engine)
+
+    def test_campaign_dry_run_send_and_unsubscribe(self):
         db = main.SessionLocal()
         publisher = User(email="publisher@example.com", password="x", username="Publisher")
         recipient = User(email="participant@example.com", password="x", first_name="Ada")
@@ -105,6 +107,45 @@ class StudyRecommendationCampaignTest(unittest.TestCase):
                 json={"token": token, "dry_run": False, "confirm": "SEND"},
             )
             self.assertEqual(repeated.status_code, 409)
+
+    def test_admin_background_jobs_summary_hides_large_payload_fields(self):
+        db = main.SessionLocal()
+        db.add_all([
+            BackgroundJob(
+                job_type="admin_bulk_email",
+                status="pending",
+                payload_json={
+                    "user_id": 123,
+                    "email": "participant@example.com",
+                    "subject": "Internal subject",
+                    "message": "Long email body should not be exposed in the monitor.",
+                },
+            ),
+            BackgroundJob(
+                job_type="trust_data_cleanup",
+                status="failed",
+                payload_json={"cleanup_window": "20260807"},
+                attempts=2,
+                max_attempts=2,
+                last_error="cleanup failed",
+            ),
+        ])
+        db.commit()
+        db.close()
+
+        client = TestClient(main.app)
+        unauthorized = client.get("/admin/background-jobs?admin_key=wrong")
+        self.assertEqual(unauthorized.status_code, 403)
+
+        response = client.get("/admin/background-jobs?admin_key=test-admin-key")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["counts"]["pending"], 1)
+        self.assertEqual(data["counts"]["failed"], 1)
+        pending_job = next(job for job in data["jobs"] if job["status"] == "pending")
+        self.assertEqual(pending_job["payload"]["user_id"], 123)
+        self.assertNotIn("message", pending_job["payload"])
+        self.assertNotIn("subject", pending_job["payload"])
 
 
 if __name__ == "__main__":
