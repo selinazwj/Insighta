@@ -130,6 +130,10 @@ Manual run:
 python scripts/run_due_jobs.py --limit 25
 ```
 
+Production deploy and verification checklist:
+
+- See `docs/background_jobs_runbook.md`.
+
 Suggested deployment step:
 
 - Run the Alembic migration so `background_jobs` exists.
