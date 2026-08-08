@@ -59,14 +59,18 @@ GitHub Actions runs both checks from `.github/workflows/seo-check.yml`.
 ## Deployment checklist
 
 1. Configure one HTTPS canonical origin in both `BASE_URL` and `SEO_SITE_URL`.
-2. Generate a long random `ADMIN_KEY`; the application no longer accepts a built-in default key.
-3. Configure Stripe, email, OAuth, and Anthropic credentials only in the deployment secret store.
-4. Set `CRON_SECRET` so Vercel Cron can call `/internal/jobs/run-due`.
-5. Set `BACKGROUND_JOB_ALERT_EMAIL` if job failure alerts should go somewhere other than `SUPPORT_ALERT_EMAIL`.
-6. Deploy, then inspect `/robots.txt` and `/sitemap.xml` on the production host.
-7. Open `/admin#jobs`, confirm job stats load, and click `Run due jobs` once when ready to verify the runner.
-8. Add the site to Google Search Console and Bing Webmaster Tools; submit the sitemap.
-9. Validate representative homepage, directory, category, and study URLs with search-engine inspection tools.
+2. Confirm production `DATABASE_URL` is PostgreSQL (Render Postgres), not SQLite.
+3. Add Render Pre-Deploy (or Build) command: `python scripts/run_migrations.py`. See `docs/database_migrations.md`.
+4. Set production env: `INSIGHTA_SLOW_REQUEST_MS=1000`, `INSIGHTA_DASHBOARD_CANDIDATE_LIMIT=100`. Set `INSIGHTA_AUTO_SCHEMA_BOOTSTRAP=0` only after migrations succeed on production.
+5. Generate a long random `ADMIN_KEY`; the application no longer accepts a built-in default key.
+6. Configure Stripe, email, OAuth, and Anthropic credentials only in the deployment secret store.
+7. Set `CRON_SECRET` so the job cron can call `/internal/jobs/run-due`.
+8. Set `BACKGROUND_JOB_ALERT_EMAIL` if job failure alerts should go somewhere other than `SUPPORT_ALERT_EMAIL`.
+9. Deploy, then inspect `/robots.txt` and `/sitemap.xml` on the production host.
+10. In Render Logs, confirm request lines from `insighta.api` (`request method=...`); slow requests appear as `slow_request` when over the threshold.
+11. Open `/admin#jobs`, confirm job stats load, and click `Run due jobs` once when ready to verify the runner.
+12. Add the site to Google Search Console and Bing Webmaster Tools; submit the sitemap.
+13. Validate representative homepage, directory, category, and study URLs with search-engine inspection tools.
 10. Replace the product-aligned Privacy and Terms drafts with counsel-approved, entity- and jurisdiction-specific versions before public production use.
 
 See `SEO_IMPLEMENTATION.md` for the full SEO audit, implementation map, and operating guidance. See `docs/background_jobs_runbook.md` for background job rollout, verification, and rollback steps. The broader original product documentation remains in `Insighta_README_current_v2.md`.

@@ -12,7 +12,11 @@ Each request log includes:
 - duration in milliseconds
 - request id from `X-Request-Id` or Vercel's `X-Vercel-Id`, when present
 
-Requests slower than the configured threshold are logged as warnings.
+Requests slower than the configured threshold are logged as warnings with a
+`slow_request` message prefix (logger `insighta.api`).
+
+On Render, open the Web Service **Logs** and search for `request method=` to
+confirm request logging, or `slow_request` for slow calls.
 
 ## Environment Variables
 
