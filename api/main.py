@@ -4147,6 +4147,9 @@ def _dashboard_targeting_sql_filter(current_user: User):
     pushed into SQL so the dashboard never needs to materialize every published
     survey just to reject it in Python.
     """
+    # Keep this predicate conservative: every SQL condition here should match
+    # the legacy Python helper exactly or be looser. Narrower filters can hide
+    # valid studies before `_dashboard_survey_matches` gets a chance to run.
     user_edu_min = _education_rank(current_user.education_level, fallback=0)
     user_edu_max = _education_rank(current_user.education_level, fallback=999)
     filters = [
@@ -4215,6 +4218,9 @@ def _dashboard_candidate_surveys(
     exclude_existing_responses: bool,
 ) -> list[Survey]:
     """Fetch only a bounded, SQL-prefiltered dashboard candidate set."""
+    # This replaces the old all-published-surveys scan. The route now asks the
+    # database for likely matches first, then keeps the legacy Python pass only
+    # for formats that are difficult to express safely in SQL.
     query = db.query(Survey).filter(
         Survey.status == "published",
         _dashboard_targeting_sql_filter(current_user),
