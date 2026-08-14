@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case, inspect, text, or_
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case, inspect, text, or_, and_
 from pathlib import Path
 from typing import Any, List, Optional
 from datetime import datetime, timedelta, timezone, date, time
@@ -4046,20 +4046,232 @@ def _dashboard_candidate_limit() -> int:
         return 100
 
 
+def _dashboard_scan_limit() -> int:
+    """Maximum SQL-prefiltered rows inspected before legacy Python checks."""
+    try:
+        configured = int(os.environ.get("INSIGHTA_DASHBOARD_SCAN_LIMIT", "500"))
+    except ValueError:
+        configured = 500
+    if configured <= 0:
+        return 0
+    candidate_limit = _dashboard_candidate_limit()
+    return max(configured, candidate_limit if candidate_limit > 0 else 0)
+
+
 def _dashboard_ai_recommendations_enabled() -> bool:
+    # AI ranking is enabled by default. Dashboard requests still never wait on
+    # Claude: they consume cached AI results and enqueue cache misses for the
+    # background job runner while immediately falling back to local ranking.
     value = os.environ.get("INSIGHTA_DASHBOARD_AI_RECOMMENDATIONS", "1").strip().lower()
     return value not in {"0", "false", "no", "off"}
 
 
-def _limit_dashboard_candidates(surveys: list[Survey]) -> list[Survey]:
+def _dashboard_normalized(column):
+    return func.lower(func.trim(func.coalesce(column, "")))
+
+
+def _dashboard_empty_target_filter(column):
+    normalized = _dashboard_normalized(column)
+    return or_(normalized == "", normalized == "all")
+
+
+def _dashboard_scalar_target_filter(column, user_value: Optional[str]):
+    empty_filter = _dashboard_empty_target_filter(column)
+    normalized_user = (user_value or "").strip().lower()
+    if not normalized_user:
+        return empty_filter
+    return or_(empty_filter, _dashboard_normalized(column) == normalized_user)
+
+
+def _dashboard_language_filter(user_languages: Optional[str]):
+    empty_filter = _dashboard_empty_target_filter(Survey.target_language)
+    languages = {
+        language.strip().lower()
+        for language in (user_languages or "").split(",")
+        if language.strip()
+    }
+    if not languages:
+        return empty_filter
+    return or_(
+        empty_filter,
+        *[_dashboard_normalized(Survey.target_language) == language for language in sorted(languages)],
+    )
+
+
+def _dashboard_location_filter(user: User):
+    empty_filter = _dashboard_empty_target_filter(Survey.target_state)
+    locations = {
+        value.strip().lower()
+        for value in [getattr(user, "state", None), getattr(user, "current_province", None)]
+        if value and value.strip()
+    }
+    if not locations:
+        return empty_filter
+    return or_(
+        empty_filter,
+        *[_dashboard_normalized(Survey.target_state) == location for location in sorted(locations)],
+    )
+
+
+def _dashboard_participation_format_filter(user_value: Optional[str]):
+    normalized_user = (user_value or "").strip().lower()
+    if not normalized_user or normalized_user in {"both", "any format", "hybrid"}:
+        return None
+    normalized = _dashboard_normalized(Survey.target_participation_format)
+    return or_(
+        normalized == "",
+        normalized == "all",
+        normalized == "both",
+        normalized == "any format",
+        normalized == "hybrid",
+        normalized == normalized_user,
+    )
+
+
+def _dashboard_device_filter(user_value: Optional[str]):
+    normalized_user = (user_value or "").strip().lower()
+    normalized = _dashboard_normalized(Survey.target_device)
+    unrestricted = or_(normalized == "", normalized == "all", normalized == "any")
+    if normalized_user == "any":
+        return None
+    if not normalized_user:
+        return unrestricted
+    return or_(unrestricted, normalized == normalized_user)
+
+
+def _dashboard_targeting_sql_filter(current_user: User):
+    """Build the exact SQL-safe portion of participant targeting.
+
+    Age and comma-separated tag overlap remain as a final Python check because
+    their legacy formats are intentionally permissive. Everything else is
+    pushed into SQL so the dashboard never needs to materialize every published
+    survey just to reject it in Python.
+    """
+    # Keep this predicate conservative: every SQL condition here should match
+    # the legacy Python helper exactly or be looser. Narrower filters can hide
+    # valid studies before `_dashboard_survey_matches` gets a chance to run.
+    user_edu_min = _education_rank(current_user.education_level, fallback=0)
+    user_edu_max = _education_rank(current_user.education_level, fallback=999)
+    filters = [
+        or_(Survey.target_education_min.is_(None), Survey.target_education_min <= user_edu_min),
+        or_(Survey.target_education_max.is_(None), Survey.target_education_max >= user_edu_max),
+        _dashboard_scalar_target_filter(Survey.target_field, current_user.field),
+        _dashboard_scalar_target_filter(Survey.target_status, current_user.status),
+        _dashboard_location_filter(current_user),
+        _dashboard_language_filter(current_user.language),
+        _dashboard_scalar_target_filter(Survey.target_ethnicity, current_user.ethnicity),
+        _dashboard_scalar_target_filter(Survey.target_sexual_orientation, current_user.sexual_orientation),
+        _dashboard_scalar_target_filter(Survey.target_mental_health_diagnosis, current_user.mental_health_diagnosis),
+        _dashboard_scalar_target_filter(Survey.target_physical_health_diagnosis, current_user.physical_health_diagnosis),
+        _dashboard_scalar_target_filter(Survey.target_sport_type, current_user.sport_type),
+        _dashboard_scalar_target_filter(Survey.target_sport_frequency, current_user.sport_frequency),
+        _dashboard_scalar_target_filter(Survey.target_smoking, current_user.smoking),
+        _dashboard_scalar_target_filter(Survey.target_cannabis_use, current_user.cannabis_use),
+        _dashboard_scalar_target_filter(Survey.target_student_status, getattr(current_user, "student_status", None)),
+        _dashboard_scalar_target_filter(Survey.target_international_domestic, getattr(current_user, "international_domestic", None)),
+        _dashboard_scalar_target_filter(Survey.target_income_level, getattr(current_user, "income_level", None)),
+    ]
+    participation_filter = _dashboard_participation_format_filter(getattr(current_user, "participation_format", None))
+    if participation_filter is not None:
+        filters.append(participation_filter)
+    device_filter = _dashboard_device_filter(getattr(current_user, "device_type", None))
+    if device_filter is not None:
+        filters.append(device_filter)
+    return or_(Survey.payment_status == "admin_demo", and_(*filters))
+
+
+def _dashboard_survey_matches(s: Survey, current_user: User) -> bool:
+    """Final compatibility check for legacy targeting formats."""
+    if getattr(s, "payment_status", None) == "admin_demo":
+        return True
+    user_edu_min = _education_rank(current_user.education_level, fallback=0)
+    user_edu_max = _education_rank(current_user.education_level, fallback=999)
+    if not _age_matches(s.target_age_range, current_user): return False
+    if s.target_education_min is not None and user_edu_min < s.target_education_min: return False
+    if s.target_education_max is not None and user_edu_max > s.target_education_max: return False
+    if not _field_matches(s.target_field, current_user.field): return False
+    if not _field_matches(s.target_status, current_user.status): return False
+    if not _location_matches(s.target_state, current_user): return False
+    if not _language_matches(s.target_language, current_user.language): return False
+    if not _field_matches(s.target_ethnicity, current_user.ethnicity): return False
+    if not _field_matches(s.target_sexual_orientation, current_user.sexual_orientation): return False
+    if not _field_matches(s.target_mental_health_diagnosis, current_user.mental_health_diagnosis): return False
+    if not _field_matches(s.target_physical_health_diagnosis, current_user.physical_health_diagnosis): return False
+    if not _field_matches(s.target_sport_type, current_user.sport_type): return False
+    if not _field_matches(s.target_sport_frequency, current_user.sport_frequency): return False
+    if not _field_matches(s.target_smoking, current_user.smoking): return False
+    if not _field_matches(s.target_cannabis_use, current_user.cannabis_use): return False
+    if not _field_matches(getattr(s, "target_student_status", None), getattr(current_user, "student_status", None)): return False
+    if not _field_matches(getattr(s, "target_international_domestic", None), getattr(current_user, "international_domestic", None)): return False
+    if not _tags_match(getattr(s, "target_experience_tags", None), getattr(current_user, "experience_tags", None)): return False
+    if not _participation_format_matches(getattr(s, "target_participation_format", None), getattr(current_user, "participation_format", None)): return False
+    if not _device_matches(getattr(s, "target_device", None), getattr(current_user, "device_type", None)): return False
+    if not _field_matches(getattr(s, "target_income_level", None), getattr(current_user, "income_level", None)): return False
+    if not _tags_match(getattr(s, "target_lifestyle_tags", None), getattr(current_user, "lifestyle_tags", None)): return False
+    return True
+
+
+def _dashboard_candidate_surveys(
+    db: Session,
+    current_user: User,
+    *,
+    exclude_existing_responses: bool,
+) -> list[Survey]:
+    """Fetch only a bounded, SQL-prefiltered dashboard candidate set."""
+    # This replaces the old all-published-surveys scan. The route now asks the
+    # database for likely matches first, then keeps the legacy Python pass only
+    # for formats that are difficult to express safely in SQL.
+    query = db.query(Survey).filter(
+        Survey.status == "published",
+        _dashboard_targeting_sql_filter(current_user),
+    )
+    if exclude_existing_responses:
+        existing_response = db.query(Response.id).filter(
+            Response.survey_id == Survey.id,
+            Response.participant_id == current_user.id,
+        )
+        query = query.filter(~existing_response.exists())
+
+    query = query.order_by(
+        case((Survey.published_at.is_(None), 1), else_=0).asc(),
+        Survey.published_at.desc(),
+        Survey.created_at.desc(),
+        Survey.id.desc(),
+    )
     limit = _dashboard_candidate_limit()
-    if limit <= 0 or len(surveys) <= limit:
-        return surveys
-    return sorted(
-        surveys,
-        key=lambda s: s.published_at.timestamp() if s.published_at else 0,
-        reverse=True,
-    )[:limit]
+    scan_limit = _dashboard_scan_limit()
+
+    # Age and legacy comma-separated tag formats are checked in Python. Keep
+    # that compatibility pass bounded too: without a scan ceiling, a sparse
+    # match could still walk the entire published table page by page.
+    effective_limit = limit if limit > 0 else None
+    batch_size = max(100, min(500, (effective_limit or 100) * 2))
+    offset = 0
+    scanned = 0
+    matched: list[Survey] = []
+    while effective_limit is None or len(matched) < effective_limit:
+        if scan_limit > 0 and scanned >= scan_limit:
+            break
+        page_limit = batch_size
+        if scan_limit > 0:
+            page_limit = min(page_limit, scan_limit - scanned)
+        if page_limit <= 0:
+            break
+        rows = query.offset(offset).limit(page_limit).all()
+        if not rows:
+            break
+        scanned += len(rows)
+        matched.extend(
+            survey for survey in rows
+            if _dashboard_survey_matches(survey, current_user)
+        )
+        if len(rows) < page_limit:
+            break
+        offset += len(rows)
+
+    if effective_limit is None:
+        return matched
+    return matched[:effective_limit]
 
 
 def _cached_dashboard_recommendations(db: Session, surveys: list[Survey], user: User) -> dict[int, dict]:
@@ -4073,8 +4285,91 @@ def _cached_dashboard_recommendations(db: Session, surveys: list[Survey], user: 
             user_id=user.id,
             survey_ids=missing_ids,
         )
-        db.commit()
+        # Keep the dashboard request free of any LLM call. The job is persisted
+        # by the route's single commit together with other dashboard writes.
+        db.flush()
     return recommendations
+
+
+def _dashboard_screening_state(
+    db: Session,
+    survey_ids: list[int],
+    participant_id: int,
+) -> tuple[dict[int, bool], dict[int, bool]]:
+    if not survey_ids:
+        return {}, {}
+    latest_rows = db.query(
+        ScreeningQuestion.survey_id,
+        func.max(ScreeningQuestion.version),
+    ).filter(
+        ScreeningQuestion.survey_id.in_(survey_ids),
+        ScreeningQuestion.status == "approved",
+    ).group_by(ScreeningQuestion.survey_id).all()
+    latest_versions = {
+        int(survey_id): int(version)
+        for survey_id, version in latest_rows
+        if version is not None
+    }
+    required = {survey_id: survey_id in latest_versions for survey_id in survey_ids}
+    if not latest_versions:
+        return required, {survey_id: True for survey_id in survey_ids}
+
+    attempts = db.query(
+        ScreeningAttempt.survey_id,
+        ScreeningAttempt.version,
+    ).filter(
+        ScreeningAttempt.participant_id == participant_id,
+        ScreeningAttempt.survey_id.in_(list(latest_versions)),
+        ScreeningAttempt.status == "passed",
+    ).all()
+    passed_pairs = {(int(survey_id), int(version)) for survey_id, version in attempts}
+    passed = {
+        survey_id: (
+            True if survey_id not in latest_versions
+            else (survey_id, latest_versions[survey_id]) in passed_pairs
+        )
+        for survey_id in survey_ids
+    }
+    return required, passed
+
+
+def _verification_satisfies_with_tier(user: User, survey: Survey, actual_tier: Optional[str]) -> bool:
+    required_tier = getattr(survey, "required_verification_tier", None) or "tier_3"
+    if not _tier_satisfies(actual_tier, required_tier):
+        return False
+    domains = _normalize_domains(getattr(survey, "required_email_domains", None))
+    if domains and _email_domain(_verified_email_for(user)) not in domains:
+        return False
+    return True
+
+
+def _dashboard_share_paths(db: Session, surveys: list[Survey]) -> dict[int, str]:
+    """Ensure dashboard cards have share slugs without per-card commits."""
+    missing = [survey for survey in surveys if not getattr(survey, "share_slug", None)]
+    while missing:
+        generated: dict[int, str] = {}
+        used = set()
+        for survey in missing:
+            slug = _new_share_slug()
+            while slug in used:
+                slug = _new_share_slug()
+            generated[survey.id] = slug
+            used.add(slug)
+        collisions = {
+            slug for (slug,) in db.query(Survey.share_slug).filter(Survey.share_slug.in_(list(used))).all()
+            if slug
+        }
+        still_missing = []
+        for survey in missing:
+            slug = generated[survey.id]
+            if slug in collisions:
+                still_missing.append(survey)
+            else:
+                survey.share_slug = slug
+        missing = still_missing
+    if surveys:
+        db.flush()
+    return {survey.id: f"/r/{survey.share_slug}" for survey in surveys}
 
 
 def _completed_counts_for_surveys(db: Session, survey_ids: list[int]) -> dict[int, int]:
@@ -4116,13 +4411,18 @@ def _participant_survey_payload(
     db: Session,
     current_user: User,
     user_response: Optional[Response] = None,
+    user_response_loaded: bool = False,
     completed_count: Optional[int] = None,
+    verification_satisfied: Optional[bool] = None,
+    screening_required: Optional[bool] = None,
+    screening_passed: Optional[bool] = None,
+    share_path: Optional[str] = None,
 ) -> dict:
     if completed_count is None:
         completed_count = db.query(Response).filter(
             Response.survey_id == s.id, Response.status == "completed"
         ).count()
-    if user_response is None:
+    if user_response is None and not user_response_loaded:
         user_response = db.query(Response).filter(
             Response.survey_id == s.id, Response.participant_id == current_user.id
         ).first()
@@ -4150,10 +4450,13 @@ def _participant_survey_payload(
     # ive added this for verification — tell the participant up front if this
     # study needs a stronger tier or a specific email domain they dont have yet
     required_tier = getattr(s, "required_verification_tier", None) or "tier_3"
-    verification_satisfied = _verification_satisfies(current_user, s, db)
-    screening_questions = _approved_screening_questions(db, s.id)
-    screening_required = bool(screening_questions)
-    screening_passed = _screening_passed(db, s.id, current_user.id) if screening_required else True
+    if verification_satisfied is None:
+        verification_satisfied = _verification_satisfies(current_user, s, db)
+    if screening_required is None:
+        screening_questions = _approved_screening_questions(db, s.id)
+        screening_required = bool(screening_questions)
+    if screening_passed is None:
+        screening_passed = _screening_passed(db, s.id, current_user.id) if screening_required else True
 
     return {
         "id": s.id,
@@ -4162,7 +4465,7 @@ def _participant_survey_payload(
         "niche": getattr(s, "target_niche_requirements", None),
         "benefits": getattr(s, "participant_benefits", None),
         "link": form_link,
-        "share_path": _survey_share_path(db, s, commit=True),
+        "share_path": share_path or _survey_share_path(db, s, commit=True),
         "type": _normalize_task_type(getattr(s, "task_type", None)),
         "format": getattr(s, "target_participation_format", None),
         "type_label": _participant_study_type_label(s),
@@ -4208,48 +4511,12 @@ def dashboard(
         tab = request.query_params.get("tab")
         mobile_url = f"/dashboard/mobile?tab={tab}" if tab in {"home", "earnings", "profile"} else "/dashboard/mobile"
         return RedirectResponse(mobile_url, status_code=302)
-    all_published = db.query(Survey).filter(Survey.status == "published").all()
-
-    user_edu_min = _education_rank(current_user.education_level, fallback=0)
-    user_edu_max = _education_rank(current_user.education_level, fallback=999)
-
-    def survey_matches(s: Survey) -> bool:
-        if getattr(s, "payment_status", None) == "admin_demo":
-            return True
-        if not _age_matches(s.target_age_range, current_user): return False
-        if s.target_education_min is not None:
-            if user_edu_min < s.target_education_min: return False
-        if s.target_education_max is not None:
-            if user_edu_max > s.target_education_max: return False
-        if not _field_matches(s.target_field, current_user.field): return False
-        if not _field_matches(s.target_status, current_user.status): return False
-        if not _location_matches(s.target_state, current_user): return False
-        if not _language_matches(s.target_language, current_user.language): return False
-        if not _field_matches(s.target_ethnicity, current_user.ethnicity): return False
-        if not _field_matches(s.target_sexual_orientation, current_user.sexual_orientation): return False
-        if not _field_matches(s.target_mental_health_diagnosis, current_user.mental_health_diagnosis): return False
-        if not _field_matches(s.target_physical_health_diagnosis, current_user.physical_health_diagnosis): return False
-        if not _field_matches(s.target_sport_type, current_user.sport_type): return False
-        if not _field_matches(s.target_sport_frequency, current_user.sport_frequency): return False
-        if not _field_matches(s.target_smoking, current_user.smoking): return False
-        if not _field_matches(s.target_cannabis_use, current_user.cannabis_use): return False
-        if not _field_matches(getattr(s, 'target_student_status', None), getattr(current_user, 'student_status', None)): return False
-        if not _field_matches(getattr(s, 'target_international_domestic', None), getattr(current_user, 'international_domestic', None)): return False
-        if not _tags_match(getattr(s, 'target_experience_tags', None), getattr(current_user, 'experience_tags', None)): return False
-        if not _participation_format_matches(getattr(s, 'target_participation_format', None), getattr(current_user, 'participation_format', None)): return False
-        if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
-        if not _field_matches(getattr(s, 'target_income_level', None), getattr(current_user, 'income_level', None)): return False
-        if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
-        return True
-
-    participant_response_survey_ids = {
-        row[0] for row in db.query(Response.survey_id).filter(Response.participant_id == current_user.id).all()
-    }
-    matched = [
-        s for s in all_published
-        if s.id not in participant_response_survey_ids and survey_matches(s)
-    ]
-    matched = _limit_dashboard_candidates(matched)
+    dashboard_started_at = request_timer_start()
+    matched = _dashboard_candidate_surveys(
+        db,
+        current_user,
+        exclude_existing_responses=True,
+    )
 
     # Use cached Claude recommendations only; refresh missing cache in the job runner.
     recommendation_map = _cached_dashboard_recommendations(db, matched, current_user)
@@ -4265,6 +4532,13 @@ def dashboard(
     matched_ids = [s.id for s in matched]
     completed_counts = _completed_counts_for_surveys(db, matched_ids)
     user_responses = _user_responses_for_surveys(db, current_user.id, matched_ids)
+    screening_required_map, screening_passed_map = _dashboard_screening_state(
+        db,
+        matched_ids,
+        current_user.id,
+    )
+    actual_tier = _current_assurance_tier(db, current_user)
+    share_paths = _dashboard_share_paths(db, matched)
     for s in matched:
         llm_rec = recommendation_map.get(s.id, {})
         user_response = user_responses.get(s.id)
@@ -4273,7 +4547,12 @@ def dashboard(
             db,
             current_user,
             user_response,
+            user_response_loaded=True,
             completed_count=completed_counts.get(s.id, 0),
+            verification_satisfied=_verification_satisfies_with_tier(current_user, s, actual_tier),
+            screening_required=screening_required_map.get(s.id, False),
+            screening_passed=screening_passed_map.get(s.id, True),
+            share_path=share_paths.get(s.id),
         )
         payload.update({
             "completion_probability": llm_rec.get("completion_probability"),
@@ -4307,6 +4586,14 @@ def dashboard(
     pending_earnings = getattr(current_user, 'pending_earnings', 0.0) or 0.0
     total_withdrawn = getattr(current_user, 'total_withdrawn', 0.0) or 0.0
     db.commit()
+
+    logger.info(
+        "dashboard_build path=/dashboard candidates=%s cache_hits=%s ai_enabled=%s duration_ms=%.2f",
+        len(matched),
+        len(recommendation_map),
+        _dashboard_ai_recommendations_enabled(),
+        request_duration_ms(dashboard_started_at),
+    )
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -4401,42 +4688,14 @@ def dashboard_mobile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    all_published = db.query(Survey).filter(Survey.status == "published").all()
-
-    user_edu_min = _education_rank(current_user.education_level, fallback=0)
-    user_edu_max = _education_rank(current_user.education_level, fallback=999)
-
-    def survey_matches(s: Survey) -> bool:
-        if getattr(s, "payment_status", None) == "admin_demo":
-            return True
-        if not _age_matches(s.target_age_range, current_user): return False
-        if s.target_education_min is not None:
-            if user_edu_min < s.target_education_min: return False
-        if s.target_education_max is not None:
-            if user_edu_max > s.target_education_max: return False
-        if not _field_matches(s.target_field, current_user.field): return False
-        if not _field_matches(s.target_status, current_user.status): return False
-        if not _location_matches(s.target_state, current_user): return False
-        if not _language_matches(s.target_language, current_user.language): return False
-        if not _field_matches(s.target_ethnicity, current_user.ethnicity): return False
-        if not _field_matches(s.target_sexual_orientation, current_user.sexual_orientation): return False
-        if not _field_matches(s.target_mental_health_diagnosis, current_user.mental_health_diagnosis): return False
-        if not _field_matches(s.target_physical_health_diagnosis, current_user.physical_health_diagnosis): return False
-        if not _field_matches(s.target_sport_type, current_user.sport_type): return False
-        if not _field_matches(s.target_sport_frequency, current_user.sport_frequency): return False
-        if not _field_matches(s.target_smoking, current_user.smoking): return False
-        if not _field_matches(s.target_cannabis_use, current_user.cannabis_use): return False
-        if not _field_matches(getattr(s, 'target_student_status', None), getattr(current_user, 'student_status', None)): return False
-        if not _field_matches(getattr(s, 'target_international_domestic', None), getattr(current_user, 'international_domestic', None)): return False
-        if not _tags_match(getattr(s, 'target_experience_tags', None), getattr(current_user, 'experience_tags', None)): return False
-        if not _participation_format_matches(getattr(s, 'target_participation_format', None), getattr(current_user, 'participation_format', None)): return False
-        if not _device_matches(getattr(s, 'target_device', None), getattr(current_user, 'device_type', None)): return False
-        if not _field_matches(getattr(s, 'target_income_level', None), getattr(current_user, 'income_level', None)): return False
-        if not _tags_match(getattr(s, 'target_lifestyle_tags', None), getattr(current_user, 'lifestyle_tags', None)): return False
-        return True
-
-    matched = [s for s in all_published if survey_matches(s)]
-    matched = _limit_dashboard_candidates(matched)
+    dashboard_started_at = request_timer_start()
+    # Mobile intentionally keeps started/skipped responses visible; completed
+    # studies are filtered after the single batched response lookup below.
+    matched = _dashboard_candidate_surveys(
+        db,
+        current_user,
+        exclude_existing_responses=False,
+    )
 
     # Use cached Claude recommendations only; refresh missing cache in the job runner.
     recommendation_map = _cached_dashboard_recommendations(db, matched, current_user)
@@ -4458,6 +4717,7 @@ def dashboard_mobile(
     matched_ids = [s.id for s in matched]
     completed_counts = _completed_counts_for_surveys(db, matched_ids)
     user_responses = _user_responses_for_surveys(db, current_user.id, matched_ids)
+    share_paths = _dashboard_share_paths(db, matched)
     for s in matched:
         llm_rec = recommendation_map.get(s.id, {})
         completed_cnt = completed_counts.get(s.id, 0)
@@ -4483,7 +4743,7 @@ def dashboard_mobile(
             "niche": getattr(s, "target_niche_requirements", None),
             "benefits": getattr(s, "participant_benefits", None),
             "link": form_link,
-            "share_path": _survey_share_path(db, s, commit=True),
+            "share_path": share_paths.get(s.id) or _survey_share_path(db, s, commit=False),
             "type": _normalize_task_type(getattr(s, "task_type", None)),
             "format": getattr(s, "target_participation_format", None),
             "type_label": _participant_study_type_label(s),
@@ -4518,6 +4778,16 @@ def dashboard_mobile(
         Response.participant_id == current_user.id,
         Response.status == "completed",
     ).count()
+    db.commit()
+
+    logger.info(
+        "dashboard_build path=/dashboard/mobile candidates=%s visible=%s cache_hits=%s ai_enabled=%s duration_ms=%.2f",
+        len(matched),
+        len(surveys_data),
+        len(recommendation_map),
+        _dashboard_ai_recommendations_enabled(),
+        request_duration_ms(dashboard_started_at),
+    )
 
     return templates.TemplateResponse("dashboard_mobile.html", {
         "request": request,

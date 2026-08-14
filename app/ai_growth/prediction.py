@@ -351,14 +351,29 @@ def _get_cached_prediction(db: Session, survey_id: int, participant_id: int) -> 
     return _prediction_from_cache(cached) if cached else None
 
 
+def _cached_predictions_for_user(
+    db: Session,
+    survey_ids: list[int],
+    participant_id: int,
+) -> dict[int, dict]:
+    if not survey_ids:
+        return {}
+    rows = db.query(RespondentPrediction).filter(
+        RespondentPrediction.survey_id.in_(survey_ids),
+        RespondentPrediction.participant_id == participant_id,
+        RespondentPrediction.model_version == MODEL_VERSION,
+        RespondentPrediction.expires_at > _now(),
+    ).all()
+    return {row.survey_id: _prediction_from_cache(row) for row in rows}
+
+
 def cached_recommendations_for_user(db: Session, surveys: list[Survey], user: User) -> dict[int, dict]:
     """Return dashboard recommendation cache only; never calls Claude."""
-    recommendations: dict[int, dict] = {}
-    for survey in surveys:
-        cached = _get_cached_prediction(db, survey.id, user.id)
-        if cached:
-            recommendations[survey.id] = cached
-    return recommendations
+    return _cached_predictions_for_user(
+        db,
+        [survey.id for survey in surveys],
+        user.id,
+    )
 
 
 def _save_prediction_cache(db: Session, result: dict) -> None:
@@ -492,15 +507,11 @@ def top_respondents(db: Session, survey: Survey, limit: int = 20, force: bool = 
 
 def recommend_surveys_for_user(db: Session, surveys: list[Survey], user: User, use_cache: bool = True) -> dict[int, dict]:
     """Batch Claude-only recommendations for dashboard ordering."""
-    recommendations: dict[int, dict] = {}
-    missing: list[Survey] = []
-
-    for survey in surveys:
-        cached = _get_cached_prediction(db, survey.id, user.id) if use_cache else None
-        if cached:
-            recommendations[survey.id] = cached
-        else:
-            missing.append(survey)
+    recommendations = (
+        _cached_predictions_for_user(db, [survey.id for survey in surveys], user.id)
+        if use_cache else {}
+    )
+    missing = [survey for survey in surveys if survey.id not in recommendations]
 
     for batch in _chunked(missing, llm_batch_size()):
         payload = _survey_batch_payload(db, batch, user)
