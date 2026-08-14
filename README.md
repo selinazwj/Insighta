@@ -71,6 +71,6 @@ GitHub Actions runs both checks from `.github/workflows/seo-check.yml`.
 11. Open `/admin#jobs`, confirm job stats load, and click `Run due jobs` once when ready to verify the runner.
 12. Add the site to Google Search Console and Bing Webmaster Tools; submit the sitemap.
 13. Validate representative homepage, directory, category, and study URLs with search-engine inspection tools.
-10. Replace the product-aligned Privacy and Terms drafts with counsel-approved, entity- and jurisdiction-specific versions before public production use.
+14. Replace the product-aligned Privacy and Terms drafts with counsel-approved, entity- and jurisdiction-specific versions before public production use.
 
 See `SEO_IMPLEMENTATION.md` for the full SEO audit, implementation map, and operating guidance. See `docs/background_jobs_runbook.md` for background job rollout, verification, and rollback steps. The broader original product documentation remains in `Insighta_README_current_v2.md`.
