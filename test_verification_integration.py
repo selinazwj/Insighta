@@ -35,6 +35,7 @@ class VerificationIntegrationTests(unittest.TestCase):
             ParticipationDecision,
             EmailVerificationCode,
             Notification,
+            QualityBlacklist,
             RiskSignalEvent,
             Response,
             ScreeningAttempt,
@@ -49,6 +50,7 @@ class VerificationIntegrationTests(unittest.TestCase):
         try:
             db.query(ParticipationDecision).delete()
             db.query(RiskSignalEvent).delete()
+            db.query(QualityBlacklist).delete()
             db.query(Notification).delete()
             db.query(ScreeningAttempt).delete()
             db.query(ScreeningQuestion).delete()
@@ -90,6 +92,131 @@ class VerificationIntegrationTests(unittest.TestCase):
     def test_retired_auto_verify_route_is_not_mounted(self):
         response = self.client.post("/verifications/start?user_id=1")
         self.assertEqual(response.status_code, 404)
+
+    def test_admin_can_approve_and_block_flagged_accounts(self):
+        from app.models import ParticipationDecision, QualityBlacklist, Verification
+
+        db = self.SessionLocal()
+        try:
+            db.add(ParticipationDecision(
+                participant_id=self.participant_id,
+                survey_id=self.survey_id,
+                stage="start",
+                human_status="review",
+                human_risk_score=45,
+                eligibility_status="passed",
+                assurance_status="passed",
+                quality_status="not_available",
+                outcome="review",
+                reasons=["Several accounts on this network joined the same study"],
+            ))
+            db.commit()
+        finally:
+            db.close()
+
+        with patch.dict(os.environ, {
+            "ADMIN_KEY": "test-admin-key",
+            "VERIFICATION_EVIDENCE_SECRET": "test-evidence-secret",
+        }):
+            response = self.client.get(
+                "/admin/trust-reviews?admin_key=test-admin-key&status=pending",
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["counts"]["pending"], 1)
+            self.assertEqual(
+                response.json()["flagged_accounts"][0]["user_id"],
+                self.participant_id,
+            )
+
+            response = self.client.post(
+                f"/admin/trust-reviews/{self.participant_id}",
+                json={"admin_key": "test-admin-key", "action": "approve"},
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.json()["approval_expires_at"])
+
+            response = self.client.get(
+                "/admin/trust-reviews?admin_key=test-admin-key&status=approved",
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["counts"]["approved"], 1)
+
+            response = self.client.post(
+                f"/admin/trust-reviews/{self.participant_id}",
+                json={
+                    "admin_key": "test-admin-key",
+                    "action": "block",
+                    "note": "Repeated suspicious activity",
+                },
+            )
+            self.assertEqual(response.status_code, 200)
+
+            response = self.client.get(
+                "/admin/trust-reviews?admin_key=test-admin-key&status=blocked",
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["counts"]["blocked"], 1)
+
+        db = self.SessionLocal()
+        try:
+            review = db.query(Verification).filter(
+                Verification.user_id == self.participant_id,
+                Verification.method == "admin_review",
+            ).one()
+            block = db.query(QualityBlacklist).filter(
+                QualityBlacklist.block_type == "email",
+                QualityBlacklist.block_value == "participant@example.com",
+            ).one()
+            self.assertEqual(review.status, "rejected")
+            self.assertTrue(block.reason.startswith("[trust-review]"))
+        finally:
+            db.close()
+
+    def test_trust_approval_does_not_remove_a_separate_admin_block(self):
+        from app.models import ParticipationDecision, QualityBlacklist
+
+        db = self.SessionLocal()
+        try:
+            db.add(ParticipationDecision(
+                participant_id=self.participant_id,
+                survey_id=self.survey_id,
+                stage="start",
+                human_status="blocked",
+                human_risk_score=75,
+                eligibility_status="passed",
+                assurance_status="passed",
+                quality_status="not_available",
+                outcome="block",
+                reasons=["Interaction speed is unusually high"],
+            ))
+            db.add(QualityBlacklist(
+                block_type="email",
+                block_value="participant@example.com",
+                reason="Separate abuse investigation",
+            ))
+            db.commit()
+        finally:
+            db.close()
+
+        with patch.dict(os.environ, {
+            "ADMIN_KEY": "test-admin-key",
+            "VERIFICATION_EVIDENCE_SECRET": "test-evidence-secret",
+        }):
+            response = self.client.post(
+                f"/admin/trust-reviews/{self.participant_id}",
+                json={"admin_key": "test-admin-key", "action": "approve"},
+            )
+        self.assertEqual(response.status_code, 409)
+
+        db = self.SessionLocal()
+        try:
+            block = db.query(QualityBlacklist).filter(
+                QualityBlacklist.block_type == "email",
+                QualityBlacklist.block_value == "participant@example.com",
+            ).one()
+            self.assertEqual(block.reason, "Separate abuse investigation")
+        finally:
+            db.close()
 
     def test_raw_id_routes_are_removed(self):
         response = self.client.post(

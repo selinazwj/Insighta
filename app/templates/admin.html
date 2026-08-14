@@ -243,6 +243,12 @@
     .listing-desc{font-size:12px;color:var(--ink3);max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .danger-btn{height:32px;padding:0 12px;border-radius:6px;border:0.5px solid var(--red-b);background:var(--red-l);color:#b91c1c;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;}
     .danger-btn:hover{background:#fee2e2;}
+    .trust-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+    .trust-reasons{display:flex;flex-wrap:wrap;gap:5px;max-width:360px;}
+    .trust-reason{font-size:10px;font-weight:600;color:var(--ink2);background:var(--bg3);border:0.5px solid var(--line);border-radius:999px;padding:3px 7px;}
+    .trust-approved{color:var(--green);font-weight:700;}
+    .trust-blocked{color:#b91c1c;font-weight:700;}
+    .trust-pending{color:#92400e;font-weight:700;}
 
     /* ── EMPTY / LOADING ── */
     .empty{text-align:center;padding:64px 20px;}
@@ -312,6 +318,11 @@
       <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
       Support inbox
       <span class="nav-badge" id="support-badge" style="display:none;">0</span>
+    </button>
+    <button class="nav-item" id="nav-trust" onclick="switchPanel('trust')">
+      <svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8-8 9c-4.6-1-8-4-8-9V7z"/><path d="M9 12l2 2l4-4"/></svg>
+      Flagged accounts
+      <span class="nav-badge" id="trust-badge" style="display:none;">0</span>
     </button>
     <button class="nav-item" id="nav-blocks" onclick="switchPanel('blocks')">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9l14.2 14.2"/></svg>
@@ -394,6 +405,11 @@
       <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('blocks')">
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">User blocks</div>
         <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Block abusive users by email across login, signup, OAuth, and active sessions.</div>
+        <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
+      </div>
+      <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('trust')">
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;">Flagged accounts</div>
+        <div style="font-size:12px;color:var(--ink3);line-height:1.6;">Review account-level risk signals and manually approve or block a participant.</div>
         <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:10px;">Open →</div>
       </div>
       <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:20px;cursor:pointer;" onclick="switchPanel('email')">
@@ -611,6 +627,29 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
     </div>
   </div>
 
+  <!-- ── FLAGGED ACCOUNTS PANEL ── -->
+  <div class="panel" id="panel-trust">
+    <div class="filter-tabs" id="trustFilterTabs">
+      <button class="f-tab active" data-status="pending" onclick="setTrustFilter('pending',this)">Pending</button>
+      <button class="f-tab" data-status="approved" onclick="setTrustFilter('approved',this)">Approved</button>
+      <button class="f-tab" data-status="blocked" onclick="setTrustFilter('blocked',this)">Blocked</button>
+      <button class="f-tab" data-status="all" onclick="setTrustFilter('all',this)">All</button>
+    </div>
+    <div class="analytics-box">
+      <div class="analytics-head">
+        <div>
+          <div class="analytics-title">Flagged participant accounts</div>
+          <div class="analytics-sub">Account-level human-risk and response-quality flags only. Study eligibility failures do not appear here.</div>
+        </div>
+        <button class="btn-refresh" onclick="loadTrustReviews()">Refresh</button>
+      </div>
+      <div class="warn-box">Approve creates a 30-day human-risk override. It does not bypass study screening, required email domains, or account-assurance requirements. Block immediately disables login and active-session access.</div>
+      <div id="trustReviewList">
+        <div class="empty"><div class="empty-sub">Open this panel to load flagged accounts.</div></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── USER BLOCKS PANEL ── -->
   <div class="panel" id="panel-blocks">
     <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:24px;margin-bottom:16px;max-width:760px;">
@@ -733,12 +772,13 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
   let backgroundJobs = null;
   let activityRows = [];
   let activityState = { offset: 0, limit: 100, total: 0, loading: false };
+  let trustReviewFilter = 'pending';
   let selectedThreadId = null;
   let supportPollTimer = null;
   let currentPanel = 'overview';
 
   // ── PANEL SWITCH ──
-  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', activity:'Activity log', email:'Email', jobs:'Background jobs', feedback:'Feedback review', support:'Support inbox', blocks:'User blocks', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
+  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', activity:'Activity log', email:'Email', jobs:'Background jobs', feedback:'Feedback review', support:'Support inbox', trust:'Flagged accounts', blocks:'User blocks', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
 
   async function login() {
     const input = document.getElementById('adminKeyInput');
@@ -765,6 +805,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
       loadFeedbacks();
       loadSupportThreads();
       loadAnalytics();
+      loadTrustReviews();
       if (supportPollTimer) clearInterval(supportPollTimer);
       supportPollTimer = setInterval(loadSupportThreads, 8000);
       if (window.location.hash === '#analytics') switchPanel('analytics');
@@ -773,6 +814,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
       if (window.location.hash === '#jobs') switchPanel('jobs');
       if (window.location.hash === '#listings') switchPanel('listings');
       if (window.location.hash === '#support') switchPanel('support');
+      if (window.location.hash === '#trust') switchPanel('trust');
       if (window.location.hash === '#blocks') switchPanel('blocks');
       if (window.location.hash === '#discovery') switchPanel('discovery');
       if (window.location.hash === '#publish') switchPanel('publish');
@@ -795,6 +837,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
     if (id === 'analytics') loadAnalytics();
     if (id === 'activity') loadActivity(true);
     if (id === 'jobs') loadBackgroundJobs();
+    if (id === 'trust') loadTrustReviews();
     if (id === 'blocks') loadBlockedUsers();
     if (id === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
@@ -806,6 +849,7 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
     else if (currentPanel === 'analytics') loadAnalytics();
     else if (currentPanel === 'activity') loadActivity(true);
     else if (currentPanel === 'jobs') loadBackgroundJobs();
+    else if (currentPanel === 'trust') loadTrustReviews();
     else if (currentPanel === 'blocks') loadBlockedUsers();
     else if (currentPanel === 'overview') { loadFeedbacks(); loadSupportThreads(); }
   }
@@ -882,6 +926,87 @@ Stripe payouts: https://insightaco.org/connect/onboard</textarea>
     } finally {
       btn.disabled = false;
       btn.textContent = original;
+    }
+  }
+
+  function setTrustFilter(status, button) {
+    trustReviewFilter = status;
+    document.querySelectorAll('#trustFilterTabs .f-tab').forEach(tab => tab.classList.remove('active'));
+    if (button) button.classList.add('active');
+    loadTrustReviews();
+  }
+
+  async function loadTrustReviews() {
+    const wrap = document.getElementById('trustReviewList');
+    if (!adminKey || !wrap) return;
+    if (currentPanel === 'trust') {
+      wrap.innerHTML = '<div class="empty"><div class="empty-sub">Loading flagged accounts...</div></div>';
+    }
+    try {
+      const res = await fetch(`/admin/trust-reviews?admin_key=${encodeURIComponent(adminKey)}&status=${encodeURIComponent(trustReviewFilter)}&_=${Date.now()}`, { cache:'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not load flagged accounts');
+      const pendingCount = Number(data.counts?.pending || 0);
+      const badge = document.getElementById('trust-badge');
+      if (badge) {
+        badge.textContent = pendingCount;
+        badge.style.display = pendingCount ? 'flex' : 'none';
+      }
+      const rows = data.flagged_accounts || [];
+      if (!rows.length) {
+        wrap.innerHTML = `<div class="empty"><div class="empty-title">No ${esc(trustReviewFilter === 'all' ? '' : trustReviewFilter + ' ')}flagged accounts</div><div class="empty-sub">New account-level risk flags will appear here.</div></div>`;
+        return;
+      }
+      wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+        <thead><tr><th>Account</th><th>Latest flag</th><th>Context</th><th>Signals</th><th>Resolution</th><th>Actions</th></tr></thead>
+        <tbody>${rows.map(row => {
+          const resolution = row.review_status || 'pending';
+          const reasons = (row.reasons || []).length
+            ? (row.reasons || []).map(reason => `<span class="trust-reason">${esc(reason)}</span>`).join('')
+            : '<span class="rate-empty">No public reason recorded</span>';
+          const approvedUntil = resolution === 'approved' && row.approval_expires_at
+            ? `<div class="activity-meta">Until ${esc(new Date(row.approval_expires_at).toLocaleDateString())}</div>`
+            : '';
+          return `<tr>
+            <td><div class="listing-title">${esc(row.name || 'Participant')}</div><div class="activity-meta">${esc(row.email || '')} · User ${Number(row.user_id)}</div></td>
+            <td><span class="status-pill ${row.human_status === 'blocked' ? 's-failed' : 's-pending'}">${esc(row.human_status || row.outcome || 'flagged')}</span><div class="activity-meta">Risk ${Math.round(Number(row.human_risk_score || 0))} · ${esc(row.stage || '')}</div></td>
+            <td><div class="listing-title">${esc(row.survey_title || 'Account-level activity')}</div><div class="activity-meta">${esc(row.flagged_at ? new Date(row.flagged_at).toLocaleString() : '—')}</div></td>
+            <td><div class="trust-reasons">${reasons}</div>${row.quality_status && row.quality_status !== 'not_available' ? `<div class="activity-meta">Quality: ${esc(row.quality_status)}</div>` : ''}</td>
+            <td><span class="trust-${escAttr(resolution)}">${esc(resolution.charAt(0).toUpperCase() + resolution.slice(1))}</span>${approvedUntil}</td>
+            <td><div class="trust-actions">
+              <button class="btn-run" onclick="resolveTrustReview(${Number(row.user_id)}, '${escAttr(row.email || '')}', 'approve')">Approve</button>
+              <button class="danger-btn" onclick="resolveTrustReview(${Number(row.user_id)}, '${escAttr(row.email || '')}', 'block')">Block</button>
+            </div></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`;
+    } catch (err) {
+      if (currentPanel === 'trust') {
+        wrap.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message || 'Could not load flagged accounts')}</div></div>`;
+      }
+    }
+  }
+
+  async function resolveTrustReview(userId, email, action) {
+    if (!adminKey) return;
+    const approving = action === 'approve';
+    const promptText = approving
+      ? `Approve ${email} for 30 days? Automated human-risk flags will be overridden, but study eligibility and account requirements still apply.`
+      : `Block ${email}? This immediately prevents login and active-session access.`;
+    if (!confirm(promptText)) return;
+    const note = approving ? '' : (prompt('Optional internal reason for this block:', 'Flagged account review') || '').trim();
+    try {
+      const res = await fetch(`/admin/trust-reviews/${Number(userId)}`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ admin_key:adminKey, action, note })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `Could not ${action} this account`);
+      await loadTrustReviews();
+      if (currentPanel === 'blocks') await loadBlockedUsers();
+    } catch (err) {
+      alert(err.message || `Could not ${action} this account.`);
     }
   }
 
