@@ -10,10 +10,15 @@ from __future__ import annotations
 
 import os
 import statistics
+import sys
 import tempfile
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 _db_file = tempfile.NamedTemporaryFile(prefix="insighta-dashboard-bench-", suffix=".db", delete=False)
 _db_file.close()
