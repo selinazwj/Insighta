@@ -8,8 +8,9 @@ cleanup.
 
 ## Production Setup
 
-1. Run the Alembic migration so the `background_jobs` table exists.
-2. Set `CRON_SECRET` in Vercel to a long random value.
+1. Run `python scripts/run_migrations.py` (Render Pre-Deploy or manual) so the
+   `background_jobs` table exists. See `docs/database_migrations.md`.
+2. Set `CRON_SECRET` in the host env (Render / cron caller) to a long random value.
 3. Set `BACKGROUND_JOB_ALERT_EMAIL` if final-failure alerts should go somewhere
    other than `SUPPORT_ALERT_EMAIL`.
 4. Keep `INSIGHTA_ENABLE_LEGACY_FOLLOWUP_WORKER` unset during normal deploys.
