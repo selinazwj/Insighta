@@ -143,6 +143,7 @@ def enqueue_quality_excel_import_job(
     filename: str,
     auto_approve: bool,
     auto_approve_min_score: float | None = None,
+    use_llm: bool = False,
     run_after: datetime | None = None,
 ) -> BackgroundJob:
     upload_key = hashlib.sha256(upload_path.encode("utf-8")).hexdigest()[:16]
@@ -156,6 +157,7 @@ def enqueue_quality_excel_import_job(
             "filename": filename,
             "auto_approve": auto_approve,
             "auto_approve_min_score": auto_approve_min_score,
+            "use_llm": bool(use_llm),
         },
         run_after=run_after,
         dedupe_key=f"{QUALITY_EXCEL_IMPORT}:survey:{survey_id}:upload:{upload_key}",
@@ -169,16 +171,18 @@ def enqueue_dashboard_recommendations_refresh_job(
     user_id: int,
     survey_ids: list[int],
     run_after: datetime | None = None,
+    explicit: bool = False,
 ) -> BackgroundJob:
     normalized_ids = sorted({int(survey_id) for survey_id in survey_ids if int(survey_id) > 0})
     ids_key = hashlib.sha256(",".join(str(survey_id) for survey_id in normalized_ids).encode("utf-8")).hexdigest()[:16]
     refresh_window = (run_after or datetime.utcnow()).strftime("%Y%m%d%H")
+    trigger_mode = "explicit" if explicit else "passive"
     return enqueue_job(
         db,
         job_type=DASHBOARD_RECOMMENDATIONS_REFRESH,
-        payload={"user_id": user_id, "survey_ids": normalized_ids},
+        payload={"user_id": user_id, "survey_ids": normalized_ids, "explicit": bool(explicit)},
         run_after=run_after,
-        dedupe_key=f"{DASHBOARD_RECOMMENDATIONS_REFRESH}:{refresh_window}:user:{user_id}:surveys:{ids_key}",
+        dedupe_key=f"{DASHBOARD_RECOMMENDATIONS_REFRESH}:{trigger_mode}:{refresh_window}:user:{user_id}:surveys:{ids_key}",
         max_attempts=2,
     )
 

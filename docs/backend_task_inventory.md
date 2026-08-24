@@ -31,10 +31,10 @@ Recommended order:
 | Welcome email | `api/main.py` `_send_welcome_followup_email` | Registration / profile completion | Email failure should not affect auth/profile flow; should retry | P1 | Enqueue `welcome_email` job after user record commits |
 | Verification/password code email | `api/main.py` `_send_verification_email`, `/auth/send-code`, `/password-reset`, `/verify/send-code` | User requests code | User-facing, so needs fast path; provider failures should be recorded and rate-limited | P2 | Keep synchronous until job runner supports high-priority immediate jobs |
 | Support alert email | `api/main.py` `send_support_alert_email` | User sends support message | Alert delivery should retry; support message save should not depend on email provider | P2 | Enqueue `support_alert` after support message commits |
-| Excel quality import | `api/main.py` `/api/surveys/{survey_id}/quality/import-excel` | Researcher uploads `.xlsx` / `.xlsm` | Parses workbook, processes up to 500 rows, runs anomaly scoring and LLM review; likely to time out | P0 | Create `quality_import_jobs`; endpoint stores upload metadata and returns job id |
-| Built-in response quality check | `api/main.py` `/surveys/{survey_id}/submit`; `app/quality_engine.py` | Participant submits built-in survey | Runs scoring and can call LLM during submit; submit should not wait on quality review | P1 | Commit response first, enqueue `builtin_quality_check` job |
+| Excel quality import | `api/main.py` `/api/surveys/{survey_id}/quality/import-excel` | Researcher uploads `.xlsx` / `.xlsm` | Parses workbook and processes up to 500 rows; local anomaly scoring is default, while LLM semantic review is explicit opt-in | P0 | Keep import queued; carry the explicit `use_llm` choice in the job payload |
+| Built-in response quality check | `api/main.py` `/surveys/{survey_id}/submit`; `app/quality_engine.py` | Participant submits built-in survey | Runs local rule/anomaly scoring only; hidden LLM review is disabled to keep submissions token-free | P1 | Keep LLM semantic review behind an explicit researcher action if reintroduced |
 | Ensure built-in quality checks | `api/main.py` `/api/surveys/{survey_id}/quality-results`; `app/quality_engine.py` `ensure_builtin_quality_checks` | Researcher opens quality results | Read endpoint may perform scoring work; list pages should not mutate/process large backlogs | P1 | Move backlog scoring to scheduled `quality_backfill` job |
-| Dashboard AI recommendations | `api/main.py` `/dashboard`, `/dashboard/mobile`; `app/ai_growth/prediction.py` `recommend_surveys_for_user` | Participant opens dashboard | Cache misses can call Claude and run many DB lookups; directly affects homepage latency | P0 | Dashboard reads cache/local sort; enqueue `dashboard_recommendations` refresh job |
+| Dashboard AI recommendations | `api/main.py` `/dashboard`, `/dashboard/mobile`; `app/ai_growth/prediction.py` `recommend_surveys_for_user` | Participant opens dashboard | Passive cache misses must not spend LLM tokens | P0 | Dashboard reads cache/local sort only; passive refresh is disabled unless `INSIGHTA_DASHBOARD_AI_AUTO_REFRESH=1` |
 | Prediction recompute | `app/ai_growth/routes.py` `/api/prediction/recompute` | Researcher forces recompute | Can run candidate search and Claude summarization; should report progress | P1 | Endpoint creates `prediction_recompute` job |
 | Prediction summary/respondents | `app/ai_growth/routes.py` `/api/surveys/{survey_id}/prediction/summary`, `/respondents` | Publisher views AI-growth insights | Cache miss may run batch Claude predictions | P1 | Read cached snapshots; enqueue refresh when stale |
 | AI fill | `api/main.py` `/api/ai-fill`, `/admin/api/ai-fill` | Researcher/admin asks AI to draft listing fields | External API call; small enough to keep sync for now, but should have timeout/fallback | P2 | Leave sync initially; add timeout and error metrics |
@@ -114,9 +114,10 @@ The fourth phase moves Excel quality imports into the queue: uploads are saved
 under `private_uploads/quality_imports`, the API returns a job id immediately,
 and the runner performs workbook parsing, anomaly scoring, LLM review, and DB
 writes outside the web request.
-The fifth phase keeps dashboard rendering off the Claude path: dashboard pages
-read only cached respondent predictions, enqueue missing recommendation refresh
-jobs, and let the runner refill `respondent_predictions` asynchronously.
+The fifth phase keeps dashboard rendering off the Claude path. Dashboard pages
+read only cached respondent predictions and use local ordering on cache misses.
+Passive recommendation refresh jobs are now disabled by default; operators can
+opt back in with `INSIGHTA_DASHBOARD_AI_AUTO_REFRESH=1`.
 The final phase moves trust telemetry retention cleanup out of FastAPI startup:
 startup now only enqueues a daily `trust_data_cleanup` maintenance job, and the
 runner deletes expired risk signal and participation decision rows.

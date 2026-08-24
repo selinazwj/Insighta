@@ -811,7 +811,7 @@ def compute_excel_row_quality(
     survey_title: str = "",
     survey_description: str = "",
     survey_reward: float = 0.0,
-    run_llm: bool = True,
+    run_llm: bool = False,
     precomputed_anomaly: Optional[Tuple[float, List[str]]] = None,
 ) -> QualityScoreResult:
     question_map = mapped_question_map
@@ -847,7 +847,7 @@ def compute_quality_score(
     survey_title: str = "",
     survey_description: str = "",
     survey_reward: float = 0.0,
-    run_llm: bool = True,
+    run_llm: bool = False,
     force_llm: bool = False,
     precomputed_anomaly: Optional[Tuple[float, List[str]]] = None,
 ) -> QualityScoreResult:
@@ -962,7 +962,7 @@ def build_peer_features(db: Session, survey_id: int, exclude_response_id: Option
     return rows
 
 
-def evaluate_builtin_response(db: Session, survey_id: int, response_id: int, *, run_llm: bool = True) -> QualityScoreResult:
+def evaluate_builtin_response(db: Session, survey_id: int, response_id: int, *, run_llm: bool = False) -> QualityScoreResult:
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     questions = db.query(Question).filter(Question.survey_id == survey_id).all()
     question_map = {q.id: q for q in questions}

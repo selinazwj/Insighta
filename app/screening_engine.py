@@ -387,7 +387,7 @@ def validate_researcher_edit(
     return validated
 
 
-def generate_screening_draft(survey: Any, *, use_ai: bool = True) -> list[dict[str, Any]]:
+def generate_screening_draft(survey: Any, *, use_ai: bool = False) -> list[dict[str, Any]]:
     """
     Generate a reviewable draft.
 

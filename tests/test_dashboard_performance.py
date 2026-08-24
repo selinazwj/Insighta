@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("DATABASE_URL", "sqlite:////tmp/insighta_dashboard_perf_test.db")
 os.environ["INSIGHTA_DASHBOARD_AI_RECOMMENDATIONS"] = "1"
+os.environ["INSIGHTA_DASHBOARD_AI_AUTO_REFRESH"] = "0"
 os.environ["INSIGHTA_DASHBOARD_CANDIDATE_LIMIT"] = "100"
 os.environ["INSIGHTA_DASHBOARD_SCAN_LIMIT"] = "500"
 
@@ -85,10 +86,12 @@ class DashboardPerformanceTest(unittest.TestCase):
             event.remove(main.engine, "before_cursor_execute", before_cursor_execute)
         return result, count
 
-    def test_ai_ranking_is_enabled_by_default(self):
+    def test_ai_cache_ranking_is_enabled_but_auto_refresh_is_disabled_by_default(self):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("INSIGHTA_DASHBOARD_AI_RECOMMENDATIONS", None)
+            os.environ.pop("INSIGHTA_DASHBOARD_AI_AUTO_REFRESH", None)
             self.assertTrue(main._dashboard_ai_recommendations_enabled())
+            self.assertFalse(main._dashboard_ai_auto_refresh_enabled())
 
     def test_candidate_query_is_bounded_for_1000_published_surveys(self):
         self._seed_surveys(1000)
@@ -244,7 +247,7 @@ class DashboardPerformanceTest(unittest.TestCase):
         self.assertGreaterEqual(low_pos, 0)
         self.assertLess(high_pos, low_pos)
 
-    def test_cold_cache_uses_local_sort_and_enqueues_ai_without_sync_llm(self):
+    def test_cold_cache_uses_local_sort_without_llm_or_background_ai_job(self):
         self._seed_surveys(10)
         client = TestClient(main.app)
 
@@ -269,6 +272,7 @@ class DashboardPerformanceTest(unittest.TestCase):
 
         with patch.dict(os.environ, {
             "INSIGHTA_DASHBOARD_AI_RECOMMENDATIONS": "1",
+            "INSIGHTA_DASHBOARD_AI_AUTO_REFRESH": "0",
             "INSIGHTA_DASHBOARD_CANDIDATE_LIMIT": "100",
             "INSIGHTA_DASHBOARD_SCAN_LIMIT": "500",
         }, clear=False), patch(
@@ -287,19 +291,45 @@ class DashboardPerformanceTest(unittest.TestCase):
         jobs = db.query(BackgroundJob).filter(
             BackgroundJob.job_type == DASHBOARD_RECOMMENDATIONS_REFRESH,
         ).all()
-        self.assertEqual(len(jobs), 1)
-        self.assertEqual(jobs[0].payload_json["user_id"], self.participant_id)
-        self.assertEqual(len(jobs[0].payload_json["survey_ids"]), 10)
+        self.assertEqual(jobs, [])
         db.close()
 
-    def test_background_worker_fills_ai_recommendation_cache(self):
+    def test_legacy_dashboard_ai_job_is_marked_done_without_calling_llm(self):
+        self._seed_surveys(2)
+        db = main.SessionLocal()
+        surveys = db.query(Survey).order_by(Survey.id.asc()).all()
+        job = main.enqueue_dashboard_recommendations_refresh_job(
+            db,
+            user_id=self.participant_id,
+            survey_ids=[survey.id for survey in surveys],
+        )
+        db.commit()
+        job_id = job.id
+        db.close()
+
+        with patch.dict(os.environ, {"INSIGHTA_DASHBOARD_AI_AUTO_REFRESH": "0"}, clear=False), patch(
+            "api.main.recommend_surveys_for_user",
+            side_effect=AssertionError("legacy passive job must not call Claude"),
+        ) as llm_call:
+            result = main.run_due_background_jobs(limit=25)
+
+        llm_call.assert_not_called()
+        self.assertGreaterEqual(result["succeeded"], 1)
+        db = main.SessionLocal()
+        job = db.query(BackgroundJob).filter(BackgroundJob.id == job_id).first()
+        self.assertEqual(job.status, "done")
+        self.assertIn("on-demand only", job.payload_json.get("skipped_reason", ""))
+        db.close()
+
+    def test_background_worker_fills_ai_recommendation_cache_only_when_auto_refresh_opted_in(self):
         self._seed_surveys(3)
         client = TestClient(main.app)
-        response = client.get(
-            "/dashboard",
-            cookies={"user_id": str(self.participant_id)},
-            headers={"user-agent": "Mozilla/5.0 desktop"},
-        )
+        with patch.dict(os.environ, {"INSIGHTA_DASHBOARD_AI_AUTO_REFRESH": "1"}, clear=False):
+            response = client.get(
+                "/dashboard",
+                cookies={"user_id": str(self.participant_id)},
+                headers={"user-agent": "Mozilla/5.0 desktop"},
+            )
         self.assertEqual(response.status_code, 200)
 
         def fake_rank(payload):
@@ -318,7 +348,9 @@ class DashboardPerformanceTest(unittest.TestCase):
                 ]
             })
 
-        with patch("app.ai_growth.prediction.rank_surveys_with_claude", side_effect=fake_rank):
+        with patch.dict(os.environ, {"INSIGHTA_DASHBOARD_AI_AUTO_REFRESH": "1"}, clear=False), patch(
+            "app.ai_growth.prediction.rank_surveys_with_claude", side_effect=fake_rank
+        ):
             result = main.run_due_background_jobs(limit=25)
 
         self.assertGreaterEqual(result["succeeded"], 1)
@@ -380,6 +412,7 @@ class DashboardPerformanceTest(unittest.TestCase):
 
             with patch.dict(os.environ, {
                 "INSIGHTA_DASHBOARD_AI_RECOMMENDATIONS": "1",
+                "INSIGHTA_DASHBOARD_AI_AUTO_REFRESH": "0",
                 "INSIGHTA_DASHBOARD_CANDIDATE_LIMIT": "100",
                 "INSIGHTA_DASHBOARD_SCAN_LIMIT": "500",
             }, clear=False):

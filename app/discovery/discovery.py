@@ -7,11 +7,6 @@ from typing import Any
 
 from .models import Channel, Criteria, DiscoveryResult
 
-try:
-    import anthropic
-except Exception:  # pragma: no cover - incomplete local installs should not break app import.
-    anthropic = None
-
 
 DEFAULT_MODEL = "claude-sonnet-4-5"
 
@@ -292,13 +287,26 @@ def _normalize_result(data: dict[str, Any], criteria: Criteria, source: str) -> 
 
 
 def discover(criteria: Criteria) -> DiscoveryResult:
-    if anthropic is None or not os.environ.get("ANTHROPIC_API_KEY"):
+    if not os.environ.get("ANTHROPIC_API_KEY"):
         return DiscoveryResult(
             criteria=criteria,
             channels=_offline_channels(criteria),
             summary="Offline fallback result. Configure ANTHROPIC_API_KEY to enable live channel discovery.",
             source="offline_fallback",
             warnings=["ANTHROPIC_API_KEY is not configured, so channels are examples rather than live discoveries."],
+        )
+
+    try:
+        # Lazy import: discovery is an explicit admin action, so the LLM SDK is
+        # loaded only when this feature is actually used.
+        import anthropic
+    except Exception:
+        return DiscoveryResult(
+            criteria=criteria,
+            channels=_offline_channels(criteria),
+            summary="Anthropic SDK unavailable; returned offline fallback channels.",
+            source="offline_fallback",
+            warnings=["The 'anthropic' package is not installed."],
         )
 
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))

@@ -550,6 +550,10 @@
           <input type="file" id="qualityExcelFile" name="file" accept=".xlsx,.xlsm" required>
           <button type="submit" id="qualityUploadBtn">Upload Excel</button>
         </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--ink-muted);cursor:pointer;">
+          <input type="checkbox" id="qualityUseLlm">
+          Use AI semantic review for this import (uses LLM tokens)
+        </label>
       </form>
       <div class="quality-import-hint">Use an exported response spreadsheet. Header names can match question text, question IDs, or generic columns.</div>
       <div class="quality-import-status" id="qualityImportStatus"></div>
@@ -695,6 +699,7 @@
     data.append('file', input.files[0]);
     data.append('auto_approve', '{{ "1" if survey.quality_auto_filter_enabled else "0" }}');
     data.append('auto_approve_min_score', '{{ survey.quality_auto_filter_min_score or 80 }}');
+    data.append('use_llm', document.getElementById('qualityUseLlm')?.checked ? '1' : '0');
 
     btn.disabled = true;
     status.className = 'quality-import-status';

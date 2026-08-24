@@ -391,7 +391,10 @@
     <!-- AI FORECAST -->
     <div id="panel-ai" style="display:none;">
       <div class="ai-box" id="ai-box">
-        <div class="ai-loading" id="ai-loading">Loading forecast...</div>
+        <div class="ai-loading" id="ai-loading">
+          AI forecast is on-demand and will not run automatically.
+          <button class="ai-btn" style="margin-left:8px;" onclick="loadForecast(false)">Generate forecast</button>
+        </div>
         <div class="ai-result" id="ai-result" style="display:none;">
           <div class="ai-stat-row" id="ai-stats"></div>
           <div class="ai-insight" id="ai-insight"></div>
@@ -415,7 +418,7 @@
       document.getElementById('panel-' + t).style.display = t === tab ? 'block' : 'none';
       document.getElementById('tab-'   + t).classList.toggle('active', t === tab);
     });
-    if (tab === 'ai') loadForecast(false);
+    // Opening/restoring the AI tab must not spend tokens by itself.
     localStorage.setItem('studyTab_' + SURVEY_ID, tab);
   }
 

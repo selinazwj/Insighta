@@ -21,14 +21,9 @@ from __future__ import annotations
 import json
 import os
 import re
+from importlib.util import find_spec
 from dataclasses import dataclass
 from typing import Any, Optional
-
-try:  # Keep the app importable even before requirements are installed.
-    import anthropic
-except Exception:  # pragma: no cover - only hit in incomplete deployments.
-    anthropic = None
-
 
 DEFAULT_MODEL = "claude-sonnet-4-5"
 
@@ -59,7 +54,9 @@ def llm_batch_size() -> int:
 
 
 def llm_configured() -> bool:
-    return anthropic is not None and bool(os.environ.get("ANTHROPIC_API_KEY"))
+    # Do not import the Anthropic SDK just to render pages or inspect config.
+    # The package/client is loaded lazily inside call_claude_json().
+    return find_spec("anthropic") is not None and bool(os.environ.get("ANTHROPIC_API_KEY"))
 
 
 def _safe_float_env(name: str, default: float) -> float:
@@ -114,10 +111,14 @@ def call_claude_json(*, system: str, payload: dict, max_tokens: Optional[int] = 
     The function returns errors as data instead of raising so web pages can keep
     rendering while clearly exposing configuration/API failures.
     """
-    if anthropic is None:
-        return LLMCallResult(data=None, error="The 'anthropic' package is not installed. Run: pip install anthropic")
     if not os.environ.get("ANTHROPIC_API_KEY"):
         return LLMCallResult(data=None, error="ANTHROPIC_API_KEY is not set. Add it to .env or deployment environment variables.")
+
+    try:
+        # Lazy import: normal app startup/page views do not even load the LLM SDK.
+        import anthropic
+    except Exception:
+        return LLMCallResult(data=None, error="The 'anthropic' package is not installed. Run: pip install anthropic")
 
     try:
         client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))

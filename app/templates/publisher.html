@@ -291,8 +291,9 @@
         </div>
         <div class="ai-forecast-card" data-survey-id="{{ s.id }}">
           <div class="ai-forecast-title">AI Completion Forecast</div>
-          <div class="ai-forecast-body">Loading candidate completion forecast...</div>
+          <div class="ai-forecast-body">AI forecast is on-demand. Load it only when you want to use AI.</div>
           <div class="ai-forecast-actions">
+            <button type="button" class="ai-small-btn" onclick="loadForecast({{ s.id }})">Load forecast</button>
             <button type="button" class="ai-small-btn" onclick="refreshForecast({{ s.id }})">Recompute</button>
             <button type="button" class="ai-small-btn" onclick="showTopRespondents({{ s.id }})">Top candidates</button>
           </div>
@@ -375,8 +376,9 @@
         </div>
         <div class="ai-forecast-card" data-survey-id="{{ s.id }}">
           <div class="ai-forecast-title">AI Completion Forecast</div>
-          <div class="ai-forecast-body">Loading candidate completion forecast...</div>
+          <div class="ai-forecast-body">AI forecast is on-demand. Load it only when you want to use AI.</div>
           <div class="ai-forecast-actions">
+            <button type="button" class="ai-small-btn" onclick="loadForecast({{ s.id }})">Load forecast</button>
             <button type="button" class="ai-small-btn" onclick="refreshForecast({{ s.id }})">Recompute</button>
             <button type="button" class="ai-small-btn" onclick="showTopRespondents({{ s.id }})">Top candidates</button>
           </div>
@@ -481,8 +483,9 @@
     }
   }
 
-  function loadAiForecasts() {
-    document.querySelectorAll('.ai-forecast-card').forEach(card => renderForecastCard(card));
+  function loadForecast(id) {
+    const card = document.querySelector(`.ai-forecast-card[data-survey-id="${id}"]`);
+    if (card) renderForecastCard(card, false);
   }
 
   function refreshForecast(id) {
@@ -502,7 +505,7 @@
     }
   }
 
-  loadAiForecasts();
+  // Intentionally no automatic AI fetch here. Forecasts are user-triggered.
 
   // Notifications
   let allNotifs = [];

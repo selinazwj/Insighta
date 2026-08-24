@@ -1075,11 +1075,24 @@ def _handle_quality_excel_import_job(db: Session, job: BackgroundJob) -> None:
         content=content,
         auto_approve=bool(payload.get("auto_approve")),
         auto_approve_min_score=payload.get("auto_approve_min_score"),
+        use_llm=bool(payload.get("use_llm")),
     )
 
 
 def _handle_dashboard_recommendations_refresh_job(db: Session, job: BackgroundJob) -> None:
     payload = job.payload_json or {}
+
+    # Old deployments may already have passive recommendation-refresh jobs in
+    # the queue. Do not let those legacy jobs spend tokens after on-demand mode
+    # is enabled. Explicitly marked jobs are still allowed for future/manual use.
+    explicit = bool(payload.get("explicit"))
+    if not explicit and not _dashboard_ai_auto_refresh_enabled():
+        job.payload_json = {
+            **payload,
+            "skipped_reason": "Passive dashboard AI refresh is disabled; LLM is on-demand only.",
+        }
+        return
+
     user_id = int(payload.get("user_id") or 0)
     survey_ids = payload.get("survey_ids") or []
     if user_id <= 0:
@@ -4059,11 +4072,22 @@ def _dashboard_scan_limit() -> int:
 
 
 def _dashboard_ai_recommendations_enabled() -> bool:
-    # AI ranking is enabled by default. Dashboard requests still never wait on
-    # Claude: they consume cached AI results and enqueue cache misses for the
-    # background job runner while immediately falling back to local ranking.
+    # Cached AI ranking can be consumed without spending any new tokens.
+    # New Claude calls are controlled separately by
+    # INSIGHTA_DASHBOARD_AI_AUTO_REFRESH and are OFF by default.
     value = os.environ.get("INSIGHTA_DASHBOARD_AI_RECOMMENDATIONS", "1").strip().lower()
     return value not in {"0", "false", "no", "off"}
+
+
+def _dashboard_ai_auto_refresh_enabled() -> bool:
+    """Whether passive dashboard cache misses may enqueue new LLM work.
+
+    This is deliberately disabled by default. A normal dashboard page view must
+    not spend Anthropic tokens. Explicit AI endpoints/buttons can still call the
+    LLM when the user asks for a forecast, recompute, generation, or analysis.
+    """
+    value = os.environ.get("INSIGHTA_DASHBOARD_AI_AUTO_REFRESH", "0").strip().lower()
+    return value in {"1", "true", "yes", "on"}
 
 
 def _dashboard_normalized(column):
@@ -4147,6 +4171,9 @@ def _dashboard_targeting_sql_filter(current_user: User):
     pushed into SQL so the dashboard never needs to materialize every published
     survey just to reject it in Python.
     """
+    # Keep this predicate conservative: every SQL condition here should match
+    # the legacy Python helper exactly or be looser. Narrower filters can hide
+    # valid studies before `_dashboard_survey_matches` gets a chance to run.
     user_edu_min = _education_rank(current_user.education_level, fallback=0)
     user_edu_max = _education_rank(current_user.education_level, fallback=999)
     filters = [
@@ -4215,6 +4242,9 @@ def _dashboard_candidate_surveys(
     exclude_existing_responses: bool,
 ) -> list[Survey]:
     """Fetch only a bounded, SQL-prefiltered dashboard candidate set."""
+    # This replaces the old all-published-surveys scan. The route now asks the
+    # database for likely matches first, then keeps the legacy Python pass only
+    # for formats that are difficult to express safely in SQL.
     query = db.query(Survey).filter(
         Survey.status == "published",
         _dashboard_targeting_sql_filter(current_user),
@@ -4271,17 +4301,20 @@ def _dashboard_candidate_surveys(
 def _cached_dashboard_recommendations(db: Session, surveys: list[Survey], user: User) -> dict[int, dict]:
     if not _dashboard_ai_recommendations_enabled() or not surveys:
         return {}
+
+    # Reading an existing cache is token-free and remains allowed. Crucially, a
+    # cache miss no longer creates LLM work unless an operator explicitly opts
+    # back into passive auto-refresh.
     recommendations = cached_recommendations_for_user(db, surveys, user)
-    missing_ids = [survey.id for survey in surveys if survey.id not in recommendations]
-    if missing_ids:
-        enqueue_dashboard_recommendations_refresh_job(
-            db,
-            user_id=user.id,
-            survey_ids=missing_ids,
-        )
-        # Keep the dashboard request free of any LLM call. The job is persisted
-        # by the route's single commit together with other dashboard writes.
-        db.flush()
+    if _dashboard_ai_auto_refresh_enabled():
+        missing_ids = [survey.id for survey in surveys if survey.id not in recommendations]
+        if missing_ids:
+            enqueue_dashboard_recommendations_refresh_job(
+                db,
+                user_id=user.id,
+                survey_ids=missing_ids,
+            )
+            db.flush()
     return recommendations
 
 
@@ -5113,7 +5146,8 @@ def create_screening_draft(
     ):
         raise HTTPException(429, "Too many screening drafts. Please try again later.")
 
-    draft = generate_screening_draft(survey)
+    # This endpoint is reached only from the explicit “Generate draft” action.
+    draft = generate_screening_draft(survey, use_ai=True)
     if not draft:
         raise HTTPException(
             400,
@@ -10034,7 +10068,10 @@ async def submit_answers(
 
     quality_payload = None
     try:
-        quality_result = evaluate_builtin_response(db, survey_id=survey_id, response_id=r.id)
+        # Response completion must not silently spend LLM tokens. The standard
+        # rule/anomaly quality score runs locally; AI analysis remains available
+        # only through explicit AI actions.
+        quality_result = evaluate_builtin_response(db, survey_id=survey_id, response_id=r.id, run_llm=False)
         upsert_builtin_quality_check(db, survey_id=survey_id, response_id=r.id, result=quality_result)
         quality_payload = {
             "score": quality_result.quality_score,
@@ -10533,6 +10570,7 @@ def _process_quality_excel_import(
     content: bytes,
     auto_approve: bool,
     auto_approve_min_score: Optional[float],
+    use_llm: bool = False,
 ) -> dict:
     try:
         from openpyxl import load_workbook
@@ -10655,7 +10693,9 @@ def _process_quality_excel_import(
             survey_title=survey.title,
             survey_description=survey.description,
             survey_reward=float(survey.reward_amount or 0.0),
-            run_llm=True,
+            # Excel imports are local-only by default. Semantic LLM review is
+            # performed only when the researcher explicitly opts in.
+            run_llm=bool(use_llm),
             precomputed_anomaly=batch_anomalies[index] if index < len(batch_anomalies) else None,
         )
         created_checks.append(create_excel_quality_check(
@@ -10696,6 +10736,7 @@ def _process_quality_excel_import(
             "rejected_count": auto_rejected_count,
         },
         "llm_summary": {
+            "requested": bool(use_llm),
             "rows_reviewed": llm_rows_reviewed,
             "rows_failed": llm_rows_failed,
             "api_key_configured": anthropic_api_key_configured(),
@@ -10709,6 +10750,7 @@ def import_excel_for_quality_check(
     file: UploadFile = File(...),
     auto_approve: Optional[str] = Form(None),
     auto_approve_min_score: Optional[float] = Form(None),
+    use_llm: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -10734,6 +10776,7 @@ def import_excel_for_quality_check(
     upload_path.write_bytes(content)
 
     use_auto_approve = str(auto_approve or "").strip().lower() in {"1", "true", "yes", "on"}
+    use_llm_review = str(use_llm or "").strip().lower() in {"1", "true", "yes", "on"}
     job = enqueue_quality_excel_import_job(
         db,
         survey_id=survey_id,
@@ -10742,6 +10785,7 @@ def import_excel_for_quality_check(
         filename=filename,
         auto_approve=use_auto_approve,
         auto_approve_min_score=auto_approve_min_score if use_auto_approve else None,
+        use_llm=use_llm_review,
     )
     db.commit()
     return JSONResponse({
@@ -10749,6 +10793,7 @@ def import_excel_for_quality_check(
         "queued": True,
         "job_id": job.id,
         "survey_id": survey_id,
+        "llm_requested": use_llm_review,
     }, status_code=202)
 
 
