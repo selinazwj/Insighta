@@ -724,6 +724,12 @@ Higher semantic_risk means lower quality. If cross_question_conflict is true, se
             raw = re.sub(r"^```(?:json)?\n?", "", raw)
             raw = re.sub(r"\n?```$", "", raw)
         parsed = json.loads(raw)
+        usage = getattr(message, "usage", None)
+        parsed["_usage"] = {
+            "input_tokens": int(getattr(usage, "input_tokens", 0) or 0),
+            "output_tokens": int(getattr(usage, "output_tokens", 0) or 0),
+            "model": str(getattr(message, "model", None) or "claude-haiku-4-5-20251001"),
+        }
         semantic_risk = float(parsed.get("semantic_risk", 0) or 0)
         semantic_risk = min(30.0, max(0.0, semantic_risk))
         if parsed.get("cross_question_conflict") and semantic_risk < 15:

@@ -21,9 +21,11 @@ from __future__ import annotations
 import json
 import os
 import re
+from contextlib import contextmanager
+from contextvars import ContextVar
 from importlib.util import find_spec
-from dataclasses import dataclass
-from typing import Any, Optional
+from dataclasses import dataclass, field
+from typing import Any, Iterator, Optional
 
 DEFAULT_MODEL = "claude-sonnet-4-5"
 
@@ -33,6 +35,48 @@ class LLMCallResult:
     data: Optional[dict]
     error: Optional[str] = None
     raw_text: str = ""
+    input_tokens: int = 0
+    output_tokens: int = 0
+    model: str = ""
+
+
+@dataclass
+class LLMUsageCollector:
+    calls: list[dict[str, Any]] = field(default_factory=list)
+
+    @property
+    def input_tokens(self) -> int:
+        return sum(max(0, int(call.get("input_tokens") or 0)) for call in self.calls)
+
+    @property
+    def output_tokens(self) -> int:
+        return sum(max(0, int(call.get("output_tokens") or 0)) for call in self.calls)
+
+
+_USAGE_COLLECTOR: ContextVar[LLMUsageCollector | None] = ContextVar("ai_growth_usage", default=None)
+
+
+@contextmanager
+def collect_llm_usage() -> Iterator[LLMUsageCollector]:
+    collector = LLMUsageCollector()
+    token = _USAGE_COLLECTOR.set(collector)
+    try:
+        yield collector
+    finally:
+        _USAGE_COLLECTOR.reset(token)
+
+
+def _record_usage(result: LLMCallResult) -> LLMCallResult:
+    collector = _USAGE_COLLECTOR.get()
+    if collector is not None:
+        collector.calls.append({
+            "model": result.model or claude_model_name(),
+            "input_tokens": result.input_tokens,
+            "output_tokens": result.output_tokens,
+            "ok": not bool(result.error),
+            "error": (result.error or "")[:300],
+        })
+    return result
 
 
 def claude_model_name() -> str:
@@ -112,13 +156,13 @@ def call_claude_json(*, system: str, payload: dict, max_tokens: Optional[int] = 
     rendering while clearly exposing configuration/API failures.
     """
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        return LLMCallResult(data=None, error="ANTHROPIC_API_KEY is not set. Add it to .env or deployment environment variables.")
+        return _record_usage(LLMCallResult(data=None, error="ANTHROPIC_API_KEY is not set. Add it to .env or deployment environment variables.", model=claude_model_name()))
 
     try:
         # Lazy import: normal app startup/page views do not even load the LLM SDK.
         import anthropic
     except Exception:
-        return LLMCallResult(data=None, error="The 'anthropic' package is not installed. Run: pip install anthropic")
+        return _record_usage(LLMCallResult(data=None, error="The 'anthropic' package is not installed. Run: pip install anthropic", model=claude_model_name()))
 
     try:
         client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
@@ -135,13 +179,17 @@ def call_claude_json(*, system: str, payload: dict, max_tokens: Optional[int] = 
             ],
         )
     except Exception as exc:  # pragma: no cover - network/API dependent.
-        return LLMCallResult(data=None, error=f"Claude API request failed: {exc}")
+        return _record_usage(LLMCallResult(data=None, error=f"Claude API request failed: {exc}", model=claude_model_name()))
 
     text = _message_to_text(message)
+    usage = getattr(message, "usage", None)
+    input_tokens = int(getattr(usage, "input_tokens", 0) or 0)
+    output_tokens = int(getattr(usage, "output_tokens", 0) or 0)
+    model = str(getattr(message, "model", None) or claude_model_name())
     data = _extract_json(text)
     if data is None:
-        return LLMCallResult(data=None, error="Claude response was not valid JSON.", raw_text=text)
-    return LLMCallResult(data=data, raw_text=text)
+        return _record_usage(LLMCallResult(data=None, error="Claude response was not valid JSON.", raw_text=text, input_tokens=input_tokens, output_tokens=output_tokens, model=model))
+    return _record_usage(LLMCallResult(data=data, raw_text=text, input_tokens=input_tokens, output_tokens=output_tokens, model=model))
 
 
 # ---------------------------------------------------------------------------

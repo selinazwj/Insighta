@@ -10,7 +10,17 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import engine, get_db
-from app.models import Base, Survey, User
+from app.models import BackgroundJob, Base, Survey, User
+from app.ai_usage import (
+    AiUsageLimitError,
+    ensure_usage_available,
+    find_recent_ai_job,
+    job_public_payload,
+    reserve_usage,
+    scope_units,
+    usage_snapshot,
+)
+from app.jobs.service import AI_PREDICTION, AI_QUALITY_REVIEW, enqueue_ai_prediction_job
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.ai_growth import models as _ai_models  # noqa: F401 - registers additive tables in Base.metadata
 from app.ai_growth.jump import complete_response_with_token, mark_returned, start_jump
@@ -140,7 +150,7 @@ def prediction_for_me(
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
-    result = predict_user_for_survey(db, survey, current_user)
+    result = predict_user_for_survey(db, survey, current_user, allow_llm=False)
     match = survey_match_result(survey, current_user, strict=True)
     result["eligible"] = match.eligible
     result["matched_fields"] = match.matched_fields
@@ -156,7 +166,9 @@ def prediction_summary(
     db: Session = Depends(get_db),
 ):
     survey = require_publisher_for_survey(db, current_user, survey_id)
-    return JSONResponse(survey_prediction_summary(db, survey, force=force))
+    if force:
+        raise HTTPException(400, "Use the prediction job endpoint to recompute AI results")
+    return JSONResponse(survey_prediction_summary(db, survey, force=False, allow_llm=False))
 
 
 @router.get("/api/surveys/{survey_id}/prediction/respondents")
@@ -168,7 +180,89 @@ def prediction_respondents(
     db: Session = Depends(get_db),
 ):
     survey = require_publisher_for_survey(db, current_user, survey_id)
-    return JSONResponse({"survey_id": survey.id, "respondents": top_respondents(db, survey, limit=limit, force=force)})
+    if force:
+        raise HTTPException(400, "Use the prediction job endpoint to recompute AI results")
+    return JSONResponse({
+        "survey_id": survey.id,
+        "respondents": top_respondents(db, survey, limit=limit, force=False, allow_llm=False),
+    })
+
+
+@router.post("/api/surveys/{survey_id}/prediction/jobs")
+async def create_prediction_job(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(require_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = require_publisher_for_survey(db, current_user, survey_id)
+    body = await request.json()
+    mode = str(body.get("mode") or "summary").strip().lower()
+    if mode not in {"summary", "respondents"}:
+        raise HTTPException(400, "Prediction mode must be summary or respondents")
+    try:
+        scope, units = scope_units(body.get("scope"))
+        display_limit = max(1, min(20, int(body.get("display_limit") or 8)))
+    except (AiUsageLimitError, TypeError, ValueError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+    force = bool(body.get("force"))
+    fingerprint = f"prediction:{current_user.id}:{survey.id}:{mode}:{scope}:{int(force)}"
+    recent = find_recent_ai_job(
+        db,
+        job_type=AI_PREDICTION,
+        user_id=current_user.id,
+        fingerprint=fingerprint,
+    )
+    if recent:
+        payload = job_public_payload(recent)
+        payload["reused"] = True
+        payload["usage"] = usage_snapshot(db, user_id=current_user.id)
+        return JSONResponse(payload, status_code=200 if recent.status == "done" else 202)
+    try:
+        usage = ensure_usage_available(db, user_id=current_user.id, units=units)
+    except AiUsageLimitError as exc:
+        raise HTTPException(429, str(exc)) from exc
+    job = enqueue_ai_prediction_job(
+        db,
+        user_id=current_user.id,
+        survey_id=survey.id,
+        mode=mode,
+        scope=scope,
+        units=units,
+        force=force,
+        fingerprint=fingerprint,
+    )
+    job.payload_json = {**(job.payload_json or {}), "display_limit": display_limit}
+    reserve_usage(
+        db,
+        user_id=current_user.id,
+        job=job,
+        feature=f"prediction_{mode}",
+        units=units,
+        survey_id=survey.id,
+        metadata={"scope": scope, "force": force},
+    )
+    db.commit()
+    payload = job_public_payload(job)
+    payload["reused"] = False
+    payload["usage"] = usage
+    return JSONResponse(payload, status_code=202)
+
+
+@router.get("/api/ai-jobs/{job_id}")
+def get_ai_job(
+    job_id: int,
+    current_user: User = Depends(require_current_user),
+    db: Session = Depends(get_db),
+):
+    job = db.query(BackgroundJob).filter(BackgroundJob.id == job_id).first()
+    if not job or int((job.payload_json or {}).get("user_id") or 0) != current_user.id:
+        raise HTTPException(404, "AI job not found")
+    if job.job_type not in {AI_PREDICTION, AI_QUALITY_REVIEW}:
+        raise HTTPException(404, "AI job not found")
+    payload = job_public_payload(job)
+    payload["usage"] = usage_snapshot(db, user_id=current_user.id)
+    return JSONResponse(payload)
 
 
 @router.post("/api/prediction/recompute")

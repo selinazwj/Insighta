@@ -392,7 +392,12 @@
     <div id="panel-ai" style="display:none;">
       <div class="ai-box" id="ai-box">
         <div class="ai-loading" id="ai-loading">
-          AI forecast is on-demand and will not run automatically.
+          <span id="ai-loading-text">AI forecast is on-demand and will not run automatically.</span>
+          <select id="ai-scope" class="ai-btn" aria-label="AI analysis scope">
+            <option value="quick">Quick · 20 candidates</option>
+            <option value="standard">Standard · 50</option>
+            <option value="full">Full · 120</option>
+          </select>
           <button class="ai-btn" style="margin-left:8px;" onclick="loadForecast(false)">Generate forecast</button>
         </div>
         <div class="ai-result" id="ai-result" style="display:none;">
@@ -599,9 +604,7 @@
     const result  = document.getElementById('ai-result');
     loading.style.display = 'block'; result.style.display = 'none';
     try {
-      const res = await fetch(`/api/surveys/${SURVEY_ID}/prediction/summary${force ? '?force=true' : ''}`, { credentials: 'same-origin' });
-      if (!res.ok) { loading.textContent = 'Forecast unavailable.'; return; }
-      const d = await res.json();
+      const d = await queueStudyAiJob('summary', force);
       const pct  = Math.round((d.completion_probability || 0) * 100);
       const cand = d.candidate_count || 0;
       const seg  = d.segment_label || 'General';
@@ -615,16 +618,35 @@
       `;
       document.getElementById('ai-insight').innerHTML = `<strong>Risk:</strong> ${risk}<br><strong>Suggestion:</strong> ${sugg}`;
       loading.style.display = 'none'; result.style.display = 'block';
-    } catch {
-      loading.textContent = 'Forecast unavailable.';
+    } catch (error) {
+      document.getElementById('ai-loading-text').textContent = error.message || 'Forecast unavailable.';
     }
+  }
+
+  async function queueStudyAiJob(mode, force=false) {
+    const scope = document.getElementById('ai-scope')?.value || 'quick';
+    const res = await fetch(`/api/surveys/${SURVEY_ID}/prediction/jobs`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, scope, force, display_limit: 8 }),
+    });
+    const job = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(job.detail || 'AI request could not be queued');
+    document.getElementById('ai-loading-text').textContent = `AI analysis queued (job #${job.job_id}). You can leave this page safely.`;
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const statusRes = await fetch(`/api/ai-jobs/${job.job_id}`, { credentials:'same-origin', cache:'no-store' });
+      const status = await statusRes.json().catch(() => ({}));
+      if (!statusRes.ok) throw new Error(status.detail || 'Could not read AI job');
+      if (status.status === 'done') return status.result || {};
+      if (status.status === 'failed') throw new Error(status.error || 'AI analysis failed');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+    throw new Error('AI analysis is still queued. Refresh this page in a moment.');
   }
 
   async function showTopCandidates() {
     try {
-      const res = await fetch(`/api/surveys/${SURVEY_ID}/prediction/respondents?limit=8`, { credentials: 'same-origin' });
-      if (!res.ok) { alert('Unavailable.'); return; }
-      const d = await res.json();
+      const d = await queueStudyAiJob('respondents', false);
       const lines = (d.respondents || []).map((r,i) =>
         `${i+1}. ${Math.round((r.completion_probability||0)*100)}% · ${r.segment_label||'Respondent'} · ${(r.top_reasons||[])[0]||''}`
       );

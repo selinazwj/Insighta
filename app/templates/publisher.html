@@ -293,6 +293,11 @@
           <div class="ai-forecast-title">AI Completion Forecast</div>
           <div class="ai-forecast-body">AI forecast is on-demand. Load it only when you want to use AI.</div>
           <div class="ai-forecast-actions">
+            <select class="ai-scope" aria-label="AI analysis scope">
+              <option value="quick">Quick · 20 candidates</option>
+              <option value="standard">Standard · 50</option>
+              <option value="full">Full · 120</option>
+            </select>
             <button type="button" class="ai-small-btn" onclick="loadForecast({{ s.id }})">Load forecast</button>
             <button type="button" class="ai-small-btn" onclick="refreshForecast({{ s.id }})">Recompute</button>
             <button type="button" class="ai-small-btn" onclick="showTopRespondents({{ s.id }})">Top candidates</button>
@@ -378,6 +383,11 @@
           <div class="ai-forecast-title">AI Completion Forecast</div>
           <div class="ai-forecast-body">AI forecast is on-demand. Load it only when you want to use AI.</div>
           <div class="ai-forecast-actions">
+            <select class="ai-scope" aria-label="AI analysis scope">
+              <option value="quick">Quick · 20 candidates</option>
+              <option value="standard">Standard · 50</option>
+              <option value="full">Full · 120</option>
+            </select>
             <button type="button" class="ai-small-btn" onclick="loadForecast({{ s.id }})">Load forecast</button>
             <button type="button" class="ai-small-btn" onclick="refreshForecast({{ s.id }})">Recompute</button>
             <button type="button" class="ai-small-btn" onclick="showTopRespondents({{ s.id }})">Top candidates</button>
@@ -465,44 +475,63 @@
     }
   }
 
-  async function renderForecastCard(card, force=false) {
+  async function waitForAiJob(jobId, onDone) {
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const res = await fetch(`/api/ai-jobs/${jobId}`, { credentials: 'same-origin', cache: 'no-store' });
+      const job = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(job.detail || 'Could not read AI job');
+      if (job.status === 'done') return onDone(job.result || {});
+      if (job.status === 'failed') throw new Error(job.error || 'AI analysis failed');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+    throw new Error('AI analysis is still queued. Refresh this page in a moment.');
+  }
+
+  async function queueForecastJob(card, mode, force=false) {
     const id = card.dataset.surveyId;
     const body = card.querySelector('.ai-forecast-body');
-    body.textContent = 'Loading candidate completion forecast...';
+    const scope = card.querySelector('.ai-scope')?.value || 'quick';
+    body.textContent = `Queueing ${scope} AI analysis…`;
     try {
-      const res = await fetch(`/api/surveys/${id}/prediction/summary${force ? '?force=true' : ''}`, { credentials: 'same-origin' });
-      if (!res.ok) { body.textContent = 'AI forecast unavailable.'; return; }
-      const data = await res.json();
+      const res = await fetch(`/api/surveys/${id}/prediction/jobs`, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, scope, force, display_limit: 8 }),
+      });
+      const job = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(job.detail || 'AI request could not be queued');
+      body.textContent = `AI analysis queued (job #${job.job_id}). You can leave this page safely.`;
+      await waitForAiJob(job.job_id, data => {
+        if (mode === 'respondents') {
+          const lines = (data.respondents || []).map((r, i) => `${i+1}. ${Math.round((r.completion_probability || 0)*100)}% · ${r.segment_label || 'Respondent'} · ${(r.top_reasons || [])[0] || ''}`);
+          alert(lines.join('\n') || 'No candidate predictions yet.');
+          body.textContent = 'Top-candidate AI analysis completed.';
+          return;
+        }
       const pct = Math.round((data.completion_probability || 0) * 100);
       const top = data.segment_label || 'General respondents';
       const risk = (data.risk_reasons || [])[0] || 'No major risk detected';
       const action = data.recommended_action || 'Keep current settings.';
       body.innerHTML = `<strong>${pct}% expected completion</strong> · ${data.candidate_count || 0} candidates · Top group: <strong>${top}</strong><br>Risk: ${risk}<br>Suggested action: ${action}`;
-    } catch {
-      body.textContent = 'AI forecast unavailable.';
+      });
+    } catch (error) {
+      body.textContent = error.message || 'AI forecast unavailable.';
     }
   }
 
   function loadForecast(id) {
     const card = document.querySelector(`.ai-forecast-card[data-survey-id="${id}"]`);
-    if (card) renderForecastCard(card, false);
+    if (card) queueForecastJob(card, 'summary', false);
   }
 
   function refreshForecast(id) {
     const card = document.querySelector(`.ai-forecast-card[data-survey-id="${id}"]`);
-    if (card) renderForecastCard(card, true);
+    if (card) queueForecastJob(card, 'summary', true);
   }
 
   async function showTopRespondents(id) {
-    try {
-      const res = await fetch(`/api/surveys/${id}/prediction/respondents?limit=8`, { credentials: 'same-origin' });
-      if (!res.ok) { alert(await res.text()); return; }
-      const data = await res.json();
-      const lines = (data.respondents || []).map((r, i) => `${i+1}. ${Math.round((r.completion_probability || 0)*100)}% · ${r.segment_label || 'Respondent'} · ${(r.top_reasons || [])[0] || ''}`);
-      alert(lines.join('\n') || 'No candidate predictions yet.');
-    } catch {
-      alert('AI candidate list unavailable.');
-    }
+    const card = document.querySelector(`.ai-forecast-card[data-survey-id="${id}"]`);
+    if (card) queueForecastJob(card, 'respondents', false);
   }
 
   // Intentionally no automatic AI fetch here. Forecasts are user-triggered.

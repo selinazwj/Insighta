@@ -408,12 +408,20 @@ def _save_prediction_cache(db: Session, result: dict) -> None:
     db.commit()
 
 
-def predict_user_for_survey(db: Session, survey: Survey, user: User, use_cache: bool = True) -> dict:
+def predict_user_for_survey(
+    db: Session,
+    survey: Survey,
+    user: User,
+    use_cache: bool = True,
+    allow_llm: bool = True,
+) -> dict:
     """Return Claude-only completion prediction for one survey/user pair."""
     if use_cache:
         cached = _get_cached_prediction(db, survey.id, user.id)
         if cached:
             return cached
+    if not allow_llm:
+        return _unavailable_prediction(survey, user, "No cached AI prediction is available. Request an explicit AI analysis.")
 
     payload = _single_prediction_payload(db, survey, user)
     llm_result = predict_one_with_claude(payload)
@@ -460,7 +468,13 @@ def _extract_items_by_id(data: dict, list_key: str, id_key: str) -> dict[int, di
     return by_id
 
 
-def predict_users_for_survey(db: Session, survey: Survey, users: list[User], use_cache: bool = True) -> list[dict]:
+def predict_users_for_survey(
+    db: Session,
+    survey: Survey,
+    users: list[User],
+    use_cache: bool = True,
+    allow_llm: bool = True,
+) -> list[dict]:
     """Batch Claude-only predictions for one survey and many users."""
     results_by_user: dict[int, dict] = {}
     missing: list[User] = []
@@ -471,6 +485,9 @@ def predict_users_for_survey(db: Session, survey: Survey, users: list[User], use
             results_by_user[user.id] = cached
         else:
             missing.append(user)
+
+    if not allow_llm:
+        return [results_by_user[user.id] for user in users if user.id in results_by_user]
 
     for batch in _chunked(missing, llm_batch_size()):
         payload = _participant_batch_payload(db, survey, batch)
@@ -498,9 +515,16 @@ def predict_users_for_survey(db: Session, survey: Survey, users: list[User], use
     return [results_by_user[user.id] for user in users if user.id in results_by_user]
 
 
-def top_respondents(db: Session, survey: Survey, limit: int = 20, force: bool = False) -> list[dict]:
-    users = candidate_users_for_survey(db, survey)
-    scored = predict_users_for_survey(db, survey, users, use_cache=not force)
+def top_respondents(
+    db: Session,
+    survey: Survey,
+    limit: int = 20,
+    force: bool = False,
+    candidate_limit: Optional[int] = None,
+    allow_llm: bool = True,
+) -> list[dict]:
+    users = candidate_users_for_survey(db, survey, limit_pool=candidate_limit)
+    scored = predict_users_for_survey(db, survey, users, use_cache=not force, allow_llm=allow_llm)
     scored.sort(key=lambda x: x.get("completion_probability") or 0.0, reverse=True)
     return scored[:limit]
 
@@ -555,9 +579,21 @@ def _summary_unavailable(survey: Survey, error: str, candidate_count: int = 0) -
     }
 
 
-def survey_prediction_summary(db: Session, survey: Survey, force: bool = False) -> dict:
-    candidates = candidate_users_for_survey(db, survey)
-    predictions = predict_users_for_survey(db, survey, candidates, use_cache=not force)
+def survey_prediction_summary(
+    db: Session,
+    survey: Survey,
+    force: bool = False,
+    candidate_limit: Optional[int] = None,
+    allow_llm: bool = True,
+) -> dict:
+    candidates = candidate_users_for_survey(db, survey, limit_pool=candidate_limit)
+    predictions = predict_users_for_survey(
+        db,
+        survey,
+        candidates,
+        use_cache=not force,
+        allow_llm=allow_llm,
+    )
     if not predictions:
         return _summary_unavailable(survey, "No candidate respondents are available for Claude to evaluate.", candidate_count=0)
 
@@ -609,6 +645,11 @@ def survey_prediction_summary(db: Session, survey: Survey, force: bool = False) 
         "low_probability_count": sum(1 for p in probs if p < 0.45),
         "llm_ok": all(bool(p.get("llm_ok")) for p in predictions),
     }
+
+    if not allow_llm:
+        preliminary_summary["recommended_action"] = "Cached AI analysis shown. Use the explicit AI action to refresh it."
+        preliminary_summary["audience_strategy"] = "No new LLM call was made."
+        return preliminary_summary
 
     payload = {
         "task": "summarize_survey_prediction",

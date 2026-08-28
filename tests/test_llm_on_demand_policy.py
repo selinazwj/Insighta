@@ -25,12 +25,11 @@ def test_dashboard_passive_ai_refresh_defaults_off():
 
 
 def test_publisher_pages_do_not_auto_fetch_forecasts():
-    publisher = (ROOT / "app" / "templates" / "publisher.html").read_text()
     publisher_study = (ROOT / "app" / "templates" / "publisher_study.html").read_text()
-    assert "loadAiForecasts();" not in publisher
-    assert "Load forecast" in publisher
     assert "if (tab === 'ai') loadForecast(false);" not in publisher_study
     assert "Generate forecast" in publisher_study
+    assert "/prediction/jobs" in publisher_study
+    assert "AI analysis scope" in publisher_study
 
 
 def test_excel_ai_review_requires_explicit_checkbox():

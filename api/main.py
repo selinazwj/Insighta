@@ -39,6 +39,8 @@ from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.jobs.service import (
     ADMIN_BULK_EMAIL,
+    AI_PREDICTION,
+    AI_QUALITY_REVIEW,
     BOOKING_CONFIRMATION_EMAIL,
     DASHBOARD_RECOMMENDATIONS_REFRESH,
     DEFAULT_STALE_RUNNING_MINUTES,
@@ -53,10 +55,19 @@ from app.jobs.service import (
     enqueue_admin_bulk_email_job,
     enqueue_booking_confirmation_job,
     enqueue_dashboard_recommendations_refresh_job,
+    enqueue_ai_quality_review_job,
     enqueue_quality_excel_import_job,
     enqueue_survey_start_followup_job,
     enqueue_trust_data_cleanup_job,
     run_due_jobs,
+)
+from app.ai_usage import (
+    AiUsageLimitError,
+    ensure_usage_available,
+    find_recent_ai_job,
+    job_public_payload,
+    reserve_usage,
+    update_usage,
 )
 from app.quality_engine import (
     anthropic_api_key_configured,
@@ -117,7 +128,13 @@ from app.trust_engine import (
 from app.ai_growth.routes import router as ai_growth_router
 from app.ai_growth.security import is_safe_internal_next
 from app.ai_growth.jump import mark_latest_jump_completed_for_response
-from app.ai_growth.prediction import cached_recommendations_for_user, recommend_surveys_for_user
+from app.ai_growth.llm import collect_llm_usage
+from app.ai_growth.prediction import (
+    cached_recommendations_for_user,
+    recommend_surveys_for_user,
+    survey_prediction_summary,
+    top_respondents,
+)
 from app.ai_growth.models import JumpEvent, RespondentPrediction, SurveySegmentStats, UserActivityEvent
 from app.discovery.router import router as discovery_router
 from app.discovery.discovery import discover as discover_channels
@@ -1119,6 +1136,139 @@ def _handle_dashboard_recommendations_refresh_job(db: Session, job: BackgroundJo
     recommend_surveys_for_user(db, surveys, user, use_cache=True)
 
 
+def _handle_ai_prediction_job(db: Session, job: BackgroundJob) -> None:
+    payload = dict(job.payload_json or {})
+    user_id = int(payload.get("user_id") or 0)
+    survey_id = int(payload.get("survey_id") or 0)
+    units = max(1, int(payload.get("units") or 20))
+    mode = str(payload.get("mode") or "summary")
+    force = bool(payload.get("force"))
+    if user_id <= 0 or survey_id <= 0:
+        raise ValueError("Missing user_id or survey_id for AI prediction job")
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == user_id,
+    ).first()
+    if not survey:
+        raise ValueError("Survey not found for AI prediction job")
+    update_usage(db, job_id=job.id, status="running")
+    try:
+        with collect_llm_usage() as usage:
+            if mode == "respondents":
+                result = {
+                    "survey_id": survey.id,
+                    "respondents": top_respondents(
+                        db,
+                        survey,
+                        limit=max(1, min(20, int(payload.get("display_limit") or 8))),
+                        force=force,
+                        candidate_limit=units,
+                    ),
+                }
+            else:
+                result = survey_prediction_summary(
+                    db,
+                    survey,
+                    force=force,
+                    candidate_limit=units,
+                )
+        if mode == "respondents":
+            respondents = result.get("respondents") or []
+            if respondents and not any(bool(item.get("llm_ok")) for item in respondents):
+                raise RuntimeError("Claude did not return candidate predictions")
+        elif not bool(result.get("llm_ok")):
+            raise RuntimeError(
+                str(result.get("audience_strategy") or result.get("recommended_action") or "Claude prediction failed")
+            )
+        job.payload_json = {**payload, "result": result}
+        actual_units = (
+            len(result.get("respondents") or [])
+            if mode == "respondents"
+            else int(result.get("candidate_count") or 0)
+        )
+        update_usage(
+            db,
+            job_id=job.id,
+            status="succeeded",
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            actual_units=actual_units,
+        )
+    except Exception as exc:
+        retry_status = "queued" if job.attempts < job.max_attempts else "failed"
+        update_usage(db, job_id=job.id, status=retry_status, error=str(exc))
+        raise
+
+
+def _handle_ai_quality_review_job(db: Session, job: BackgroundJob) -> None:
+    payload = dict(job.payload_json or {})
+    user_id = int(payload.get("user_id") or 0)
+    survey_id = int(payload.get("survey_id") or 0)
+    check_ids = sorted({int(value) for value in (payload.get("check_ids") or []) if int(value) > 0})
+    rows = db.query(ResponseQualityCheck).filter(
+        ResponseQualityCheck.id.in_(check_ids),
+        ResponseQualityCheck.survey_id == survey_id,
+        ResponseQualityCheck.source_type == "builtin",
+    ).all()
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == user_id,
+    ).first()
+    if not rows or len(rows) != len(check_ids) or not survey:
+        raise ValueError("Built-in quality check not found for AI review")
+    if not anthropic_api_key_configured():
+        raise ValueError("AI semantic review is not configured")
+    update_usage(db, job_id=job.id, status="running")
+    try:
+        updated_rows = []
+        input_tokens = 0
+        output_tokens = 0
+        for row in rows:
+            if not row.response_id:
+                raise ValueError(f"Quality check {row.id} has no built-in response")
+            result = evaluate_builtin_response(
+                db,
+                survey_id=survey_id,
+                response_id=row.response_id,
+                run_llm=True,
+            )
+            llm_result = result.llm_result_json or {}
+            if llm_result.get("error"):
+                raise RuntimeError(f"AI quality review failed: {llm_result['error']}")
+            updated = upsert_builtin_quality_check(
+                db,
+                survey_id=survey_id,
+                response_id=row.response_id,
+                result=result,
+            )
+            llm_usage = llm_result.get("_usage") or {}
+            input_tokens += int(llm_usage.get("input_tokens") or 0)
+            output_tokens += int(llm_usage.get("output_tokens") or 0)
+            updated_rows.append({
+                "check_id": updated.id,
+                "quality_score": updated.quality_score,
+                "quality_label": updated.quality_label,
+                "semantic_risk": updated.semantic_risk,
+                "reasons": updated.reasons or [],
+            })
+        job.payload_json = {
+            **payload,
+            "result": {"checks": updated_rows},
+        }
+        update_usage(
+            db,
+            job_id=job.id,
+            status="succeeded",
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            actual_units=len(updated_rows),
+        )
+    except Exception as exc:
+        retry_status = "queued" if job.attempts < job.max_attempts else "failed"
+        update_usage(db, job_id=job.id, status=retry_status, error=str(exc))
+        raise
+
+
 def _handle_trust_data_cleanup_job(db: Session, job: BackgroundJob) -> None:
     result = _cleanup_expired_trust_data_in_session(db)
     job.payload_json = {
@@ -1134,6 +1284,8 @@ BACKGROUND_JOB_HANDLERS = {
     REWARD_SETUP_REMINDER_EMAIL: _handle_reward_setup_reminder_job,
     QUALITY_EXCEL_IMPORT: _handle_quality_excel_import_job,
     DASHBOARD_RECOMMENDATIONS_REFRESH: _handle_dashboard_recommendations_refresh_job,
+    AI_PREDICTION: _handle_ai_prediction_job,
+    AI_QUALITY_REVIEW: _handle_ai_quality_review_job,
     TRUST_DATA_CLEANUP: _handle_trust_data_cleanup_job,
 }
 
@@ -1165,6 +1317,14 @@ def _notify_background_job_failure(
     error: str,
     final_failure: bool,
 ) -> None:
+    if job.job_type in {AI_PREDICTION, AI_QUALITY_REVIEW}:
+        update_usage(
+            db,
+            job_id=job.id,
+            status="failed" if final_failure else "queued",
+            error=error,
+        )
+        db.commit()
     if not final_failure or not BACKGROUND_JOB_ALERT_EMAIL:
         return
     payload = _background_job_alert_payload(job)
@@ -10429,6 +10589,115 @@ async def review_quality_check(
         "fraud_risk": row.fraud_risk,
         "quality_label": row.quality_label,
     })
+
+
+def _queue_builtin_ai_quality_review(
+    db: Session,
+    *,
+    current_user: User,
+    survey: Survey,
+    rows: list[ResponseQualityCheck],
+) -> JSONResponse:
+    check_ids = sorted({row.id for row in rows if row.source_type == "builtin" and row.response_id})
+    if not check_ids:
+        raise HTTPException(400, "No built-in responses are available for AI review")
+    batch_limit = max(1, min(10, int(os.environ.get("AI_QUALITY_BATCH_LIMIT", "5"))))
+    if len(check_ids) > batch_limit:
+        raise HTTPException(400, f"Select at most {batch_limit} responses per AI review")
+    fingerprint = f"quality:{current_user.id}:{survey.id}:{','.join(str(value) for value in check_ids)}"
+    recent = find_recent_ai_job(
+        db,
+        job_type=AI_QUALITY_REVIEW,
+        user_id=current_user.id,
+        fingerprint=fingerprint,
+    )
+    if recent:
+        payload = job_public_payload(recent)
+        payload["reused"] = True
+        return JSONResponse(payload, status_code=200 if recent.status == DONE else 202)
+    try:
+        ensure_usage_available(db, user_id=current_user.id, units=len(check_ids))
+    except AiUsageLimitError as exc:
+        raise HTTPException(429, str(exc)) from exc
+    job = enqueue_ai_quality_review_job(
+        db,
+        user_id=current_user.id,
+        survey_id=survey.id,
+        check_ids=check_ids,
+        fingerprint=fingerprint,
+    )
+    reserve_usage(
+        db,
+        user_id=current_user.id,
+        job=job,
+        feature="builtin_quality_review",
+        units=len(check_ids),
+        survey_id=survey.id,
+        metadata={"check_count": len(check_ids)},
+    )
+    db.commit()
+    payload = job_public_payload(job)
+    payload["reused"] = False
+    return JSONResponse(payload, status_code=202)
+
+
+@app.post("/api/quality-checks/{check_id}/ai-review")
+def queue_single_quality_ai_review(
+    check_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    row, survey = _get_quality_check_for_publisher(db, check_id, current_user.id)
+    if row.source_type != "builtin":
+        raise HTTPException(400, "This action is for built-in responses")
+    return _queue_builtin_ai_quality_review(
+        db,
+        current_user=current_user,
+        survey=survey,
+        rows=[row],
+    )
+
+
+@app.post("/api/surveys/{survey_id}/quality/ai-review")
+async def queue_flagged_quality_ai_review(
+    survey_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    survey = db.query(Survey).filter(
+        Survey.id == survey_id,
+        Survey.publisher_id == current_user.id,
+    ).first()
+    if not survey or survey.form_url != "__builtin__":
+        raise HTTPException(404, "Built-in survey not found")
+    body = await request.json()
+    supplied_ids = []
+    for value in body.get("check_ids") or []:
+        try:
+            supplied_ids.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    query = db.query(ResponseQualityCheck).filter(
+        ResponseQualityCheck.survey_id == survey.id,
+        ResponseQualityCheck.source_type == "builtin",
+    )
+    if supplied_ids:
+        rows = query.filter(ResponseQualityCheck.id.in_(supplied_ids)).all()
+    else:
+        rows = query.filter(or_(
+            ResponseQualityCheck.fraud_risk.is_(True),
+            ResponseQualityCheck.quality_label.in_(["medium", "low", "fraud_risk"]),
+            ResponseQualityCheck.review_status.in_(["pending", "needs_review"]),
+        )).order_by(ResponseQualityCheck.created_at.desc()).limit(
+            max(1, min(10, int(os.environ.get("AI_QUALITY_BATCH_LIMIT", "5"))))
+        ).all()
+    return _queue_builtin_ai_quality_review(
+        db,
+        current_user=current_user,
+        survey=survey,
+        rows=rows,
+    )
 
 
 @app.post("/api/quality-checks/{check_id}/blacklist")

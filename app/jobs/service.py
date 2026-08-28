@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from datetime import datetime, timedelta
 from typing import Any, Callable
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import BackgroundJob
@@ -20,11 +22,21 @@ REWARD_SETUP_REMINDER_EMAIL = "reward_setup_reminder_email"
 ADMIN_BULK_EMAIL = "admin_bulk_email"
 QUALITY_EXCEL_IMPORT = "quality_excel_import"
 DASHBOARD_RECOMMENDATIONS_REFRESH = "dashboard_recommendations_refresh"
+AI_PREDICTION = "ai_prediction"
+AI_QUALITY_REVIEW = "ai_quality_review"
 TRUST_DATA_CLEANUP = "trust_data_cleanup"
 
 JobHandler = Callable[[Session, BackgroundJob], None]
 JobFailureCallback = Callable[[Session, BackgroundJob, str, bool], None]
 DEFAULT_STALE_RUNNING_MINUTES = 15
+
+
+def _ai_dedupe_bucket() -> int:
+    try:
+        minutes = max(1, min(1440, int(os.environ.get("AI_REQUEST_COOLDOWN_MINUTES", "10"))))
+    except (TypeError, ValueError):
+        minutes = 10
+    return int(datetime.utcnow().timestamp() // (60 * minutes))
 
 
 def enqueue_job(
@@ -48,8 +60,19 @@ def enqueue_job(
         max_attempts=max(1, max_attempts),
         run_after=run_after or datetime.utcnow(),
     )
-    db.add(job)
-    db.flush()
+    if not dedupe_key:
+        db.add(job)
+        db.flush()
+        return job
+    try:
+        with db.begin_nested():
+            db.add(job)
+            db.flush()
+    except IntegrityError:
+        existing = db.query(BackgroundJob).filter(BackgroundJob.dedupe_key == dedupe_key).first()
+        if existing:
+            return existing
+        raise
     return job
 
 
@@ -183,6 +206,60 @@ def enqueue_dashboard_recommendations_refresh_job(
         payload={"user_id": user_id, "survey_ids": normalized_ids, "explicit": bool(explicit)},
         run_after=run_after,
         dedupe_key=f"{DASHBOARD_RECOMMENDATIONS_REFRESH}:{trigger_mode}:{refresh_window}:user:{user_id}:surveys:{ids_key}",
+        max_attempts=2,
+    )
+
+
+def enqueue_ai_prediction_job(
+    db: Session,
+    *,
+    user_id: int,
+    survey_id: int,
+    mode: str,
+    scope: str,
+    units: int,
+    force: bool,
+    fingerprint: str,
+) -> BackgroundJob:
+    bucket = _ai_dedupe_bucket()
+    return enqueue_job(
+        db,
+        job_type=AI_PREDICTION,
+        payload={
+            "user_id": user_id,
+            "survey_id": survey_id,
+            "mode": mode,
+            "scope": scope,
+            "units": units,
+            "force": bool(force),
+            "fingerprint": fingerprint,
+        },
+        dedupe_key=f"{AI_PREDICTION}:{fingerprint}:{bucket}",
+        max_attempts=2,
+    )
+
+
+def enqueue_ai_quality_review_job(
+    db: Session,
+    *,
+    user_id: int,
+    survey_id: int,
+    check_ids: list[int],
+    fingerprint: str,
+) -> BackgroundJob:
+    bucket = _ai_dedupe_bucket()
+    return enqueue_job(
+        db,
+        job_type=AI_QUALITY_REVIEW,
+        payload={
+            "user_id": user_id,
+            "survey_id": survey_id,
+            "check_ids": sorted({int(check_id) for check_id in check_ids if int(check_id) > 0}),
+            "scope": "single" if len(check_ids) == 1 else "flagged",
+            "units": len(check_ids),
+            "fingerprint": fingerprint,
+        },
+        dedupe_key=f"{AI_QUALITY_REVIEW}:{fingerprint}:{bucket}",
         max_attempts=2,
     )
 
