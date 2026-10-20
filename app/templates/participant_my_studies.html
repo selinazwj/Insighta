@@ -95,8 +95,8 @@
     .status-pill.paid{background:var(--paper2);color:var(--yale);border:1.5px solid var(--lime2);}
     .status-pill.skipped{background:var(--paper);color:var(--ink3);border:1.5px solid var(--line);}
 
-    .row-actions{margin-left:auto;display:flex;gap:7px;flex-shrink:0;}
-    .btn-sm{padding:7px 14px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:900;cursor:pointer;border:2px solid;transition:transform .1s,box-shadow .1s;display:flex;align-items:center;gap:5px;}
+    .row-actions{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;max-width:100%;}
+    .btn-sm{text-decoration:none;padding:7px 14px;border-radius:10px;font-family:var(--sans);font-size:12px;font-weight:900;cursor:pointer;border:2px solid;transition:transform .1s,box-shadow .1s;display:flex;align-items:center;gap:5px;}
     .btn-sm svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;}
     .btn-sm.primary{background:var(--teal);color:#fff;border-color:var(--yale);box-shadow:0 3px 0 var(--yale);}
     .btn-sm.primary:hover{transform:translateY(1px);box-shadow:0 2px 0 var(--yale);}
@@ -158,6 +158,8 @@
     <div class="topbar-title">My studies</div>
   </div>
   <div class="content">
+
+    {% include "_calendar_connection.html" %}
 
     <!-- summary -->
     <div class="summary-row">
@@ -238,8 +240,12 @@
     const isBuiltIn = !s.link || s.link === '';
     const safeLink  = (s.link || '').replace(/'/g, "\\'");
     if (s.is_live_study) {
-      if (c === 'completed' || !safeLink) return '';
+      if (c === 'completed') return '';
+      const googleActions = (s.google_calendar_links || []).map(link => `<a class="btn-sm primary" href="${link.url.replace(/&/g, '&amp;')}" target="_blank" rel="noopener noreferrer">${link.label}</a>`).join('');
+      const calendarAction = googleActions + (s.calendar_url ? `<a class="btn-sm ghost" href="${s.calendar_url}">Add to your calendar (.ics)</a>` : '');
+      if (!safeLink) return `<div class="row-actions">${calendarAction}</div>`;
       return `<div class="row-actions">
+        ${calendarAction}
         <button class="btn-sm ghost" onclick="window.open('${safeLink}','_blank','noopener')">
           <svg viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>${s.status === 'scheduled' ? 'Open meeting link' : 'Open scheduling link'}
         </button>

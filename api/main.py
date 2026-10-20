@@ -33,8 +33,10 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
+from app.booking_calendar import booked_events, calendar_document, google_calendar_links
+from app.google_calendar import register_calendar_routes, calendar_status, queue_calendar_sync, sync_booking, JOB_TYPE as GOOGLE_CALENDAR_SYNC
 from app.database import engine, get_db, SessionLocal
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision, BackgroundJob
+from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision, BackgroundJob, GoogleCalendarEvent
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.jobs.service import (
@@ -914,10 +916,41 @@ def _handle_survey_start_followup_job(db: Session, job: BackgroundJob) -> None:
         raise RuntimeError(f"Survey start follow-up email was not sent for response {response_id}")
 
 
+def _booking_calendar_path(survey: Survey, response: Optional[Response]) -> Optional[str]:
+    if not response or not _uses_booking_flow(getattr(survey, "task_type", None)):
+        return None
+    events = booked_events(survey.availability_slots, _parse_booking_slots(response.booking_slot))
+    return f"/bookings/{response.id}/calendar.ics" if events else None
+
+
+def _booking_google_calendar_links(survey: Survey, response: Optional[Response]) -> list[dict]:
+    if not response or not _uses_booking_flow(getattr(survey, "task_type", None)):
+        return []
+    events = booked_events(survey.availability_slots, _parse_booking_slots(response.booking_slot))
+    location = (_survey_external_start_url(survey) if _is_online_interview_survey(survey)
+                else survey.interview_location) or "The researcher will share the details before the session."
+    return google_calendar_links(survey.title, events, location, f"{BASE_URL.rstrip('/')}/my-studies")
+
+
 def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: User, booking_slot: str) -> int:
     if not booking_slot or not _uses_booking_flow(getattr(survey, "task_type", None)):
         return 0
     booking_label = _booking_slots_label(booking_slot)
+    response = db.query(Response).filter(
+        Response.survey_id == survey.id, Response.participant_id == participant.id
+    ).first()
+    calendar_path = _booking_calendar_path(survey, response)
+    calendar_action = (
+        f'<p><a href="{html.escape(BASE_URL.rstrip("/") + calendar_path, quote=True)}" '
+        'style="color:#3b7c4f;font-weight:700;">Add to your calendar</a>'
+        '<br><small>Download all booked sessions for Apple Calendar, Outlook, or Google Calendar. Sign in if prompted.</small></p>'
+        if calendar_path else ""
+    )
+    calendar_action += "".join(
+        f'<p><a href="{html.escape(link["url"], quote=True)}" style="color:#3b7c4f;font-weight:700;">'
+        f'{html.escape(link["label"])}</a></p>'
+        for link in _booking_google_calendar_links(survey, response)
+    )
     publisher = db.query(User).filter(User.id == survey.publisher_id).first()
     study_url = f"{BASE_URL.rstrip('/')}/publisher/study/{survey.id}"
     dashboard_url = f"{BASE_URL.rstrip('/')}/dashboard"
@@ -947,6 +980,7 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
                 <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">{details_label}</div>
                 <div style="font-size:15px;">{html.escape(details)}</div>
               </div>
+              {calendar_action}
               <p>If something changes, reply to this email and a real person will help.</p>
               <p><a href="{dashboard_url}" style="color:#3b7c4f;font-weight:700;">Back to your dashboard</a></p>
             </div>
@@ -970,6 +1004,7 @@ def _send_booking_confirmation_emails(db: Session, survey: Survey, participant: 
                 <div style="font-size:12px;color:#8a8a82;text-transform:uppercase;font-weight:700;">Participant</div>
                 <div style="font-size:15px;">{html.escape(participant.email)}</div>
               </div>
+              {calendar_action}
               <p><a href="{study_url}" style="color:#3b7c4f;font-weight:700;">Open schedule in Insighta</a></p>
             </div>
             """
@@ -1278,6 +1313,7 @@ def _handle_trust_data_cleanup_job(db: Session, job: BackgroundJob) -> None:
 
 
 BACKGROUND_JOB_HANDLERS = {
+    GOOGLE_CALENDAR_SYNC: sync_booking,
     ADMIN_BULK_EMAIL: _handle_admin_bulk_email_job,
     SURVEY_START_FOLLOWUP_EMAIL: _handle_survey_start_followup_job,
     BOOKING_CONFIRMATION_EMAIL: _handle_booking_confirmation_job,
@@ -3698,6 +3734,9 @@ def get_current_user(
     return user
 
 
+register_calendar_routes(app, get_current_user)
+
+
 @app.post("/api/events")
 async def record_client_event(
     request: Request,
@@ -3917,6 +3956,8 @@ def recruitment_share_page(
         "study_image": survey.image_url or category_image(normalized_category),
         "current_user": current_user,
         "user_response": user_response,
+        "calendar_url": _booking_calendar_path(survey, user_response),
+        "google_calendar_links": _booking_google_calendar_links(survey, user_response),
         "availability_slots": availability_slots,
         "booked_slots": booked_slots,
         "display_reward": display_reward,
@@ -4100,6 +4141,8 @@ def publisher_schedule(
         })
     return templates.TemplateResponse("publisher_schedule.html", {
         "request": request,
+        "calendar_connection": calendar_status(db, current_user.id),
+        "calendar_return": "/publisher/schedule",
         "current_user": current_user,
         "schedule_items": schedule_items,
     })
@@ -4167,6 +4210,7 @@ def _delete_survey_tree(db: Session, survey: Survey) -> None:
     if question_ids:
         db.query(Answer).filter(Answer.question_id.in_(question_ids)).delete(synchronize_session=False)
     if response_ids:
+        db.query(GoogleCalendarEvent).filter(GoogleCalendarEvent.response_id.in_(response_ids)).delete(synchronize_session=False)
         db.query(Answer).filter(Answer.response_id.in_(response_ids)).delete(synchronize_session=False)
         db.query(JumpEvent).filter(JumpEvent.response_id.in_(response_ids)).delete(synchronize_session=False)
         db.query(ResponseQualityCheck).filter(ResponseQualityCheck.response_id.in_(response_ids)).delete(synchronize_session=False)
@@ -4672,6 +4716,8 @@ def _participant_survey_payload(
         ),
         "status": response_status,
         "booking_slot": getattr(user_response, "booking_slot", None) if user_response else None,
+        "calendar_url": _booking_calendar_path(s, user_response),
+        "google_calendar_links": _booking_google_calendar_links(s, user_response),
         "booking_slots": _parse_booking_slots(getattr(user_response, "booking_slot", None)) if user_response else [],
         "availability_slots": availability_slots,
         "has_native_booking": bool(is_live_study and availability_slots),
@@ -4794,6 +4840,33 @@ def dashboard(
     )
 
 
+@app.get("/bookings/{response_id}/calendar.ics")
+def download_booking_calendar(
+    response_id: int,
+    user_id: str = Cookie(None),
+    db: Session = Depends(get_db),
+):
+    path = f"/bookings/{response_id}/calendar.ics"
+    if not user_id:
+        return RedirectResponse(f"/login?{urlencode({'next': path})}", status_code=303)
+    current_user = get_current_user(user_id=user_id, db=db)
+    response = db.query(Response).filter(Response.id == response_id).first()
+    survey = db.query(Survey).filter(Survey.id == response.survey_id).first() if response else None
+    if not survey or current_user.id not in {response.participant_id, survey.publisher_id}:
+        raise HTTPException(404, "Booking not found")
+    if not _booking_calendar_path(survey, response):
+        raise HTTPException(409, "Calendar dates are unavailable for this booking. Please contact the researcher.")
+    events = booked_events(survey.availability_slots, _parse_booking_slots(response.booking_slot))
+    location = (_survey_external_start_url(survey) if _is_online_interview_survey(survey)
+                else survey.interview_location) or "The researcher will share the details before the session."
+    content = calendar_document(response.id, survey.title, events, location, f"{BASE_URL.rstrip('/')}/my-studies")
+    return HTTPResponse(content, media_type="text/calendar", headers={
+        "Content-Disposition": f'attachment; filename="insighta-booking-{response.id}.ics"',
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+    })
+
+
 @app.get("/my-studies", response_class=HTMLResponse)
 def participant_my_studies(
     request: Request,
@@ -4822,6 +4895,8 @@ def participant_my_studies(
             )
 
     return templates.TemplateResponse("participant_my_studies.html", {
+        "calendar_connection": calendar_status(db, current_user.id),
+        "calendar_return": "/my-studies",
         "request": request,
         "current_user": current_user,
         "surveys": surveys_data,
@@ -5702,6 +5777,7 @@ async def start_survey(
     if should_schedule_followup and response:
         _enqueue_survey_start_followup_if_needed(db, response)
     if should_send_booking_email and booking_slot and response:
+        queue_calendar_sync(db, response)
         _deliver_or_queue_booking_confirmation(
             db,
             survey=survey,

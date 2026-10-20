@@ -101,12 +101,12 @@ def iter_img_tags(html: str) -> Iterable[str]:
 
 
 def audit_templates(audit: Audit) -> None:
-    templates = sorted(TEMPLATES.glob("*.html"))
-    missing_partial = [p.name for p in templates if p.name != SEO_PARTIAL.name and '{% include "_seo_head.html" %}' not in read(p)]
+    templates = sorted(p for p in TEMPLATES.glob("*.html") if not p.name.startswith("_"))
+    missing_partial = [p.name for p in templates if '{% include "_seo_head.html" %}' not in read(p)]
     audit.require(
         not missing_partial,
         "Template index controls",
-        f"All {len(templates) - 1} page templates include the shared SEO partial.",
+        f"All {len(templates)} page templates include the shared SEO partial.",
         "Missing shared SEO partial: " + ", ".join(missing_partial),
     )
 

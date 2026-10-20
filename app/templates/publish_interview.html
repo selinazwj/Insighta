@@ -707,7 +707,7 @@
   }
 
   function buildSlot(date, start) {
-    const slot = { date, start, end: addMinutes(start, selectedDuration()), label: '' };
+    const slot = { date, start, end: addMinutes(start, selectedDuration()), label: '', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
     slot.label = formatSlotLabel(slot);
     return slot;
   }

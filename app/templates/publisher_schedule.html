@@ -53,6 +53,8 @@
       <h1>Manage <strong>booked sessions</strong></h1>
       <p>See every available live-session time, which slots are booked, and who booked them. New participant bookings also send email confirmations automatically.</p>
     </div>
+    {% include "_calendar_connection.html" %}
+
     {% if schedule_items %}
     <div class="schedule-list">
       {% for item in schedule_items %}

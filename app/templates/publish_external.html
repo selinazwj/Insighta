@@ -1160,7 +1160,7 @@
     const start = document.getElementById('slotStartInput')?.value;
     const end = document.getElementById('slotEndInput')?.value;
     if (!date || !start || !end) return;
-    const slot = { date, start, end };
+    const slot = { date, start, end, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
     slot.label = slotLabel(slot);
     if (!adminSlots.some(existing => existing.date === date && existing.start === start && existing.end === end)) {
       adminSlots.push(slot);

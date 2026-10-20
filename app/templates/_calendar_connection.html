@@ -1,0 +1,17 @@
+{% if calendar_connection.configured %}
+<div style="margin:0 0 20px;padding:16px;border:1px solid #b8e9ad;border-radius:12px;background:#fff;line-height:1.6;">
+  <strong>Google Calendar</strong>
+  {% if calendar_connection.connected %}
+    <p>Connected as {{ calendar_connection.email }}. Booked sessions sync automatically.</p>
+    <form method="post" action="/auth/google/calendar/disconnect?next={{ calendar_return | urlencode }}">
+      <button type="submit" style="padding:7px 12px;border:1px solid #b8e9ad;border-radius:8px;background:#fff;cursor:pointer;">Disconnect Google Calendar</button>
+    </form>
+  {% else %}
+    <p>{{ 'Reconnect to resume syncing your booked sessions.' if calendar_connection.reconnect else 'Connect to add existing and future booked sessions automatically.' }}</p>
+    <a href="/auth/google/calendar/connect?next={{ calendar_return | urlencode }}" style="display:inline-block;padding:8px 14px;border-radius:8px;background:#1a759f;color:white;text-decoration:none;font-weight:700;">{{ 'Reconnect Google Calendar' if calendar_connection.reconnect else 'Connect Google Calendar' }}</a>
+  {% endif %}
+  {% if request.query_params.get('calendar') == 'connected' %}<p role="status">Your calendar is connected. Sessions with a recorded time zone will appear after syncing.</p>{% endif %}
+  {% if request.query_params.get('calendar') == 'cancelled' %}<p role="status">Connection was cancelled. You can still add sessions using the calendar links.</p>{% endif %}
+  {% if request.query_params.get('calendar') == 'disconnected' %}<p role="status">Calendar disconnected. Events already saved in Google Calendar remain there.</p>{% endif %}
+</div>
+{% endif %}

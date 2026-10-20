@@ -299,6 +299,13 @@
         <div class="status-note">You already started this study.</div>
       {% endif %}
 
+      {% if calendar_url and user_response.status != 'completed' %}
+        {% for link in google_calendar_links %}
+          <p><a class="slot-btn" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.label }}</a></p>
+        {% endfor %}
+        <p><a class="slot-btn" href="{{ calendar_url }}">Add to your calendar (.ics)</a></p>
+      {% endif %}
+
       <h2 class="cta-title">Ready to participate?</h2>
       <p class="cta-copy">
         {% if current_user %}
@@ -422,7 +429,7 @@
         alert('Could not save this time. Please try again.');
         return;
       }
-      window.location.href = targetUrl || '/dashboard';
+      window.location.href = hasBookableSlots ? '/my-studies' : (targetUrl || '/dashboard');
     }
 
     function startExternalStudy(targetUrl) {
