@@ -9,6 +9,7 @@ passlib[bcrypt]
 bcrypt==4.0.1
 python-dotenv
 psycopg2-binary
+psycopg[binary]>=3,<4
 anthropic
 stripe
 httpx
