@@ -125,7 +125,13 @@
       .summary-stack{position:static;}
     }
     @media(max-width:560px){
+      .profile-grid{grid-template-columns:minmax(0,1fr);}
+      .profile-grid>*{min-width:0;}
+      .topbar-left{min-width:0;}
+      .topbar-title{font-size:13px;}
+      .summary-name,.meta-row{overflow-wrap:anywhere;}
       .form-card{padding:22px 18px;}
+      .form-group input,.form-group select,.form-group textarea{min-width:0;font-size:16px;}
       .form-row{grid-template-columns:1fr;gap:0;}
       .actions{flex-direction:column-reverse;align-items:stretch;}
       .btn-secondary,.btn-submit{text-align:center;width:100%;}

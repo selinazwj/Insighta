@@ -14,7 +14,7 @@
   <style>
     :root {
       --green: #3b7c4f; --green-d: #2a5c39; --green-l: #e8f2eb; --green-m: #c2deca;
-      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82; --ink4: #b8b8b0;
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #707068; --ink4: #b8b8b0;
       --paper: #ffffff; --paper-warm: #fafaf8; --paper-soft: #f5f3ee;
       --accent: var(--green); --accent-light: var(--green-m);
       --line: #eeece6; --line2: #e0ddd6;
@@ -45,6 +45,8 @@
 
     .right-panel { padding: 60px 48px; overflow-y: auto; }
     .form-wrapper { max-width: 480px; margin: 0 auto; }
+    .mobile-brand { display: none; text-decoration: none; color: var(--ink); font-size: 17px; font-weight: 700; margin-bottom: 28px; }
+    .mobile-brand span { color: var(--green); }
 
     .step { display: none; }
     .step.active { display: block; }
@@ -178,6 +180,10 @@
       .left-panel { display: none; }
       .right-panel { padding: 40px 24px; }
       .form-row { grid-template-columns: 1fr; }
+      .mobile-brand { display: block; }
+      input[type="email"],input[type="password"],input[type="text"],input[type="tel"],input[type="number"],select { font-size:16px; }
+      .code-row input { min-width: 0; }
+      .btn-google { height: auto; min-height: 44px; padding: 10px 14px; text-align: center; }
     }
 
     {% if participant_app %}
@@ -375,6 +381,7 @@
 <!-- RIGHT PANEL -->
 <div class="right-panel">
   <div class="form-wrapper">
+    <a class="mobile-brand" href="/" aria-label="Insighta home">Insight<span>a</span></a>
 
     {% if error %}
     <div class="error-box">{{ error }}</div>
@@ -393,11 +400,11 @@
         <div class="step-header">
           <span class="step-eyebrow">Step 1 of 2</span>
           <h1>{% if participant_app %}Join the participant side.{% else %}Verify your email.{% endif %}</h1>
-          <p>{% if participant_app %}Create your account with basic information only. You can complete your detailed participant profile after signing in.{% else %}Enter your email and we'll send you a verification code. Detailed profile fields can be completed later.{% endif %}</p>
+          <p>Verify your email, then add your basic details and a password to create your account. You can expand your profile after signing in.</p>
         </div>
 
         <div class="form-group">
-          <label>Email address <span class="badge-required">Required</span></label>
+          <label for="email">Email address <span class="badge-required">Required</span></label>
           <input type="email" name="email" id="email" required placeholder="you@example.com"
             value="{{ register_email or '' }}" onblur="checkEmailExists(this.value)">
           <div class="field-note"><strong>Recommended:</strong> use a school or work email when possible. It helps us establish account trust faster.</div>
@@ -407,14 +414,14 @@
         </div>
 
         <div class="form-group">
-          <label>Phone number <span class="badge-required">Optional</span></label>
+          <label for="phoneNumber">Phone number <span class="badge-optional">Optional</span></label>
           <input type="tel" name="phone_number" id="phoneNumber" placeholder="+1 555 123 4567"
             value="{{ register_phone or '' }}" autocomplete="tel">
           <div class="field-note">Optional, but useful if we need another way to verify your account.</div>
         </div>
 
         <div class="form-group">
-          <label>Referral code <span class="badge-optional">Optional</span></label>
+          <label for="referralCode">Referral code <span class="badge-optional">Optional</span></label>
           <input type="text" name="referral_code" id="referralCode" placeholder="e.g. AB12CD34"
             value="{{ register_referral or '' }}" autocomplete="off" spellcheck="false"
             style="text-transform:uppercase;letter-spacing:.08em;">
@@ -422,7 +429,7 @@
         </div>
 
         <div class="form-group">
-          <label>Verification code <span class="badge-required">Required</span></label>
+          <label for="verificationCode">Verification code <span class="badge-required">Required</span></label>
           <div class="code-row">
             <input type="text" name="verification_code" id="verificationCode"
               placeholder="6-digit code" maxlength="6" autocomplete="one-time-code"
@@ -455,27 +462,28 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>First name <span class="badge-required">Required</span></label>
+            <label for="firstName">First name <span class="badge-required">Required</span></label>
             <input type="text" name="first_name" id="firstName" required value="{{ register_values.first_name if register_values else '' }}" autocomplete="given-name">
           </div>
           <div class="form-group">
-            <label>Last name <span class="badge-required">Required</span></label>
+            <label for="lastName">Last name <span class="badge-required">Required</span></label>
             <input type="text" name="last_name" id="lastName" required value="{{ register_values.last_name if register_values else '' }}" autocomplete="family-name">
           </div>
         </div>
 
         <div class="form-group" style="margin-top:16px;">
-          <label>Username <span class="badge-required">Required</span></label>
+          <label for="username">Username <span class="badge-required">Required</span></label>
           <input type="text" name="username" id="username" required value="{{ register_values.username if register_values else '' }}" autocomplete="nickname">
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Birth year <span class="badge-required">Required</span></label>
-            <input type="number" name="birth_year" id="birthYear" min="1900" max="2010" required value="{{ register_values.birth_year if register_values else '' }}" placeholder="2002">
+            <label for="birthYear">Birth year <span class="badge-required">Required</span></label>
+            <input type="number" name="birth_year" id="birthYear" min="1900" max="{{ birth_year_max }}" required value="{{ register_values.birth_year if register_values else '' }}" placeholder="2002" aria-describedby="ageRequirement">
+            <div class="field-note" id="ageRequirement">You must be 18 or older to join.</div>
           </div>
           <div class="form-group">
-            <label>Birth month <span class="badge-required">Required</span></label>
+            <label for="birthMonth">Birth month <span class="badge-required">Required</span></label>
             <select name="birth_month" id="birthMonth" required>
               <option value="">Select</option>
               {% for month in ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
@@ -486,7 +494,7 @@
         </div>
 
         <div class="form-group" style="margin-top:16px;">
-          <label>Education level <span class="badge-required">Required</span></label>
+          <label for="educationLevel">Education level <span class="badge-required">Required</span></label>
           <select name="education_level" id="educationLevel" required>
             <option value="">Select education level</option>
             {% for option in ['Below High School','High School','Undergraduate','Graduate','PhD','Postdoc'] %}
@@ -496,7 +504,7 @@
         </div>
 
         <div class="form-group">
-          <label>Field / major <span class="badge-required">Required</span></label>
+          <label for="fieldMajor">Field / major <span class="badge-required">Required</span></label>
           <select name="field" id="fieldMajor" required>
             <option value="">Select field / major</option>
             {% for option in ['Computer Science & Engineering','Data Science / AI','Business & Economics','Marketing / Design','Medicine & Healthcare','Psychology / Neuroscience','Natural Sciences','Social Sciences','Education','Law / Public Policy','Arts & Humanities','Communications / Media','Architecture / Design','Other'] %}
@@ -506,7 +514,7 @@
         </div>
 
         <div class="form-group">
-          <label>Current status <span class="badge-required">Required</span></label>
+          <label for="currentStatus">Current status <span class="badge-required">Required</span></label>
           <select name="status" id="currentStatus" required>
             <option value="">Select current status</option>
             {% for option in ['High school student','Undergraduate student','Graduate student','PhD student','Postdoc','Full-time employed','Part-time employed','Self-employed / Freelancer','Unemployed','Homemaker / Caregiver','Retired','Other'] %}
@@ -516,7 +524,7 @@
         </div>
 
         <div class="form-group">
-          <label>State you live in now <span class="badge-required">Required</span></label>
+          <label for="currentProvince">State you live in now <span class="badge-required">Required</span></label>
           <select name="current_province" id="currentProvince" required>
             <option value="">Select state</option>
             {% for option in ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','Washington DC','West Virginia','Wisconsin','Wyoming','Other'] %}
@@ -527,7 +535,7 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Primary language <span class="badge-required">Required</span></label>
+            <label for="language">Primary language <span class="badge-required">Required</span></label>
             <select name="language" id="language" required>
               <option value="">Select language</option>
               {% for option in ['English','Spanish','Mandarin Chinese','Cantonese','French','Arabic','Hindi','Bengali','Portuguese','Russian','Japanese','Korean','German','Italian','Vietnamese','Tagalog','Urdu','Other'] %}
@@ -536,7 +544,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Participation preference <span class="badge-required">Required</span></label>
+            <label for="participationFormat">Participation preference <span class="badge-required">Required</span></label>
             <select name="participation_format" id="participationFormat" required>
               <option value="">Select format</option>
               {% for option in ['Online surveys','Phone interview','Video interview','In-person study','Product test','Diary study','Any format'] %}
@@ -547,8 +555,8 @@
         </div>
 
         <div class="form-group" style="margin-top:16px;">
-          <label>Password <span class="badge-required">Required</span></label>
-          <input type="password" name="password" id="password" required placeholder="••••••••"
+          <label for="password">Password <span class="badge-required">Required</span></label>
+          <input type="password" name="password" id="password" required autocomplete="new-password" minlength="8" placeholder="••••••••"
             oninput="checkPasswordStrength(this.value)">
           <div class="pw-strength" id="pwStrength" hidden>
             <div class="pw-bar"><div class="pw-bar-fill" id="pwBarFill"></div></div>
@@ -564,8 +572,8 @@
         </div>
 
         <div class="form-group">
-          <label>Confirm password <span class="badge-required">Required</span></label>
-          <input type="password" name="confirm" id="confirm" required placeholder="••••••••"
+          <label for="confirm">Confirm password <span class="badge-required">Required</span></label>
+          <input type="password" name="confirm" id="confirm" required autocomplete="new-password" placeholder="••••••••"
             oninput="checkPasswordMatch()">
           <div class="confirm-hint" id="confirmHint"></div>
         </div>
@@ -585,7 +593,7 @@
           <label>Quick check: what is {{ captcha_question }}? <span class="badge-required">Required</span></label>
           <input type="text" name="captcha_answer" id="captchaAnswer" inputmode="numeric"
             placeholder="Your answer" maxlength="3" required>
-          <div class="field-note">Local development fallback. Production uses a managed bot check.</div>
+          <div class="field-note">This quick check helps prevent automated sign-ups.</div>
           {% endif %}
         </div>
 
@@ -756,7 +764,7 @@
     const code = document.getElementById('verificationCode').value.trim();
     let hasError = false;
 
-    if (!email) {
+    if (!document.getElementById('email').checkValidity()) {
       const el = document.getElementById('email');
       el.style.borderColor = '#ef4444';
       el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
@@ -861,12 +869,14 @@
     const password = document.getElementById('password').value;
     const confirm = document.getElementById('confirm').value;
     let hasError = false;
+    let firstInvalid = null;
 
     document.querySelectorAll('#step2 [required]').forEach(el => {
-      if (!el.value.trim()) {
+      if (!el.checkValidity()) {
         el.style.borderColor = '#ef4444';
         el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
         hasError = true;
+        if (!firstInvalid) firstInvalid = el;
         el.addEventListener('input', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
         el.addEventListener('change', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
       } else {
@@ -874,7 +884,7 @@
         el.style.boxShadow = '';
       }
     });
-    if (hasError) return;
+    if (hasError) { firstInvalid?.focus(); firstInvalid?.reportValidity(); return; }
     if (password !== confirm) {
       const el = document.getElementById('confirm');
       el.style.borderColor = '#ef4444';

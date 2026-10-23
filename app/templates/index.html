@@ -18,7 +18,7 @@
       --green-m: #c2deca;
       --ink:     #1a1a18;
       --ink2:    #4a4a44;
-      --ink3:    #8a8a82;
+      --ink3:    #707068;
       --ink4:    #b8b8b0;
       --bg:      #ffffff;
       --bg2:     #fafaf8;
@@ -123,6 +123,7 @@
     /* ive added left padding so the text isnt hugging the divider lines, and bumped the sizes a touch */
     .hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 0.5px solid var(--line); border-bottom: 0.5px solid var(--line); }
     .hero-stat { padding: 32px 32px 32px 28px; border-right: 0.5px solid var(--line); }
+    .hero-stat { min-width: 0; }
     .hero-stat:first-child { padding-left: 0; }
     .hero-stat:last-child { border-right: none; padding-right: 0; }
     .hs-n { font-size: 36px; font-weight: 300; color: var(--green); letter-spacing: -1px; margin-bottom: 6px; }
@@ -349,6 +350,12 @@
       .role-tab { padding: 7px 10px; }
       .nav-right { margin-left: auto; }
       .hero-stats { grid-template-columns: 1fr 1fr; }
+      .hero-actions { flex-direction: column; align-items: stretch; gap: 16px; margin-bottom: 36px; }
+      .btn-hero, .btn-hero-ghost { justify-content: center; min-height: 44px; }
+      .hero-stat { padding: 22px 14px; }
+      .hs-n { font-size: clamp(21px, 6vw, 28px); letter-spacing: -.5px; overflow-wrap: anywhere; }
+      .hs-l { font-size: 13px; line-height: 1.45; }
+      .hs-s { color: var(--ink3); line-height: 1.5; }
       .features-grid { grid-template-columns: 1fr; }
       .feature-card { border-right: none; border-bottom: 0.5px solid var(--line); }
       .feature-card:last-child { border-bottom: none; }
@@ -367,8 +374,8 @@
     <a href="/about">About</a>
   </div>
   <div class="role-switch" aria-label="Choose Insighta side">
-    <button class="role-tab active" id="tab-researcher" type="button" onclick="setHomepageMode('researcher')">Researcher</button>
-    <button class="role-tab" id="tab-participant" type="button" onclick="setHomepageMode('participant')">Participant</button>
+    <button class="role-tab active" id="tab-researcher" type="button" aria-pressed="true" onclick="setHomepageMode('researcher')">Researcher</button>
+    <button class="role-tab" id="tab-participant" type="button" aria-pressed="false" onclick="setHomepageMode('participant')">Participant</button>
   </div>
   <div class="nav-right">
     <a href="/login?role=researcher" class="nav-signin mode-login-link">Sign in</a>
@@ -632,6 +639,8 @@
       document.body.classList.toggle('participant-mode', isParticipant);
       document.getElementById('tab-researcher').classList.toggle('active', !isParticipant);
       document.getElementById('tab-participant').classList.toggle('active', isParticipant);
+      document.getElementById('tab-researcher').setAttribute('aria-pressed', String(!isParticipant));
+      document.getElementById('tab-participant').setAttribute('aria-pressed', String(isParticipant));
       document.getElementById('heroKicker').textContent = copy.kicker;
       document.getElementById('heroTitle').innerHTML = copy.title;
       document.getElementById('heroSub').textContent = copy.sub;

@@ -148,6 +148,26 @@ class PublishFlowTest(unittest.TestCase):
             result = self.client.post('/login', data={'email': 'Researcher', 'password': self.password})
             self.assertNotEqual(result.status_code, 303)
 
+    def test_mobile_researcher_keeps_workspace_and_profile_role(self):
+        self.client.headers['User-Agent'] = 'Mozilla/5.0 (iPhone; Mobile)'
+        workspace = self.client.get('/publisher', follow_redirects=False)
+        self.assertEqual(workspace.status_code, 200)
+        self.assertEqual(self.client.cookies.get('participant_app'), '0')
+        self.assertIn('Researcher <strong>profile</strong>', self.client.get('/profile').text)
+        self.client.get('/participant')
+        self.assertEqual(self.client.cookies.get('participant_app'), '1')
+        self.assertIn('<title>Insighta - Profile</title>', self.client.get('/profile').text)
+
+    def test_mobile_workspace_login_preserves_researcher_intent(self):
+        self.client.cookies.clear()
+        self.client.headers['User-Agent'] = 'Mozilla/5.0 (iPhone; Mobile)'
+        result = self.client.get('/publisher', follow_redirects=False)
+        self.assertEqual(result.status_code, 303)
+        self.assertEqual(result.headers['location'], '/login?role=researcher')
+        login = self.client.get(result.headers['location'])
+        self.assertIn('Continue to your researcher workspace.', login.text)
+        self.assertEqual(self.client.cookies.get('participant_app'), '0')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -2360,7 +2360,9 @@ def _participant_dashboard_url(request: Request) -> str:
     return "/dashboard/mobile" if _is_mobile_request(request) else "/dashboard"
 
 def _should_use_participant_app(request: Request, participant_app: Optional[str] = None) -> bool:
-    return _is_mobile_request(request) or participant_app == "1"
+    if participant_app in {"0", "1"}:
+        return participant_app == "1"
+    return _is_mobile_request(request)
 
 def _auth_uses_participant_app(request: Request, role: Optional[str] = None, participant_app: Optional[str] = None) -> bool:
     normalized_role = (role or "").strip().lower()
@@ -2515,8 +2517,8 @@ def _mark_participant_app(response: RedirectResponse, request: Optional[Request]
     )
 
 def _clear_participant_app(response, request: Optional[Request] = None):
-    policy = _cookie_policy(request)
-    response.delete_cookie("participant_app", samesite=policy["samesite"], secure=policy["secure"])
+    # Keep an explicit researcher preference so a phone does not change roles.
+    response.set_cookie("participant_app", "0", max_age=AUTH_COOKIE_MAX_AGE, **_cookie_policy(request))
 
 def _mask_email(email: str) -> str:
     if "@" not in email:
@@ -3530,6 +3532,7 @@ def show_register(
             "register_next": register_next,
             "register_referral": referral_code,
             "register_values": {},
+            "birth_year_max": datetime.now(timezone.utc).year - 18,
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
             "captcha_question": captcha_question, "captcha_token": captcha_token,
             "turnstile_site_key": turnstile_site_key(),
@@ -3588,6 +3591,7 @@ async def do_register(
             "register_next": next_url if is_safe_internal_next(next_url) else "",
             "register_referral": referral_input,
             "register_values": register_values,
+            "birth_year_max": datetime.now(timezone.utc).year - 18,
             "participant_app": _auth_uses_participant_app(request, role, participant_app),
             "captcha_question": new_question, "captcha_token": new_token,
             "turnstile_site_key": turnstile_site_key(),
@@ -4054,17 +4058,14 @@ def publisher_dashboard(
     user_id: str = Cookie(None),
     db: Session = Depends(get_db)
 ):
-    if _is_mobile_request(request):
-        return RedirectResponse(_participant_dashboard_url(request) if user_id else "/participant", status_code=302)
-
     if not user_id:
-        return RedirectResponse("/login", status_code=303)
+        return RedirectResponse("/login?role=researcher", status_code=303)
     try:
         current_user = db.query(User).filter(User.id == int(user_id)).first()
     except:
-        return RedirectResponse("/login", status_code=303)
+        return RedirectResponse("/login?role=researcher", status_code=303)
     if not current_user:
-        return RedirectResponse("/login", status_code=303)
+        return RedirectResponse("/login?role=researcher", status_code=303)
     all_items = db.query(Survey).filter(Survey.publisher_id == current_user.id).all()
     slugs_changed = False
     for item in all_items:
@@ -4091,7 +4092,7 @@ def publisher_dashboard(
     survey_items = [s for s in all_items if _normalize_task_type(getattr(s, "task_type", None)) == "survey"]
     interview_items = [s for s in all_items if _uses_booking_flow(getattr(s, "task_type", None))]
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "publish.html",
         {
             "request": request,
@@ -4101,6 +4102,8 @@ def publisher_dashboard(
             "current_user": current_user
         }
     )
+    _clear_participant_app(response, request)
+    return response
 
 
 @app.get("/publisher/schedule", response_class=HTMLResponse)

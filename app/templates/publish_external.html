@@ -234,15 +234,21 @@
 
     @media(max-width:640px){
       .sidebar{display:none;}
-      .topbar{padding:0 16px;}
+      .topbar{padding:10px 16px;height:auto;min-height:56px;flex-wrap:wrap;gap:8px;}
       .topbar-title{display:none;}
-      .draft-status{display:none;}
+      .topbar-right{flex:1;min-width:0;flex-wrap:wrap;justify-content:flex-end;}
+      .topbar .btn-save,.topbar .btn-cancel{width:auto;white-space:nowrap;}
+      .topbar .draft-status{flex-basis:100%;font-size:11px;min-width:0;}
+      .ai-row{flex-direction:column;}
+      .ai-input{flex:none;min-height:44px;min-width:0;font-size:16px;}
+      .field input,.field select,.field textarea{font-size:16px;}
       .container{padding:28px 16px 64px;}
       .form-section{padding:20px 18px;}
       .row,.row-3{grid-template-columns:1fr;}
       .slot-editor{grid-template-columns:1fr;}
       .check-grid{grid-template-columns:1fr;}
       .submit-bar{flex-direction:column-reverse;}
+      .submit-bar .draft-status{display:block;text-align:center;}
       .wizard-label{font-size:10px;}
       .wizard-nav{align-items:stretch;flex-wrap:wrap;}
       .wizard-nav-note{width:100%;text-align:center;order:-1;}

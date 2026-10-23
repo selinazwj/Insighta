@@ -14,7 +14,7 @@
   <style>
     :root {
       --green: #3b7c4f; --green-d: #2a5c39; --green-l: #e8f2eb; --green-m: #c2deca;
-      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #8a8a82; --ink4: #b8b8b0;
+      --ink: #1a1a18; --ink-soft: #4a4a44; --ink-muted: #707068; --ink4: #b8b8b0;
       --paper: #ffffff; --paper-warm: #fafaf8; --paper-soft: #f5f3ee;
       --accent: var(--green); --accent-light: var(--green-m); --accent-warm: var(--green);
       --line: #eeece6; --line2: #e0ddd6;
@@ -40,6 +40,8 @@
 
     .right-panel { display: flex; align-items: center; justify-content: center; padding: 60px 40px; }
     .form-wrapper { width: 100%; max-width: 380px; }
+    .mobile-brand { display: none; text-decoration: none; color: var(--ink); font-size: 17px; font-weight: 700; margin-bottom: 28px; }
+    .mobile-brand span { color: var(--green); }
 
     .form-header { margin-bottom: 34px; }
     .form-header h1 { font-family: var(--sans); font-size: 32px; font-weight: 300; color: var(--ink); letter-spacing: -0.8px; margin-bottom: 8px; }
@@ -93,6 +95,9 @@
       body { grid-template-columns: 1fr; }
       .left-panel { display: none; }
       .right-panel { padding: 48px 24px; }
+      .mobile-brand { display: block; }
+      .form-group input { font-size: 16px; }
+      .code-row input { min-width: 0; }
     }
 
 
@@ -220,6 +225,7 @@
 
 <div class="right-panel">
   <div class="form-wrapper">
+    <a class="mobile-brand" href="/" aria-label="Insighta home">Insight<span>a</span></a>
 
     <div class="form-header">
       {% if participant_app %}<div class="role-badge">Participant login</div>{% elif login_role == "researcher" %}<div class="role-badge">Researcher login</div>{% endif %}
@@ -268,8 +274,8 @@
           value="{{ login_email or '' }}">
       </div>
       <div class="form-group">
-        <label>Password</label>
-        <input type="password" name="password" autocomplete="current-password" required placeholder="••••••••">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" name="password" autocomplete="current-password" required placeholder="••••••••">
       </div>
       <span class="forgot-link" onclick="toggleReset()">Forgot password?</span>
       <button type="submit" class="btn-submit">Sign In →</button>

@@ -212,6 +212,7 @@
       width: min(340px, calc(100vw - 32px)); background: var(--bg);
       border: .5px solid var(--line2); border-radius: 12px;
       box-shadow: 0 20px 60px rgba(26,26,24,.2); padding: 18px 20px;
+      max-height: calc(100dvh - 32px); overflow-y: auto;
     }
     .tour-card.open { display: block; }
     .tour-step { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--green); margin-bottom: 7px; }
@@ -283,6 +284,22 @@
     .listing-type.wide .lt-arrow { position: static; }
     .listing-type:hover .lt-arrow { transform: translateX(2px); color: var(--green); }
     @media (max-width: 680px) {
+      body { display: block; }
+      .sidebar { width: 100%; height: auto; position: relative; border-right: none; border-bottom: .5px solid var(--line); }
+      .sidebar-logo { padding: 14px 16px; }
+      .sidebar-nav { flex-direction: row; overflow-x: auto; padding: 8px; gap: 4px; }
+      .sidebar-nav::-webkit-scrollbar { height: 3px; }
+      .nav-item { width: auto; flex-shrink: 0; white-space: nowrap; }
+      .nav-divider, .sidebar-user { display: none; }
+      .topbar { padding: 10px 16px; height: auto; min-height: 56px; gap: 8px; flex-wrap: wrap; }
+      .content { padding: 20px 16px; }
+      .stat-item { padding: 16px 10px; }
+      .stat-n { font-size: 24px; }
+      .type-tabs { flex-wrap: wrap; }
+      .study-row { padding: 16px; gap: 10px; flex-wrap: wrap; }
+      .study-info { flex: 1 1 140px; }
+      .study-prog { width: 100%; order: 1; }
+      .study-arrow { display: none; }
       .modal { max-width: 440px; }
       .listing-grid { grid-template-columns: 1fr; }
       .listing-type { min-height: 132px; }
@@ -395,7 +412,7 @@
           <div class="study-dot" style="background:{% if s.status == 'published' %}var(--green){% elif s.status == 'draft' %}#f59e0b{% else %}var(--ink4){% endif %};"></div>
           <div class="study-info">
             <div class="study-title">{{ s.title }}</div>
-            <div class="study-meta">Survey · {{ s.estimated_time }} min · ${{ s.reward_amount }}</div>
+            <div class="study-meta">Survey · {{ s.estimated_time }} min · ${{ '%.2f'|format(s.reward_amount or 0) }}</div>
           </div>
           <div class="study-prog">
             <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%;"></div></div>
@@ -428,7 +445,7 @@
           <div class="study-dot" style="background:{% if s.status == 'published' %}#7c3aed{% elif s.status == 'draft' %}#f59e0b{% else %}var(--ink4){% endif %};"></div>
           <div class="study-info">
             <div class="study-title">{{ s.title }}</div>
-            <div class="study-meta">{{ task_label }} · {{ s.estimated_time }} min · ${{ s.reward_amount }}</div>
+            <div class="study-meta">{{ task_label }} · {{ s.estimated_time }} min · ${{ '%.2f'|format(s.reward_amount or 0) }}</div>
           </div>
           <div class="study-prog">
             <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%; background:#7c3aed;"></div></div>
