@@ -65,6 +65,11 @@ removal of legacy ID-verification columns. Index creation skips tables that do
 not exist yet, so the first revision is safe across partially migrated
 environments.
 
+Revision `202610230001` adds a unique, nullable `surveys.publish_token` for
+listing submission retries. Apply it before running the updated publishing
+flow when startup schema bootstrap is disabled. It preserves existing listings;
+it does not remove duplicate drafts created before this revision.
+
 Only after migrations are in the deploy flow **and** `alembic upgrade head`
 succeeds against production PostgreSQL should you disable startup schema
 bootstrap:

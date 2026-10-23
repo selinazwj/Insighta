@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/support_chat.css">
+  <link rel="stylesheet" href="/static/listing_feedback.css">
   <style>
     :root {
       --green:#3b7c4f; --green-d:#2a5c39; --green-l:#e8f2eb; --green-m:#c2deca;
@@ -307,7 +308,7 @@
       <div class="topbar-title">Publish survey</div>
     </div>
     <div class="topbar-right">
-      <span class="draft-status" id="draftStatus"></span>
+      <span class="draft-status" id="draftStatus" role="status" aria-live="polite"></span>
       {% if not is_admin_publish %}<button type="button" class="btn-save" onclick="saveDraft()">Save draft</button>{% endif %}
       <button type="button" class="btn-cancel" onclick="window.location.href='{{ '/admin#publish' if is_admin_publish else '/publisher' }}'">Cancel</button>
     </div>
@@ -360,6 +361,7 @@
     <input type="hidden" name="admin_key" value="{{ admin_key }}">
     {% endif %}
     <input type="hidden" name="existing_survey_id" value="{{ existing_survey_id or 0 }}">
+    <input type="hidden" name="publish_token" value="{{ publish_token }}">
 
     <!-- 01 BASIC INFO -->
     <div class="form-section" data-wizard-step="1">
@@ -516,10 +518,11 @@
       <div class="field">
         <label>Upload your poster <span style="font-weight:400;color:var(--ink3);">(optional)</span></label>
         <div class="file-zone" id="fileZone">
-          <input type="file" id="posterInput" name="cover_image" accept="image/*">
+          <input type="file" id="posterInput" name="cover_image" accept="image/jpeg,image/png,image/webp" aria-label="Upload your poster">
           <div class="fz-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
-          <div class="fz-text"><strong>Click to upload</strong> or drag and drop<br>JPG or PNG. Leave empty for auto-generated cover.</div>
+          <div class="fz-text"><strong>Click to upload</strong> or drag and drop<br>JPG, PNG, or WebP. Leave empty for auto-generated cover.</div>
           <div class="fz-name" id="fzName"></div>
+          <div class="fz-error" id="posterError" role="alert" hidden></div>
         </div>
       </div>
     </div>
@@ -997,13 +1000,13 @@
       <div class="section-head">
         <div class="section-num">06</div>
         <div>
-          <div class="section-title">Any niche requirements?</div>
-          <div class="section-sub">Add very specific criteria we should consider during manual matching</div>
+          <div class="section-title">Other eligibility requirements</div>
+          <div class="section-sub">Add any requirements not covered by the choices above for screening and manual matching</div>
         </div>
       </div>
       <div class="field">
-        <label>Niche criteria <span style="font-weight:400;color:var(--ink3);">(optional)</span></label>
-        <textarea name="target_niche_requirements" placeholder="e.g. First-generation college students in California who have used a budgeting app in the past 6 months."></textarea>
+        <label for="otherRequirements">Other requirements <span style="font-weight:400;color:var(--ink3);">(optional)</span></label>
+        <textarea id="otherRequirements" name="target_niche_requirements" placeholder="e.g. First-generation college students in California who have used a budgeting app in the past 6 months."></textarea>
       </div>
       <div class="sub-label">Additional participant benefits <span style="font-weight:400;text-transform:none;letter-spacing:0;">(besides payment)</span></div>
       <div class="section-sub" style="margin-bottom:10px;">Highlight non-monetary reasons someone may want to join. These will appear on the participant-facing study card.</div>
@@ -1060,8 +1063,10 @@
       <button type="button" class="btn-step next" id="wizardNext" onclick="changeWizardStep(1)">Continue</button>
     </div>
 
+    <div class="publish-error" id="publishError" role="alert" hidden></div>
     <!-- SUBMIT -->
     <div class="submit-bar" data-wizard-step="4" hidden>
+      <span class="draft-status" id="bottomDraftStatus" role="status" aria-live="polite"></span>
       <button type="button" class="btn-cancel" onclick="history.back()">Cancel</button>
       {% if not is_admin_publish %}<button type="button" class="btn-save" onclick="saveDraft()">Save draft</button>{% endif %}
       <button type="submit" class="btn-publish" id="submitBtn">
@@ -1074,13 +1079,21 @@
 </div>
 </div>
 
+<dialog class="draft-confirmation" id="draftConfirmation" aria-labelledby="draftConfirmationTitle">
+  <h2 id="draftConfirmationTitle">Draft saved</h2>
+  <p>Your form entries are saved in this browser. Return on this device to restore them. Poster files need to be selected again after leaving this page.</p>
+  <button type="button" class="btn-save" onclick="document.getElementById('draftConfirmation').close()">Got it</button>
+</dialog>
+<script src="/static/listing_feedback.js"></script>
 <script>
   const IS_ADMIN_PUBLISH = {{ 'true' if is_admin_publish else 'false' }};
   const ADMIN_KEY = {{ (admin_key or '')|tojson if is_admin_publish else 'null' }};
-  const DRAFT_KEY = `insighta_publish_draft_{{ 'admin' if is_admin_publish else 'builtin' if builtin else 'external' }}_{{ existing_survey_id or 0 }}`;
+  const DRAFT_KEY = `insighta_publish_draft_{{ current_user.id }}_{{ 'admin' if is_admin_publish else 'builtin' if builtin else 'external' }}_{{ existing_survey_id or 0 }}`;
+  const DRAFT_NOTICE_KEY = 'insighta_draft_notice_{{ current_user.id }}';
   const WIZARD_TITLES = ['Basics', 'Budget & timeline', 'Target audience', 'Review & publish'];
   let currentWizardStep = 1;
   let adminSlots = [];
+  let publishPending = false;
 
   function isInterviewTask(value) {
     return ['interview', 'online_interview', 'remote_interview', 'in_person', 'in_person_study'].includes(value);
@@ -1341,11 +1354,41 @@
   }
 
   // ── FILE UPLOAD ──
-  document.getElementById('posterInput').addEventListener('change', function() {
+  const posterInput = document.getElementById('posterInput');
+  const fileZone = document.getElementById('fileZone');
+  function updatePosterName() {
     const n = document.getElementById('fzName');
-    n.textContent = this.files[0] ? this.files[0].name : '';
-    n.style.display = this.files[0] ? 'block' : 'none';
+    const error = document.getElementById('posterError');
+    const file = posterInput.files[0];
+    const valid = !file || ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+    error.hidden = valid;
+    error.textContent = valid ? '' : 'Please select a JPG, PNG, or WebP image.';
+    if (!valid) posterInput.value = '';
+    n.textContent = valid && file ? file.name : '';
+    n.style.display = valid && file ? 'block' : 'none';
+  }
+  posterInput.addEventListener('change', updatePosterName);
+  ['dragenter', 'dragover'].forEach(name => fileZone.addEventListener(name, e => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    fileZone.classList.add('drag-over');
+  }));
+  fileZone.addEventListener('dragleave', e => {
+    if (!fileZone.contains(e.relatedTarget)) fileZone.classList.remove('drag-over');
   });
+  fileZone.addEventListener('drop', e => {
+    e.preventDefault();
+    fileZone.classList.remove('drag-over');
+    if (!e.dataTransfer?.files.length) return;
+    const transfer = new DataTransfer();
+    transfer.items.add(e.dataTransfer.files[0]);
+    posterInput.files = transfer.files;
+    updatePosterName();
+  });
+  // Prevent dropping elsewhere from navigating away and discarding the form.
+  ['dragover', 'drop'].forEach(name => window.addEventListener(name, e => {
+    if ([...(e.dataTransfer?.types || [])].includes('Files')) e.preventDefault();
+  }));
 
   // ── AI FILL ──
   function localAiFill(prompt, warning) {
@@ -1416,9 +1459,10 @@
     const prompt = document.getElementById('aiPrompt').value.trim();
     if (!prompt) { alert('Please describe your study first.'); return; }
     const btn = document.getElementById('aiBtn');
+    if (btn.disabled) return;
     const errEl = document.getElementById('aiError');
     const okEl  = document.getElementById('aiSuccess');
-    btn.disabled = true; btn.textContent = '...';
+    setAIBusy(btn, true);
     errEl.style.display = 'none'; okEl.style.display = 'none';
     try {
       const endpoint = IS_ADMIN_PUBLISH ? '/admin/api/ai-fill' : '/api/ai-fill';
@@ -1431,11 +1475,11 @@
       const d = await res.json();
       applyAiFill(d);
       if (d.warning) {
-        okEl.textContent = 'Filled with fallback. Review before publishing.';
+        okEl.textContent = 'Basic fields filled. Please review before publishing.';
         errEl.textContent = d.warning;
         errEl.style.display = 'block';
       } else {
-        okEl.textContent = d.provider ? `Filled with ${d.provider}. Review before publishing.` : 'Done. Review the fields and adjust before publishing.';
+        okEl.textContent = 'Done. Review the fields and adjust before publishing.';
       }
       okEl.style.display = 'block';
       showWizardStep(1, false);
@@ -1443,12 +1487,12 @@
     } catch (error) {
       const fallback = localAiFill(prompt, error.message || 'Request failed');
       applyAiFill(fallback);
-      okEl.textContent = 'Filled with local fallback. Review before publishing.';
+      okEl.textContent = 'Basic fields filled from your description. Please review before publishing.';
       okEl.style.display = 'block';
       showWizardStep(1, false);
       document.querySelector('.form-section').scrollIntoView({ behavior:'smooth' });
     } finally {
-      btn.disabled = false; btn.textContent = 'Generate';
+      setAIBusy(btn, false);
     }
   }
 
@@ -1460,7 +1504,7 @@
       .filter(el => el.name && el.type !== 'file' && el.type !== 'submit' && el.type !== 'button');
   }
 
-  function saveDraft() {
+  function saveDraft({ notify = true } = {}) {
     const data = {};
     draftFields().forEach(el => {
       if (el.type === 'checkbox') {
@@ -1472,12 +1516,25 @@
         data[el.name] = el.value;
       }
     });
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), data }));
-    showDraftStatus('Saved');
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), data }));
+    } catch {
+      showDraftStatus('Could not save on this device', false);
+      return false;
+    }
+    if (notify) {
+      showDraftStatus('✓ Saved on this device');
+      if (!localStorage.getItem(DRAFT_NOTICE_KEY)) {
+        document.getElementById('draftConfirmation').showModal();
+        localStorage.setItem(DRAFT_NOTICE_KEY, 'seen');
+      }
+    }
+    return true;
   }
 
   function restoreDraft() {
-    const raw = localStorage.getItem(DRAFT_KEY);
+    let raw;
+    try { raw = localStorage.getItem(DRAFT_KEY); } catch { return; }
     if (!raw) return;
     let parsed;
     try { parsed = JSON.parse(raw); } catch { return; }
@@ -1513,26 +1570,38 @@
       renderAdminSlots();
     }
     syncAdminStudyType();
+    occDDChanged();
     togglePublishAutoFilter();
     updateCommission();
     showDraftStatus('Restored');
   }
 
-  function showDraftStatus(text) {
-    const el = document.getElementById('draftStatus');
-    if (!el) return;
-    el.textContent = text;
-    setTimeout(() => { if (el.textContent === text) el.textContent = ''; }, 2600);
+  let draftStatusTimer;
+  function showDraftStatus(text, saved = true) {
+    clearTimeout(draftStatusTimer);
+    ['draftStatus', 'bottomDraftStatus'].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.remove('saved');
+      void el.offsetWidth;
+      el.classList.toggle('saved', saved);
+      el.textContent = text;
+    });
+    draftStatusTimer = setTimeout(() => {
+      ['draftStatus', 'bottomDraftStatus'].forEach(id => document.getElementById(id).textContent = '');
+    }, 6000);
   }
 
   // ── VALIDATION ──
-  document.getElementById('publishForm').addEventListener('submit', function(e) {
+  document.getElementById('publishForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    if (publishPending) return;
+    const errorBox = document.getElementById('publishError');
+    errorBox.hidden = true;
     syncAdminStudyType();
     let err = false;
-    this.querySelectorAll('[required]').forEach(el => {
-      if (el.disabled || el.closest('[hidden]') || el.offsetParent === null) return;
-      if (!el.value.trim()) {
+    this.querySelectorAll('input,select,textarea').forEach(el => {
+      if (el.disabled || el.type === 'hidden') return;
+      if (!el.checkValidity()) {
         el.closest('.field')?.classList.add('error');
         err = true;
       }
@@ -1555,12 +1624,38 @@
       firstError?.scrollIntoView({ behavior:'smooth', block:'center' });
       return;
     }
-    ['target_education_min','target_education_max'].forEach(name => {
-      const el = this.querySelector(`select[name="${name}"]`);
-      if (el && !el.value) el.removeAttribute('name');
-    });
-    this.submit();
-    localStorage.removeItem(DRAFT_KEY);
+    publishPending = true;
+    const submitBtn = document.getElementById('submitBtn');
+    const label = document.getElementById('submitLabel');
+    const idleLabel = label.textContent;
+    submitBtn.disabled = true;
+    label.textContent = 'Submitting…';
+    if (!IS_ADMIN_PUBLISH) saveDraft({ notify:false });
+    try {
+      const response = await fetch(this.action, {
+        method:'POST', body:new FormData(this), credentials:'same-origin',
+        headers:{ Accept:'application/json' }
+      });
+      if (response.redirected && new URL(response.url).pathname === '/login') {
+        throw new Error('Your session expired. Sign in again; your form entries are saved on this device.');
+      }
+      const result = await response.json().catch(() => ({}));
+      if (result.survey_id) this.elements.existing_survey_id.value = result.survey_id;
+      if (!response.ok || !result.redirect_url) {
+        throw new Error(typeof result.detail === 'string' ? result.detail : 'The listing could not be submitted. Your entries are still here. Please try again.');
+      }
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      window.location.assign(result.redirect_url);
+    } catch (error) {
+      if (!IS_ADMIN_PUBLISH) saveDraft({ notify:false });
+      errorBox.textContent = error.message || 'Connection lost. Your entries are still here. Please try again.';
+      errorBox.hidden = false;
+      errorBox.scrollIntoView({ behavior:'smooth', block:'center' });
+    } finally {
+      publishPending = false;
+      submitBtn.disabled = false;
+      label.textContent = idleLabel;
+    }
   });
 
   // clear error styling on input

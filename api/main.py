@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from passlib.context import CryptContext
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, func, JSON, Boolean, case, inspect, text, or_, and_
 from pathlib import Path
@@ -345,6 +346,7 @@ def ensure_survey_listing_columns():
         "sessions_per_week": "INTEGER",
         "admin_display_reward_amount": "FLOAT",
         "share_slug": "VARCHAR",
+        "publish_token": "VARCHAR",
         "total_budget": "FLOAT",
         "per_person_gross": "FLOAT",
         "commission_rate": "FLOAT",
@@ -357,6 +359,7 @@ def ensure_survey_listing_columns():
         for name, column_type in listing_columns.items():
             if name not in columns:
                 conn.execute(text(f"ALTER TABLE surveys ADD COLUMN {name} {column_type}"))
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_surveys_publish_token ON surveys (publish_token)"))
 
 if auto_schema_bootstrap_enabled():
     ensure_survey_listing_columns()
@@ -3397,11 +3400,17 @@ def login(
         }))
     try:
         user = db.query(User).filter(User.email == normalized_email).first()
+        if not user and normalized_email:
+            matches = db.query(User).filter(
+                func.lower(func.trim(User.username)) == normalized_email
+            ).limit(2).all()
+            # Usernames predate unique handles; ambiguous names must use email.
+            user = matches[0] if len(matches) == 1 else None
     except Exception as e:
         normalized_role = role if role in {"participant", "researcher"} else ""
         return no_store_response(templates.TemplateResponse("login.html", {
             "request": request,
-            "error": f"Database error: {e}",
+            "error": "Sign-in is temporarily unavailable. Please try again.",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
             "login_next": next_url,
@@ -3409,11 +3418,11 @@ def login(
             "participant_app": _auth_uses_participant_app(request, normalized_role, participant_app),
         }))
 
-    if not user or not pwd_context.verify(password, user.password):
+    if not user or _is_email_blocked(db, user.email) or not pwd_context.verify(password, user.password):
         normalized_role = role if role in {"participant", "researcher"} else ""
         return no_store_response(templates.TemplateResponse("login.html", {
             "request": request,
-            "error": "Invalid email or password",
+            "error": "Invalid email / username or password. If your username is shared, use your email address.",
             "success": None, "reset_error": None, "reset_success": None,
             "reset_open": False, "login_email": normalized_email, "reset_email": "",
             "login_next": next_url,
@@ -6380,6 +6389,7 @@ def publish_page(
         "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
         "builtin": is_builtin,
         "existing_survey_id": survey_id or 0,
+        "publish_token": secrets.token_urlsafe(24),
         "prefill_title": title or (existing_survey.title if existing_survey else ""),
         "prefill_desc": desc or (existing_survey.description if existing_survey else ""),
         "existing_survey": existing_survey,
@@ -7520,7 +7530,7 @@ async def _anthropic_ai_fill(prompt: str) -> dict:
         "claude-3-5-haiku-20241022",
     ]
     model_candidates = [m for i, m in enumerate(model_candidates) if m and m not in model_candidates[:i]]
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=api_key, timeout=45.0, max_retries=0)
     prompt_text = f"""You are helping a researcher fill out a survey publishing form.
 Based on this description: "{prompt}"
 Return ONLY a valid JSON object with these exact fields, no extra text:
@@ -7528,7 +7538,7 @@ Return ONLY a valid JSON object with these exact fields, no extra text:
     errors = []
     for model in model_candidates:
         try:
-            message = client.messages.create(
+            message = await asyncio.to_thread(client.messages.create,
                 model=model, max_tokens=450,
                 messages=[{"role": "user", "content": prompt_text}]
             )
@@ -7536,6 +7546,8 @@ Return ONLY a valid JSON object with these exact fields, no extra text:
             result["provider"] = f"anthropic:{model}"
             return result
         except Exception as exc:
+            if not isinstance(exc, anthropic.NotFoundError):
+                raise
             errors.append(f"{model}: {exc}")
     raise RuntimeError(" | ".join(errors))
 
@@ -7546,7 +7558,8 @@ async def _ai_fill_from_prompt(prompt: str) -> JSONResponse:
     try:
         return JSONResponse(await _anthropic_ai_fill(prompt))
     except Exception as exc:
-        return JSONResponse(_fallback_ai_fill(prompt, f"Anthropic failed; used local fallback. {exc}"))
+        logger.warning("AI form fill unavailable: %s", type(exc).__name__)
+        return JSONResponse(_fallback_ai_fill(prompt, "AI is temporarily unavailable. Basic fields were filled from your description; please review them."))
 
 
 @app.post("/api/ai-fill")
@@ -7575,8 +7588,8 @@ async def ai_generate_questions(
             raise HTTPException(400, "Prompt is required")
 
         import anthropic, json as _json
-        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-        message = client.messages.create(
+        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"), timeout=45.0, max_retries=0)
+        message = await asyncio.to_thread(client.messages.create,
             model="claude-haiku-4-5-20251001",
             max_tokens=2000,
             messages=[{
@@ -7626,10 +7639,11 @@ Rules:
         questions = _json.loads(match.group())
         return JSONResponse({"questions": questions})
 
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-        raise HTTPException(500, str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Question generation failed")
+        raise HTTPException(503, "Questions could not be generated right now. Please try again or add them manually.")
 
 
 # ---------------------------
@@ -8593,6 +8607,7 @@ def admin_publish_page(request: Request, admin_key: str = Query(None), db: Sessi
         "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
         "builtin": False,
         "existing_survey_id": 0,
+        "publish_token": secrets.token_urlsafe(24),
         "prefill_title": "",
         "prefill_desc": "",
         "existing_survey": None,
@@ -9498,6 +9513,12 @@ def create_builtin_survey(
     db.commit()
     return RedirectResponse(f"/surveys/{survey.id}/builder", status_code=303)
 
+def _publish_redirect(request: Request, url: str, survey_id: int):
+    if "application/json" in request.headers.get("accept", ""):
+        return JSONResponse({"redirect_url": url, "survey_id": survey_id})
+    return RedirectResponse(url, status_code=303)
+
+
 @app.post("/publish")
 async def publish_survey(
     request: Request,
@@ -9544,6 +9565,26 @@ async def publish_survey(
         form.get("participant_benefits_other")
     )
     existing_survey_id = int(form.get("existing_survey_id") or 0)
+    raw_publish_token = (form.get("publish_token") or "").strip()
+    if raw_publish_token and not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", raw_publish_token):
+        raise HTTPException(400, "Invalid submission token. Reload the form and try again.")
+    publish_token = f"{current_user.id}:{raw_publish_token}" if raw_publish_token else None
+    if publish_token:
+        previous = db.query(Survey).filter(Survey.publish_token == publish_token).first()
+        if previous:
+            if existing_survey_id and previous.id != existing_survey_id:
+                raise HTTPException(409, "This submission belongs to another draft. Reload the form.")
+            existing_survey_id = previous.id
+    if existing_survey_id:
+        previous = db.query(Survey).filter(
+            Survey.id == existing_survey_id, Survey.publisher_id == current_user.id
+        ).first()
+        if not previous:
+            raise HTTPException(404, "Survey not found")
+        if previous.status == "published":
+            return _publish_redirect(request, "/publisher", previous.id)
+    if not title.strip() or target_responses <= 0 or estimated_time <= 0:
+        raise HTTPException(400, "Add a title, a positive duration, and at least one participant.")
     raw_task_type = (task_type or form.get("task_type") or "survey").strip()
     is_online_interview = raw_task_type in {"online_interview", "remote_interview"}
     is_in_person_study = raw_task_type in {"in_person_study", "in_person"}
@@ -9664,6 +9705,10 @@ async def publish_survey(
         survey.session_count = session_count if is_interview_listing else None
         survey.sessions_per_week = sessions_per_week if is_interview_listing else None
         survey.admin_display_reward_amount = admin_display_reward_amount if admin_publish and not admin_uses_stripe else None
+        if image_url:
+            survey.image_url = image_url
+        if publish_token and not survey.publish_token:
+            survey.publish_token = publish_token
         _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
         db.commit()
@@ -9706,10 +9751,23 @@ async def publish_survey(
             sessions_per_week=sessions_per_week if is_interview_listing else None,
             admin_display_reward_amount=admin_display_reward_amount if admin_publish and not admin_uses_stripe else None,
             image_url=image_url, status="draft", published_at=None, closed_at=None,
+            publish_token=publish_token,
         )
         _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
-        db.add(survey); db.commit(); db.refresh(survey)
+        db.add(survey)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            previous = db.query(Survey).filter(Survey.publish_token == publish_token).first() if publish_token else None
+            if not previous:
+                raise
+            return JSONResponse({
+                "detail": "This listing is already being submitted. Please try again in a moment.",
+                "survey_id": previous.id,
+            }, status_code=409)
+        db.refresh(survey)
         _record_user_event(
             db,
             request,
@@ -9735,7 +9793,7 @@ async def publish_survey(
         )
         db.commit()
         redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
-        return RedirectResponse(f"/admin/publish?{redirect_qs}", status_code=303)
+        return _publish_redirect(request, f"/admin/publish?{redirect_qs}", survey.id)
 
     if admin_uses_stripe and not stripe.api_key:
         raise HTTPException(503, "Stripe is not configured. Use demo mode or add STRIPE_SECRET_KEY.")
@@ -9756,7 +9814,7 @@ async def publish_survey(
             metadata={"study_title": survey.title, "source": "Publish flow", "user_role": "researcher"},
         )
         db.commit()
-        return RedirectResponse("/publisher", status_code=303)
+        return _publish_redirect(request, "/publisher", survey.id)
 
     success_url = f"https://insightaco.org/payment/success?survey_id={survey.id}"
     cancel_url = "https://insightaco.org/publisher"
@@ -9767,7 +9825,7 @@ async def publish_survey(
         stripe_description = f"Volunteer recruitment fee: ${volunteer_platform_fee(target_responses):.2f} per 10 participants"
     else:
         stripe_description = f"{survey.target_responses} responses x ${reward:.2f} per person"
-    session = stripe.checkout.Session.create(
+    checkout_params = dict(
         payment_method_types=["card"],
         line_items=[{"price_data": {"currency": "usd", "product_data": {"name": f"Survey: {survey.title}", "description": stripe_description}, "unit_amount": int(round(total * 100))}, "quantity": 1}],
         mode="payment",
@@ -9779,8 +9837,21 @@ async def publish_survey(
             "source": "admin_publish_stripe" if admin_uses_stripe else "researcher_publish",
         }
     )
+    checkout_fingerprint = hashlib.sha256(json.dumps(checkout_params, sort_keys=True).encode()).hexdigest()
+    try:
+        session = await asyncio.to_thread(
+            stripe.checkout.Session.create,
+            **checkout_params,
+            idempotency_key=f"publish:{survey.id}:{checkout_fingerprint}",
+        )
+    except stripe.error.StripeError:
+        logger.exception("Could not start checkout for survey %s", survey.id)
+        return JSONResponse({
+            "detail": "Payment checkout could not be started. Your listing is saved as a draft. Please try again.",
+            "survey_id": survey.id,
+        }, status_code=502)
     survey.stripe_payment_intent_id = session.id; db.commit()
-    return RedirectResponse(session.url, status_code=303)
+    return _publish_redirect(request, session.url, survey.id)
 
 # ---------------------------
 # Update survey info from builder

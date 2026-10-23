@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/support_chat.css">
+  <link rel="stylesheet" href="/static/listing_feedback.css">
   <style>
     :root {
       --green:#3b7c4f; --green-d:#2a5c39; --green-l:#e8f2eb; --green-m:#c2deca;
@@ -53,6 +54,7 @@
     .save-status{font-size:12px;color:var(--ink3);}
     .save-status.saving{color:#c05621;}
     .save-status.saved{color:var(--green);}
+    .save-status.error{color:#b91c1c;}
     .btn-ghost{font-size:13px;font-weight:500;color:var(--ink2);background:transparent;border:0.5px solid var(--line2);padding:7px 16px;border-radius:7px;cursor:pointer;font-family:var(--sans);transition:all .12s;}
     .btn-ghost:hover{background:var(--bg3);}
     .btn-primary{font-size:13px;font-weight:600;color:#fff;background:var(--green);border:none;padding:8px 18px;border-radius:20px;cursor:pointer;font-family:var(--sans);transition:background .12s;}
@@ -329,10 +331,16 @@
   </div>
 </div>
 
+<script src="/static/listing_feedback.js"></script>
 <script>
   const SURVEY_ID = {{ survey_id }};
   let questions = [];
-  let saveTimer = null;
+  const saveTimers = new Map();
+  const questionSaves = new Map();
+  const failedQuestionSaves = new Set();
+  let activeQuestionSaves = 0;
+  let infoSaveChain = Promise.resolve();
+  let publishPending = false;
   let infoTimer = null;
 
   // ── LOAD ──
@@ -369,7 +377,7 @@
           <div class="opt-row">
             <div class="${dc}"></div>
             <input class="opt-input" type="text" value="${esc(o)}" placeholder="Option ${oi+1}"
-              onchange="updateOpt(${q.id},${oi},this.value)">
+              oninput="updateOpt(${q.id},${oi},this.value)">
             <button class="opt-rm" onclick="removeOpt(${q.id},${oi})">
               <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -389,7 +397,7 @@
       <div class="q-top">
         <div class="q-num">${idx+1}</div>
         <textarea class="q-textarea" rows="1" placeholder="Type your question here..."
-          onchange="updateText(${q.id},this.value)" oninput="autoResize(this)"
+          oninput="updateText(${q.id},this.value);autoResize(this)"
         >${esc(q.question_text)}</textarea>
       </div>
       <div class="q-meta">
@@ -480,43 +488,73 @@
   // ── SAVE ──
   async function saveQ(id) {
     const q = questions.find(q=>q.id===id);
-    if(!q) return;
+    if(!q) return true;
+    clearTimeout(saveTimers.get(id));
+    saveTimers.delete(id);
+    const body = JSON.stringify({ question_text:q.question_text, question_type:q.question_type, options:q.options, is_required:q.is_required });
+    activeQuestionSaves++;
     setSaveStatus('saving');
-    await fetch(`/surveys/${SURVEY_ID}/questions/${id}`, {
-      method:'PUT', headers:{'Content-Type':'application/json'},
-      credentials:'same-origin',
-      body: JSON.stringify({ question_text:q.question_text, question_type:q.question_type, options:q.options, is_required:q.is_required })
+    const saving = (questionSaves.get(id) || Promise.resolve()).then(async () => {
+      try {
+        const res = await fetch(`/surveys/${SURVEY_ID}/questions/${id}`, {
+          method:'PUT', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body
+        });
+        if (!res.ok) throw new Error('Save failed');
+        failedQuestionSaves.delete(id);
+        return true;
+      } catch {
+        failedQuestionSaves.add(id);
+        return false;
+      } finally {
+        activeQuestionSaves--;
+        setSaveStatus(failedQuestionSaves.size ? 'error' : activeQuestionSaves || saveTimers.size ? 'saving' : 'saved');
+      }
     });
-    setSaveStatus('saved');
+    questionSaves.set(id, saving);
+    return saving;
   }
-  function scheduleSave(id) { clearTimeout(saveTimer); setSaveStatus('saving'); saveTimer = setTimeout(()=>saveQ(id), 800); }
+  function scheduleSave(id) {
+    clearTimeout(saveTimers.get(id));
+    setSaveStatus('saving');
+    saveTimers.set(id, setTimeout(()=>saveQ(id), 800));
+  }
   function setSaveStatus(s) {
     ['saveStatus','bottomSaveStatus'].forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
       el.className = 'save-status ' + s;
-      el.textContent = s==='saving'?'Saving…':s==='saved'?'Saved':'';
+      el.textContent = s==='saving'?'Saving…':s==='saved'?'Saved':s==='error'?'Could not save. Please retry.':'';
     });
   }
 
   // ── INFO SAVE ──
   async function saveInfo() {
+    clearTimeout(infoTimer);
     const title = document.getElementById('infoTitle').value.trim();
-    if (!title) return;
+    if (!title) return false;
+    const body = JSON.stringify({ title, description: document.getElementById('infoDescription').value });
     setInfoStatus('saving');
-    await fetch(`/surveys/${SURVEY_ID}/update-info`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      credentials:'same-origin',
-      body: JSON.stringify({ title, description: document.getElementById('infoDescription').value })
+    infoSaveChain = infoSaveChain.then(async () => {
+      try {
+        const res = await fetch(`/surveys/${SURVEY_ID}/update-info`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body
+        });
+        if (!res.ok) throw new Error('Save failed');
+        setInfoStatus('saved');
+        return true;
+      } catch {
+        setInfoStatus('error');
+        return false;
+      }
     });
-    setInfoStatus('saved');
+    return infoSaveChain;
   }
   function scheduleInfoSave() { clearTimeout(infoTimer); setInfoStatus('saving'); infoTimer = setTimeout(saveInfo, 800); }
   function setInfoStatus(s) {
     const el = document.getElementById('infoSaveStatus');
     if (!el) return;
     el.className = 'save-status ' + s;
-    el.textContent = s==='saving'?'Saving…':s==='saved'?'Saved':'';
+    el.textContent = s==='saving'?'Saving…':s==='saved'?'Saved':s==='error'?'Could not save. Please retry.':'';
   }
 
   // ── AI GENERATE ──
@@ -524,21 +562,22 @@
     const prompt = document.getElementById('aiPrompt').value.trim();
     if (!prompt) { showMsg('error','Please describe your research goal first.'); return; }
     const btn = document.getElementById('aiBtn');
-    btn.disabled = true; btn.textContent = 'Generating…';
+    if (btn.disabled) return;
+    setAIBusy(btn, true);
     showMsg('','');
     try {
       const res = await fetch('/api/ai-generate-questions', {
         method:'POST', headers:{'Content-Type':'application/json'},
         credentials:'same-origin', body:JSON.stringify({prompt})
       });
-      if (!res.ok) throw new Error();
       const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || 'Questions could not be generated. Please try again.');
       for (const q of d.questions) await addQuestion(q);
       showMsg('success', `${d.questions.length} questions generated. Review and edit below.`);
       const titleEl = document.getElementById('infoTitle');
       if (!titleEl.value.trim()) { titleEl.value = prompt.slice(0,60); scheduleInfoSave(); }
-    } catch { showMsg('error','Something went wrong. Please try again.'); }
-    finally { btn.disabled=false; btn.textContent='Generate'; }
+    } catch (error) { showMsg('error',error.message || 'Something went wrong. Please try again.'); }
+    finally { setAIBusy(btn, false); }
   }
   function showMsg(type, msg) {
     const el = document.getElementById('aiMsg');
@@ -549,10 +588,15 @@
 
   // ── PUBLISH ──
   async function finishAndPublish() {
+    if (publishPending) return;
     const title = document.getElementById('infoTitle').value.trim();
     if (!title) { alert('Please add a survey title before continuing.'); document.getElementById('infoTitle').focus(); return; }
     if (!questions.length) { alert('Please add at least one question before continuing.'); return; }
-    await saveInfo();
+    if (document.getElementById('aiBtn').disabled) { showMsg('error', 'Please wait for question generation to finish.'); return; }
+    publishPending = true;
+    const saved = await Promise.all([saveInfo(), ...questions.map(q => saveQ(q.id))]);
+    publishPending = false;
+    if (saved.some(ok => !ok)) { alert('Some changes could not be saved. Please try again before continuing.'); return; }
     const desc = document.getElementById('infoDescription').value.trim();
     const p = new URLSearchParams({ builtin:'1', survey_id:String(SURVEY_ID), title, desc });
     window.location.href = `/publish?${p}`;

@@ -1,0 +1,17 @@
+.ai-dots { display: inline-flex; align-items: center; gap: 4px; margin-left: 7px; }
+.ai-dots span { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: ai-wave 1s ease-in-out infinite; }
+.ai-dots span:nth-child(2) { animation-delay: .15s; }
+.ai-dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes ai-wave { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-4px); opacity: 1; } }
+.file-zone.drag-over { border-color: var(--green); background: var(--green-l); outline: 2px solid var(--green-m); }
+.file-zone .fz-error { color: #b91c1c; margin-top: 8px; font-size: 12px; }
+.draft-status.saved { color: var(--green); font-weight: 600; animation: saved-pulse .45s ease-out; }
+@keyframes saved-pulse { from { transform: translateY(3px); opacity: .3; } to { transform: translateY(0); opacity: 1; } }
+.draft-confirmation { margin: auto; width: min(380px, calc(100vw - 32px)); padding: 28px; border: 1px solid var(--line2); border-radius: 14px; color: var(--ink); background: var(--bg); box-shadow: 0 20px 60px #1a1a1833; }
+.draft-confirmation::backdrop { background: #1a1a1866; }
+.draft-confirmation h2 { font-size: 20px; margin-bottom: 10px; }
+.draft-confirmation p { font-size: 14px; line-height: 1.6; color: var(--ink2); margin-bottom: 20px; }
+.draft-confirmation button { float: right; }
+.publish-error { padding: 14px 18px; margin: 12px 0; border: 1px solid #fecaca; border-radius: 8px; background: #fff5f5; color: #b91c1c; font-size: 14px; line-height: 1.6; }
+.btn-publish:disabled, .btn-save:disabled { opacity: .6; cursor: wait; }
+@media (prefers-reduced-motion: reduce) { .ai-dots span, .draft-status.saved { animation: none; } }

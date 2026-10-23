@@ -197,15 +197,14 @@
     .tour-backdrop.open { display: block; }
     .tour-spotlight {
       display: none; position: fixed; z-index: 925; pointer-events: none;
-      border: 3px solid rgba(255,255,255,.98); border-radius: 12px;
-      box-shadow: 0 0 0 5px rgba(59,124,79,.44), 0 20px 70px rgba(26,26,24,.28);
+      border: 2px solid var(--green); border-radius: 8px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.9);
       transition: left .18s ease, top .18s ease, width .18s ease, height .18s ease;
     }
     .tour-spotlight.open { display: block; }
     .tour-highlight {
       position: relative; z-index: 926 !important;
       filter: saturate(1.1) brightness(1.04);
-      border-radius: 10px;
     }
     .tour-lift { z-index: 924 !important; }
     .tour-card {
@@ -217,7 +216,7 @@
     .tour-card.open { display: block; }
     .tour-step { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--green); margin-bottom: 7px; }
     .tour-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; letter-spacing: -.2px; }
-    .tour-body { font-size: 13px; color: var(--ink3); line-height: 1.65; margin-bottom: 16px; }
+    .tour-body { font-size: 14px; color: var(--ink2); line-height: 1.65; margin-bottom: 16px; }
     .tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .tour-btn { border: .5px solid var(--line2); background: var(--bg); color: var(--ink2); border-radius: 8px; padding: 8px 13px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; }
     .tour-btn:hover { background: var(--bg3); }
@@ -310,7 +309,7 @@
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       New listing
     </button>
-    <a href="/publisher/schedule" class="nav-item">
+    <a href="/publisher/schedule" class="nav-item" data-tour="schedule">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
       Schedule
     </a>
@@ -586,6 +585,16 @@
       body: 'Click any listing to view details, edit the study, review quality checks, and track participant results.'
     },
     {
+      target: 'schedule',
+      title: 'Schedule',
+      body: 'View upcoming study sessions and manage participant bookings from your schedule.'
+    },
+    {
+      target: 'profile',
+      title: 'Profile',
+      body: 'Your profile area keeps account details and researcher identity settings in one place.'
+    },
+    {
       target: 'tutorial',
       title: 'Tutorial',
       body: 'The tutorial page is the longer help center for setup steps, publishing guidance, and platform rules.'
@@ -594,11 +603,6 @@
       target: 'feedback',
       title: 'Share feedback',
       body: 'Use this whenever something feels confusing, broken, or worth improving. Feedback helps us tune the product faster.'
-    },
-    {
-      target: 'profile',
-      title: 'Profile',
-      body: 'Your profile area keeps account details and researcher identity settings in one place.'
     }
   ];
 
@@ -618,14 +622,19 @@
   function getSpotlightRect(target) {
     if (!target) return null;
     const rect = target.getBoundingClientRect();
-    const margin = 10;
-    const width = clamp(rect.width + margin * 2, 48, window.innerWidth - 24);
-    const height = clamp(Math.min(rect.height, window.innerHeight - 32) + margin * 2, 42, window.innerHeight - 24);
+    const sidebar = target.closest('.sidebar');
+    const sidebarRect = sidebar ? sidebar.getBoundingClientRect() : null;
+    // Keep sidebar outlines inside their item and sidebar, away from adjacent rows.
+    const padding = sidebar ? 0 : 6;
+    const left = Math.max(8, sidebarRect ? sidebarRect.left + 8 : 8, rect.left - padding);
+    const top = Math.max(8, rect.top - padding);
+    const right = Math.min(window.innerWidth - 8, sidebarRect ? sidebarRect.right - 8 : window.innerWidth - 8, rect.right + padding);
+    const bottom = Math.min(window.innerHeight - 8, rect.bottom + padding);
     return {
-      left: clamp(rect.left - margin, 12, window.innerWidth - width - 12),
-      top: clamp(rect.top - margin, 12, window.innerHeight - height - 12),
-      width,
-      height
+      left,
+      top,
+      width: Math.max(0, right - left),
+      height: Math.max(0, bottom - top)
     };
   }
 

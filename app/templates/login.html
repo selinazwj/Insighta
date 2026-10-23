@@ -256,20 +256,20 @@
       </a>
     </div>
 
-    <div class="divider"><span>or sign in with email</span></div>
+    <div class="divider"><span>or sign in with email or username</span></div>
 
     <!-- LOGIN FORM -->
     <form method="POST" action="/login">
       <input type="hidden" name="next" value="{{ login_next or '' }}">
       <input type="hidden" name="role" value="{{ login_role or '' }}">
       <div class="form-group">
-        <label>Email address</label>
-        <input type="email" name="email" required placeholder="you@example.com"
+        <label for="loginIdentifier">Email address or username</label>
+        <input type="text" id="loginIdentifier" name="email" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="you@example.com or username"
           value="{{ login_email or '' }}">
       </div>
       <div class="form-group">
         <label>Password</label>
-        <input type="password" name="password" required placeholder="••••••••">
+        <input type="password" name="password" autocomplete="current-password" required placeholder="••••••••">
       </div>
       <span class="forgot-link" onclick="toggleReset()">Forgot password?</span>
       <button type="submit" class="btn-submit">Sign In →</button>
