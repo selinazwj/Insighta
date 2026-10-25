@@ -37,7 +37,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from app.booking_calendar import booked_events, calendar_document, google_calendar_links
 from app.google_calendar import register_calendar_routes, calendar_status, queue_calendar_sync, sync_booking, JOB_TYPE as GOOGLE_CALENDAR_SYNC
 from app.database import engine, get_db, SessionLocal
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision, BackgroundJob, GoogleCalendarEvent
+from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision, BackgroundJob, GoogleCalendarEvent, DiditSession, DiditWebhookEvent
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.jobs.service import (
@@ -55,7 +55,11 @@ from app.jobs.service import (
     RUNNING,
     SURVEY_START_FOLLOWUP_EMAIL,
     TRUST_DATA_CLEANUP,
+    DIDIT_WEBHOOK_PROCESS,
+    DIDIT_SESSION_RECONCILE,
     enqueue_admin_bulk_email_job,
+    enqueue_didit_session_reconcile_job,
+    enqueue_didit_webhook_process_job,
     enqueue_booking_confirmation_job,
     enqueue_dashboard_recommendations_refresh_job,
     enqueue_ai_quality_review_job,
@@ -121,6 +125,21 @@ from app.verification.assurance import (
     strongest_tier_for_methods,
     tier_rank,
     tier_satisfies,
+)
+from app.verification.didit import (
+    is_didit_test_webhook,
+    verify_didit_webhook,
+    webhook_secrets as didit_webhook_secrets,
+)
+from app.verification.didit_processor import (
+    DiditWebhookDuplicate,
+    DiditWebhookError,
+    DiditWebhookIgnored,
+    apply_didit_status_update,
+    enqueue_stale_didit_reconcile_jobs,
+    process_didit_webhook_body,
+    reconcile_didit_session,
+    upsert_didit_session,
 )
 from app.trust_engine import (
     BLOCK as TRUST_BLOCK,
@@ -443,6 +462,9 @@ ensure_phase_two_trust_schema()
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
+DIDIT_API_KEY = (os.environ.get("DIDIT_API_KEY") or "").strip()
+DIDIT_WEBHOOK_SECRET = (os.environ.get("DIDIT_WEBHOOK_SECRET") or "").strip()
+DIDIT_WORKFLOW_ID = (os.environ.get("DIDIT_WORKFLOW_ID") or "").strip()
 
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
@@ -1315,6 +1337,25 @@ def _handle_trust_data_cleanup_job(db: Session, job: BackgroundJob) -> None:
     }
 
 
+def _handle_didit_webhook_process_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    body = payload.get("body")
+    if not isinstance(body, dict):
+        raise ValueError("Didit webhook job is missing body payload")
+    result = process_didit_webhook_body(db, body)
+    job.payload_json = {**payload, "result": result}
+
+
+def _handle_didit_session_reconcile_job(db: Session, job: BackgroundJob) -> None:
+    payload = job.payload_json or {}
+    session_id = str(payload.get("session_id") or "").strip()
+    user_id = payload.get("user_id")
+    if not session_id or user_id is None:
+        raise ValueError("Didit reconcile job is missing session_id or user_id")
+    result = reconcile_didit_session(db, session_id=session_id, user_id=int(user_id))
+    job.payload_json = {**payload, "result": result}
+
+
 BACKGROUND_JOB_HANDLERS = {
     GOOGLE_CALENDAR_SYNC: sync_booking,
     ADMIN_BULK_EMAIL: _handle_admin_bulk_email_job,
@@ -1326,6 +1367,8 @@ BACKGROUND_JOB_HANDLERS = {
     AI_PREDICTION: _handle_ai_prediction_job,
     AI_QUALITY_REVIEW: _handle_ai_quality_review_job,
     TRUST_DATA_CLEANUP: _handle_trust_data_cleanup_job,
+    DIDIT_WEBHOOK_PROCESS: _handle_didit_webhook_process_job,
+    DIDIT_SESSION_RECONCILE: _handle_didit_session_reconcile_job,
 }
 
 
@@ -1417,6 +1460,9 @@ def run_due_background_jobs(limit: int = 25) -> dict[str, int]:
     db = SessionLocal()
     try:
         enqueued = _enqueue_due_survey_start_followup_jobs(db, limit=limit)
+        didit_reconcile_enqueued = enqueue_stale_didit_reconcile_jobs(db, limit=limit)
+        if didit_reconcile_enqueued:
+            db.commit()
         result = run_due_jobs(
             db,
             BACKGROUND_JOB_HANDLERS,
@@ -1424,6 +1470,7 @@ def run_due_background_jobs(limit: int = 25) -> dict[str, int]:
             on_failure=_notify_background_job_failure,
         )
         result["enqueued"] = enqueued
+        result["didit_reconcile_enqueued"] = didit_reconcile_enqueued
         return result
     finally:
         db.close()
@@ -6642,6 +6689,54 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     return JSONResponse({"status": "ok"})
 
 
+@app.post("/webhook/didit")
+async def didit_webhook(request: Request, db: Session = Depends(get_db)):
+    """Didit status.updated callback: verify signature, upsert session, update evidence."""
+    secrets = didit_webhook_secrets()
+    if not secrets:
+        raise HTTPException(503, "Didit webhook is not configured")
+
+    raw = await request.body()
+    try:
+        body = json.loads(raw.decode("utf-8")) if raw else {}
+    except Exception:
+        raise HTTPException(400, "Invalid JSON body")
+    if not isinstance(body, dict):
+        raise HTTPException(400, "Invalid JSON body")
+
+    if not verify_didit_webhook(body, request.headers, secrets=secrets):
+        raise HTTPException(401, "Invalid Didit signature")
+
+    # Didit console "Test Webhook" uses synthetic vendor_data; ack after signature check.
+    if is_didit_test_webhook(request.headers):
+        return JSONResponse({"status": "ok", "test": True})
+
+    event_id = str(body.get("event_id") or "").strip()
+    try:
+        result = process_didit_webhook_body(db, body)
+        db.commit()
+        return JSONResponse({"status": "ok", **result})
+    except DiditWebhookDuplicate:
+        return JSONResponse({"status": "ok", "duplicate": True})
+    except DiditWebhookIgnored as exc:
+        db.commit()
+        return JSONResponse({"status": "ok", "ignored": True, "reason": exc.reason})
+    except DiditWebhookError as exc:
+        db.rollback()
+        raise HTTPException(exc.status_code, exc.message)
+    except Exception:
+        db.rollback()
+        if event_id:
+            enqueue_didit_webhook_process_job(
+                db,
+                payload={"body": body, "event_id": event_id},
+                event_id=event_id,
+            )
+            db.commit()
+            return JSONResponse({"status": "ok", "queued": True})
+        raise HTTPException(500, "Failed to process Didit webhook")
+
+
 # ---------------------------
 # Stripe Connect
 # ---------------------------
@@ -6808,6 +6903,139 @@ def _record_verified_evidence(
     if not existing:
         db.add(row)
     return row
+
+
+def _latest_didit_session(db: Session, user_id: int) -> Optional[DiditSession]:
+    return (
+        db.query(DiditSession)
+        .filter(DiditSession.user_id == user_id)
+        .order_by(DiditSession.updated_at.desc(), DiditSession.id.desc())
+        .first()
+    )
+
+
+def _verification_status_payload(db: Session, user: User) -> dict:
+    methods = sorted(_active_verification_methods(db, user.id))
+    tier = _current_assurance_tier(db, user)
+    didit_row = _latest_didit_session(db, user.id)
+    # Account-level status prefers reusable assurance; Didit pending/rejected is still exposed under didit.
+    if tier:
+        status = "verified"
+    elif didit_row:
+        status = didit_row.status
+    else:
+        status = getattr(user, "verification_status", None) or "unverified"
+    payload = {
+        "status": status,
+        "tier": tier,
+        "methods": methods,
+        "didit_configured": bool(didit_webhook_secrets()),
+        "updated_at": None,
+        "didit": None,
+    }
+    if didit_row:
+        payload["updated_at"] = (
+            didit_row.updated_at.isoformat() + "Z" if didit_row.updated_at else None
+        )
+        payload["didit"] = {
+            "session_id": didit_row.session_id,
+            "provider_status": didit_row.provider_status,
+            "status": didit_row.status,
+            "workflow_id": didit_row.workflow_id,
+            "updated_at": payload["updated_at"],
+        }
+    elif getattr(user, "verified_at", None):
+        payload["updated_at"] = user.verified_at.isoformat() + "Z"
+    return payload
+
+
+@app.get("/api/verification/status")
+def verification_status(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Participant (and return-page) poll API for verification / Didit state."""
+    return JSONResponse(_verification_status_payload(db, current_user))
+
+
+@app.post("/api/verification/didit/session")
+async def register_didit_session(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Register a Didit session after Selina creates it via Didit API.
+
+    Body: { "session_id": "...", "workflow_id": "..." optional }
+    Create the Didit session with vendor_data = str(user.id) so webhooks can resolve the user.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    if not isinstance(body, dict):
+        body = {}
+    session_id = str(body.get("session_id") or "").strip()
+    if not session_id:
+        raise HTTPException(400, "session_id is required")
+    workflow_id = str(body.get("workflow_id") or DIDIT_WORKFLOW_ID or "").strip() or None
+    provider_status = str(body.get("provider_status") or "Not Started").strip()
+
+    try:
+        row = upsert_didit_session(
+            db,
+            user_id=current_user.id,
+            session_id=session_id,
+            provider_status=provider_status,
+            workflow_id=workflow_id,
+        )
+        enqueue_didit_session_reconcile_job(
+            db,
+            session_id=session_id,
+            user_id=current_user.id,
+            run_after=datetime.utcnow() + timedelta(minutes=5),
+        )
+        db.commit()
+        db.refresh(row)
+    except DiditWebhookError as exc:
+        db.rollback()
+        raise HTTPException(exc.status_code, exc.message)
+
+    return JSONResponse({
+        "success": True,
+        "session_id": row.session_id,
+        "status": row.status,
+        "provider_status": row.provider_status,
+        "vendor_data_hint": str(current_user.id),
+    })
+
+
+@app.get("/api/participants/{participant_id}/verification")
+def participant_verification_status(
+    participant_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Researcher-facing verification status for a participant in their studies."""
+    is_publisher = db.query(Survey.id).filter(
+        Survey.publisher_id == current_user.id
+    ).first() is not None
+    if not is_publisher and current_user.id != participant_id:
+        raise HTTPException(403, "Researchers only")
+
+    if current_user.id != participant_id:
+        linked = db.query(Response.id).join(Survey, Survey.id == Response.survey_id).filter(
+            Response.participant_id == participant_id,
+            Survey.publisher_id == current_user.id,
+        ).first()
+        if not linked:
+            raise HTTPException(404, "Participant not found in your studies")
+
+    participant = db.query(User).filter(User.id == participant_id).first()
+    if not participant:
+        raise HTTPException(404, "Participant not found")
+    return JSONResponse(_verification_status_payload(db, participant))
 
 
 # ive added these for the email-domain feature

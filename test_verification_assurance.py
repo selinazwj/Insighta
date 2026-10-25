@@ -42,7 +42,9 @@ class VerificationAssuranceTests(unittest.TestCase):
         self.assertIsNone(strongest_tier_for_methods(["self_declared"]))
         self.assertEqual(strongest_tier_for_methods(["email_otp"]), TIER_BASIC)
         self.assertEqual(strongest_tier_for_methods(["linkedin_oauth"]), TIER_TRUSTED)
+        # Generic identity_provider label is not mapped; Didit sessions use method=didit.
         self.assertIsNone(strongest_tier_for_methods(["identity_provider"]))
+        self.assertEqual(strongest_tier_for_methods(["didit"]), TIER_TRUSTED)
 
     def test_stronger_assurance_satisfies_lower_requirement(self):
         self.assertTrue(tier_satisfies(TIER_TRUSTED, TIER_BASIC))

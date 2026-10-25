@@ -43,6 +43,7 @@ TRUSTED_METHODS = frozenset({
     "linkedin_oauth",
     "professional_registry",
     "trusted_history",
+    "didit",  # Didit identity verification (document / biometric session)
 })
 def tier_rank(tier: Optional[str]) -> int:
     return TIER_RANK.get(tier or "", 99)

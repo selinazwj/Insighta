@@ -25,6 +25,8 @@ DASHBOARD_RECOMMENDATIONS_REFRESH = "dashboard_recommendations_refresh"
 AI_PREDICTION = "ai_prediction"
 AI_QUALITY_REVIEW = "ai_quality_review"
 TRUST_DATA_CLEANUP = "trust_data_cleanup"
+DIDIT_WEBHOOK_PROCESS = "didit_webhook_process"
+DIDIT_SESSION_RECONCILE = "didit_session_reconcile"
 
 JobHandler = Callable[[Session, BackgroundJob], None]
 JobFailureCallback = Callable[[Session, BackgroundJob, str, bool], None]
@@ -277,6 +279,41 @@ def enqueue_trust_data_cleanup_job(
         run_after=run_after,
         dedupe_key=f"{TRUST_DATA_CLEANUP}:{cleanup_window}",
         max_attempts=2,
+    )
+
+
+def enqueue_didit_webhook_process_job(
+    db: Session,
+    *,
+    payload: dict[str, Any],
+    event_id: str | None = None,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    dedupe_key = f"{DIDIT_WEBHOOK_PROCESS}:{event_id}" if event_id else None
+    return enqueue_job(
+        db,
+        job_type=DIDIT_WEBHOOK_PROCESS,
+        payload=payload,
+        run_after=run_after,
+        dedupe_key=dedupe_key,
+        max_attempts=3,
+    )
+
+
+def enqueue_didit_session_reconcile_job(
+    db: Session,
+    *,
+    session_id: str,
+    user_id: int,
+    run_after: datetime | None = None,
+) -> BackgroundJob:
+    return enqueue_job(
+        db,
+        job_type=DIDIT_SESSION_RECONCILE,
+        payload={"session_id": session_id, "user_id": user_id},
+        run_after=run_after,
+        dedupe_key=f"{DIDIT_SESSION_RECONCILE}:{session_id}",
+        max_attempts=3,
     )
 
 
