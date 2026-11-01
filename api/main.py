@@ -10,7 +10,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, fun
 from pathlib import Path
 from typing import Any, List, Optional
 from datetime import datetime, timedelta, timezone, date, time
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from xml.sax.saxutils import escape as xml_escape
 from io import BytesIO
 import logging
@@ -126,8 +126,10 @@ from app.verification.assurance import (
     tier_rank,
     tier_satisfies,
 )
+from app.verification.didit_client import create_session as create_didit_session, didit_configured
 from app.verification.didit import (
     is_didit_test_webhook,
+    parse_vendor_user_id,
     verify_didit_webhook,
     webhook_secrets as didit_webhook_secrets,
 )
@@ -139,7 +141,6 @@ from app.verification.didit_processor import (
     enqueue_stale_didit_reconcile_jobs,
     process_didit_webhook_body,
     reconcile_didit_session,
-    upsert_didit_session,
 )
 from app.trust_engine import (
     BLOCK as TRUST_BLOCK,
@@ -462,9 +463,6 @@ ensure_phase_two_trust_schema()
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
-DIDIT_API_KEY = (os.environ.get("DIDIT_API_KEY") or "").strip()
-DIDIT_WEBHOOK_SECRET = (os.environ.get("DIDIT_WEBHOOK_SECRET") or "").strip()
-DIDIT_WORKFLOW_ID = (os.environ.get("DIDIT_WORKFLOW_ID") or "").strip()
 
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
@@ -1342,7 +1340,12 @@ def _handle_didit_webhook_process_job(db: Session, job: BackgroundJob) -> None:
     body = payload.get("body")
     if not isinstance(body, dict):
         raise ValueError("Didit webhook job is missing body payload")
-    result = process_didit_webhook_body(db, body)
+    try:
+        result = process_didit_webhook_body(db, body)
+    except DiditWebhookDuplicate:
+        result = {"duplicate": True}
+    except DiditWebhookIgnored as exc:
+        result = {"ignored": True, "reason": exc.reason}
     job.payload_json = {**payload, "result": result}
 
 
@@ -6727,9 +6730,14 @@ async def didit_webhook(request: Request, db: Session = Depends(get_db)):
     except Exception:
         db.rollback()
         if event_id:
+            retry_body = {key: body[key] for key in (
+                "event_id", "webhook_type", "session_id", "status",
+                "workflow_id", "timestamp", "created_at",
+            ) if key in body}
+            retry_body["vendor_data"] = parse_vendor_user_id(body.get("vendor_data"), body.get("metadata"))
             enqueue_didit_webhook_process_job(
                 db,
-                payload={"body": body, "event_id": event_id},
+                payload={"body": retry_body, "event_id": event_id},
                 event_id=event_id,
             )
             db.commit()
@@ -6914,10 +6922,21 @@ def _latest_didit_session(db: Session, user_id: int) -> Optional[DiditSession]:
     )
 
 
-def _verification_status_payload(db: Session, user: User) -> dict:
+def _verification_status_payload(db: Session, user: User, session_id: Optional[str] = None) -> dict:
     methods = sorted(_active_verification_methods(db, user.id))
     tier = _current_assurance_tier(db, user)
     didit_row = _latest_didit_session(db, user.id)
+    if session_id:
+        didit_row = db.query(DiditSession).filter(
+            DiditSession.session_id == session_id, DiditSession.user_id == user.id,
+        ).first()
+        if not didit_row:
+            raise HTTPException(404, "Verification session not found")
+    identity_status = didit_row.status if didit_row else "unverified"
+    if "didit" in methods:
+        identity_status = "verified"
+    elif identity_status == "verified":
+        identity_status = "expired"
     # Account-level status prefers reusable assurance; Didit pending/rejected is still exposed under didit.
     if tier:
         status = "verified"
@@ -6929,7 +6948,8 @@ def _verification_status_payload(db: Session, user: User) -> dict:
         "status": status,
         "tier": tier,
         "methods": methods,
-        "didit_configured": bool(didit_webhook_secrets()),
+        "didit_configured": didit_configured(),
+        "identity_status": identity_status,
         "updated_at": None,
         "didit": None,
     }
@@ -6940,7 +6960,7 @@ def _verification_status_payload(db: Session, user: User) -> dict:
         payload["didit"] = {
             "session_id": didit_row.session_id,
             "provider_status": didit_row.provider_status,
-            "status": didit_row.status,
+            "status": "expired" if didit_row.status == "verified" and "didit" not in methods else didit_row.status,
             "workflow_id": didit_row.workflow_id,
             "updated_at": payload["updated_at"],
         }
@@ -6951,64 +6971,104 @@ def _verification_status_payload(db: Session, user: User) -> dict:
 
 @app.get("/api/verification/status")
 def verification_status(
+    session_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Participant (and return-page) poll API for verification / Didit state."""
-    return JSONResponse(_verification_status_payload(db, current_user))
+    """Account checks and identity verification are separate signals."""
+    return no_store_response(JSONResponse(_verification_status_payload(db, current_user, session_id)))
 
 
 @app.post("/api/verification/didit/session")
-async def register_didit_session(
+def start_didit_session(
     request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Register a Didit session after Selina creates it via Didit API.
-
-    Body: { "session_id": "...", "workflow_id": "..." optional }
-    Create the Didit session with vendor_data = str(user.id) so webhooks can resolve the user.
-    """
+    """Create/resume a provider session; never accept client account or result fields."""
+    if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/json":
+        raise HTTPException(415, "Use application/json")
+    origin = request.headers.get("origin")
+    allowed_origins = {
+        f"{urlsplit(BASE_URL).scheme}://{urlsplit(BASE_URL).netloc}",
+        str(request.base_url).rstrip("/"),
+    }
+    if origin and origin not in allowed_origins:
+        raise HTTPException(403, "Cross-origin verification request denied")
+    if not didit_configured():
+        raise HTTPException(503, "Identity verification is not available yet. Please try again later.")
+    # Didit resumes an unfinished session for the same workflow/vendor_data.
+    # Do not hold a user lock over the network call: a concurrent webhook also
+    # needs to update that user and must be free to finish.
+    user = current_user
+    if "didit" in _active_verification_methods(db, user.id):
+        return no_store_response(JSONResponse({"success": True, "status": "verified", "url": None}))
     try:
-        body = await request.json()
-    except Exception:
-        body = {}
-    if not isinstance(body, dict):
-        body = {}
-    session_id = str(body.get("session_id") or "").strip()
-    if not session_id:
-        raise HTTPException(400, "session_id is required")
-    workflow_id = str(body.get("workflow_id") or DIDIT_WORKFLOW_ID or "").strip() or None
-    provider_status = str(body.get("provider_status") or "Not Started").strip()
-
-    try:
-        row = upsert_didit_session(
-            db,
-            user_id=current_user.id,
-            session_id=session_id,
-            provider_status=provider_status,
-            workflow_id=workflow_id,
+        provider = create_didit_session(
+            user_id=user.id,
+            callback=f"{BASE_URL.rstrip('/')}/verify/didit/return",
         )
-        enqueue_didit_session_reconcile_job(
-            db,
-            session_id=session_id,
-            user_id=current_user.id,
-            run_after=datetime.utcnow() + timedelta(minutes=5),
-        )
+        # A webhook may have arrived while the session was being created. It is
+        # authoritative; creation must not reset its result back to pending.
+        row = db.query(DiditSession).filter(DiditSession.session_id == provider["session_id"]).first()
+        if row and row.user_id != user.id:
+            raise DiditWebhookError("Didit session belongs to another account", status_code=409)
+        if not row:
+            row = apply_didit_status_update(
+                db, user=user, session_id=provider["session_id"],
+                provider_status=provider.get("status") or "Not Started",
+                workflow_id=provider["workflow_id"],
+                event_at=datetime.utcnow().replace(microsecond=0) if provider.get("status") == "Approved" else None,
+            )
+        if row.status == "pending":
+            enqueue_didit_session_reconcile_job(
+                db, session_id=row.session_id, user_id=user.id,
+                run_after=datetime.utcnow() + timedelta(minutes=5),
+            )
         db.commit()
-        db.refresh(row)
+        return no_store_response(JSONResponse({
+            "success": True, "session_id": row.session_id,
+            "status": row.status, "url": provider["url"],
+        }))
     except DiditWebhookError as exc:
         db.rollback()
         raise HTTPException(exc.status_code, exc.message)
+    except IntegrityError:
+        # Another start or webhook may have inserted the same provider session.
+        db.rollback()
+        row = db.query(DiditSession).filter(DiditSession.session_id == provider["session_id"]).first()
+        if not row or row.user_id != current_user.id:
+            raise HTTPException(409, "Verification session could not be linked. Please try again.")
+        return no_store_response(JSONResponse({
+            "success": True, "session_id": row.session_id,
+            "status": row.status, "url": provider["url"],
+        }))
+    except (httpx.HTTPError, ValueError, RuntimeError):
+        db.rollback()
+        logger.warning("Didit session creation failed for user_id=%s", current_user.id)
+        raise HTTPException(502, "We could not start identity verification. Please try again.")
 
-    return JSONResponse({
-        "success": True,
-        "session_id": row.session_id,
-        "status": row.status,
-        "provider_status": row.provider_status,
-        "vendor_data_hint": str(current_user.id),
+
+@app.get("/verify/didit/return", response_class=HTMLResponse)
+def didit_return_page(
+    request: Request,
+    verificationSessionId: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Browser query parameters (including status=Approved) are never proof.
+    payload = _verification_status_payload(db, current_user, verificationSessionId)
+    row = payload["didit"]
+    if row and row["status"] == "pending":
+        enqueue_didit_session_reconcile_job(db, session_id=row["session_id"], user_id=current_user.id)
+        db.commit()
+    response = templates.TemplateResponse("didit_result.html", {
+        "request": request, "current_user": current_user,
+        "didit_session_id": row["session_id"] if row else "",
     })
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return no_store_response(response)
 
 
 @app.get("/api/participants/{participant_id}/verification")
@@ -7035,7 +7095,7 @@ def participant_verification_status(
     participant = db.query(User).filter(User.id == participant_id).first()
     if not participant:
         raise HTTPException(404, "Participant not found")
-    return JSONResponse(_verification_status_payload(db, participant))
+    return no_store_response(JSONResponse(_verification_status_payload(db, participant)))
 
 
 # ive added these for the email-domain feature

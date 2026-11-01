@@ -14,6 +14,8 @@ from unittest.mock import patch
 os.environ["DATABASE_URL"] = "sqlite:////tmp/insighta_didit_webhook_db_test.db"
 os.environ["VERIFICATION_EVIDENCE_SECRET"] = "didit-db-test-secret"
 os.environ["DIDIT_WEBHOOK_SECRET"] = "didit-webhook-test-secret"
+os.environ["DIDIT_WORKFLOW_ID"] = ""
+os.environ["DIDIT_API_KEY"] = ""
 os.environ["ENVIRONMENT"] = "development"
 
 from fastapi.testclient import TestClient
@@ -42,6 +44,14 @@ def _signed_request(body: dict, secret: str) -> tuple[dict, dict]:
 
 
 class DiditWebhookDatabaseTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if str(main.engine.url) != "sqlite:////tmp/insighta_didit_webhook_db_test.db":
+            raise RuntimeError("Run Didit database tests in a separate process with the isolated fixture database")
+
+    def tearDown(self):
+        self.client.close()
+
     def setUp(self):
         main.Base.metadata.drop_all(bind=main.engine)
         main.Base.metadata.create_all(bind=main.engine)

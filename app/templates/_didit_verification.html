@@ -1,0 +1,15 @@
+<link rel="stylesheet" href="/static/didit_verification.css">
+<section class="didit-card" data-didit-verification data-session-id="{{ didit_session_id | default('') }}" aria-label="Identity verification" aria-busy="true">
+  <div class="didit-card__heading">
+    <div><p class="didit-card__eyebrow">Participant identity</p><h2>Verify your identity</h2></div>
+    <span class="didit-card__badge" data-didit-badge>Checking…</span>
+  </div>
+  <p class="didit-card__message" data-didit-message role="status" aria-live="polite">Loading your identity verification status.</p>
+  <p class="didit-card__privacy">Didit handles your identity check. Insighta stores the verification status and session reference, without storing your ID photos or document numbers.</p>
+  <div class="didit-card__actions">
+    <button type="button" class="didit-card__start" data-didit-start disabled>Verify with Didit</button>
+    <button type="button" class="didit-card__refresh" data-didit-refresh>Refresh status</button>
+  </div>
+  <noscript><p>Please enable JavaScript to start identity verification and view your result.</p></noscript>
+</section>
+<script src="/static/didit_verification.js" defer></script>

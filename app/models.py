@@ -582,6 +582,7 @@ class DiditSession(Base):
     provider_status = Column(String, nullable=True)  # Approved | Declined | In Progress | ...
     status = Column(String, nullable=False, default="pending")  # pending | verified | rejected
     last_event_id = Column(String, nullable=True)
+    provider_event_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

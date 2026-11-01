@@ -342,6 +342,7 @@
 
   <!-- HOME -->
   <div class="screen active" id="screen-home">
+    {% include "_didit_verification.html" %}
     <div class="impact-banner">
       <div class="impact-icon"><i data-lucide="leaf" style="width:20px;height:20px"></i></div>
       <div class="impact-text">
@@ -394,6 +395,7 @@
   <!-- PROFILE -->
   <div class="screen" id="screen-profile">
     <div class="profile-wrap">
+      {% include "_didit_verification.html" %}
       {% set languages = (current_user.language or '').split(',') %}
       {% set experiences = (current_user.experience_tags or '').split(',') %}
       {% set lifestyles = (current_user.lifestyle_tags or '').split(',') %}

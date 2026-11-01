@@ -74,3 +74,5 @@ GitHub Actions runs both checks from `.github/workflows/seo-check.yml`.
 14. Replace the product-aligned Privacy and Terms drafts with counsel-approved, entity- and jurisdiction-specific versions before public production use.
 
 See `SEO_IMPLEMENTATION.md` for the full SEO audit, implementation map, and operating guidance. See `docs/background_jobs_runbook.md` for background job rollout, verification, and rollback steps. The broader original product documentation remains in `Insighta_README_current_v2.md`.
+
+Participant identity verification setup and API flow: [Didit integration](docs/participant_didit.md).

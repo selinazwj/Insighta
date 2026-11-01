@@ -307,14 +307,20 @@ def enqueue_didit_session_reconcile_job(
     user_id: int,
     run_after: datetime | None = None,
 ) -> BackgroundJob:
-    return enqueue_job(
+    # A completed check must not suppress all future checks for a pending session.
+    bucket = int(datetime.utcnow().timestamp() // 300)
+    job = enqueue_job(
         db,
         job_type=DIDIT_SESSION_RECONCILE,
         payload={"session_id": session_id, "user_id": user_id},
         run_after=run_after,
-        dedupe_key=f"{DIDIT_SESSION_RECONCILE}:{session_id}",
+        dedupe_key=f"{DIDIT_SESSION_RECONCILE}:{session_id}:{bucket}",
         max_attempts=3,
     )
+    due_at = run_after or datetime.utcnow()
+    if job.status == PENDING and job.run_after > due_at:
+        job.run_after = due_at
+    return job
 
 
 def recover_stale_running_jobs(

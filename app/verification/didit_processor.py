@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import os
 from typing import Any, Optional
 
 from sqlalchemy import or_
@@ -60,6 +61,8 @@ def upsert_didit_session(
             "Didit session is already linked to another account",
             status_code=409,
         )
+    if row.workflow_id and workflow_id and row.workflow_id != workflow_id:
+        raise DiditWebhookError("Didit session belongs to another workflow", status_code=409)
     if workflow_id:
         row.workflow_id = workflow_id
     if provider_status is not None:
@@ -83,6 +86,9 @@ def _active_verification_methods(db: Session, user_id: int) -> set[str]:
 
 def _refresh_user_verified_tier(db: Session, user: User) -> None:
     user.verified_tier = strongest_tier_for_methods(_active_verification_methods(db, user.id))
+    user.verification_status = "verified" if user.verified_tier else "unverified"
+    if not user.verified_tier:
+        user.verified_at = None
 
 
 def _record_didit_evidence(
@@ -125,15 +131,15 @@ def sync_didit_evidence(
         user.verified_at = datetime.utcnow()
         return
 
-    if local_status == "rejected":
+    if local_status != "verified":
         ref = evidence_reference(DIDIT_METHOD, session_id)
         row = db.query(Verification).filter(
             Verification.user_id == user.id,
             Verification.method == DIDIT_METHOD,
             Verification.evidence_ref == ref,
         ).first()
-        if row and row.status != "rejected":
-            row.status = "rejected"
+        if row and row.status != local_status:
+            row.status = local_status
             row.verified_by = "system"
 
 
@@ -145,7 +151,13 @@ def apply_didit_status_update(
     provider_status: str,
     workflow_id: Optional[str] = None,
     event_id: Optional[str] = None,
+    event_at: Optional[datetime] = None,
 ) -> DiditSession:
+    existing = db.query(DiditSession).filter(DiditSession.session_id == session_id).populate_existing().with_for_update().first()
+    if existing and existing.user_id != user.id:
+        raise DiditWebhookError("Didit session belongs to another account", status_code=409)
+    if existing and event_at and existing.provider_event_at and event_at < existing.provider_event_at:
+        return existing
     session_row = upsert_didit_session(
         db,
         user_id=user.id,
@@ -154,15 +166,16 @@ def apply_didit_status_update(
         workflow_id=workflow_id,
         event_id=event_id,
     )
+    if event_at:
+        session_row.provider_event_at = event_at
     sync_didit_evidence(
         db,
         user=user,
         session_id=session_id,
         local_status=session_row.status,
     )
-    if session_row.status == "verified":
-        db.flush()
-        _refresh_user_verified_tier(db, user)
+    db.flush()
+    _refresh_user_verified_tier(db, user)
     return session_row
 
 
@@ -231,13 +244,24 @@ def process_didit_webhook_body(db: Session, body: dict[str, Any]) -> dict[str, A
     if not user:
         raise DiditWebhookError("User not found", status_code=404)
 
+    workflow_id = str(body.get("workflow_id") or "").strip() or None
+    expected_workflow = (os.environ.get("DIDIT_WORKFLOW_ID") or "").strip()
+    if expected_workflow and workflow_id and workflow_id != expected_workflow:
+        raise DiditWebhookError("Unexpected Didit workflow", status_code=400)
+    try:
+        event_time = body.get("created_at") or body.get("timestamp")
+        event_at = datetime.utcfromtimestamp(int(event_time)) if event_time is not None else None
+    except (ValueError, TypeError, OverflowError, OSError):
+        raise DiditWebhookError("Invalid Didit event timestamp")
+
     apply_didit_status_update(
         db,
         user=user,
         session_id=session_id,
         provider_status=provider_status or "In Progress",
-        workflow_id=str(body.get("workflow_id") or "").strip() or None,
+        workflow_id=workflow_id,
         event_id=event_id or None,
+        event_at=event_at,
     )
     if event_id:
         _record_processed_event(
@@ -262,6 +286,8 @@ def reconcile_didit_session(
 ) -> dict[str, Any]:
     """Poll Didit decision API and sync local state for a pending session."""
     session_row = db.query(DiditSession).filter(DiditSession.session_id == session_id).first()
+    if not session_row or session_row.user_id != user_id:
+        raise RuntimeError("Didit session is not registered to this account")
     if session_row and session_row.status in TERMINAL_DIDIT_STATUSES:
         return {
             "session_id": session_id,
@@ -274,7 +300,13 @@ def reconcile_didit_session(
     if not user:
         raise RuntimeError(f"User {user_id} not found for Didit reconcile")
 
+    fetched_at = datetime.utcnow()
     decision = fetch_session_decision(session_id)
+    if parse_vendor_user_id(decision.get("vendor_data")) != user_id:
+        raise RuntimeError("Didit decision belongs to another account")
+    expected_workflow = session_row.workflow_id or (os.environ.get("DIDIT_WORKFLOW_ID") or "").strip()
+    if expected_workflow and decision.get("workflow_id") != expected_workflow:
+        raise RuntimeError("Didit decision belongs to another workflow")
     provider_status = str(decision.get("status") or "").strip() or "In Progress"
     workflow_id = str(decision.get("workflow_id") or "").strip() or None
     row = apply_didit_status_update(
@@ -283,6 +315,7 @@ def reconcile_didit_session(
         session_id=session_id,
         provider_status=provider_status,
         workflow_id=workflow_id,
+        event_at=fetched_at,
     )
     return {
         "session_id": session_id,

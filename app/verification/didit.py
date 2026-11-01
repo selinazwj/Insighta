@@ -27,6 +27,7 @@ _STATUS_MAP = {
     "not started": "pending",
     "resubmitted": "pending",
     "kyc expired": "rejected",
+    "expired": "rejected",
 }
 
 _VENDOR_USER_RE = re.compile(r"^(?:user[_-]?)?(\d+)$", re.IGNORECASE)
@@ -90,6 +91,9 @@ def verify_signature_v2(
         return False
     try:
         ts = int(timestamp_header)
+        # The header is not itself signed; bind freshness to the signed body.
+        if int(body.get("timestamp", -1)) != ts:
+            return False
     except (TypeError, ValueError):
         return False
     current = now if now is not None else time.time()
