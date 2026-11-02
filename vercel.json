@@ -5,8 +5,5 @@
   ],
   "routes": [
     { "src": "/(.*)", "dest": "api/main.py" }
-  ],
-  "crons": [
-    { "path": "/internal/jobs/run-due", "schedule": "*/5 * * * *" }
   ]
 }

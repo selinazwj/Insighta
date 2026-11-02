@@ -141,9 +141,9 @@ Suggested deployment step:
 - Set a long random `CRON_SECRET` in production.
 - Set `BACKGROUND_JOB_ALERT_EMAIL` if job final-failure alerts should go to a
   different inbox than `SUPPORT_ALERT_EMAIL`.
-- Vercel Cron calls `/internal/jobs/run-due` every five minutes; the
-  endpoint only runs when the request includes `Authorization: Bearer
-  <CRON_SECRET>`.
+- Vercel Cron is disabled; no periodic runner is configured in `vercel.json`.
+  Queued jobs wait for a manual run. The optional `/internal/jobs/run-due`
+  endpoint requires `Authorization: Bearer <CRON_SECRET>`.
 - For local/manual recovery, run `python scripts/run_due_jobs.py --limit 25`.
 - Keep `INSIGHTA_ENABLE_LEGACY_FOLLOWUP_WORKER` unset in normal deploys. Set it
   to `1` only as a temporary rollback path to re-enable the old FastAPI startup

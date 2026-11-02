@@ -9,7 +9,7 @@ keep LLM usage on-demand.
 
 ## LLM token-safety default
 
-Keep `INSIGHTA_DASHBOARD_AI_AUTO_REFRESH=0` in normal production if LLM usage must be on-demand only. The cron may still run every five minutes for email/import/maintenance jobs, but passive dashboard recommendation jobs are not created, and legacy passive recommendation jobs are skipped without calling Claude.
+Keep `INSIGHTA_DASHBOARD_AI_AUTO_REFRESH=0` in normal production if LLM usage must be on-demand only. Passive dashboard recommendation jobs are not created, and legacy passive recommendation jobs are skipped without calling Claude.
 
 ## Production Setup
 
@@ -19,7 +19,9 @@ Keep `INSIGHTA_DASHBOARD_AI_AUTO_REFRESH=0` in normal production if LLM usage mu
 3. Set `BACKGROUND_JOB_ALERT_EMAIL` if final-failure alerts should go somewhere
    other than `SUPPORT_ALERT_EMAIL`.
 4. Keep `INSIGHTA_ENABLE_LEGACY_FOLLOWUP_WORKER` unset during normal deploys.
-5. Confirm `vercel.json` includes the cron path `/internal/jobs/run-due`.
+5. Vercel Cron is disabled: `vercel.json` intentionally has no `crons` entry.
+   Run due jobs manually from the admin panel when needed. Queued jobs wait
+   until a runner is invoked; no replacement periodic scheduler is configured.
 
 ## Verification Checklist
 
@@ -34,7 +36,7 @@ Keep `INSIGHTA_DASHBOARD_AI_AUTO_REFRESH=0` in normal production if LLM usage mu
 
 ## Expected Behavior
 
-- Vercel Cron runs `/internal/jobs/run-due` every five minutes.
+- Vercel does not periodically invoke `/internal/jobs/run-due`.
 - The cron endpoint requires `Authorization: Bearer <CRON_SECRET>`.
 - Admins can manually run due jobs from `/admin#jobs`.
 - Jobs stuck in `running` for more than 15 minutes are recovered before new work
@@ -47,12 +49,13 @@ Keep `INSIGHTA_DASHBOARD_AI_AUTO_REFRESH=0` in normal production if LLM usage mu
 
 If the runner causes production trouble:
 
-1. Disable the Vercel cron entry or remove `CRON_SECRET`.
+1. Stop any separately configured scheduler; Vercel Cron is already disabled.
 2. Stop clicking `Run due jobs` in admin.
 3. Set `INSIGHTA_ENABLE_LEGACY_FOLLOWUP_WORKER=1` only if survey follow-up
    emails need the temporary old startup worker path.
 4. Inspect `/admin#jobs` for failed jobs and error summaries.
-5. Re-enable cron after the failing handler is fixed.
+5. Resume manual runs after the failing handler is fixed. Configure a periodic
+   scheduler only when its frequency and hosting plan have been agreed.
 
 ## Manual Local Run
 

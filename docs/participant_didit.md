@@ -30,11 +30,15 @@ webhook branch. The migrations create `didit_sessions`, `didit_webhook_events`,
 and add `didit_sessions.provider_event_at`. `create_all` does not add columns to
 existing tables. The Alembic head is `202610310001`.
 
-Keep the existing background-job runner scheduled (for example once per minute),
-with `CRON_SECRET` protecting `/internal/jobs/run-due`. A registered pending session
-gets a check after five minutes, and a browser return brings the check forward.
-Pending sessions older than ten minutes are picked up by the existing runner.
-Completed reconcile jobs do not permanently suppress subsequent checks.
+Didit sends signed status webhooks directly to the app; receiving a verification
+result does not require a periodic Vercel cron. Vercel Cron is disabled.
+Fallback reconcile jobs wait until the background-job runner is invoked manually
+from the admin panel or CLI. A registered pending session becomes eligible for
+a check after five minutes, and a browser return brings that eligibility forward;
+neither action starts a periodic scheduler. When invoked, the runner also picks
+up pending sessions older than ten minutes. Completed reconcile jobs do not
+permanently suppress subsequent checks. `CRON_SECRET` protects the optional
+`/internal/jobs/run-due` invocation endpoint.
 See [background job operations](background_jobs_runbook.md).
 
 ## Flow and API contract
