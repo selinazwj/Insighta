@@ -20,13 +20,16 @@ from typing import Iterable, Optional
 
 TIER_TRUSTED = "tier_2"
 TIER_BASIC = "tier_3"
+TIER_IDENTITY = "didit"
 
 TIER_RANK = {
+    TIER_IDENTITY: 1,
     TIER_TRUSTED: 2,
     TIER_BASIC: 3,
 }
 
 TIER_LABELS = {
+    TIER_IDENTITY: "ID check (Didit) complete",
     TIER_TRUSTED: "Account and professional checks complete",
     TIER_BASIC: "Account check complete",
 }
@@ -43,8 +46,11 @@ TRUSTED_METHODS = frozenset({
     "linkedin_oauth",
     "professional_registry",
     "trusted_history",
-    "didit",  # Didit identity verification (document / biometric session)
 })
+
+IDENTITY_METHODS = frozenset({"didit"})
+
+
 def tier_rank(tier: Optional[str]) -> int:
     return TIER_RANK.get(tier or "", 99)
 
@@ -55,6 +61,8 @@ def tier_satisfies(actual: Optional[str], required: Optional[str]) -> bool:
 
 def strongest_tier_for_methods(methods: Iterable[str]) -> Optional[str]:
     normalized = {str(method or "").strip().lower() for method in methods}
+    if normalized & IDENTITY_METHODS:
+        return TIER_IDENTITY
     if normalized & TRUSTED_METHODS:
         return TIER_TRUSTED
     if normalized & BASIC_METHODS:

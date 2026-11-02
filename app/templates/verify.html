@@ -276,7 +276,14 @@
   <div class="notice-box">{{ notice }}</div>
   {% endif %}
 
-  {% if assurance_tier %}
+  {% if needs_identity_check %}
+  <h1>ID check required</h1>
+  <p class="subtitle">This study requires identity verification with Didit.<br>Complete the identity check above before joining.</p>
+  {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+  {% if needs_domains %}{{ email_verify_form() }}{% endif %}
+  <a href="/participant" class="btn-secondary">Back to Dashboard</a>
+
+  {% elif assurance_tier %}
   <h1>{% if done %}Verification complete!{% elif show_email_verify %}One more step{% else %}You're verified{% endif %}</h1>
   <p class="subtitle">
     {% if done %}

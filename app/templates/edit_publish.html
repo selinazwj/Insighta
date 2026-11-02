@@ -731,6 +731,7 @@
           <div class="section-sub">Specify participant credentials needed to take this study</div>
         </div>
       </div>
+      {% include "_study_verification_requirement.html" %}
       <!-- ive restyled this — occupations live in a tidy multiselect dropdown now -->
       {% set sel_occ = (survey.required_occupation or '').split(',') %}
       <div class="field" style="margin-bottom:20px;">

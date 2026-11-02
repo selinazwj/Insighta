@@ -96,3 +96,22 @@ created by the automated tests.
 
 API references: [Create Session](https://docs.didit.me/sessions-api/create-session),
 [Webhooks](https://docs.didit.me/integration/webhooks).
+
+## Researcher listing requirements
+
+In the listing wizard's **Verification requirements** section, **Verification
+level** now offers Basic account check, Account and professional check, and
+**ID check (Didit)**. The control is shared by survey/UX/diary publishing,
+interview/in-person publishing, and listing editing; edits preselect the saved
+requirement. Existing listings keep their current requirement until changed.
+
+The existing `required_verification_tier` text column stores `didit` for the new
+requirement; this needs no schema migration. Only active, verified evidence with
+`method="didit"` satisfies that requirement. Email, Google, LinkedIn,
+institutional email, self-reported data, expired evidence, and a cached user tier
+cannot substitute for it. Active Didit evidence still satisfies existing basic
+and trusted requirements. The retired `tier_1` / legacy ID-upload flow remains
+unsupported. Identity is separate from any required email domain and screener.
+Participants who need it are directed to `/verify?needs_tier=didit` before
+starting a study. That page requests an ID check even if an email-only user adds
+`done=1` to its URL.

@@ -3,6 +3,7 @@ import re
 import unittest
 from datetime import datetime, timedelta
 from unittest.mock import patch
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
@@ -22,6 +23,11 @@ class VerificationIntegrationTests(unittest.TestCase):
 
         cls.client = TestClient(app)
         cls.SessionLocal = SessionLocal
+        payments = patch("stripe.checkout.Session.create", return_value=SimpleNamespace(
+            id="cs_unit_test", url="https://checkout.stripe.com/unit-test",
+        ))
+        payments.start()
+        cls.addClassCleanup(payments.stop)
 
     @classmethod
     def tearDownClass(cls):
@@ -311,7 +317,7 @@ class VerificationIntegrationTests(unittest.TestCase):
         finally:
             db.close()
 
-    def test_researcher_forms_use_screening_without_tier_selector(self):
+    def test_researcher_forms_offer_didit_and_screening(self):
         publisher_cookie = {"user_id": str(self.publisher_id)}
         paths = (
             "/publish",
@@ -323,10 +329,12 @@ class VerificationIntegrationTests(unittest.TestCase):
                 response = self.client.get(path, cookies=publisher_cookie)
                 self.assertEqual(response.status_code, 200)
                 self.assertIn('name="required_occupation"', response.text)
-                self.assertNotIn(
+                self.assertIn(
                     'name="required_verification_tier"',
                     response.text,
                 )
+                self.assertIn('value="didit"', response.text)
+                self.assertIn('ID check (Didit)', response.text)
                 self.assertNotIn("High Assurance", response.text)
                 self.assertNotIn("Tier 1", response.text)
                 if path == "/publish_interview":
@@ -336,6 +344,104 @@ class VerificationIntegrationTests(unittest.TestCase):
                         r'<div class="section-header">\s*'
                         r'<div class="section-icon">05</div>',
                     )
+
+    def test_researcher_publishes_and_edits_didit_requirement(self):
+        from app.models import Survey
+        cookie = {"user_id": str(self.publisher_id)}
+        common = {
+            "title": "Identity-checked study", "description": "A test study",
+            "category": "research", "estimated_time": "10", "target_responses": "5",
+            "per_person_gross": "5", "required_verification_tier": "didit",
+        }
+        for path in ("/publish", "/publish_interview"):
+            with self.subTest(path=path):
+                response = self.client.post(path, cookies=cookie, data={
+                    **common, "form_url": "https://example.com/study",
+                }, follow_redirects=False)
+                self.assertEqual(response.status_code, 303, response.text)
+                with self.SessionLocal() as db:
+                    study = db.query(Survey).filter(Survey.title == common["title"]).order_by(Survey.id.desc()).first()
+                    self.assertEqual(study.required_verification_tier, "didit")
+
+        edit = {
+            "title": "Updated identity study", "description": "Updated description",
+            "form_url": "__builtin__", "task_type": "survey", "category": "research",
+            "estimated_time": "5", "reward_amount": "5", "additional_needed": "5",
+            "required_verification_tier": "didit",
+        }
+        response = self.client.post(f"/publisher/edit/{self.survey_id}", cookies=cookie, data=edit, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        page = self.client.get(f"/publisher/edit/{self.survey_id}", cookies=cookie)
+        self.assertRegex(page.text, r'<option value="didit"\s+selected>')
+        edit.pop("required_verification_tier")
+        response = self.client.post(f"/publisher/edit/{self.survey_id}", cookies=cookie, data=edit, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        with self.SessionLocal() as db:
+            self.assertEqual(db.get(Survey, self.survey_id).required_verification_tier, "didit")
+
+    def test_didit_requirement_blocks_email_and_linkedin_until_active_identity_proof(self):
+        from app.models import Survey, Verification
+        cookie = {"user_id": str(self.participant_id)}
+        with self.SessionLocal() as db:
+            db.get(Survey, self.survey_id).required_verification_tier = "didit"
+            db.commit()
+        for method in (None, "linkedin_oauth"):
+            if method:
+                with self.SessionLocal() as db:
+                    db.add(Verification(user_id=self.participant_id, method=method,
+                        attribute="professional_account_control", evidence_ref="linkedin-study-test", status="verified"))
+                    db.commit()
+            response = self.client.post(f"/surveys/{self.survey_id}/start", cookies=cookie, json={})
+            self.assertEqual(response.status_code, 409, response.text)
+            self.assertIn("needs_tier=didit", response.json()["verification_url"])
+        with self.SessionLocal() as db:
+            db.add(Verification(user_id=self.participant_id, method="didit", attribute="identity",
+                evidence_ref="didit-study-test", status="verified", expires_at=datetime.utcnow() + timedelta(days=30)))
+            db.commit()
+        response = self.client.post(f"/surveys/{self.survey_id}/start", cookies=cookie, json={})
+        self.assertEqual(response.status_code, 200, response.text)
+
+    def test_expired_didit_evidence_and_cached_tier_cannot_bypass_identity_gate(self):
+        from app.models import Survey, User, Verification
+        with self.SessionLocal() as db:
+            db.get(Survey, self.survey_id).required_verification_tier = "didit"
+            db.get(User, self.participant_id).verified_tier = "didit"
+            db.add(Verification(user_id=self.participant_id, method="didit", attribute="identity",
+                evidence_ref="expired-didit-study-test", status="verified", expires_at=datetime.utcnow() - timedelta(days=1)))
+            db.commit()
+        cookie = {"user_id": str(self.participant_id)}
+        response = self.client.post(f"/surveys/{self.survey_id}/start", cookies=cookie, json={})
+        self.assertEqual(response.status_code, 409)
+        dashboard = self.client.get("/dashboard", cookies=cookie)
+        self.assertIn('"required_verification_tier": "didit"', dashboard.text)
+        self.assertIn('"verification_satisfied": false', dashboard.text)
+
+    def test_didit_study_still_requires_its_email_domain_and_routes_both_checks(self):
+        from app.models import Survey, Verification, User
+        with self.SessionLocal() as db:
+            study = db.get(Survey, self.survey_id)
+            study.required_verification_tier = "didit"
+            study.required_email_domains = "bu.edu"
+            db.add(Verification(user_id=self.participant_id, method="didit", attribute="identity",
+                evidence_ref="didit-domain-study-test", status="verified"))
+            db.commit()
+        cookie = {"user_id": str(self.participant_id)}
+        response = self.client.post(f"/surveys/{self.survey_id}/start", cookies=cookie, json={})
+        self.assertEqual(response.status_code, 409)
+        self.assertIn("needs_domains=bu.edu", response.json()["verification_url"])
+        with self.SessionLocal() as db:
+            db.get(User, self.participant_id).verified_email = "participant@bu.edu"
+            db.commit()
+        response = self.client.post(f"/surveys/{self.survey_id}/start", cookies=cookie, json={})
+        self.assertEqual(response.status_code, 200, response.text)
+
+    def test_didit_verification_page_does_not_tell_email_only_user_they_are_done(self):
+        response = self.client.get("/verify?needs_tier=didit&done=1", cookies={"user_id": str(self.participant_id)})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("ID check required", response.text)
+        self.assertIn("Verify with Didit", response.text)
+        self.assertNotIn("You're all set", response.text)
+        self.assertNotIn("Connect LinkedIn", response.text)
 
     def test_editing_preserves_stronger_legacy_study_requirement(self):
         from app.models import Survey

@@ -1,0 +1,11 @@
+{% set verification_study = existing_survey if existing_survey is defined and existing_survey else (survey if survey is defined else none) %}
+{% set selected_verification = (verification_study.required_verification_tier or 'tier_3') if verification_study else 'tier_3' %}
+<div class="field form-group" style="margin-bottom:20px;">
+  <label for="verificationLevel">Verification level</label>
+  <select id="verificationLevel" name="required_verification_tier" class="has-value" aria-describedby="verificationLevelHelp">
+    <option value="tier_3" {% if selected_verification == 'tier_3' %}selected{% endif %}>Basic account check</option>
+    <option value="tier_2" {% if selected_verification == 'tier_2' %}selected{% endif %}>Account and professional check</option>
+    <option value="didit" {% if selected_verification == 'didit' %}selected{% endif %}>ID check (Didit)</option>
+  </select>
+  <div id="verificationLevelHelp" class="field-hint label-desc" style="margin-top:8px;line-height:1.5;">Choose ID check (Didit) to require identity verification before joining. Email or professional account checks alone do not satisfy this level. Screening questions still determine study eligibility.</div>
+</div>

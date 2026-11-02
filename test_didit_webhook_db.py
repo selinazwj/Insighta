@@ -22,7 +22,7 @@ from fastapi.testclient import TestClient
 
 from api import main
 from app.models import DiditSession, DiditWebhookEvent, User, Verification
-from app.verification.assurance import TIER_TRUSTED, evidence_reference
+from app.verification.assurance import TIER_IDENTITY, evidence_reference
 from app.verification.didit import canonical_json_v2
 from app.verification.didit_processor import process_didit_webhook_body
 
@@ -106,7 +106,7 @@ class DiditWebhookDatabaseTests(unittest.TestCase):
 
             user = db.query(User).filter(User.id == self.user_id).one()
             self.assertEqual(user.verification_status, "verified")
-            self.assertEqual(user.verified_tier, TIER_TRUSTED)
+            self.assertEqual(user.verified_tier, TIER_IDENTITY)
 
             event = db.query(DiditWebhookEvent).filter(
                 DiditWebhookEvent.event_id == body["event_id"]

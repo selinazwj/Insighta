@@ -117,6 +117,7 @@ from app.verification.assurance import (
     HumanAssessment,
     HumanSignals,
     TIER_BASIC,
+    TIER_IDENTITY,
     TIER_LABELS,
     TIER_RANK,
     TIER_TRUSTED,
@@ -2297,7 +2298,7 @@ def _normalize_required_verification_tier(value: Optional[str]) -> str:
             400,
             "Legacy ID-based assurance is no longer supported.",
         )
-    if normalized not in {TIER_TRUSTED, TIER_BASIC}:
+    if normalized not in {TIER_IDENTITY, TIER_TRUSTED, TIER_BASIC}:
         return TIER_BASIC
     return normalized
 
@@ -5292,6 +5293,13 @@ def _participation_decision(
     return recommendation, row
 
 
+def _study_verification_url(survey: Survey) -> str:
+    params = {"needs_tier": survey.required_verification_tier or TIER_BASIC}
+    if getattr(survey, "required_email_domains", None):
+        params["needs_domains"] = survey.required_email_domains
+    return f"/verify?{urlencode(params)}"
+
+
 def _start_gate_response(recommendation, survey: Survey):
     """Return a safe response for a blocked start, without leaking risk rules."""
     codes = public_reason_codes(recommendation.reasons)
@@ -5299,9 +5307,7 @@ def _start_gate_response(recommendation, survey: Survey):
         return JSONResponse({
             "ok": False,
             "verification_required": True,
-            "verification_url": (
-                f"/verify?{urlencode({'needs_tier': survey.required_verification_tier or TIER_BASIC})}"
-            ),
+            "verification_url": _study_verification_url(survey),
         }, status_code=409)
     return JSONResponse({
         "ok": False,
@@ -5896,7 +5902,7 @@ def start_survey_and_redirect(
         codes = public_reason_codes(trust_recommendation.reasons)
         if "verification_required" in codes:
             return RedirectResponse(
-                f"/verify?{urlencode({'needs_tier': survey.required_verification_tier or TIER_BASIC})}",
+                _study_verification_url(survey),
                 status_code=303,
             )
         return RedirectResponse("/participation-review", status_code=303)
@@ -6219,7 +6225,7 @@ def get_notifications(
         participant = users_by_id.get(n.participant_id)
         required_tier = survey.required_verification_tier if survey else None
         domains = _normalize_domains(getattr(survey, "required_email_domains", None) if survey else None)
-        requires = bool(required_tier in ("tier_1", "tier_2")) or bool(domains)
+        requires = required_tier in {TIER_IDENTITY, TIER_TRUSTED} or bool(domains)
         status = getattr(participant, "verification_status", "unverified") or "unverified"
         participant_tier = _current_assurance_tier(db, participant) if participant else None
         satisfied = bool(survey and participant and _verification_satisfies(participant, survey, db))
@@ -7159,8 +7165,8 @@ def _render_verify(request, current_user, db, *, error=None, notice=None, needs_
     # still needs to prove a specific domain (e.g. verified via gmail but study needs bu.edu)
     show_email_verify = (not is_verified) or bool(domains)
     prefill = prefill_email or getattr(current_user, "verified_email", None) or current_user.email
-    # Legacy Trusted studies still route participants to LinkedIn; new studies
-    # use the standard account check plus concrete email/screening requirements.
+    # Didit is a separate identity requirement; professional/email evidence
+    # cannot replace it. Email-domain and screening requirements still apply.
     focus_tier = focus_tier if focus_tier in TIER_RANK else None
     return no_store_response(templates.TemplateResponse("verify.html", {
         "request": request, "current_user": current_user, "error": error, "notice": notice,
@@ -7168,6 +7174,7 @@ def _render_verify(request, current_user, db, *, error=None, notice=None, needs_
         "prefill_email": prefill,
         "show_email_verify": show_email_verify,
         "focus_tier": focus_tier,
+        "needs_identity_check": focus_tier == TIER_IDENTITY and not _tier_satisfies(assurance_tier, TIER_IDENTITY),
         "assurance_tier": assurance_tier,
         "assurance_label": TIER_LABELS.get(assurance_tier, "Not verified"),
         # ive added this — right after a successful verification we show a clean
@@ -7175,7 +7182,7 @@ def _render_verify(request, current_user, db, *, error=None, notice=None, needs_
         "done": bool(done),
         "linkedin_enabled": bool(LINKEDIN_CLIENT_ID),
         # Verified users can still add stronger low-sensitivity evidence.
-        "can_upgrade_linkedin": bool(LINKEDIN_CLIENT_ID) and user_rank > 2,
+        "can_upgrade_linkedin": bool(LINKEDIN_CLIENT_ID) and user_rank > 2 and focus_tier != TIER_IDENTITY,
     }))
 
 
@@ -7197,6 +7204,8 @@ def verify_page(
     notice = None
     if domains:
         notice = f"This study is limited to emails at: {', '.join(domains)}. Verify one of these addresses below to receive your payout."
+    elif needs_tier == TIER_IDENTITY:
+        notice = "This study requires an ID check with Didit. Email or professional account checks alone do not meet this requirement."
     elif needs_tier in TIER_RANK:
         notice = f"This study requires {TIER_LABELS[needs_tier]}. Complete the available check below."
     return _render_verify(request, current_user, db, error=verify_error, notice=notice,
@@ -7552,9 +7561,8 @@ async def edit_survey_post(
     survey.target_lifestyle_tags = target_lifestyle_tags
     survey.target_niche_requirements = _clean_target(form.get("target_niche_requirements"))
     survey.required_occupation = _clean_target(required_occupation)
-    # The redesigned form no longer exposes assurance tiers. Preserve any
-    # stronger legacy study requirement instead of silently weakening it when
-    # the researcher edits an unrelated field.
+    # Older clients may omit this control. Preserve the existing requirement
+    # when an unrelated field is edited instead of silently weakening it.
     if required_verification_tier is not None:
         survey.required_verification_tier = _normalize_required_verification_tier(
             required_verification_tier
