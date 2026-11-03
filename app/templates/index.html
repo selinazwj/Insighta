@@ -375,13 +375,29 @@
     @keyframes journey-panel-in { from {opacity:0;transform:translateY(4px)} to {opacity:1;transform:none} }
     .journey-value { font-size:23px; letter-spacing:-.6px; font-weight:500; margin:14px 0; }
     .journey-status { display:inline-block; color:var(--green); font-size:11px; margin-top:18px; line-height:1.6; }
-    .journey-chips { display:flex; justify-content:center; gap:7px; flex-wrap:wrap; min-height:28px; }
-    .journey-chips span { font-size:11px; color:var(--ink2); border:.5px solid var(--line2); border-radius:5px; padding:6px 9px; background:var(--bg2); }
-    .journey-people { display:flex; align-items:center; justify-content:center; height:48px; gap:8px; }
-    .journey-people span { width:32px; height:32px; background:var(--green-l); border:1px solid var(--green-m); border-radius:50%; position:relative; }
-    .journey-people span::before { content:''; position:absolute; width:8px; height:8px; border-radius:50%; background:var(--green); left:11px; top:6px; }
-    .journey-people span::after { content:''; position:absolute; width:16px; height:8px; border-radius:9px 9px 4px 4px; background:var(--green); left:7px; top:16px; }
-    .journey-people span:nth-child(2) { transform:scale(1.3); margin-inline:5px; }
+    .journey-people { display:flex; align-items:center; justify-content:center; height:76px; gap:15px; }
+    .journey-person { opacity:0; transform:translateY(12px) scale(.9); transition:opacity 1s ease,transform 1s ease; }
+    .journey-person:first-child { opacity:1; transform:none; animation:journey-person-in 1s ease both; }
+    .journey-preview:not([data-frame="0"]) .journey-person:nth-child(2),
+    .journey-preview[data-frame="2"] .journey-person:nth-child(3) { opacity:1; transform:none; }
+    .journey-person-icon { display:block; width:55px; height:62px; position:relative; animation:journey-person-float 4.8s ease-in-out infinite; }
+    .journey-person-icon::before { content:''; position:absolute; width:21px; height:24px; border-radius:45% 45% 48% 48%; background:var(--green); left:17px; top:3px; }
+    .journey-person-icon::after { content:''; position:absolute; width:45px; height:27px; border:1px solid var(--green-m); border-radius:24px 24px 9px 9px; background:var(--green-l); left:5px; top:32px; }
+    .journey-person:nth-child(2) .journey-person-icon { animation-delay:-1.6s; }
+    .journey-person:nth-child(2) .journey-person-icon::before { width:23px; left:16px; border-radius:8px 8px 45% 45%; }
+    .journey-person:nth-child(3) .journey-person-icon { animation-delay:-3.2s; }
+    .journey-person:nth-child(3) .journey-person-icon::before { border-radius:50% 50% 38% 38%; }
+    .journey-audience-names { position:relative; width:100%; height:64px; margin:14px 0 0; }
+    .journey-persona { position:absolute; inset:0; display:flex; justify-content:center; align-items:center; opacity:0; visibility:hidden; transform:translateY(9px); transition:opacity .85s ease,transform .85s ease,visibility 0s .85s; line-height:1.3; }
+    .journey-persona > span { max-width:270px; animation:journey-person-float 5.6s ease-in-out infinite; }
+    .journey-preview[data-frame="0"] .journey-persona:nth-child(1),
+    .journey-preview[data-frame="1"] .journey-persona:nth-child(2),
+    .journey-preview[data-frame="2"] .journey-persona:nth-child(3) { opacity:1; visibility:visible; transform:none; transition-delay:0s; }
+    .journey-floating.is-paused .journey-person,
+    .journey-floating.is-paused .journey-person-icon,
+    .journey-floating.is-paused .journey-persona > span { animation-play-state:paused; }
+    @keyframes journey-person-in { from { opacity:0; transform:translateY(12px) scale(.9); } to { opacity:1; transform:none; } }
+    @keyframes journey-person-float { 0%,100% { transform:translateY(3px); } 50% { transform:translateY(-4px); } }
     .journey-shield { width:68px; height:68px; display:grid; place-items:center; border-radius:50%; background:var(--green-l); color:var(--green); }
     .journey-shield svg { width:38px; height:38px; fill:none; stroke:currentColor; stroke-width:1.3; stroke-linecap:round; stroke-linejoin:round; }
     .journey-question { width:100%; text-align:left; }
@@ -434,7 +450,7 @@
     @media (max-width:1000px) { .journey-hero-grid { grid-template-columns:minmax(0,1fr) 360px; gap:32px; } }
     @media (max-width:899px) { .journey-hero-grid { display:block; } .journey-aside { display:none; } .walkthrough-mobile-select { display:flex; justify-content:space-between; align-items:center; gap:15px; font-size:11px; color:var(--ink3); margin-top:18px; } .walkthrough-mobile-select select { padding:8px 12px; border:.5px solid var(--line2); border-radius:7px; font:500 12px var(--sans); color:var(--ink2); background:var(--bg); } }
     @media (max-width:560px) { .walkthrough-heading { align-items:flex-start; flex-direction:column; gap:20px; } .walkthrough-toolbar { padding:16px; gap:9px; } .walkthrough-toolbar h3 { font-size:12px; } .walkthrough-caption { padding:14px 16px; } .walkthrough-viewport { aspect-ratio:4/3; } #community .feature-card { border-bottom:.5px solid var(--line); } #community .feature-card:last-child { border-bottom:none; } }
-    @media (prefers-reduced-motion:reduce) { .journey-floating,.journey-panel { animation:none; } .journey-preview .journey-reveal-1,.journey-preview .journey-reveal-2 { opacity:1!important; transform:none!important; } .walkthrough-viewport img,.walkthrough-focus,.journey-answer,.journey-reveal-1,.journey-reveal-2 { transition:none; } }
+    @media (prefers-reduced-motion:reduce) { .journey-floating,.journey-panel,.journey-person,.journey-person-icon,.journey-persona > span { animation:none; } .journey-person { opacity:1; transform:none; } .journey-preview .journey-reveal-1,.journey-preview .journey-reveal-2 { opacity:1!important; transform:none!important; } .walkthrough-viewport img,.walkthrough-focus,.journey-answer,.journey-reveal-1,.journey-reveal-2,.journey-person,.journey-persona { transition:none; } }
 
   </style>
 </head>
@@ -480,9 +496,16 @@
         <div class="journey-window"><span class="journey-window-dot" aria-hidden="true"></span><span>Study workflow</span><span class="journey-example">Example</span></div>
         <div class="journey-preview" data-frame="0">
           <div class="journey-panel" id="journey-panel-0" role="tabpanel" aria-labelledby="journey-tab-0">
-            <div class="journey-people" aria-hidden="true"><span></span><span></span><span></span></div>
-            <p class="journey-value">College students</p>
-            <div class="journey-chips"><span class="journey-reveal-1">Ages 18–24</span><span class="journey-reveal-2">Massachusetts</span></div>
+            <div class="journey-people" aria-hidden="true">
+              <span class="journey-person"><span class="journey-person-icon"></span></span>
+              <span class="journey-person"><span class="journey-person-icon"></span></span>
+              <span class="journey-person"><span class="journey-person-icon"></span></span>
+            </div>
+            <div class="journey-value journey-audience-names">
+              <span class="journey-persona"><span>College students?</span></span>
+              <span class="journey-persona"><span>Solo founders?</span></span>
+              <span class="journey-persona"><span>People with social anxiety?</span></span>
+            </div>
             <span class="journey-status">Your audience, defined.</span>
           </div>
           <div class="journey-panel" id="journey-panel-1" role="tabpanel" aria-labelledby="journey-tab-1" hidden>
