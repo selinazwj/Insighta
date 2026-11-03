@@ -1,0 +1,77 @@
+/* Additions only: use the homepage's existing fonts, colors, and spacing. */
+#platform .section-sub { max-width: 520px; margin-bottom: 28px; }
+#platform .home-feature-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+#platform .home-feature-tabs button {
+  font: 500 12px var(--sans); color: var(--ink3); background: var(--bg);
+  border: .5px solid var(--line2); border-radius: 22px;
+  padding: 10px 17px; min-height: 42px; cursor: pointer;
+}
+#platform .home-feature-tabs button:hover { color: var(--green); border-color: var(--green-m); }
+#platform .home-feature-tabs button[aria-selected="true"] { background: var(--green); border-color: var(--green); color: #fff; }
+#platform .home-feature-panel {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: center;
+  border: .5px solid var(--line); border-radius: 12px; padding: 32px;
+  min-height: 390px; background: var(--bg);
+}
+#platform [hidden] { display: none !important; }
+#platform .home-feature-copy, #platform .home-feature-example { min-width: 0; }
+#platform .home-feature-label { color: var(--green); font-size: 11px; font-weight: 500; }
+#platform .home-feature-copy h3 { font-size: 23px; font-weight: 500; letter-spacing: -.5px; line-height: 1.25; margin: 12px 0; }
+#platform .home-feature-copy p { color: var(--ink3); font-size: 13px; line-height: 1.75; }
+#platform .home-feature-copy ul { padding: 0; list-style: none; margin: 18px 0 22px; }
+#platform .home-feature-copy li { display: flex; gap: 9px; color: var(--ink2); font-size: 12px; line-height: 1.7; margin-top: 7px; }
+#platform .home-feature-copy li::before { content: '✓'; color: var(--green); }
+#platform .home-feature-copy a { display: inline-flex; align-items: center; gap: 8px; color: var(--green); font-size: 12px; font-weight: 600; padding-block: 5px; }
+#platform .home-feature-copy a:hover { text-decoration: underline; text-underline-offset: 4px; }
+#platform .home-feature-example { padding: 22px; border: .5px solid var(--line); border-radius: 10px; background: var(--bg2); }
+#platform .home-feature-example-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 22px; }
+#platform .home-feature-example-head strong { font-size: 12px; font-weight: 500; }
+#platform .home-feature-example-head > span { font-size: 9px; color: var(--ink3); text-align: right; }
+#platform .home-feature-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
+#platform .home-feature-tags span { font-size: 10px; padding: 6px 9px; border: .5px solid var(--line2); border-radius: 5px; background: var(--bg); color: var(--ink2); }
+#platform .home-feature-question { padding: 16px; border: .5px solid var(--line); border-radius: 7px; background: var(--bg); }
+#platform .home-feature-question > span, #platform .home-feature-draft span { font-size: 10px; color: var(--ink3); }
+#platform .home-feature-question p { font-size: 12px; line-height: 1.6; margin: 9px 0 14px; }
+#platform .home-feature-question > div { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 11px; padding: 10px; border-radius: 5px; background: var(--green-l); color: var(--green-d); }
+#platform .home-feature-question small { font-size: 9px; margin-left: auto; }
+#platform .home-feature-note { font-size: 10px; line-height: 1.7; color: var(--ink3); margin-top: 16px; }
+#platform .home-feature-level { display: flex; gap: 10px; align-items: center; background: var(--bg); border: .5px solid var(--line2); border-radius: 6px; padding: 12px; margin-top: 9px; }
+#platform .home-feature-level > span { color: var(--ink3); }
+#platform .home-feature-level strong { font-size: 11px; font-weight: 500; }
+#platform .home-feature-level p { font-size: 10px; line-height: 1.6; color: var(--ink3); margin-top: 3px; }
+#platform .home-feature-level.selected { border-color: var(--green); background: var(--green-l); }
+#platform .home-feature-level.selected > span { color: var(--green); }
+#platform .home-feature-level.selected > span:last-child { margin-left: auto; }
+#platform .home-feature-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
+#platform .home-feature-table th { font-size: 10px; color: var(--ink3); font-weight: 400; padding: 0 5px 11px; }
+#platform .home-feature-table td { border-top: .5px solid var(--line); padding: 13px 5px; }
+#platform .home-feature-status { display: inline-block; color: var(--green-d); background: var(--green-l); font-size: 9px; padding: 4px 6px; border-radius: 4px; }
+#platform .home-feature-status.review { background: #fbf0dc; color: #7e5d23; }
+#platform .home-feature-flag { border: .5px solid #eadfc8; border-radius: 6px; padding: 12px; background: #fffaf0; margin-top: 13px; }
+#platform .home-feature-flag strong { font-size: 10px; font-weight: 500; color: #7e5d23; }
+#platform .home-feature-flag p { font-size: 10px; line-height: 1.6; color: #7e5d23; margin-top: 4px; }
+#platform blockquote { font: 400 13px/1.75 var(--sans); margin: 0 0 17px; color: var(--ink2); }
+#platform .home-feature-draft { border: .5px solid var(--line); border-radius: 7px; padding: 16px; background: var(--bg); }
+#platform .home-feature-draft h4 { font-size: 13px; font-weight: 500; margin: 8px 0; }
+#platform .home-feature-draft p { font-size: 11px; line-height: 1.7; color: var(--ink3); }
+#platform .home-feature-draft > div { border-top: .5px solid var(--line); margin-top: 13px; padding-top: 12px; }
+#platform .home-feature-draft > div p { margin-top: 5px; color: var(--ink2); }
+#platform .home-feature-formats { border-block: .5px solid var(--line); padding-block: 22px; margin-top: 30px; }
+#platform .home-feature-formats > span { font-size: 11px; color: var(--ink3); }
+#platform .home-feature-formats ul { display: flex; flex-wrap: wrap; gap: 12px 26px; list-style: none; padding: 0; margin: 13px 0 0; }
+#platform .home-feature-formats li { font-size: 12px; color: var(--ink2); }
+#platform .home-feature-formats li::before { content: '+'; color: var(--green); margin-right: 8px; }
+@media (max-width: 860px) {
+  #platform .home-feature-panel { gap: 24px; padding: 24px; }
+  #platform .home-feature-example { padding: 17px; }
+}
+@media (max-width: 640px) {
+  #platform .home-feature-tabs { gap: 8px; }
+  #platform .home-feature-tabs button { font-size: 11px; padding: 9px 13px; }
+  #platform .home-feature-panel { grid-template-columns: 1fr; padding: 22px; min-height: 0; }
+  #platform .home-feature-copy h3 { font-size: 22px; }
+  #platform .home-feature-example { padding: 17px; }
+  #platform .home-feature-level { padding: 10px; }
+  #platform .home-feature-example-head { gap: 8px; }
+  #platform .home-feature-example-head strong { font-size: 11px; }
+}

@@ -10,6 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/home_features.css">
+  <script src="/static/home_features.js" defer></script>
   <style>
     :root {
       --green:   #3b7c4f;
@@ -478,6 +480,93 @@
     </div>
   </div>
 </section>
+
+<!-- PLATFORM CAPABILITIES -->
+<section id="platform" aria-labelledby="platform-heading">
+  <div class="section">
+    <div class="section-kicker">Inside Insighta</div>
+    <h2 class="section-h" id="platform-heading">Find your people.<br><strong>Build a better study.</strong></h2>
+    <p class="section-sub">From finding the right participants to reviewing their responses, get the tools to move your research forward.</p>
+
+    <div class="home-feature-tabs" role="tablist" aria-label="Explore Insighta features">
+      <button type="button" id="feature-match-tab" role="tab" aria-controls="feature-match-panel" aria-selected="true" tabindex="0">Matching &amp; screening</button>
+      <button type="button" id="feature-id-tab" role="tab" aria-controls="feature-id-panel" aria-selected="false" tabindex="-1">Identity verification</button>
+      <button type="button" id="feature-quality-tab" role="tab" aria-controls="feature-quality-panel" aria-selected="false" tabindex="-1">Response quality</button>
+      <button type="button" id="feature-ai-tab" role="tab" aria-controls="feature-ai-panel" aria-selected="false" tabindex="-1">AI tools</button>
+    </div>
+
+    <div class="home-feature-panel" id="feature-match-panel" role="tabpanel" aria-labelledby="feature-match-tab" tabindex="0">
+      <div class="home-feature-copy">
+        <span class="home-feature-label">Find the right fit</span>
+        <h3>Go beyond broad outreach.</h3>
+        <p>Define the background and experiences your study needs. Use profile-based matching to surface opportunities, then study-specific screening to check eligibility.</p>
+        <ul><li>Detailed audience and participation filters</li><li>Screening questions tailored to your study</li><li>Built-in surveys or an external survey link</li></ul>
+        <a href="/register?role=researcher">Create your study <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="home-feature-example" aria-label="Illustrative audience and screening example">
+        <div class="home-feature-example-head"><strong>Audience &amp; screening</strong><span>Illustrative example</span></div>
+        <div class="home-feature-tags"><span>College students</span><span>Ages 18–24</span><span>Online survey</span></div>
+        <div class="home-feature-question"><span>Study-specific screening</span><p>Are you currently enrolled in a college or university?</p><div><span aria-hidden="true">●</span> Yes, full-time <small>Eligible answer</small></div></div>
+        <p class="home-feature-note">Profile matching finds possible fits. Screening checks the study requirements.</p>
+      </div>
+    </div>
+
+    <div class="home-feature-panel" id="feature-id-panel" role="tabpanel" aria-labelledby="feature-id-tab" tabindex="0" hidden>
+      <div class="home-feature-copy">
+        <span class="home-feature-label">Set your verification requirements</span>
+        <h3>More confidence in who's joining.</h3>
+        <p>Choose the verification level your study needs, including ID check through Didit. Participants complete the required check before joining.</p>
+        <ul><li>Basic account checks</li><li>Account and professional checks</li><li>Optional Didit identity verification</li></ul>
+        <a href="/register?role=researcher">Set your study requirements <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="home-feature-example" aria-label="Illustrative verification requirement example">
+        <div class="home-feature-example-head"><strong>Verification level</strong><span>Illustrative example</span></div>
+        <div class="home-feature-level"><span aria-hidden="true">○</span><div><strong>Basic account check</strong><p>Start with account checks.</p></div></div>
+        <div class="home-feature-level"><span aria-hidden="true">○</span><div><strong>Account and professional check</strong><p>Add professional account evidence.</p></div></div>
+        <div class="home-feature-level selected"><span aria-hidden="true">●</span><div><strong>ID check (Didit)</strong><p>Require identity verification before joining.</p></div><span aria-hidden="true">✓</span></div>
+        <p class="home-feature-note">Identity checks and eligibility are separate. Screening determines the fit for your study.</p>
+      </div>
+    </div>
+
+    <div class="home-feature-panel" id="feature-quality-panel" role="tabpanel" aria-labelledby="feature-quality-tab" tabindex="0" hidden>
+      <div class="home-feature-copy">
+        <span class="home-feature-label">Look beyond completion</span>
+        <h3>Give every response a closer look.</h3>
+        <p>Use quality scores and flagged patterns to guide your review. Inspect individual responses and choose when to request an additional AI review.</p>
+        <ul><li>Response quality scores and anomaly flags</li><li>Individual review and quality thresholds</li><li>Optional AI-assisted response review</li></ul>
+        <a href="/register?role=researcher">Build your review workflow <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="home-feature-example" aria-label="Illustrative response quality example">
+        <div class="home-feature-example-head"><strong>Response quality</strong><span>Illustrative example</span></div>
+        <table class="home-feature-table"><thead><tr><th scope="col">Response</th><th scope="col">Score</th><th scope="col">Review status</th></tr></thead><tbody><tr><td>#016</td><td>94</td><td><span class="home-feature-status">Approved</span></td></tr><tr><td>#017</td><td>88</td><td><span class="home-feature-status">Approved</span></td></tr><tr><td>#018</td><td>62</td><td><span class="home-feature-status review">Needs review</span></td></tr></tbody></table>
+        <div class="home-feature-flag"><strong>Response #018: review suggested</strong><p>Repeated answer patterns flagged for a closer look.</p></div>
+        <p class="home-feature-note">Quality signals support your review; they do not guarantee a valid response.</p>
+      </div>
+    </div>
+
+    <div class="home-feature-panel" id="feature-ai-panel" role="tabpanel" aria-labelledby="feature-ai-tab" tabindex="0" hidden>
+      <div class="home-feature-copy">
+        <span class="home-feature-label">A head start with AI</span>
+        <h3>Start with an idea, not an empty form.</h3>
+        <p>Describe your research in your own words. Use AI to draft a listing or generate survey questions, then review and edit before publishing.</p>
+        <ul><li>Draft listing details from a research prompt</li><li>Generate questions in the survey builder</li><li>Review and edit the output yourself</li></ul>
+        <a href="/register?role=researcher">Start with your research idea <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="home-feature-example" aria-label="Illustrative AI drafting example">
+        <div class="home-feature-example-head"><strong>From an idea to a draft</strong><span>Illustrative example</span></div>
+        <blockquote>“I want to understand how college students manage distractions while studying.”</blockquote>
+        <div class="home-feature-draft"><span>Example draft</span><h4>How students find their focus</h4><p>Explore study routines, common distractions, and strategies students use to stay focused.</p><div><span>Suggested question</span><p>What most often interrupts your study time?</p></div></div>
+        <p class="home-feature-note">AI helps with the first draft. You shape the final study.</p>
+      </div>
+    </div>
+
+    <div class="home-feature-formats" aria-label="Supported study formats">
+      <span>Built around your research</span>
+      <ul><li>Surveys</li><li>Online &amp; in-person interviews</li><li>UX &amp; product studies</li><li>Diary studies</li></ul>
+    </div>
+  </div>
+</section>
+<!-- /PLATFORM CAPABILITIES -->
 
 <!-- FEATURES / WHY -->
 <section id="community" class="features-bg">
