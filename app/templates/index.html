@@ -406,16 +406,13 @@
     .journey-floating.is-paused .journey-level-icon { animation-play-state:paused; }
     .journey-verification-names { height:64px; }
     .journey-copy-option small { display:block; margin-top:8px; color:var(--ink3); font:400 11px/1.5 var(--sans); letter-spacing:0; }
-    .journey-question { width:100%; text-align:left; }
-    .journey-question > span { color:var(--ink3); font-size:10px; }
-    .journey-question p { font-size:16px; line-height:1.45; margin:10px 0 17px; }
-    .journey-answer { display:flex; align-items:center; gap:8px; border:.5px solid var(--line2); border-radius:7px; padding:12px; font-size:12px; transition:background .3s,border-color .3s; }
-    .journey-answer-dot { width:12px; height:12px; border:.5px solid var(--line2); border-radius:50%; }
-    .journey-answer-check { margin-left:auto; opacity:0; color:var(--green); }
-    .journey-answer-other { text-align:left; font-size:11px; color:var(--ink3); padding:11px 13px; }
-    .journey-preview:not([data-frame="0"]) .journey-answer { background:var(--green-l); border-color:var(--green-m); }
-    .journey-preview:not([data-frame="0"]) .journey-answer-dot { border:4px solid var(--green); }
-    .journey-preview:not([data-frame="0"]) .journey-answer-check { opacity:1; }
+    .journey-screening-visual { position:relative; width:180px; height:96px; }
+    .journey-computer { position:absolute; left:20px; top:0; width:140px; height:96px; color:var(--green); opacity:1; transform:none; transition:opacity 1.1s ease,transform 1.3s ease; }
+    .journey-computer svg { display:block; width:100%; height:100%; fill:var(--bg); stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+    .journey-screening-person { position:absolute; left:62.5px; top:9px; width:55px; height:62px; transform:scale(.68); transform-origin:center; transition:transform 1.5s cubic-bezier(.2,.7,.2,1); }
+    .journey-preview:not([data-frame="0"]) .journey-computer { opacity:0; transform:translateY(7px) scale(.94); }
+    .journey-preview[data-frame="1"] .journey-screening-person { transform:translateY(6px) scale(1.12); }
+    .journey-preview[data-frame="2"] .journey-screening-person { transform:translateY(6px) scale(1.48); }
     .journey-review-card { text-align:left; width:100%; border:.5px solid var(--line); border-radius:9px; background:var(--bg2); padding:21px; }
     .journey-review-card > span { font-size:11px; color:var(--ink3); }
     .journey-review-card > div { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:20px 0 14px; }
@@ -456,7 +453,7 @@
     @media (max-width:1000px) { .journey-hero-grid { grid-template-columns:minmax(0,1fr) 360px; gap:32px; } }
     @media (max-width:899px) { .journey-hero-grid { display:block; } .journey-aside { display:none; } .walkthrough-mobile-select { display:flex; justify-content:space-between; align-items:center; gap:15px; font-size:11px; color:var(--ink3); margin-top:18px; } .walkthrough-mobile-select select { padding:8px 12px; border:.5px solid var(--line2); border-radius:7px; font:500 12px var(--sans); color:var(--ink2); background:var(--bg); } }
     @media (max-width:560px) { .walkthrough-heading { align-items:flex-start; flex-direction:column; gap:20px; } .walkthrough-toolbar { padding:16px; gap:9px; } .walkthrough-toolbar h3 { font-size:12px; } .walkthrough-caption { padding:14px 16px; } .walkthrough-viewport { aspect-ratio:4/3; } #community .feature-card { border-bottom:.5px solid var(--line); } #community .feature-card:last-child { border-bottom:none; } }
-    @media (prefers-reduced-motion:reduce) { .journey-floating,.journey-panel,.journey-item,.journey-person-icon,.journey-level-icon,.journey-copy-option > span { animation:none; } .journey-item { opacity:1; transform:none; } .journey-preview .journey-reveal-1,.journey-preview .journey-reveal-2 { opacity:1!important; transform:none!important; } .walkthrough-viewport img,.walkthrough-focus,.journey-answer,.journey-reveal-1,.journey-reveal-2,.journey-item,.journey-copy-option { transition:none; } }
+    @media (prefers-reduced-motion:reduce) { .journey-floating,.journey-panel,.journey-item,.journey-person-icon,.journey-level-icon,.journey-copy-option > span { animation:none; } .journey-item { opacity:1; transform:none; } .journey-preview .journey-reveal-1,.journey-preview .journey-reveal-2 { opacity:1!important; transform:none!important; } .walkthrough-viewport img,.walkthrough-focus,.journey-computer,.journey-screening-person,.journey-reveal-1,.journey-reveal-2,.journey-item,.journey-copy-option { transition:none; } }
 
   </style>
 </head>
@@ -528,8 +525,12 @@
             <span class="journey-status">Choose your verification level.</span>
           </div>
           <div class="journey-panel" id="journey-panel-2" role="tabpanel" aria-labelledby="journey-tab-2" hidden>
-            <div class="journey-question"><span>Enrollment</span><p>Currently enrolled in college?</p><div class="journey-answer"><span class="journey-answer-dot" aria-hidden="true"></span> Yes, currently enrolled <span class="journey-answer-check" aria-hidden="true">✓</span></div><div class="journey-answer-other">No, not currently</div></div>
-            <span class="journey-status journey-reveal-2">Screening passed</span>
+            <div class="journey-screening-visual" aria-hidden="true">
+              <span class="journey-computer"><svg viewBox="0 0 140 96"><rect x="15" y="5" width="110" height="72" rx="5"/><path d="M15 67h110M58 77l-3 13m27-13 3 13M44 91h52" fill="none"/></svg></span>
+              <span class="journey-screening-person"><span class="journey-person-icon"></span></span>
+            </div>
+            <p class="journey-value">The right fit.</p>
+            <span class="journey-status">Your screening questions. Your criteria.</span>
           </div>
           <div class="journey-panel" id="journey-panel-3" role="tabpanel" aria-labelledby="journey-tab-3" hidden>
             <div class="journey-review-card"><span>Response quality</span><div><strong>62<small>/100</small></strong><span class="journey-review-flag">Needs review</span></div><p>Repeated answer patterns</p></div>
