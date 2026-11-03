@@ -413,15 +413,19 @@
     .journey-preview:not([data-frame="0"]) .journey-computer { opacity:0; transform:translateY(7px) scale(.94); }
     .journey-preview[data-frame="1"] .journey-screening-person { transform:translateY(6px) scale(1.12); }
     .journey-preview[data-frame="2"] .journey-screening-person { transform:translateY(6px) scale(1.48); }
-    .journey-review-card { text-align:left; width:100%; border:.5px solid var(--line); border-radius:9px; background:var(--bg2); padding:21px; }
-    .journey-review-card > span { font-size:11px; color:var(--ink3); }
-    .journey-review-card > div { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:20px 0 14px; }
-    .journey-review-card strong { font-size:33px; color:var(--ink); font-weight:400; letter-spacing:-1px; }
-    .journey-review-card small { font-size:12px; color:var(--ink3); margin-left:3px; letter-spacing:0; }
-    .journey-review-flag { background:#fbf0dc; color:#805b20; border-radius:5px; padding:6px 9px; font-size:10px; }
-    .journey-review-card p { color:var(--ink3); font-size:11px; }
-    .journey-reveal-1,.journey-reveal-2 { transition:opacity .35s,transform .35s; }
-    .journey-preview[data-frame="0"] .journey-reveal-1,.journey-preview:not([data-frame="2"]) .journey-reveal-2 { opacity:0; transform:translateY(3px); }
+    .journey-network { width:260px; max-width:100%; height:90px; animation:journey-person-float 5.6s ease-in-out infinite; }
+    .journey-network svg { display:block; width:100%; height:100%; overflow:visible; }
+    .journey-network-orbit { fill:none; stroke:var(--line2); stroke-width:.7; }
+    .journey-network-stars { fill:var(--green-m); }
+    .journey-network-hub { fill:var(--green-l); stroke:var(--green); stroke-width:1.2; }
+    .journey-network-node { color:var(--line2); opacity:.5; transition:color .9s ease,opacity .9s ease; }
+    .journey-network-node line { stroke:currentColor; stroke-width:1; }
+    .journey-network-node .node-halo { fill:var(--bg); stroke:currentColor; stroke-width:1; }
+    .journey-network-node .node-core { fill:currentColor; }
+    .journey-network-node:first-child,
+    .journey-preview:not([data-frame="0"]) .journey-network-node:nth-child(2),
+    .journey-preview[data-frame="2"] .journey-network-node:nth-child(3) { color:var(--green); opacity:1; }
+    .journey-floating.is-paused .journey-network { animation-play-state:paused; }
     .journey-card-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 20px 16px; font-size:10px; color:var(--ink3); }
     .journey-card-footer a { color:var(--green); padding:5px 0; }
     .journey-play { background:none; border:0; padding:6px; cursor:pointer; font:500 10px var(--sans); color:var(--ink3); }
@@ -453,7 +457,7 @@
     @media (max-width:1000px) { .journey-hero-grid { grid-template-columns:minmax(0,1fr) 360px; gap:32px; } }
     @media (max-width:899px) { .journey-hero-grid { display:block; } .journey-aside { display:none; } .walkthrough-mobile-select { display:flex; justify-content:space-between; align-items:center; gap:15px; font-size:11px; color:var(--ink3); margin-top:18px; } .walkthrough-mobile-select select { padding:8px 12px; border:.5px solid var(--line2); border-radius:7px; font:500 12px var(--sans); color:var(--ink2); background:var(--bg); } }
     @media (max-width:560px) { .walkthrough-heading { align-items:flex-start; flex-direction:column; gap:20px; } .walkthrough-toolbar { padding:16px; gap:9px; } .walkthrough-toolbar h3 { font-size:12px; } .walkthrough-caption { padding:14px 16px; } .walkthrough-viewport { aspect-ratio:4/3; } #community .feature-card { border-bottom:.5px solid var(--line); } #community .feature-card:last-child { border-bottom:none; } }
-    @media (prefers-reduced-motion:reduce) { .journey-floating,.journey-panel,.journey-item,.journey-person-icon,.journey-level-icon,.journey-copy-option > span { animation:none; } .journey-item { opacity:1; transform:none; } .journey-preview .journey-reveal-1,.journey-preview .journey-reveal-2 { opacity:1!important; transform:none!important; } .walkthrough-viewport img,.walkthrough-focus,.journey-computer,.journey-screening-person,.journey-reveal-1,.journey-reveal-2,.journey-item,.journey-copy-option { transition:none; } }
+    @media (prefers-reduced-motion:reduce) { .journey-floating,.journey-panel,.journey-item,.journey-person-icon,.journey-level-icon,.journey-network,.journey-copy-option > span { animation:none; } .journey-item { opacity:1; transform:none; } .walkthrough-viewport img,.walkthrough-focus,.journey-computer,.journey-screening-person,.journey-network-node,.journey-item,.journey-copy-option { transition:none; } }
 
   </style>
 </head>
@@ -533,8 +537,26 @@
             <span class="journey-status">Your screening questions. Your criteria.</span>
           </div>
           <div class="journey-panel" id="journey-panel-3" role="tabpanel" aria-labelledby="journey-tab-3" hidden>
-            <div class="journey-review-card"><span>Response quality</span><div><strong>62<small>/100</small></strong><span class="journey-review-flag">Needs review</span></div><p>Repeated answer patterns</p></div>
-            <span class="journey-status journey-reveal-2">You make the review decision.</span>
+            <div class="journey-network" aria-hidden="true">
+              <svg viewBox="0 0 260 100">
+                <ellipse class="journey-network-orbit" cx="130" cy="53" rx="112" ry="32" transform="rotate(-12 130 53)"/>
+                <path class="journey-network-orbit" d="m20 66 49 19 61-32L125 9m5 44 109 10M50 28l75-19 83 15M69 85l136 1"/>
+                <g class="journey-network-stars"><circle cx="20" cy="66" r="2"/><circle cx="69" cy="85" r="2.5"/><circle cx="125" cy="9" r="2"/><circle cx="239" cy="63" r="2.5"/></g>
+                <g class="journey-network-branches">
+                  <g class="journey-network-node"><line x1="130" y1="53" x2="50" y2="28"/><circle class="node-halo" cx="50" cy="28" r="10"/><circle class="node-core" cx="50" cy="28" r="3.5"/></g>
+                  <g class="journey-network-node"><line x1="130" y1="53" x2="208" y2="24"/><circle class="node-halo" cx="208" cy="24" r="10"/><circle class="node-core" cx="208" cy="24" r="3.5"/></g>
+                  <g class="journey-network-node"><line x1="130" y1="53" x2="205" y2="86"/><circle class="node-halo" cx="205" cy="86" r="10"/><circle class="node-core" cx="205" cy="86" r="3.5"/></g>
+                </g>
+                <circle class="journey-network-hub" cx="130" cy="53" r="14"/>
+                <path d="m124 53 4 4 8-8" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="journey-value journey-rotating-names">
+              <span class="journey-copy-option"><span>Data quality check</span></span>
+              <span class="journey-copy-option"><span>Duplicate check</span></span>
+              <span class="journey-copy-option"><span>Human review<small>When something needs a closer look</small></span></span>
+            </div>
+            <span class="journey-status">More confidence in every response.</span>
           </div>
         </div>
         <div class="journey-card-footer"><a href="#how">Watch the real steps <span aria-hidden="true">↓</span></a><button type="button" class="journey-play" data-journey-play aria-pressed="false" aria-label="Pause walkthrough">Pause</button></div>
