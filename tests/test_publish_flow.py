@@ -93,6 +93,61 @@ class PublishFlowTest(unittest.TestCase):
         with main.SessionLocal() as db:
             self.assertEqual(db.query(Survey).count(), 0)
 
+    def admin_submit(self, **overrides):
+        with patch.dict(os.environ, {'ADMIN_KEY': 'publish-test-admin-key'}):
+            return self.client.post('/admin/publish', data={
+                **self.data, 'admin_key': 'publish-test-admin-key',
+                'per_person_gross': '', 'admin_display_reward_amount': '25',
+                **overrides,
+            }, headers={'Accept': 'application/json'}, follow_redirects=False)
+
+    def test_admin_demo_publish_without_verification_fields(self):
+        with patch.object(main.stripe.checkout.Session, 'create') as checkout:
+            result = self.admin_submit()
+        self.assertEqual(result.status_code, 200, result.text)
+        self.assertTrue(result.json()['redirect_url'].startswith('/admin/publish?'))
+        checkout.assert_not_called()
+        with main.SessionLocal() as db:
+            survey = db.get(Survey, result.json()['survey_id'])
+            self.assertEqual(survey.status, 'published')
+            self.assertEqual(survey.payment_status, 'admin_demo')
+            self.assertEqual(survey.admin_display_reward_amount, 25)
+            self.assertEqual(survey.required_verification_tier, main.TIER_BASIC)
+            self.assertIsNone(survey.required_email_domains)
+
+    def test_admin_publish_preserves_email_and_identity_requirements(self):
+        result = self.admin_submit(required_email_domains='@BU.edu, gmail.com',
+                                   required_verification_tier=main.TIER_IDENTITY)
+        self.assertEqual(result.status_code, 200, result.text)
+        with main.SessionLocal() as db:
+            survey = db.get(Survey, result.json()['survey_id'])
+            self.assertEqual(survey.required_email_domains, 'bu.edu,gmail.com')
+            self.assertEqual(survey.required_verification_tier, main.TIER_IDENTITY)
+
+    def test_admin_demo_retry_reuses_listing_and_returns_to_admin(self):
+        first = self.admin_submit()
+        retried = self.admin_submit(title='Changed by a retry')
+        self.assertEqual(retried.status_code, 200, retried.text)
+        self.assertEqual(first.json(), retried.json())
+        with main.SessionLocal() as db:
+            self.assertEqual(db.query(Survey).count(), 1)
+            self.assertEqual(db.query(Survey).one().title, self.data['title'])
+
+    def test_admin_stripe_publish_creates_checkout_for_admin_listing(self):
+        checkout = SimpleNamespace(id='cs_mock', url='https://checkout.stripe.com/mock')
+        with patch.object(main.stripe, 'api_key', 'sk_mock'), patch.object(
+            main.stripe.checkout.Session, 'create', return_value=checkout,
+        ) as create:
+            result = self.admin_submit(admin_payment_mode='stripe', per_person_gross='5')
+        self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(result.json()['redirect_url'], checkout.url)
+        self.assertEqual(create.call_args.kwargs['metadata']['source'], 'admin_publish_stripe')
+        with main.SessionLocal() as db:
+            survey = db.get(Survey, result.json()['survey_id'])
+            self.assertEqual(survey.status, 'draft')
+            self.assertEqual(survey.payment_status, 'unpaid')
+            self.assertIsNone(survey.admin_display_reward_amount)
+
     def test_builtin_publish_keeps_existing_questions_and_html_redirect(self):
         created = self.client.post('/surveys/create-builtin', follow_redirects=False)
         survey_id = int(created.headers['location'].split('/')[2])

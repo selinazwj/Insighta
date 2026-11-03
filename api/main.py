@@ -8961,6 +8961,8 @@ async def admin_publish_survey(request: Request, db: Session = Depends(get_db)):
         target_device=form.get("target_device"),
         target_income_level=form.get("target_income_level"),
         raffle_prize_type=form.get("raffle_prize_type"),
+        required_verification_tier=form.get("required_verification_tier"),
+        required_email_domains=form.get("required_email_domains"),
         cover_image=form.get("cover_image"),
         admin_display_reward_amount=display_amount,
         admin_publish=True,
@@ -9881,6 +9883,9 @@ async def publish_survey(
         if not previous:
             raise HTTPException(404, "Survey not found")
         if previous.status == "published":
+            if admin_publish:
+                redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
+                return _publish_redirect(request, f"/admin/publish?{redirect_qs}", previous.id)
             return _publish_redirect(request, "/publisher", previous.id)
     if not title.strip() or target_responses <= 0 or estimated_time <= 0:
         raise HTTPException(400, "Add a title, a positive duration, and at least one participant.")
