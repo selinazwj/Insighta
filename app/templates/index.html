@@ -376,30 +376,36 @@
     .journey-value { font-size:23px; letter-spacing:-.6px; font-weight:500; margin:14px 0; }
     .journey-status { display:inline-block; color:var(--green); font-size:11px; margin-top:18px; line-height:1.6; }
     .journey-people { display:flex; align-items:center; justify-content:center; height:76px; gap:15px; }
-    .journey-person { opacity:0; transform:translateY(12px) scale(.9); transition:opacity 1s ease,transform 1s ease; }
-    .journey-person:first-child { opacity:1; transform:none; animation:journey-person-in 1s ease both; }
-    .journey-preview:not([data-frame="0"]) .journey-person:nth-child(2),
-    .journey-preview[data-frame="2"] .journey-person:nth-child(3) { opacity:1; transform:none; }
+    .journey-item { opacity:0; transform:translateY(12px) scale(.9); transition:opacity 1s ease,transform 1s ease; }
+    .journey-item:first-child { opacity:1; transform:none; animation:journey-person-in 1s ease both; }
+    .journey-preview:not([data-frame="0"]) .journey-item:nth-child(2),
+    .journey-preview[data-frame="2"] .journey-item:nth-child(3) { opacity:1; transform:none; }
     .journey-person-icon { display:block; width:55px; height:62px; position:relative; animation:journey-person-float 4.8s ease-in-out infinite; }
     .journey-person-icon::before { content:''; position:absolute; width:21px; height:24px; border-radius:45% 45% 48% 48%; background:var(--green); left:17px; top:3px; }
     .journey-person-icon::after { content:''; position:absolute; width:45px; height:27px; border:1px solid var(--green-m); border-radius:24px 24px 9px 9px; background:var(--green-l); left:5px; top:32px; }
-    .journey-person:nth-child(2) .journey-person-icon { animation-delay:-1.6s; }
-    .journey-person:nth-child(2) .journey-person-icon::before { width:23px; left:16px; border-radius:8px 8px 45% 45%; }
-    .journey-person:nth-child(3) .journey-person-icon { animation-delay:-3.2s; }
-    .journey-person:nth-child(3) .journey-person-icon::before { border-radius:50% 50% 38% 38%; }
-    .journey-audience-names { position:relative; width:100%; height:64px; margin:14px 0 0; }
-    .journey-persona { position:absolute; inset:0; display:flex; justify-content:center; align-items:center; opacity:0; visibility:hidden; transform:translateY(9px); transition:opacity .85s ease,transform .85s ease,visibility 0s .85s; line-height:1.3; }
-    .journey-persona > span { max-width:270px; animation:journey-person-float 5.6s ease-in-out infinite; }
-    .journey-preview[data-frame="0"] .journey-persona:nth-child(1),
-    .journey-preview[data-frame="1"] .journey-persona:nth-child(2),
-    .journey-preview[data-frame="2"] .journey-persona:nth-child(3) { opacity:1; visibility:visible; transform:none; transition-delay:0s; }
-    .journey-floating.is-paused .journey-person,
+    .journey-item:nth-child(2) .journey-person-icon { animation-delay:-1.6s; }
+    .journey-item:nth-child(2) .journey-person-icon::before { width:23px; left:16px; border-radius:8px 8px 45% 45%; }
+    .journey-item:nth-child(3) .journey-person-icon { animation-delay:-3.2s; }
+    .journey-item:nth-child(3) .journey-person-icon::before { border-radius:50% 50% 38% 38%; }
+    .journey-rotating-names { position:relative; width:100%; height:64px; margin:14px 0 0; }
+    .journey-copy-option { position:absolute; inset:0; display:flex; justify-content:center; align-items:center; opacity:0; visibility:hidden; transform:translateY(9px); transition:opacity .85s ease,transform .85s ease,visibility 0s .85s; line-height:1.3; }
+    .journey-copy-option > span { max-width:270px; animation:journey-person-float 5.6s ease-in-out infinite; }
+    .journey-preview[data-frame="0"] .journey-copy-option:nth-child(1),
+    .journey-preview[data-frame="1"] .journey-copy-option:nth-child(2),
+    .journey-preview[data-frame="2"] .journey-copy-option:nth-child(3) { opacity:1; visibility:visible; transform:none; transition-delay:0s; }
+    .journey-floating.is-paused .journey-item,
     .journey-floating.is-paused .journey-person-icon,
-    .journey-floating.is-paused .journey-persona > span { animation-play-state:paused; }
+    .journey-floating.is-paused .journey-copy-option > span { animation-play-state:paused; }
     @keyframes journey-person-in { from { opacity:0; transform:translateY(12px) scale(.9); } to { opacity:1; transform:none; } }
     @keyframes journey-person-float { 0%,100% { transform:translateY(3px); } 50% { transform:translateY(-4px); } }
-    .journey-shield { width:68px; height:68px; display:grid; place-items:center; border-radius:50%; background:var(--green-l); color:var(--green); }
-    .journey-shield svg { width:38px; height:38px; fill:none; stroke:currentColor; stroke-width:1.3; stroke-linecap:round; stroke-linejoin:round; }
+    .journey-levels { display:flex; align-items:center; justify-content:center; height:76px; gap:15px; }
+    .journey-level-icon { display:grid; place-items:center; width:55px; height:62px; color:var(--green); animation:journey-person-float 4.8s ease-in-out infinite; }
+    .journey-level-icon svg { width:47px; height:47px; fill:var(--green-l); stroke:currentColor; stroke-width:1.3; stroke-linecap:round; stroke-linejoin:round; }
+    .journey-item:nth-child(2) .journey-level-icon { animation-delay:-1.6s; }
+    .journey-item:nth-child(3) .journey-level-icon { animation-delay:-3.2s; }
+    .journey-floating.is-paused .journey-level-icon { animation-play-state:paused; }
+    .journey-verification-names { height:64px; }
+    .journey-copy-option small { display:block; margin-top:8px; color:var(--ink3); font:400 11px/1.5 var(--sans); letter-spacing:0; }
     .journey-question { width:100%; text-align:left; }
     .journey-question > span { color:var(--ink3); font-size:10px; }
     .journey-question p { font-size:16px; line-height:1.45; margin:10px 0 17px; }
@@ -450,7 +456,7 @@
     @media (max-width:1000px) { .journey-hero-grid { grid-template-columns:minmax(0,1fr) 360px; gap:32px; } }
     @media (max-width:899px) { .journey-hero-grid { display:block; } .journey-aside { display:none; } .walkthrough-mobile-select { display:flex; justify-content:space-between; align-items:center; gap:15px; font-size:11px; color:var(--ink3); margin-top:18px; } .walkthrough-mobile-select select { padding:8px 12px; border:.5px solid var(--line2); border-radius:7px; font:500 12px var(--sans); color:var(--ink2); background:var(--bg); } }
     @media (max-width:560px) { .walkthrough-heading { align-items:flex-start; flex-direction:column; gap:20px; } .walkthrough-toolbar { padding:16px; gap:9px; } .walkthrough-toolbar h3 { font-size:12px; } .walkthrough-caption { padding:14px 16px; } .walkthrough-viewport { aspect-ratio:4/3; } #community .feature-card { border-bottom:.5px solid var(--line); } #community .feature-card:last-child { border-bottom:none; } }
-    @media (prefers-reduced-motion:reduce) { .journey-floating,.journey-panel,.journey-person,.journey-person-icon,.journey-persona > span { animation:none; } .journey-person { opacity:1; transform:none; } .journey-preview .journey-reveal-1,.journey-preview .journey-reveal-2 { opacity:1!important; transform:none!important; } .walkthrough-viewport img,.walkthrough-focus,.journey-answer,.journey-reveal-1,.journey-reveal-2,.journey-person,.journey-persona { transition:none; } }
+    @media (prefers-reduced-motion:reduce) { .journey-floating,.journey-panel,.journey-item,.journey-person-icon,.journey-level-icon,.journey-copy-option > span { animation:none; } .journey-item { opacity:1; transform:none; } .journey-preview .journey-reveal-1,.journey-preview .journey-reveal-2 { opacity:1!important; transform:none!important; } .walkthrough-viewport img,.walkthrough-focus,.journey-answer,.journey-reveal-1,.journey-reveal-2,.journey-item,.journey-copy-option { transition:none; } }
 
   </style>
 </head>
@@ -497,21 +503,29 @@
         <div class="journey-preview" data-frame="0">
           <div class="journey-panel" id="journey-panel-0" role="tabpanel" aria-labelledby="journey-tab-0">
             <div class="journey-people" aria-hidden="true">
-              <span class="journey-person"><span class="journey-person-icon"></span></span>
-              <span class="journey-person"><span class="journey-person-icon"></span></span>
-              <span class="journey-person"><span class="journey-person-icon"></span></span>
+              <span class="journey-item"><span class="journey-person-icon"></span></span>
+              <span class="journey-item"><span class="journey-person-icon"></span></span>
+              <span class="journey-item"><span class="journey-person-icon"></span></span>
             </div>
-            <div class="journey-value journey-audience-names">
-              <span class="journey-persona"><span>College students?</span></span>
-              <span class="journey-persona"><span>Solo founders?</span></span>
-              <span class="journey-persona"><span>People with social anxiety?</span></span>
+            <div class="journey-value journey-rotating-names">
+              <span class="journey-copy-option"><span>College students?</span></span>
+              <span class="journey-copy-option"><span>Solo founders?</span></span>
+              <span class="journey-copy-option"><span>People with social anxiety?</span></span>
             </div>
             <span class="journey-status">Your audience, defined.</span>
           </div>
           <div class="journey-panel" id="journey-panel-1" role="tabpanel" aria-labelledby="journey-tab-1" hidden>
-            <div class="journey-shield" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12l3 3 5-6"/></svg></div>
-            <p class="journey-value">Choose your verification level</p>
-            <span class="journey-status">Basic · Professional · ID check</span>
+            <div class="journey-levels" aria-hidden="true">
+              <span class="journey-item"><span class="journey-level-icon"><svg viewBox="0 0 32 32"><rect x="3" y="7" width="26" height="19" rx="3"/><path d="m4 9 12 9L28 9" fill="none"/></svg></span></span>
+              <span class="journey-item"><span class="journey-level-icon"><svg viewBox="0 0 32 32"><path d="M3 12 16 5l13 7v3H3zM5 15v11m7-11v11m8-11v11m7-11v11M3 28h26M16 8v3" fill="none"/></svg></span></span>
+              <span class="journey-item"><span class="journey-level-icon"><svg viewBox="0 0 32 32"><rect x="2" y="6" width="28" height="21" rx="3"/><circle cx="11" cy="14" r="3"/><path d="M6 23v-1a5 5 0 0 1 10 0v1m5-10h5m-5 5h5m-5 5h3" fill="none"/></svg></span></span>
+            </div>
+            <div class="journey-value journey-rotating-names journey-verification-names">
+              <span class="journey-copy-option"><span>Account check<small>Email or social sign-in</small></span></span>
+              <span class="journey-copy-option"><span>Work or school check<small>Email domain or LinkedIn</small></span></span>
+              <span class="journey-copy-option"><span>ID check<small>Identity documents via Didit</small></span></span>
+            </div>
+            <span class="journey-status">Choose your verification level.</span>
           </div>
           <div class="journey-panel" id="journey-panel-2" role="tabpanel" aria-labelledby="journey-tab-2" hidden>
             <div class="journey-question"><span>Enrollment</span><p>Currently enrolled in college?</p><div class="journey-answer"><span class="journey-answer-dot" aria-hidden="true"></span> Yes, currently enrolled <span class="journey-answer-check" aria-hidden="true">✓</span></div><div class="journey-answer-other">No, not currently</div></div>
