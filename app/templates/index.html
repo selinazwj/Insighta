@@ -85,6 +85,19 @@
     /* ── HERO ── */
     .hero { padding: 96px 48px 80px; border-bottom: 0.5px solid var(--line); }
     .hero-inner { max-width: 1040px; margin: 0 auto; }
+    .hero-top { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 56px; align-items: center; }
+    .hero-study-card { padding: 26px; margin-bottom: 72px; border: .5px solid var(--line2); border-radius: 12px; background: var(--bg); box-shadow: 0 12px 32px -26px rgba(42,92,57,.4); }
+    .study-card-example { font-size: 11px; color: var(--ink3); }
+    .hero-study-card h2 { font-size: 21px; line-height: 1.35; letter-spacing: -.4px; font-weight: 500; margin: 18px 0; }
+    .study-card-meta { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--ink3); padding-bottom: 22px; border-bottom: .5px solid var(--line); }
+    .study-card-meta strong { font-weight: 500; color: var(--green); }
+    .study-card-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 20px; }
+    .study-card-badge { padding: 6px 8px; border-radius: 20px; background: var(--green-l); color: var(--green-d); font-size: 10px; font-weight: 500; animation: badge-in .4s ease both; }
+    .study-card-badge:nth-child(2) { animation-delay: .15s; }
+    .study-card-badge:nth-child(3) { animation-delay: .3s; }
+    @keyframes badge-in { from { opacity: 0; } to { opacity: 1; } }
+    @media (max-width: 899px) { .hero-top { display: block; } .hero-study-card { display: none; } }
+    @media (prefers-reduced-motion: reduce) { .study-card-badge { animation: none; } }
     .hero-kicker {
       font-size: 12px; font-weight: 500; color: var(--green);
       display: flex; align-items: center; gap: 8px; margin-bottom: 20px;
@@ -121,14 +134,17 @@
 
     /* Hero stats */
     /* ive added left padding so the text isnt hugging the divider lines, and bumped the sizes a touch */
-    .hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 0.5px solid var(--line); border-bottom: 0.5px solid var(--line); }
+    .hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 0.5px solid var(--line); border-bottom: 0.5px solid var(--line); }
     .hero-stat { padding: 32px 32px 32px 28px; border-right: 0.5px solid var(--line); }
     .hero-stat { min-width: 0; }
     .hero-stat:first-child { padding-left: 0; }
     .hero-stat:last-child { border-right: none; padding-right: 0; }
     .hs-n { font-size: 36px; font-weight: 300; color: var(--green); letter-spacing: -1px; margin-bottom: 6px; }
     .hs-l { font-size: 14px; color: var(--ink2); font-weight: 500; margin-bottom: 3px; }
-    .hs-s { font-size: 12px; color: var(--ink4); }
+    .hs-s { font-size: 12px; color: var(--ink4); line-height: 1.6; }
+    .hs-trust-link { display: inline-block; margin-top: 10px; color: var(--green); font-size: 11px; text-underline-offset: 3px; }
+    .hs-trust-link:hover { text-decoration: underline; }
+    .hs-trust-link[hidden] { display: none; }
 
     /* ── HOW IT WORKS ── */
     .section { max-width: 1040px; margin: 0 auto; padding: 80px 48px; }
@@ -159,9 +175,8 @@
     /* ── FEATURES ── */
     .features-bg { background: var(--bg2); border-top: 0.5px solid var(--line); border-bottom: 0.5px solid var(--line); }
     .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
-    .feature-card { padding: 28px 28px; border-right: 0.5px solid var(--line); border-bottom: 0.5px solid var(--line); }
+    .feature-card { padding: 28px 28px; border-right: 0.5px solid var(--line); }
     .feature-card:nth-child(3n) { border-right: none; }
-    .feature-card:nth-child(n+4) { border-bottom: none; }
     .feature-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; background: var(--bg3); }
     .feature-icon svg { width: 15px; height: 15px; }
     .feature-t { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
@@ -179,7 +194,7 @@
     .footer { padding: 32px 48px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; border-top: 0.5px solid var(--line); }
     .footer-logo { font-size: 14px; font-weight: 600; color: var(--ink2); }
     .footer-logo span { color: var(--green); }
-    .footer-links { display: flex; gap: 24px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 24px; }
     .footer-links a { font-size: 12px; color: var(--ink4); text-decoration: none; transition: color .15s; }
     .footer-links a:hover { color: var(--ink); }
     .footer-copy { width: 100%; font-size: 11px; color: var(--ink4); border-top: 0.5px solid var(--line); padding-top: 16px; margin-top: 8px; }
@@ -330,15 +345,13 @@
     /* responsive */
     @media (max-width: 860px) {
       .nav { padding: 0 24px; } .hero { padding: 64px 24px 56px; } .hero-h1 { font-size: 40px; }
-      .hero-stats { grid-template-columns: repeat(2, 1fr); }
-      /* 2-col layout: odd stats start each row, so align them with the left edge like the first */
-      .hero-stat:nth-child(odd) { padding-left: 0; }
-      .hero-stat:nth-child(even) { border-right: none; padding-right: 0; }
       .section { padding: 56px 24px; } .how-grid { grid-template-columns: 1fr; }
       .how-col:first-child { border-right: none; border-bottom: 0.5px solid var(--line); }
       .features-grid { grid-template-columns: 1fr 1fr; }
+      .feature-card { border-bottom: .5px solid var(--line); }
       .feature-card:nth-child(2n) { border-right: none; }
-      .feature-card:nth-child(n+4) { border-bottom: none; }
+      .feature-card:nth-child(3n) { border-right: .5px solid var(--line); }
+      .feature-card:last-child { border-bottom: none; }
       .quote-inner { grid-template-columns: 1fr; }
       .footer { padding: 24px; }
       .quote-section { padding: 56px 24px; }
@@ -349,17 +362,20 @@
       .role-switch { order: 3; width: 100%; }
       .role-tab { padding: 7px 10px; }
       .nav-right { margin-left: auto; }
-      .hero-stats { grid-template-columns: 1fr 1fr; }
+      .hero-stats { grid-template-columns: 1fr; }
       .hero-actions { flex-direction: column; align-items: stretch; gap: 16px; margin-bottom: 36px; }
       .btn-hero, .btn-hero-ghost { justify-content: center; min-height: 44px; }
-      .hero-stat { padding: 22px 14px; }
+      .hero-stat, body.participant-mode .hero-stat { padding: 18px 0; border-right: none; border-bottom: .5px solid var(--line); }
+      .hero-stat:last-child { border-bottom: none; }
       .hs-n { font-size: clamp(21px, 6vw, 28px); letter-spacing: -.5px; overflow-wrap: anywhere; }
       .hs-l { font-size: 13px; line-height: 1.45; }
       .hs-s { color: var(--ink3); line-height: 1.5; }
       .features-grid { grid-template-columns: 1fr; }
       .feature-card { border-right: none; border-bottom: 0.5px solid var(--line); }
       .feature-card:last-child { border-bottom: none; }
+      .feature-card:nth-child(3n) { border-right: none; }
     }
+    {% block extra_styles %}{% endblock %}
   </style>
 </head>
 <body>
@@ -370,7 +386,7 @@
   <a href="/" class="nav-logo">Insight<span>a</span></a>
   <div class="nav-links">
     <a href="/studies">Browse studies</a>
-    <a href="#how">How it works</a>
+    <a href="{% block how_link %}#how{% endblock %}">How it works</a>
     <a href="/about">About</a>
   </div>
   <div class="role-switch" aria-label="Choose Insighta side">
@@ -384,9 +400,12 @@
 </nav>
 
 <main>
+{% block main_content %}
 <!-- HERO -->
 <section class="hero">
   <div class="hero-inner">
+    <div class="hero-top">
+    <div class="hero-copy">
     <div class="hero-kicker reveal mode-text" id="heroKicker">Community research platform</div>
     <h1 class="hero-h1 reveal d1 mode-text" id="heroTitle">Research that<br><strong>moves people.</strong><br>Done by people.</h1>
     <p class="hero-sub reveal d2 mode-text" id="heroSub">Insighta connects researchers who need real insights with participants who deserve real credit — so the studies that matter actually get done.</p>
@@ -397,26 +416,34 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
     </div>
+    </div>
+    <aside class="hero-study-card" aria-label="Illustrative study card">
+      <span class="study-card-example">Example study</span>
+      <h2>Everyday decision-making</h2>
+      <div class="study-card-meta"><span>15 min</span><strong>$10 reward</strong></div>
+      <div class="study-card-badges" aria-label="Example participation checks">
+        <span class="study-card-badge">Matched</span>
+        <span class="study-card-badge">Verified</span>
+        <span class="study-card-badge">Pre-screened</span>
+      </div>
+    </aside>
+    </div>
     <div class="hero-stats">
       <div class="hero-stat">
-        <div class="hs-n" id="statOneN">Profile-based</div>
-        <div class="hs-l" id="statOneL">Participant matching</div>
-        <div class="hs-s" id="statOneS">using defined eligibility</div>
+        <div class="hs-n" id="statOneN">Matched</div>
+        <div class="hs-l" id="statOneL">Only people who fit your criteria</div>
+        <div class="hs-s" id="statOneS">see your study.</div>
       </div>
       <div class="hero-stat">
-        <div class="hs-n" id="statTwoN">Clear</div>
-        <div class="hs-l" id="statTwoL">Time and reward details</div>
-        <div class="hs-s" id="statTwoS">shown before participation</div>
+        <div class="hs-n" id="statTwoN">Verified</div>
+        <div class="hs-l" id="statTwoL">From email to full ID check,</div>
+        <div class="hs-s" id="statTwoS">you choose the level.</div>
+        <a class="hs-trust-link" id="verificationHowLink" href="/trust">How verification works →</a>
       </div>
       <div class="hero-stat">
-        <div class="hs-n" id="statThreeN">Tracked</div>
-        <div class="hs-l" id="statThreeL">Response workflow</div>
-        <div class="hs-s" id="statThreeS">with dashboard status</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hs-n" id="statFourN">Flexible</div>
-        <div class="hs-l" id="statFourL">Surveys and interviews</div>
-        <div class="hs-s" id="statFourS">built in or externally linked</div>
+        <div class="hs-n" id="statThreeN">Pre-screened</div>
+        <div class="hs-l" id="statThreeL">Short screening questions filter out</div>
+        <div class="hs-s" id="statThreeS">the wrong fit before they start.</div>
       </div>
     </div>
   </div>
@@ -445,7 +472,7 @@
         </div>
         <div class="how-step">
           <div class="how-n">2</div>
-          <div><div class="how-t">We match you automatically</div><div class="how-b">Insighta surfaces your study to participants who fit. No cold outreach, no awkward group chat posts, no begging.</div></div>
+          <div><div class="how-t">We match, verify and screen for you</div><div class="how-b">Your study reaches people who fit your filters, meet the verification level you set, and pass your screening questions.</div></div>
         </div>
         <div class="how-step">
           <div class="how-n">3</div>
@@ -497,21 +524,6 @@
         <div class="feature-b">Every study shows time commitment and reward upfront. No surprises. Participants always know exactly what they're signing up for.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-        <div class="feature-t">Inclusive by default</div>
-        <div class="feature-b">Detailed eligibility fields help researchers describe the audience they need without relying only on broad, one-size-fits-all outreach.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-        <div class="feature-t">Real impact</div>
-        <div class="feature-b">Support academic, product, community, lifestyle, and other research by choosing opportunities that match your background and interests.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-        <div class="feature-t">Transparent payouts</div>
-        <div class="feature-b">Study reward details are visible before participation, while response review and reward status remain connected to the participant workflow.</div>
-      </div>
-      <div class="feature-card">
         <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
         <div class="feature-t">Real support</div>
         <div class="feature-b">In-product feedback and support threads give researchers and participants a direct way to report issues and ask platform questions.</div>
@@ -533,6 +545,7 @@
     </article>
   </div>
 </div>
+{% endblock %}
 </main>
 
 <!-- FOOTER -->
@@ -541,6 +554,7 @@
   <div class="footer-links">
     <a href="/about">About</a>
     <a href="/studies">Studies</a>
+    <a href="/trust">Trust</a>
     <a href="mailto:insightacom@gmail.com">Contact</a>
     <a href="/privacy">Privacy</a>
     <a href="/terms">Terms</a>
@@ -602,10 +616,9 @@
       sub: 'Insighta connects researchers who need real insights with participants who deserve real credit — so the studies that matter actually get done.',
       primary: 'Start as researcher',
       stats: [
-        ['Profile-based', 'Participant matching', 'using defined eligibility'],
-        ['Clear', 'Time and reward details', 'shown before participation'],
-        ['Tracked', 'Response workflow', 'with dashboard status'],
-        ['Flexible', 'Surveys and interviews', 'built in or externally linked']
+        ['Matched', 'Only people who fit your criteria', 'see your study.'],
+        ['Verified', 'From email to full ID check,', 'you choose the level.'],
+        ['Pre-screened', 'Short screening questions filter out', 'the wrong fit before they start.']
       ]
     },
     participant: {
@@ -614,10 +627,9 @@
       sub: 'Browse research studies, review eligibility, time, format, and reward details, then decide which opportunities match your profile and schedule.',
       primary: 'Join as participant',
       stats: [
-        ['Profile', 'Match once', 'use background and preferences'],
-        ['Choice', 'Join study by study', 'no automatic enrollment'],
-        ['Upfront', 'Time and reward details', 'review before starting'],
-        ['Tracked', 'Participation status', 'follow progress in one place']
+        ['Matched', 'You only see studies', 'you actually fit.'],
+        ['Verified once', 'Verify one time and join any study', 'that needs it.'],
+        ['Clear upfront', 'Time and reward are shown', 'before you start.']
       ]
     }
   };
@@ -641,13 +653,16 @@
       document.getElementById('tab-participant').classList.toggle('active', isParticipant);
       document.getElementById('tab-researcher').setAttribute('aria-pressed', String(!isParticipant));
       document.getElementById('tab-participant').setAttribute('aria-pressed', String(isParticipant));
-      document.getElementById('heroKicker').textContent = copy.kicker;
-      document.getElementById('heroTitle').innerHTML = copy.title;
-      document.getElementById('heroSub').textContent = copy.sub;
-      document.getElementById('heroPrimary').textContent = copy.primary;
+      if (document.getElementById('heroKicker')) {
+        document.getElementById('heroKicker').textContent = copy.kicker;
+        document.getElementById('heroTitle').innerHTML = copy.title;
+        document.getElementById('heroSub').textContent = copy.sub;
+        document.getElementById('heroPrimary').textContent = copy.primary;
 
-      [['statOneN','statOneL','statOneS'], ['statTwoN','statTwoL','statTwoS'], ['statThreeN','statThreeL','statThreeS'], ['statFourN','statFourL','statFourS']]
-        .forEach((ids, idx) => ids.forEach((id, part) => { document.getElementById(id).textContent = copy.stats[idx][part]; }));
+        [['statOneN','statOneL','statOneS'], ['statTwoN','statTwoL','statTwoS'], ['statThreeN','statThreeL','statThreeS']]
+          .forEach((ids, idx) => ids.forEach((id, part) => { document.getElementById(id).textContent = copy.stats[idx][part]; }));
+        document.getElementById('verificationHowLink').hidden = isParticipant;
+      }
 
       document.querySelectorAll('.mode-login-link').forEach(link => { link.href = `/login?role=${role}`; });
       document.querySelectorAll('.mode-register-link').forEach(link => { link.href = `/register?role=${role}`; });

@@ -1,0 +1,56 @@
+{% extends "index.html" %}
+
+{% block how_link %}/#how{% endblock %}
+
+{% block extra_styles %}
+    .trust-hero { padding-bottom: 40px; }
+    .trust-hero .hero-h1 { max-width: 820px; margin-bottom: 0; }
+    .trust-content { padding-top: 40px; padding-bottom: 48px; }
+    .trust-content h2 { font-size: 23px; font-weight: 500; letter-spacing: -.4px; margin-bottom: 18px; }
+    .trust-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: .5px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 36px; }
+    .trust-level { padding: 24px; border-right: .5px solid var(--line); background: var(--bg2); }
+    .trust-level:last-child { border-right: none; }
+    .trust-level h3 { font-size: 14px; font-weight: 600; line-height: 1.5; margin-bottom: 10px; }
+    .trust-content p { font-size: 13px; color: var(--ink3); line-height: 1.8; }
+    .trust-explanation { padding-bottom: 26px; margin-bottom: 26px; border-bottom: .5px solid var(--line); }
+    .trust-content .trust-principle { color: var(--green); font-size: 18px; font-weight: 500; }
+    @media (max-width: 860px) { .trust-levels { grid-template-columns: 1fr; } .trust-level { border-right: none; border-bottom: .5px solid var(--line); } .trust-level:last-child { border-bottom: none; } }
+{% endblock %}
+
+{% block main_content %}
+<section class="hero trust-hero">
+  <div class="hero-inner">
+    <div class="hero-kicker">Trust at Insighta</div>
+    <h1 class="hero-h1">How Insighta keeps responses real</h1>
+  </div>
+</section>
+<div class="section trust-content">
+  <section aria-labelledby="verification-heading">
+    <h2 id="verification-heading">Verification levels</h2>
+    <p style="margin-bottom:20px;">Researchers choose one level per study.</p>
+    <div class="trust-levels">
+      <article class="trust-level">
+        <h3>Basic account check</h3>
+        <p>Email code, Google or LinkedIn sign-in.</p>
+      </article>
+      <article class="trust-level">
+        <h3>Account + professional check</h3>
+        <p>Institutional email, LinkedIn, professional registry or participation history.</p>
+      </article>
+      <article class="trust-level">
+        <h3>ID check via Didit</h3>
+        <p>Identity documents are handled by Didit and never shown in Insighta's frontend.</p>
+      </article>
+    </div>
+  </section>
+  <section class="trust-explanation" aria-labelledby="screening-heading">
+    <h2 id="screening-heading">Pre-screening</h2>
+    <p>Researchers set the eligibility rules. Answer choices are randomized to reduce predictable patterns. AI can help word questions, but never decides who is eligible. Sensitive screening questions are blocked.</p>
+  </section>
+  <section class="trust-explanation" aria-labelledby="quality-heading">
+    <h2 id="quality-heading">After submission</h2>
+    <p>Built-in survey responses receive automatic quality checks. Unusual responses are flagged for researcher review. If a researcher enables the optional quality filter, below-threshold responses can be marked rejected for manual review.</p>
+  </section>
+  <p class="trust-principle">AI drafts. Rules decide. People review.</p>
+</div>
+{% endblock %}

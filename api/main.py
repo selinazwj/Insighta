@@ -3321,6 +3321,21 @@ def about_page(request: Request):
     return templates.TemplateResponse("about.html", {"request": request, "seo": seo})
 
 
+@app.get("/trust", response_class=HTMLResponse)
+def trust_page(request: Request):
+    seo = content_page_seo(
+        title="How Insighta Keeps Responses Real | Trust",
+        description="Learn how Insighta combines researcher-selected verification levels, rule-based pre-screening and response quality review to support research participation.",
+        path="/trust",
+        breadcrumb_label="Trust",
+    )
+    return templates.TemplateResponse(
+        "trust.html",
+        {"request": request, "seo": seo},
+        headers={"X-Robots-Tag": seo["robots"]},
+    )
+
+
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy_page(request: Request):
     seo = content_page_seo(
