@@ -360,6 +360,82 @@
       .feature-card { border-right: none; border-bottom: 0.5px solid var(--line); }
       .feature-card:last-child { border-bottom: none; }
     }
+    /* One animated overview; the section below shows the real operations. */
+    .journey-hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 400px; gap:48px; align-items:center; }
+    .journey-aside { min-width:0; margin-bottom:50px; --journey-progress:0%; }
+    .journey-floating { border:.5px solid var(--line2); border-radius:13px; background:var(--bg); box-shadow:0 14px 35px -23px rgba(42,92,57,.35); animation:journey-drift 6s ease-in-out infinite; }
+    .journey-floating.is-paused, .journey-floating:hover { animation-play-state:paused; }
+    @keyframes journey-drift { 0%,100% { transform:translateY(3px); } 50% { transform:translateY(-5px); } }
+    .journey-window { display:flex; align-items:center; gap:7px; border-bottom:.5px solid var(--line); padding:16px 20px; font-size:11px; color:var(--ink3); }
+    .journey-window-dot { width:6px; height:6px; border-radius:50%; background:var(--green); }
+    .journey-example { margin-left:auto; font-size:10px; }
+    .journey-preview { padding:26px 24px 20px; min-height:254px; }
+    .journey-panel { text-align:center; min-height:208px; display:flex; flex-direction:column; justify-content:center; align-items:center; animation:journey-panel-in .3s ease; }
+    .journey-panel[hidden] { display:none; }
+    @keyframes journey-panel-in { from {opacity:0;transform:translateY(4px)} to {opacity:1;transform:none} }
+    .journey-value { font-size:23px; letter-spacing:-.6px; font-weight:500; margin:14px 0; }
+    .journey-status { display:inline-block; color:var(--green); font-size:11px; margin-top:18px; line-height:1.6; }
+    .journey-chips { display:flex; justify-content:center; gap:7px; flex-wrap:wrap; min-height:28px; }
+    .journey-chips span { font-size:11px; color:var(--ink2); border:.5px solid var(--line2); border-radius:5px; padding:6px 9px; background:var(--bg2); }
+    .journey-people { display:flex; align-items:center; justify-content:center; height:48px; gap:8px; }
+    .journey-people span { width:32px; height:32px; background:var(--green-l); border:1px solid var(--green-m); border-radius:50%; position:relative; }
+    .journey-people span::before { content:''; position:absolute; width:8px; height:8px; border-radius:50%; background:var(--green); left:11px; top:6px; }
+    .journey-people span::after { content:''; position:absolute; width:16px; height:8px; border-radius:9px 9px 4px 4px; background:var(--green); left:7px; top:16px; }
+    .journey-people span:nth-child(2) { transform:scale(1.3); margin-inline:5px; }
+    .journey-shield { width:68px; height:68px; display:grid; place-items:center; border-radius:50%; background:var(--green-l); color:var(--green); }
+    .journey-shield svg { width:38px; height:38px; fill:none; stroke:currentColor; stroke-width:1.3; stroke-linecap:round; stroke-linejoin:round; }
+    .journey-question { width:100%; text-align:left; }
+    .journey-question > span { color:var(--ink3); font-size:10px; }
+    .journey-question p { font-size:16px; line-height:1.45; margin:10px 0 17px; }
+    .journey-answer { display:flex; align-items:center; gap:8px; border:.5px solid var(--line2); border-radius:7px; padding:12px; font-size:12px; transition:background .3s,border-color .3s; }
+    .journey-answer-dot { width:12px; height:12px; border:.5px solid var(--line2); border-radius:50%; }
+    .journey-answer-check { margin-left:auto; opacity:0; color:var(--green); }
+    .journey-answer-other { text-align:left; font-size:11px; color:var(--ink3); padding:11px 13px; }
+    .journey-preview:not([data-frame="0"]) .journey-answer { background:var(--green-l); border-color:var(--green-m); }
+    .journey-preview:not([data-frame="0"]) .journey-answer-dot { border:4px solid var(--green); }
+    .journey-preview:not([data-frame="0"]) .journey-answer-check { opacity:1; }
+    .journey-review-card { text-align:left; width:100%; border:.5px solid var(--line); border-radius:9px; background:var(--bg2); padding:21px; }
+    .journey-review-card > span { font-size:11px; color:var(--ink3); }
+    .journey-review-card > div { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:20px 0 14px; }
+    .journey-review-card strong { font-size:33px; color:var(--ink); font-weight:400; letter-spacing:-1px; }
+    .journey-review-card small { font-size:12px; color:var(--ink3); margin-left:3px; letter-spacing:0; }
+    .journey-review-flag { background:#fbf0dc; color:#805b20; border-radius:5px; padding:6px 9px; font-size:10px; }
+    .journey-review-card p { color:var(--ink3); font-size:11px; }
+    .journey-reveal-1,.journey-reveal-2 { transition:opacity .35s,transform .35s; }
+    .journey-preview[data-frame="0"] .journey-reveal-1,.journey-preview:not([data-frame="2"]) .journey-reveal-2 { opacity:0; transform:translateY(3px); }
+    .journey-card-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 20px 16px; font-size:10px; color:var(--ink3); }
+    .journey-card-footer a { color:var(--green); padding:5px 0; }
+    .journey-play { background:none; border:0; padding:6px; cursor:pointer; font:500 10px var(--sans); color:var(--ink3); }
+    .journey-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; margin-top:23px; }
+    .journey-tab { position:relative; overflow:hidden; padding:10px 5px 13px; border:0; border-bottom:2px solid var(--line); background:none; color:var(--ink3); font:500 12px var(--sans); cursor:pointer; text-align:left; }
+    .journey-tab span { display:block; color:var(--ink4); font-size:9px; margin-bottom:7px; }
+    .journey-tab[aria-selected="true"] { color:var(--green); }
+    .journey-tab[aria-selected="true"] span { color:var(--green); }
+    .journey-tab[aria-selected="true"]::after { content:''; position:absolute; bottom:0; left:0; width:var(--journey-progress); height:2px; background:var(--green); }
+    .walkthrough-heading { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:28px; }
+    .walkthrough-heading .section-h { margin-bottom:0; }
+    .walkthrough-controls { display:flex; align-items:center; gap:7px; }
+    .walkthrough-controls button { border:.5px solid var(--line2); border-radius:20px; background:var(--bg); color:var(--ink2); min-height:36px; min-width:38px; padding:8px 13px; font:500 12px var(--sans); cursor:pointer; }
+    .walkthrough-controls button:hover { border-color:var(--green); color:var(--green); }
+    .walkthrough-player { border:.5px solid var(--line2); border-radius:12px; overflow:hidden; --journey-progress:0%; }
+    .walkthrough-toolbar { display:flex; align-items:center; gap:14px; padding:19px 24px; border-bottom:.5px solid var(--line); background:var(--bg); }
+    .walkthrough-stage-count { font-size:11px; color:var(--green); white-space:nowrap; }
+    .walkthrough-toolbar h3 { font-size:14px; font-weight:500; letter-spacing:-.2px; }
+    .walkthrough-toolbar a { margin-left:auto; color:var(--ink3); font-size:19px; padding:2px 5px; }
+    .walkthrough-viewport { position:relative; aspect-ratio:16/9; overflow:hidden; background:var(--bg2); }
+    .walkthrough-viewport img { display:block; width:100%; height:100%; object-fit:contain; transition:transform 1.2s cubic-bezier(.2,.7,.2,1); }
+    .walkthrough-focus { position:absolute; width:34px; height:34px; border:1.5px solid var(--green); border-radius:50%; box-shadow:0 0 0 5px rgba(59,124,79,.08); pointer-events:none; opacity:0; transition:left 1s,top 1s,opacity .3s; transform:translate(-50%,-50%); }
+    .walkthrough-progress { height:2px; background:var(--line); }
+    .walkthrough-progress span { display:block; height:100%; width:var(--journey-progress); background:var(--green); }
+    .walkthrough-caption { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px 20px; padding:16px 24px; font-size:11px; color:var(--ink2); line-height:1.6; }
+    .walkthrough-caption > span:last-child { font-size:10px; color:var(--ink3); }
+    .walkthrough-mobile-select { display:none; }
+    #community .feature-card { border-bottom:none; }
+    @media (max-width:1000px) { .journey-hero-grid { grid-template-columns:minmax(0,1fr) 360px; gap:32px; } }
+    @media (max-width:899px) { .journey-hero-grid { display:block; } .journey-aside { display:none; } .walkthrough-mobile-select { display:flex; justify-content:space-between; align-items:center; gap:15px; font-size:11px; color:var(--ink3); margin-top:18px; } .walkthrough-mobile-select select { padding:8px 12px; border:.5px solid var(--line2); border-radius:7px; font:500 12px var(--sans); color:var(--ink2); background:var(--bg); } }
+    @media (max-width:560px) { .walkthrough-heading { align-items:flex-start; flex-direction:column; gap:20px; } .walkthrough-toolbar { padding:16px; gap:9px; } .walkthrough-toolbar h3 { font-size:12px; } .walkthrough-caption { padding:14px 16px; } .walkthrough-viewport { aspect-ratio:4/3; } #community .feature-card { border-bottom:.5px solid var(--line); } #community .feature-card:last-child { border-bottom:none; } }
+    @media (prefers-reduced-motion:reduce) { .journey-floating,.journey-panel { animation:none; } .journey-preview .journey-reveal-1,.journey-preview .journey-reveal-2 { opacity:1!important; transform:none!important; } .walkthrough-viewport img,.walkthrough-focus,.journey-answer,.journey-reveal-1,.journey-reveal-2 { transition:none; } }
+
   </style>
 </head>
 <body>
@@ -387,6 +463,7 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-inner">
+    <div class="journey-hero-grid"><div class="journey-original-copy">
     <div class="hero-kicker reveal mode-text" id="heroKicker">Community research platform</div>
     <h1 class="hero-h1 reveal d1 mode-text" id="heroTitle">Research that<br><strong>moves people.</strong><br>Done by people.</h1>
     <p class="hero-sub reveal d2 mode-text" id="heroSub">Insighta connects researchers who need real insights with participants who deserve real credit — so the studies that matter actually get done.</p>
@@ -397,85 +474,58 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
     </div>
-    <div class="hero-stats">
-      <div class="hero-stat">
-        <div class="hs-n" id="statOneN">Profile-based</div>
-        <div class="hs-l" id="statOneL">Participant matching</div>
-        <div class="hs-s" id="statOneS">using defined eligibility</div>
+    </div>
+    <aside class="journey-aside" aria-label="Explore the research workflow">
+      <div class="journey-floating">
+        <div class="journey-window"><span class="journey-window-dot" aria-hidden="true"></span><span>Study workflow</span><span class="journey-example">Example</span></div>
+        <div class="journey-preview" data-frame="0">
+          <div class="journey-panel" id="journey-panel-0" role="tabpanel" aria-labelledby="journey-tab-0">
+            <div class="journey-people" aria-hidden="true"><span></span><span></span><span></span></div>
+            <p class="journey-value">College students</p>
+            <div class="journey-chips"><span class="journey-reveal-1">Ages 18–24</span><span class="journey-reveal-2">Massachusetts</span></div>
+            <span class="journey-status">Your audience, defined.</span>
+          </div>
+          <div class="journey-panel" id="journey-panel-1" role="tabpanel" aria-labelledby="journey-tab-1" hidden>
+            <div class="journey-shield" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12l3 3 5-6"/></svg></div>
+            <p class="journey-value">ID check (Didit)</p>
+            <span class="journey-status journey-reveal-1">Required before joining</span>
+          </div>
+          <div class="journey-panel" id="journey-panel-2" role="tabpanel" aria-labelledby="journey-tab-2" hidden>
+            <div class="journey-question"><span>Enrollment</span><p>Currently enrolled in college?</p><div class="journey-answer"><span class="journey-answer-dot" aria-hidden="true"></span> Yes, currently enrolled <span class="journey-answer-check" aria-hidden="true">✓</span></div><div class="journey-answer-other">No, not currently</div></div>
+            <span class="journey-status journey-reveal-2">Screening passed</span>
+          </div>
+          <div class="journey-panel" id="journey-panel-3" role="tabpanel" aria-labelledby="journey-tab-3" hidden>
+            <div class="journey-review-card"><span>Response quality</span><div><strong>62<small>/100</small></strong><span class="journey-review-flag">Needs review</span></div><p>Repeated answer patterns</p></div>
+            <span class="journey-status journey-reveal-2">You make the review decision.</span>
+          </div>
+        </div>
+        <div class="journey-card-footer"><a href="#how">Watch the real steps <span aria-hidden="true">↓</span></a><button type="button" class="journey-play" data-journey-play aria-pressed="false" aria-label="Pause walkthrough">Pause</button></div>
       </div>
-      <div class="hero-stat">
-        <div class="hs-n" id="statTwoN">Clear</div>
-        <div class="hs-l" id="statTwoL">Time and reward details</div>
-        <div class="hs-s" id="statTwoS">shown before participation</div>
+      <div class="journey-tabs" role="tablist" aria-label="Research workflow stages">
+        <button type="button" class="journey-tab" id="journey-tab-0" role="tab" aria-selected="true" aria-controls="journey-panel-0" tabindex="0"><span>01</span>Audience</button>
+        <button type="button" class="journey-tab" id="journey-tab-1" role="tab" aria-selected="false" aria-controls="journey-panel-1" tabindex="-1"><span>02</span>Verify</button>
+        <button type="button" class="journey-tab" id="journey-tab-2" role="tab" aria-selected="false" aria-controls="journey-panel-2" tabindex="-1"><span>03</span>Screen</button>
+        <button type="button" class="journey-tab" id="journey-tab-3" role="tab" aria-selected="false" aria-controls="journey-panel-3" tabindex="-1"><span>04</span>Review</button>
       </div>
-      <div class="hero-stat">
-        <div class="hs-n" id="statThreeN">Tracked</div>
-        <div class="hs-l" id="statThreeL">Response workflow</div>
-        <div class="hs-s" id="statThreeS">with dashboard status</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hs-n" id="statFourN">Flexible</div>
-        <div class="hs-l" id="statFourL">Surveys and interviews</div>
-        <div class="hs-s" id="statFourS">built in or externally linked</div>
-      </div>
+    </aside>
     </div>
   </div>
 </section>
 
 <!-- HOW IT WORKS -->
 <section id="how">
-  <div class="section">
-    <div class="section-kicker">How it works</div>
-    <h2 class="section-h">Two sides. <strong>One community.</strong></h2>
-    <p class="section-sub">Whether you're running a study or contributing to one, Insighta makes the whole process effortless — for everyone in the room.</p>
-    <div class="how-grid">
-      <div class="how-col">
-        <div class="how-col-head">
-          <div class="how-col-icon" style="background:var(--green);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
-          </div>
-          <div>
-            <div class="how-col-title">For researchers</div>
-            <div class="how-col-sub">Students, academics, founders</div>
-          </div>
-        </div>
-        <div class="how-step">
-          <div class="how-n">1</div>
-          <div><div class="how-t">Publish your study</div><div class="how-b">Describe your research and set filters. Use AI to fill in the basics from a single sentence — who you need, how long, what you'll offer.</div></div>
-        </div>
-        <div class="how-step">
-          <div class="how-n">2</div>
-          <div><div class="how-t">We match you automatically</div><div class="how-b">Insighta surfaces your study to participants who fit. No cold outreach, no awkward group chat posts, no begging.</div></div>
-        </div>
-        <div class="how-step">
-          <div class="how-n">3</div>
-          <div><div class="how-t">Collect and export</div><div class="how-b">Watch responses come in live. Download your data whenever you're ready. Close the study when you hit your target.</div></div>
-        </div>
-      </div>
-      <div class="how-col">
-        <div class="how-col-head">
-          <div class="how-col-icon" style="background:#0f6e56;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </div>
-          <div>
-            <div class="how-col-title">For participants</div>
-            <div class="how-col-sub">Anyone who wants to contribute and earn</div>
-          </div>
-        </div>
-        <div class="how-step">
-          <div class="how-n">1</div>
-          <div><div class="how-t">Build your profile once</div><div class="how-b">Tell us about yourself — your field, habits, experiences. We use this to match you to studies that actually fit your background.</div></div>
-        </div>
-        <div class="how-step">
-          <div class="how-n">2</div>
-          <div><div class="how-t">See your matched studies</div><div class="how-b">Every study you see is a personal match. Check the reward, time, and fit score before committing to anything.</div></div>
-        </div>
-        <div class="how-step">
-          <div class="how-n">3</div>
-          <div><div class="how-t">Participate and track status</div><div class="how-b">Complete the study and follow its status from your dashboard. Eligible rewards are recorded after the applicable response review and approval.</div></div>
-        </div>
-      </div>
+  <div class="section walkthrough-section">
+    <div class="walkthrough-heading">
+      <div><div class="section-kicker">Inside Insighta</div><h2 class="section-h">A closer look.<br><strong>The actual workflow.</strong></h2></div>
+      <div class="walkthrough-controls" aria-label="Walkthrough playback"><button type="button" id="journeyPrev" aria-label="Previous stage">←</button><button type="button" data-journey-play aria-pressed="false" aria-label="Pause walkthrough">Pause</button><button type="button" id="journeyNext" aria-label="Next stage">→</button></div>
     </div>
+    <div class="walkthrough-player">
+      <div class="walkthrough-toolbar"><span class="walkthrough-stage-count" id="walkthroughCount">01 / 04</span><h3 id="walkthroughTitle">Choose your audience</h3><a id="walkthroughExpand" href="/static/landing_walkthrough/audience-0.jpg" target="_blank" rel="noopener" aria-label="Open current recording frame at full size">↗</a></div>
+      <div class="walkthrough-viewport"><img id="walkthroughImage" src="/static/landing_walkthrough/audience-0.jpg" alt="Insighta's audience form before choosing an age range and state" width="976" height="300" decoding="async"><span class="walkthrough-focus" aria-hidden="true"></span></div>
+      <div class="walkthrough-progress" aria-hidden="true"><span></span></div>
+      <div class="walkthrough-caption"><span id="walkthroughAction">Start with the people your study needs.</span><span>Actual product screens · Example data</span></div>
+    </div>
+    <label class="walkthrough-mobile-select">Explore a stage <select id="journeyMobileStage"><option value="0">01 — Audience</option><option value="1">02 — Verification</option><option value="2">03 — Screening</option><option value="3">04 — Review</option></select></label>
   </div>
 </section>
 
@@ -496,21 +546,9 @@
         <div class="feature-t">Your time is valued</div>
         <div class="feature-b">Every study shows time commitment and reward upfront. No surprises. Participants always know exactly what they're signing up for.</div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-        <div class="feature-t">Inclusive by default</div>
-        <div class="feature-b">Detailed eligibility fields help researchers describe the audience they need without relying only on broad, one-size-fits-all outreach.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-        <div class="feature-t">Real impact</div>
-        <div class="feature-b">Support academic, product, community, lifestyle, and other research by choosing opportunities that match your background and interests.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
-        <div class="feature-t">Transparent payouts</div>
-        <div class="feature-b">Study reward details are visible before participation, while response review and reward status remain connected to the participant workflow.</div>
-      </div>
+
+
+
       <div class="feature-card">
         <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
         <div class="feature-t">Real support</div>
@@ -601,24 +639,12 @@
       title: 'Research that<br><strong>moves people.</strong><br>Done by people.',
       sub: 'Insighta connects researchers who need real insights with participants who deserve real credit — so the studies that matter actually get done.',
       primary: 'Start as researcher',
-      stats: [
-        ['Profile-based', 'Participant matching', 'using defined eligibility'],
-        ['Clear', 'Time and reward details', 'shown before participation'],
-        ['Tracked', 'Response workflow', 'with dashboard status'],
-        ['Flexible', 'Surveys and interviews', 'built in or externally linked']
-      ]
     },
     participant: {
       kicker: 'Research participation platform',
       title: 'Find studies<br><strong>that fit you.</strong><br>Choose what to join.',
       sub: 'Browse research studies, review eligibility, time, format, and reward details, then decide which opportunities match your profile and schedule.',
       primary: 'Join as participant',
-      stats: [
-        ['Profile', 'Match once', 'use background and preferences'],
-        ['Choice', 'Join study by study', 'no automatic enrollment'],
-        ['Upfront', 'Time and reward details', 'review before starting'],
-        ['Tracked', 'Participation status', 'follow progress in one place']
-      ]
     }
   };
 
@@ -646,8 +672,7 @@
       document.getElementById('heroSub').textContent = copy.sub;
       document.getElementById('heroPrimary').textContent = copy.primary;
 
-      [['statOneN','statOneL','statOneS'], ['statTwoN','statTwoL','statTwoS'], ['statThreeN','statThreeL','statThreeS'], ['statFourN','statFourL','statFourS']]
-        .forEach((ids, idx) => ids.forEach((id, part) => { document.getElementById(id).textContent = copy.stats[idx][part]; }));
+
 
       document.querySelectorAll('.mode-login-link').forEach(link => { link.href = `/login?role=${role}`; });
       document.querySelectorAll('.mode-register-link').forEach(link => { link.href = `/register?role=${role}`; });
@@ -689,6 +714,130 @@
   }
 
   setHomepageMode('researcher', false);
+  // The walkthrough plays local screenshots of the real product with sample data.
+  // It does not call verification, AI, publishing, or payment APIs.
+  (() => {
+    const root = document.querySelector('.journey-aside');
+    const player = document.querySelector('.walkthrough-player');
+    if (!root || !player) return;
+    const tabs = Array.from(document.querySelectorAll('.journey-tab'));
+    const panels = Array.from(document.querySelectorAll('.journey-panel'));
+    const image = document.getElementById('walkthroughImage');
+    const focus = document.querySelector('.walkthrough-focus');
+    const preview = document.querySelector('.journey-preview');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const compactScreen = window.matchMedia('(max-width: 560px)');
+    const frameDuration = 2400;
+    const duration = frameDuration * 3;
+    const steps = [
+      { key:'audience', title:'Choose your audience', alt:'The actual Insighta audience form',
+        actions:['Start with the people your study needs.','Set an age range.','Choose the location.'],
+        focus:[[50,50,1],[26,55,1.32,0],[77,55,1.32,100]] },
+      { key:'verification', title:'Set the verification level', alt:'The actual Insighta verification requirements form',
+        actions:['Start with a basic account check.','Explore account and professional checks.','Require ID check through Didit.'],
+        focus:[[50,30,1],[25,30,1.25,0],[25,30,1.25,0]] },
+      { key:'screening', title:'Review your screening questions', alt:'The actual Insighta screening editor and approved version',
+        actions:['Review the questions and qualifying answers.','Edit the wording. The study rule stays locked.','Approve the version participants will see.'],
+        focus:[[50,50,1],[50,38,1.15],[50,78,1.15]] },
+      { key:'review', title:'Review a flagged response', alt:'The actual Insighta response quality review',
+        actions:['Read the quality signals.','Open the manual review options.','Make the review decision yourself.'],
+        focus:[[50,50,1],[90,75,1.18],[90,75,1.18]] }
+    ];
+    let step = 0;
+    let frame = reducedMotion.matches ? 2 : 0;
+    let elapsed = frame * frameDuration;
+    let paused = reducedMotion.matches;
+    let visible = false;
+    let raf = null;
+    let previousTime = 0;
+    let renderId = 0;
+    const onScreen = new Map([[root,false],[player,false]]);
+    const preloaded = new Set();
+    function preload(index) {
+      const key = steps[index].key;
+      if (preloaded.has(key)) return;
+      preloaded.add(key);
+      for (let i=0;i<3;i++) { const item = new Image(); item.src=`/static/landing_walkthrough/${key}-${i}.jpg`; }
+    }
+    function render() {
+      const current = steps[step];
+      tabs.forEach((tab,index) => { tab.setAttribute('aria-selected',String(index===step)); tab.tabIndex=index===step?0:-1; panels[index].hidden=index!==step; });
+      preview.dataset.frame=String(frame);
+      document.getElementById('walkthroughCount').textContent=`0${step+1} / 04`;
+      document.getElementById('walkthroughTitle').textContent=current.title;
+      document.getElementById('walkthroughAction').textContent=current.actions[frame];
+      document.getElementById('journeyMobileStage').value=String(step);
+      const src=`/static/landing_walkthrough/${current.key}-${frame}.jpg`;
+      const [x,y,scale,originX=x]=current.focus[frame];
+      const smallScreen=compactScreen.matches;
+      const zoom=smallScreen && frame ? 1.9 : scale;
+      const origin=smallScreen && frame ? (step===0?originX:step===3?100:0) : originX;
+      image.style.transformOrigin=`${origin}% ${y}%`;
+      image.style.transform=`scale(${reducedMotion.matches?1:zoom})`;
+      focus.style.left=`${x}%`;
+      focus.style.top=`${y}%`;
+      focus.style.opacity=frame && !reducedMotion.matches ? '.75' : '0';
+      const requestId=++renderId;
+      const pending=new Image();
+      pending.onload=() => { if(requestId!==renderId) return; image.src=src; image.alt=`${current.alt}: ${current.actions[frame]}`; document.getElementById('walkthroughExpand').href=src; };
+      pending.src=src;
+      preload(step);
+      preload((step+1)%steps.length);
+    }
+    function progress() {
+      const value=`${Math.min(100,elapsed/duration*100)}%`;
+      root.style.setProperty('--journey-progress',value);
+      player.style.setProperty('--journey-progress',value);
+    }
+    function choose(index) {
+      step=(index+steps.length)%steps.length;
+      frame=reducedMotion.matches?2:0;
+      elapsed=frame*frameDuration;
+      previousTime=0;
+      render(); progress();
+    }
+    function tick(now) {
+      if (previousTime) elapsed+=Math.min(now-previousTime,250);
+      previousTime=now;
+      if (elapsed>=duration) { step=(step+1)%steps.length; elapsed=0; frame=0; render(); }
+      const nextFrame=Math.min(2,Math.floor(elapsed/frameDuration));
+      if(nextFrame!==frame) { frame=nextFrame; render(); }
+      progress();
+      raf=requestAnimationFrame(tick);
+    }
+    function syncPlayback() {
+      const running=!paused && visible && !document.hidden;
+      document.querySelector('.journey-floating').classList.toggle('is-paused',!running || !onScreen.get(root));
+      document.querySelectorAll('[data-journey-play]').forEach(button => { button.textContent=paused?'Play':'Pause'; button.setAttribute('aria-pressed',String(paused)); button.setAttribute('aria-label',`${paused?'Play':'Pause'} walkthrough`); });
+      if(running && raf===null) { previousTime=0; raf=requestAnimationFrame(tick); }
+      if(!running && raf!==null) { cancelAnimationFrame(raf); raf=null; previousTime=0; }
+    }
+    document.querySelectorAll('[data-journey-play]').forEach(button => button.addEventListener('click',()=>{ paused=!paused; syncPlayback(); }));
+    tabs.forEach((tab,index)=>{
+      tab.addEventListener('click',()=>choose(index));
+      tab.addEventListener('keydown',event=>{
+        let next;
+        if(event.key==='ArrowRight') next=(index+1)%tabs.length;
+        if(event.key==='ArrowLeft') next=(index-1+tabs.length)%tabs.length;
+        if(event.key==='Home') next=0;
+        if(event.key==='End') next=tabs.length-1;
+        if(next===undefined) return;
+        event.preventDefault(); paused=true; choose(next); tabs[next].focus(); syncPlayback();
+      });
+    });
+    document.getElementById('journeyPrev').addEventListener('click',()=>choose(step-1));
+    document.getElementById('journeyNext').addEventListener('click',()=>choose(step+1));
+    document.getElementById('journeyMobileStage').addEventListener('change',event=>choose(Number(event.target.value)));
+    document.addEventListener('visibilitychange',syncPlayback);
+    compactScreen.addEventListener('change',render);
+    reducedMotion.addEventListener('change',event=>{ if(event.matches) { paused=true; frame=2; elapsed=frameDuration*2; render(); progress(); } syncPlayback(); });
+    if('IntersectionObserver' in window) {
+      const observer=new IntersectionObserver(entries=>{ entries.forEach(entry=>onScreen.set(entry.target,entry.isIntersecting)); visible=Array.from(onScreen.values()).some(Boolean); syncPlayback(); },{threshold:.15});
+      observer.observe(root); observer.observe(player);
+    } else { visible=true; }
+    render(); progress(); syncPlayback();
+  })();
+
 </script>
 </body>
 </html>
