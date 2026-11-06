@@ -45,6 +45,7 @@ def main() -> int:
             publisher = User(email="publisher@seo-test.invalid", password="not-a-login-hash", username="SEO Test Publisher")
             db.add(publisher)
             db.flush()
+            publisher_id = publisher.id
             db.add_all([
                 Survey(
                     publisher_id=publisher.id,
@@ -151,6 +152,19 @@ def main() -> int:
             assert_contains(sitemap, "https://seo-test.insighta.invalid/r/remote-work-habits", "published study in sitemap")
             if "closed-campus-study" in sitemap.text:
                 raise AssertionError("Closed study should not be present in sitemap")
+
+            client.cookies.set("user_id", str(publisher_id))
+            verification = client.get("/verify/didit/return")
+            if verification.status_code != 200:
+                raise AssertionError(f"Verification result page: expected 200, got {verification.status_code}")
+            assert_contains(verification, '<meta name="robots" content="noindex, nofollow, noarchive">', "verification noindex meta")
+            assert_contains(verification, '<meta name="googlebot" content="noindex, nofollow, noarchive">', "verification crawler controls")
+            if verification.text.count('name="robots"') != 1:
+                raise AssertionError("Verification result page has duplicate robots directives")
+            if not verification.headers.get("x-robots-tag", "").startswith("noindex"):
+                raise AssertionError("Verification result page is missing HTTP noindex protection")
+            if "no-store" not in verification.headers.get("cache-control", ""):
+                raise AssertionError("Verification result page must not be cached")
 
     print("SEO smoke tests passed.")
     return 0
