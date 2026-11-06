@@ -3993,9 +3993,13 @@ def recruitment_share_page(
     next_path = f"/r/{share_slug}"
     dashboard_path = _participant_dashboard_url(request)
     from_participant_app = from_ == "participant"
-    brand_action = "back" if from_participant_app else ("dashboard" if current_user else "home")
-    brand_href = dashboard_path if brand_action in {"back", "dashboard"} else "/"
-    brand_label = "Back to dashboard" if from_participant_app else ("Dashboard" if current_user else "Insighta")
+    from_my_studies = from_ == "my-studies"
+    if from_my_studies:
+        brand_action, brand_href, brand_label = "my-studies", "/my-studies", "Back to My Studies"
+    else:
+        brand_action = "back" if from_participant_app else ("dashboard" if current_user else "home")
+        brand_href = dashboard_path if brand_action in {"back", "dashboard"} else "/"
+        brand_label = "Back to dashboard" if from_participant_app else ("Dashboard" if current_user else "Insighta")
     _record_user_event(
         db,
         request,

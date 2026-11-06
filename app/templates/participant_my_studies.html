@@ -77,6 +77,9 @@
     .row-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;}
     .row-info{flex:1;min-width:0;}
     .row-title{font-size:15px;font-weight:900;color:var(--ink);margin-bottom:3px;line-height:1.3;}
+    .row-title a{color:inherit;text-decoration:none;}
+    .row-title a:hover{text-decoration:underline;}
+    .row-title a:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:3px;}
     .row-desc{font-size:12px;color:var(--ink3);font-weight:500;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
     .row-right{text-align:right;flex-shrink:0;}
     .row-reward{font-size:20px;font-weight:900;color:var(--teal2);white-space:nowrap;}
@@ -211,6 +214,14 @@
 
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+
+  function studyPageUrl(s) {
+    return `${s.share_path}?from=my-studies`;
+  }
+
   function classify(s) {
     if (s.is_completed) return 'completed';
     if (s.is_started)   return 'inprogress';
@@ -237,14 +248,16 @@
 
   function rowActions(s) {
     const c = classify(s);
-    const isBuiltIn = !s.link || s.link === '';
+    const studyUrl = escapeHtml(studyPageUrl(s));
+    const detailsAction = `<a class="btn-sm ghost" href="${studyUrl}">View study</a>`;
     const safeLink  = (s.link || '').replace(/'/g, "\\'");
     if (s.is_live_study) {
-      if (c === 'completed') return '';
+      if (c === 'completed') return `<div class="row-actions">${detailsAction}</div>`;
       const googleActions = (s.google_calendar_links || []).map(link => `<a class="btn-sm primary" href="${link.url.replace(/&/g, '&amp;')}" target="_blank" rel="noopener noreferrer">${link.label}</a>`).join('');
       const calendarAction = googleActions + (s.calendar_url ? `<a class="btn-sm ghost" href="${s.calendar_url}">Add to your calendar (.ics)</a>` : '');
-      if (!safeLink) return `<div class="row-actions">${calendarAction}</div>`;
+      if (!safeLink) return `<div class="row-actions">${detailsAction}${calendarAction}</div>`;
       return `<div class="row-actions">
+        ${detailsAction}
         ${calendarAction}
         <button class="btn-sm ghost" onclick="window.open('${safeLink}','_blank','noopener')">
           <svg viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>${s.status === 'scheduled' ? 'Open meeting link' : 'Open scheduling link'}
@@ -253,6 +266,7 @@
     }
     if (c === 'completed') {
       return `<div class="row-actions">
+        ${detailsAction}
         <button class="btn-sm ghost" onclick="doUndo(${s.id})">
           <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Undo
         </button>
@@ -260,15 +274,15 @@
     }
     if (c === 'skipped') {
       return `<div class="row-actions">
-        <button class="btn-sm primary" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn})">
+        <a class="btn-sm primary" href="${studyUrl}">
           <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Take study
-        </button>
+        </a>
       </div>`;
     }
     return `<div class="row-actions">
-      <button class="btn-sm primary" onclick="doTake(${s.id},'${safeLink}',${isBuiltIn})">
+      <a class="btn-sm primary" href="${studyUrl}">
         <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Continue
-      </button>
+      </a>
       <button class="btn-sm ghost" onclick="doMarkDone(${s.id})">Mark done</button>
     </div>`;
   }
@@ -316,7 +330,7 @@
         <div class="row-top">
           <div class="row-icon" style="background:${rowIconBg(s)};">${iconSvg(s)}</div>
           <div class="row-info">
-            <div class="row-title">${s.title}</div>
+            <div class="row-title"><a href="${escapeHtml(studyPageUrl(s))}">${escapeHtml(s.title)}</a></div>
             <div class="row-desc">${s.desc}</div>
           </div>
           <div class="row-right">${rewardPill(s)}</div>
@@ -354,22 +368,6 @@
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById('tab-' + tab).classList.add('active');
     render();
-  }
-
-  async function doTake(id, link, isBuiltIn) {
-    const s = surveys.find(x => x.id === id);
-    if (s && s.screening_required && !s.screening_passed) {
-      window.location.href = s.screening_url || `/surveys/${id}/screening`;
-      return;
-    }
-    await fetch(`/surveys/${id}/start`, { method:'POST', credentials:'same-origin' }).catch(()=>{});
-    if (isBuiltIn) { window.location.href = `/surveys/${id}/take`; }
-    else {
-      window.open(link, '_blank');
-      setTimeout(() => {
-        if (confirm('Did you finish? Mark as complete?')) doMarkDone(id);
-      }, 1500);
-    }
   }
 
   async function doMarkDone(id) {

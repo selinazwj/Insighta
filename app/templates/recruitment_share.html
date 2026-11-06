@@ -293,9 +293,9 @@
         <div class="status-note">This listing is currently closed.</div>
       {% elif user_response and user_response.status == "completed" %}
         <div class="status-note">{{ 'The interview is complete and awaiting payout review.' if is_interview else 'You already completed this study.' }}</div>
-      {% elif user_response and is_interview %}
+      {% elif user_response and user_response.status != 'skipped' and is_interview %}
         <div class="status-note">{{ 'Your interview is scheduled.' if user_response.status == 'scheduled' else 'Your interview is awaiting researcher confirmation.' }}</div>
-      {% elif user_response %}
+      {% elif user_response and user_response.status == 'started' %}
         <div class="status-note">You already started this study.</div>
       {% endif %}
 
@@ -320,7 +320,11 @@
           <a class="btn btn-primary" href="{{ register_url }}">Create participant account</a>
           <a class="ghost-link" href="{{ login_url }}">Sign in to continue</a>
         </div>
-      {% elif survey.status == "published" and user_response and is_interview %}
+      {% elif survey.status == "published" and user_response and user_response.status == 'completed' %}
+        <div class="cta-stack">
+          <a class="btn btn-primary" href="/my-studies">View in My Studies</a>
+        </div>
+      {% elif survey.status == "published" and user_response and user_response.status != 'skipped' and is_interview %}
         <div class="cta-stack">
           <a class="btn btn-primary" href="/my-studies">View in My Studies</a>
           {% if external_start_url %}<a class="ghost-link" href="{{ external_start_url }}" target="_blank" rel="noopener">Open {{ 'meeting' if user_response.status == 'scheduled' else 'scheduling' }} link</a>{% endif %}
@@ -341,13 +345,13 @@
           {% if is_interview and availability_slots %}
             <button class="btn btn-primary" type="button" onclick="startStudy('/my-studies')">Save selected time</button>
           {% elif is_builtin %}
-            <button class="btn btn-primary" type="button" onclick="startStudy('/surveys/{{ survey.id }}/take')">Start study</button>
+            <button class="btn btn-primary" type="button" onclick="startStudy('/surveys/{{ survey.id }}/take')">{{ 'Continue study' if user_response and user_response.status == 'started' else 'Start study' }}</button>
           {% elif external_start_url %}
-            <button class="btn btn-primary" type="button" onclick="startExternalStudy('{{ external_start_redirect_url }}')">Open scheduling link</button>
+            <button class="btn btn-primary" type="button" onclick="startExternalStudy('{{ external_start_redirect_url }}')">{{ 'Open scheduling link' if is_interview else 'Continue study' if user_response and user_response.status == 'started' else 'Start study' }}</button>
           {% else %}
             <button class="btn btn-primary" type="button" onclick="startStudy('/my-studies')">{{ 'Save my interest' if is_interview else 'Start study' }}</button>
           {% endif %}
-          <a class="ghost-link" href="/dashboard">Back to dashboard</a>
+          <a class="ghost-link" href="{{ brand_href if brand_action == 'my-studies' else dashboard_url }}">{{ brand_label if brand_action == 'my-studies' else 'Back to dashboard' }}</a>
         </div>
       {% endif %}
     </aside>
