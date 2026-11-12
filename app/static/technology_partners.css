@@ -1,0 +1,13 @@
+.technology-partners{max-width:1120px;margin:64px auto;padding:0 24px;font-family:inherit;color:#1a1a18}
+.technology-partners h2{font-size:26px;line-height:1.3;font-weight:600;letter-spacing:-.5px;margin:0 0 12px;scroll-margin-top:96px}
+.technology-partners__intro{font-size:15px;line-height:1.6;color:#596358;margin:0 0 24px}
+.technology-partners__card{display:flex;align-items:center;gap:32px;padding:12px 32px 12px 0;border:1px solid #e0ddd6;border-radius:12px;background:#fff;color:inherit;text-decoration:none}
+.technology-partners__card:hover{border-color:#3b7c4f}
+.technology-partners__card:focus-visible{outline:3px solid #3b7c4f;outline-offset:5px}
+/* Official lockup, unchanged. Clear space exceeds the rendered mark's height. */
+.technology-partners__logo{display:block;flex-shrink:0;padding:56px;background:#fff;border-radius:12px}
+.technology-partners__logo img{display:block;width:144px;max-width:100%;height:auto}
+.technology-partners__copy{display:flex;flex-direction:column;gap:10px;min-width:0;font-size:15px;line-height:1.6;color:#596358}
+.technology-partners__copy strong{font-size:18px;line-height:1.4;font-weight:600;color:#1a1a18}
+.technology-partners__link{color:#3b7c4f;font-size:14px;font-weight:600}
+@media(max-width:640px){.technology-partners{margin:48px auto;padding:0 20px}.technology-partners__card{flex-direction:column;align-items:flex-start;gap:0;padding:0 24px 24px}.technology-partners__logo{align-self:center;padding:44px}.technology-partners__logo img{width:120px}.technology-partners__copy strong{font-size:17px}}
