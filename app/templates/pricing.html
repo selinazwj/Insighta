@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ seo.title }}</title>
+  {% include "_seo_head.html" %}
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="stylesheet" href="/static/seo_public.css">
+</head>
+<body>
+  <header class="public-nav">
+    <a class="public-brand" href="/" aria-label="Insighta home">Insight<span>a</span></a>
+    <nav class="public-nav-links" aria-label="Primary navigation">
+      <a href="/studies">Browse studies</a>
+      <a href="/about">About</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/login">Sign in</a>
+      <a class="nav-cta" href="/register">Create account</a>
+    </nav>
+  </header>
+
+  <main class="public-shell">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Pricing</span>
+    </nav>
+
+    <article class="prose">
+      <p class="eyebrow">Research recruitment</p>
+      <h1>Pricing</h1>
+      <p class="lead">Participants receive the full reward you set. Recruitment fees are added on top.</p>
+      {% for key, rule in pricing.study_types.items() %}
+      <h2>{{ rule.label }}</h2>
+      <p>{{ rule.rate_bps / 100 }}% of each participant’s reward, with a ${{ '%.2f'|format(rule.minimum_fee_cents / 100) }} minimum recruitment fee per person.</p>
+      {% endfor %}
+      <p>Self-guided UX / product tests and diary studies use the survey rate.</p>
+      <h2>Your total</h2>
+      <p>Participants × (reward per person + recruitment fee per person), plus any urgency surcharge. For studies with multiple sessions, enter the full reward for completing all required sessions.</p>
+      <p>Flexible timeline: no surcharge. Within one month: +{{ pricing.urgency_bps.within_1_month / 100 }}%. Within one week: +{{ pricing.urgency_bps.within_1_week / 100 }}%. Urgency applies to both rewards and recruitment fees.</p>
+      <h2>Raffles and volunteer studies</h2>
+      <p>No per-person reward is included in the quote. Each target participant incurs the minimum recruitment fee for that study type, plus any urgency surcharge. Researchers fund and describe raffle prizes separately.</p>
+      <h2>Payment and refunds</h2>
+      <p>Pay the full quoted amount at publication. A price snapshot locks your funded listing’s rates. Existing published studies keep their previous pricing.</p>
+      <p>Unused or ineligible places are eligible for return of their reward and recruitment fee, including the corresponding urgency surcharge. Refunds currently require manual review; automated settlement and wallet balances are not yet available. Contact <a href="mailto:insightacom@gmail.com">insightacom@gmail.com</a> for a review.</p>
+      <h2>Niche audiences</h2>
+      <p>Contact <a href="mailto:insightacom@gmail.com">insightacom@gmail.com</a> for a manual quote before publishing a niche recruitment request.</p>
+      <p><a href="/publish">Create a study</a> · <a href="/terms">Payment terms</a></p>
+    </article>
+  </main>
+
+  <footer class="public-footer">
+    <span>© 2026 Insighta</span>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="/about">About</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/studies">Studies</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="mailto:insightacom@gmail.com">Contact</a>
+    </nav>
+  </footer>
+</body>
+</html>

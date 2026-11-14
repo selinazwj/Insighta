@@ -69,8 +69,15 @@ class PublishFlowTest(unittest.TestCase):
             self.assertEqual(db.query(Survey).count(), 1)
 
     def test_published_retry_does_not_change_listing_or_payment(self):
-        with patch.object(main.stripe, 'api_key', None):
+        with patch.object(main.stripe, 'api_key', 'sk_mock'), patch.object(
+            main.stripe.checkout.Session, 'create', return_value=SimpleNamespace(id='cs_mock', url='https://checkout.stripe.com/mock')
+        ):
             first = self.submit(incentive_type='raffle')
+            with main.SessionLocal() as db:
+                survey = db.get(Survey, first.json()['survey_id'])
+                survey.status = 'published'
+                survey.payment_status = 'paid'
+                db.commit()
             second = self.submit(title='Changed by a retry')
         self.assertEqual(first.json()['survey_id'], second.json()['survey_id'])
         with main.SessionLocal() as db:
@@ -80,7 +87,9 @@ class PublishFlowTest(unittest.TestCase):
             self.assertEqual(survey.payment_status, 'paid')
 
     def test_token_is_scoped_to_owner_and_cannot_update_another_users_draft(self):
-        with patch.object(main.stripe, 'api_key', None):
+        with patch.object(main.stripe, 'api_key', 'sk_mock'), patch.object(
+            main.stripe.checkout.Session, 'create', return_value=SimpleNamespace(id='cs_mock', url='https://checkout.stripe.com/mock')
+        ):
             first = self.submit(incentive_type='raffle')
             self.client.cookies.set('user_id', str(self.other_id))
             forbidden = self.submit(existing_survey_id=first.json()['survey_id'])
@@ -155,15 +164,18 @@ class PublishFlowTest(unittest.TestCase):
             'question_text': 'Favorite color?', 'question_type': 'text', 'is_required': True,
         })
         self.assertEqual(question.status_code, 200)
-        with patch.object(main.stripe, 'api_key', None):
+        with patch.object(main.stripe, 'api_key', 'sk_mock'), patch.object(
+            main.stripe.checkout.Session, 'create', return_value=SimpleNamespace(id='cs_mock', url='https://checkout.stripe.com/mock')
+        ):
             result = self.client.post('/publish', data={
                 **self.data, 'existing_survey_id': survey_id, 'form_url': '__builtin__', 'incentive_type': 'raffle',
             }, follow_redirects=False)
         self.assertEqual(result.status_code, 303)
-        self.assertEqual(result.headers['location'], '/publisher')
+        self.assertEqual(result.headers['location'], 'https://checkout.stripe.com/mock')
         with main.SessionLocal() as db:
             self.assertEqual(db.query(Survey).count(), 1)
-            self.assertEqual(db.get(Survey, survey_id).status, 'published')
+            self.assertEqual(db.get(Survey, survey_id).status, 'draft')
+            self.assertEqual(db.get(Survey, survey_id).pricing_snapshot['study_type'], 'survey')
         loaded = self.client.get(f'/surveys/{survey_id}/questions')
         self.assertEqual(loaded.json()[0]['question_text'], 'Favorite color?')
 
@@ -173,6 +185,181 @@ class PublishFlowTest(unittest.TestCase):
         self.assertRegex(page.text, r'name="publish_token" value="[A-Za-z0-9_-]{32}"')
         indexes = inspect(main.engine).get_indexes('surveys')
         self.assertTrue(any(i['name'] == 'ix_surveys_publish_token' and i['unique'] for i in indexes))
+
+    def test_price_api_and_survey_checkout_use_identical_quote(self):
+        payload = dict(study_type='survey', incentive_type='cash', per_person='40',
+                       target_responses=20, urgency_level='within_1_week')
+        quote = self.client.post('/api/calculate-price', json=payload).json()
+        with patch.object(main.stripe, 'api_key', 'sk_mock'), patch.object(
+            main.stripe.checkout.Session, 'create', return_value=SimpleNamespace(id='cs_mock', url='https://checkout.stripe.com/mock')
+        ) as create:
+            result = self.submit(per_person_gross='40', urgency_level='within_1_week', total_budget='0.01')
+        self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(create.call_args.kwargs['line_items'][0]['price_data']['unit_amount'], quote['total_cents'])
+        with main.SessionLocal() as db:
+            survey = db.get(Survey, result.json()['survey_id'])
+            self.assertEqual(survey.pricing_snapshot, quote)
+            self.assertEqual(survey.reward_amount, 40)
+            self.assertEqual(survey.total_budget, 1056)
+
+    def test_interview_and_in_person_use_checkout_and_full_study_reward(self):
+        for index, (format_, kind, total) in enumerate([('online', 'interview', 110000), ('in_person', 'in_person', 121000)]):
+            with patch.object(main.stripe, 'api_key', 'sk_mock'), patch.object(
+                main.stripe.checkout.Session, 'create', return_value=SimpleNamespace(id=f'cs_{index}', url='https://checkout.stripe.com/mock')
+            ) as create:
+                result = self.client.post('/publish_interview', data={
+                    **self.data, 'publish_token': f'interview-test-token-{index}',
+                    'interview_format': format_, 'per_person_gross': '40',
+                    'urgency_level': 'within_1_week', 'session_count': '3',
+                    'required_occupation': ['Student', 'Engineer'], 'interview_location': 'Room 2',
+                }, headers={'Accept': 'application/json'}, follow_redirects=False)
+            self.assertEqual(result.status_code, 200, result.text)
+            self.assertEqual(create.call_args.kwargs['line_items'][0]['price_data']['unit_amount'], total)
+            with main.SessionLocal() as db:
+                survey = db.get(Survey, result.json()['survey_id'])
+                self.assertEqual(survey.pricing_snapshot['study_type'], kind)
+                self.assertEqual(survey.reward_amount, 40)
+                self.assertEqual(survey.session_count, 3)
+                self.assertEqual(survey.status, 'draft')
+                self.assertEqual(survey.required_occupation, 'Student,Engineer')
+
+    def test_raffle_and_volunteer_require_paid_checkout(self):
+        for incentive in ['raffle', 'volunteer']:
+            with patch.object(main.stripe, 'api_key', 'sk_mock'), patch.object(
+                main.stripe.checkout.Session, 'create', return_value=SimpleNamespace(id='cs_mock', url='https://checkout.stripe.com/mock')
+            ) as create:
+                result = self.submit(incentive_type=incentive, publish_token=f'{incentive}-test-token-123456')
+            self.assertEqual(result.status_code, 200, result.text)
+            self.assertEqual(create.call_args.kwargs['line_items'][0]['price_data']['unit_amount'], 10000)
+            with main.SessionLocal() as db:
+                survey = db.get(Survey, result.json()['survey_id'])
+                self.assertEqual(survey.reward_amount, 0)
+                self.assertEqual(survey.payment_status, 'unpaid')
+
+    def test_public_publish_cannot_enable_admin_demo_with_query_parameters(self):
+        with patch.object(main.stripe.checkout.Session, 'create') as checkout:
+            result = self.client.post('/publish?admin_publish=true', data=self.data,
+                                      headers={'Accept': 'application/json'}, follow_redirects=False)
+        self.assertEqual(result.status_code, 403)
+        checkout.assert_not_called()
+        with main.SessionLocal() as db:
+            self.assertEqual(db.query(Survey).count(), 0)
+
+    def test_missing_stripe_does_not_publish_or_mark_paid(self):
+        with patch.object(main.stripe, 'api_key', None):
+            result = self.submit()
+        self.assertEqual(result.status_code, 503)
+        with main.SessionLocal() as db:
+            survey = db.query(Survey).one()
+            self.assertEqual(survey.status, 'draft')
+            self.assertEqual(survey.payment_status, 'unpaid')
+            survey_id = survey.id
+        self.client.post(f'/surveys/{survey_id}/close', follow_redirects=False)
+        self.assertEqual(self.client.post(f'/surveys/{survey_id}/reopen', follow_redirects=False).status_code, 400)
+
+    def test_success_redirect_cannot_publish_and_webhook_checks_funding(self):
+        with patch.object(main.stripe, 'api_key', 'sk_mock'), patch.object(
+            main.stripe.checkout.Session, 'create', return_value=SimpleNamespace(id='cs_mock', url='https://checkout.stripe.com/mock')
+        ):
+            result = self.submit()
+        survey_id = result.json()['survey_id']
+        success = self.client.get(f'/payment/success?survey_id={survey_id}')
+        self.assertIn('Confirming payment', success.text)
+        with main.SessionLocal() as db:
+            quote = db.get(Survey, survey_id).pricing_snapshot
+            self.assertEqual(db.get(Survey, survey_id).status, 'draft')
+        obj = dict(id='cs_mock', metadata={'survey_id': str(survey_id)}, payment_status='paid',
+                   amount_total=quote['total_cents'], currency='usd')
+        for changes in [{'payment_status': 'unpaid'}, {'id': 'cs_other'}, {'amount_total': 1}, {'currency': 'eur'}, {}]:
+            event = {'type': 'checkout.session.completed', 'data': {'object': {**obj, **changes}}}
+            with patch.object(main.stripe.Webhook, 'construct_event', return_value=event):
+                self.assertEqual(self.client.post('/webhook/stripe', content=b'mocked').status_code, 200)
+            with main.SessionLocal() as db:
+                survey = db.get(Survey, survey_id)
+                self.assertEqual(survey.status, 'draft' if changes else 'published')
+                self.assertEqual(survey.pricing_snapshot, quote)
+        self.client.post(f'/surveys/{survey_id}/close', follow_redirects=False)
+        with patch.object(main.stripe.Webhook, 'construct_event', return_value=event):
+            self.client.post('/webhook/stripe', content=b'mocked')
+        with main.SessionLocal() as db:
+            self.assertEqual(db.get(Survey, survey_id).status, 'closed')
+        self.client.cookies.set('user_id', str(self.other_id))
+        self.assertEqual(self.client.get(f'/payment/success?survey_id={survey_id}').status_code, 404)
+
+    def test_quote_is_protected_from_builder_edits(self):
+        with patch.object(main.stripe, 'api_key', 'sk_mock'), patch.object(
+            main.stripe.checkout.Session, 'create', return_value=SimpleNamespace(id='cs_mock', url='https://checkout.stripe.com/mock')
+        ):
+            result = self.submit()
+        path = f"/surveys/{result.json()['survey_id']}/update-info"
+        self.assertEqual(self.client.post(path, json={'reward_amount': 1}).status_code, 400)
+        self.assertEqual(self.client.post(path, json={'title': 'Updated title'}).status_code, 200)
+
+    def test_quoted_metadata_edit_neither_reprices_nor_charges_remaining_places(self):
+        with patch.object(main.stripe, 'api_key', 'sk_mock'), patch.object(
+            main.stripe.checkout.Session, 'create', return_value=SimpleNamespace(id='cs_mock', url='https://checkout.stripe.com/mock')
+        ):
+            result = self.submit()
+        survey_id = result.json()['survey_id']
+        with main.SessionLocal() as db:
+            survey = db.get(Survey, survey_id)
+            snapshot = survey.pricing_snapshot
+            survey.status = 'published'
+            survey.payment_status = 'paid'
+            db.commit()
+        with patch.object(main.stripe.checkout.Session, 'create') as checkout:
+            result = self.client.post(f'/publisher/edit/{survey_id}', data={
+                **self.data, 'title': 'New description title', 'reward_amount': '5',
+                'additional_needed': '20', 'urgency_level': 'flexible',
+            }, follow_redirects=False)
+        self.assertEqual(result.status_code, 303, result.text)
+        checkout.assert_not_called()
+        with main.SessionLocal() as db:
+            self.assertEqual(db.get(Survey, survey_id).pricing_snapshot, snapshot)
+            self.assertEqual(db.get(Survey, survey_id).title, 'New description title')
+        self.client.post(f'/surveys/{survey_id}/close', follow_redirects=False)
+        retried = self.submit(per_person_gross='100')
+        self.assertEqual(retried.status_code, 200, retried.text)
+        with main.SessionLocal() as db:
+            self.assertEqual(db.get(Survey, survey_id).status, 'closed')
+            self.assertEqual(db.get(Survey, survey_id).pricing_snapshot, snapshot)
+        page = self.client.get(f'/publisher/edit/{survey_id}')
+        self.assertEqual(page.status_code, 200)
+        self.assertIn('Create a new listing for a new order.', page.text)
+
+    def test_legacy_published_study_retains_its_price_and_no_snapshot(self):
+        with main.SessionLocal() as db:
+            survey = Survey(publisher_id=self.user_id, title='Legacy', description='Old', form_url='__builtin__',
+                            task_type='survey', category='research', estimated_time=5, reward_amount=8.5,
+                            per_person_gross=10, total_budget=200, commission_rate=0.15,
+                            target_responses=20, status='published', payment_status='paid')
+            db.add(survey)
+            db.commit()
+            survey_id = survey.id
+        result = self.submit(existing_survey_id=survey_id, per_person_gross='100')
+        self.assertEqual(result.status_code, 200)
+        with main.SessionLocal() as db:
+            survey = db.get(Survey, survey_id)
+            self.assertEqual(survey.total_budget, 200)
+            self.assertEqual(survey.reward_amount, 8.5)
+            self.assertIsNone(survey.pricing_snapshot)
+
+    def test_pricing_public_page_and_invalid_quote(self):
+        self.client.cookies.clear()
+        response = self.client.get('/pricing')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('$15.00', response.text)
+        self.assertNotIn('noindex', response.headers.get('x-robots-tag', ''))
+        self.assertIn('/pricing', self.client.get('/sitemap.xml').text)
+        self.client.cookies.set('user_id', str(self.user_id))
+        for payload in [[], {'per_person': 'NaN'}, {'per_person': '5', 'target_responses': -1}]:
+            self.assertEqual(self.client.post('/api/calculate-price', json=payload).status_code, 400)
+
+    def test_staging_public_pages_disable_search_indexing(self):
+        with patch.dict(os.environ, {'INSIGHTA_ENV': 'staging'}):
+            page = self.client.get('/pricing')
+            self.assertTrue(page.headers.get('x-robots-tag', '').startswith('noindex'))
+            self.assertEqual(self.client.get('/robots.txt').text, 'User-agent: *\nDisallow: /\n')
 
     def test_ai_fallback_does_not_return_provider_errors(self):
         with patch.object(main, '_anthropic_ai_fill', new=AsyncMock(side_effect=RuntimeError('secret billing error'))):

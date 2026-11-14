@@ -1,0 +1,41 @@
+# Isolated pricing test environment. Apply only from the pricing branch.
+services:
+  - type: web
+    name: insighta-pricing-staging
+    runtime: python
+    plan: free
+    region: oregon
+    branch: codex/new-recruitment-pricing
+    autoDeployTrigger: 'off'
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/start_staging.py
+    healthCheckPath: /pricing
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - key: INSIGHTA_ENV
+        value: staging
+      - key: DATABASE_URL
+        fromDatabase:
+          name: insighta-pricing-staging-db
+          property: connectionString
+      - key: ADMIN_KEY
+        generateValue: true
+      - key: SEO_INDEX_STUDIES
+        value: 'false'
+      - key: INSIGHTA_AUTO_SCHEMA_BOOTSTRAP
+        value: '1'
+      - key: ANTHROPIC_API_KEY
+        value: ''
+      - key: STRIPE_SECRET_KEY
+        value: ''
+      - key: STRIPE_PUBLISHABLE_KEY
+        value: ''
+      - key: STRIPE_WEBHOOK_SECRET
+        value: ''
+databases:
+  - name: insighta-pricing-staging-db
+    databaseName: insighta_pricing_staging
+    plan: free
+    region: oregon
+    ipAllowList: []

@@ -206,10 +206,13 @@
 <div class="card">
   <div class="check-circle">✓</div>
 
-  <h1>Payment successful!</h1>
+  <h1>{{ "Payment successful!" if survey and survey.payment_status == "paid" else "Confirming payment" }}</h1>
   <p class="subtitle">
-    Your survey is now live and accepting responses.<br>
-    Participants will start seeing it right away.
+    {% if survey and survey.payment_status == "paid" %}
+    Your study is now live and accepting responses.
+    {% else %}
+    Your study will go live once payment is confirmed. Check its status in your researcher workspace.
+    {% endif %}
   </p>
 
   {% if survey %}
@@ -224,7 +227,7 @@
   </div>
   {% endif %}
 
-  <div class="status-pill">Now Live</div>
+  <div class="status-pill">{{ "Now Live" if survey and survey.status == "published" else "Awaiting confirmation" }}</div>
 
   <a href="/publisher" class="btn-primary">Go to My Surveys →</a>
   <a href="/publish" class="btn-secondary">Publish Another Survey</a>

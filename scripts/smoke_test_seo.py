@@ -95,6 +95,7 @@ def main() -> int:
             "/about": 200,
             "/privacy": 200,
             "/terms": 200,
+            "/pricing": 200,
             "/robots.txt": 200,
             "/sitemap.xml": 200,
             "/r/remote-work-habits": 200,

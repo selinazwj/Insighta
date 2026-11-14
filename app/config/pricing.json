@@ -1,0 +1,11 @@
+{
+  "version": "2026-11-14",
+  "currency": "usd",
+  "study_types": {
+    "survey": {"label": "Surveys (external and built-in)", "rate_bps": 2000, "minimum_fee_cents": 500},
+    "interview": {"label": "Remote interviews", "rate_bps": 2500, "minimum_fee_cents": 1000},
+    "in_person": {"label": "In-person studies", "rate_bps": 2500, "minimum_fee_cents": 1500}
+  },
+  "urgency_bps": {"flexible": 0, "within_1_month": 500, "within_1_week": 1000},
+  "non_cash_policy": {"raffle": "minimum_per_person", "volunteer": "minimum_per_person"}
+}

@@ -278,6 +278,7 @@
   </div>
 
   <form id="interviewForm" method="POST" action="/publish_interview">
+    <input type="hidden" name="publish_token" value="{{ publish_token }}">
 
     <input type="hidden" name="task_type" value="in_person">
 
@@ -412,36 +413,36 @@
 
       <div class="raffle-box" id="volunteerBox">
         <strong>Volunteer recruitment fee</strong>
-        Volunteer {{ 'online interview' if is_online_interview else 'in-person' }} listings do not pay participants per session. We charge $1 per 10 target participants to cover recruitment and verification.
+        No per-person reward. Recruitment fees still apply at the study type’s per-person minimum. See <a href="/pricing">Pricing</a>.
       </div>
 
       <div id="budgetSection">
         <div id="paidBudgetFields">
           <div class="info-box" style="margin-top: 20px;">
-            <strong>Per-session compensation</strong>
-            Platform fee: 15% under $15/session, 20% for $15-$24, 25% for $25+.
+            <strong>Full-study compensation</strong>
+            Recruitment fees are added to the full participant reward. See <a href="/pricing">current rates and minimums</a>.
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Per Session ($)</label>
-              <div class="label-desc">What you pay per completed session</div>
-              <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 25.00" step="0.50" min="0.01">
+              <label>Reward per person ($)</label>
+              <div class="label-desc">Total reward for completing all required sessions</div>
+              <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 25.00" step="0.01" min="0">
             </div>
             <div class="form-group">
-              <label>Total Budget ($)</label>
+              <label>Total you pay ($)</label>
               <div class="label-desc">Auto-calculated from above</div>
-              <input type="number" id="totalBudgetInput" name="total_budget" placeholder="Auto" step="1" min="1">
+              <input type="number" id="totalBudgetInput" readonly placeholder="Auto" step="0.01" min="0">
             </div>
           </div>
         </div>
 
         <div class="commission-box" id="commissionBox">
-          <div class="commission-row"><span class="clabel">Per session (you pay)</span><span class="cvalue" id="dispPerPerson">—</span></div>
-          <div class="commission-row"><span class="clabel">Platform fee (<span id="dispFeeRate">—</span>)</span><span class="cvalue orange" id="dispFee">—</span></div>
-          <div class="commission-row"><span class="clabel">Participant receives</span><span class="cvalue green" id="dispReward">—</span></div>
-          <div class="commission-row" id="timelineBoostRow" style="display:none;"><span class="clabel">Timeline boost</span><span class="cvalue orange" id="dispTimelineBoost">—</span></div>
+          <div class="commission-row"><span class="clabel">Reward per person</span><span class="cvalue" id="dispPerPerson">—</span></div>
+          <div class="commission-row"><span class="clabel">Recruitment fee per person</span><span class="cvalue orange" id="dispFee">—</span></div>
+          <div class="commission-row" id="timelineBoostRow"><span class="clabel">Urgency surcharge</span><span class="cvalue orange" id="dispTimelineBoost">—</span></div>
           <div class="commission-row"><span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span><span class="cvalue total" id="dispTotal">—</span></div>
         </div>
+        <p id="quoteStatus" role="status" aria-live="polite" style="font-size:13px;"></p>
       </div>
 
       <div class="form-group" style="margin-top: 24px;">
@@ -618,13 +619,14 @@
     <!-- SUBMIT -->
     <div class="submit-section" data-wizard-step="4" hidden>
       <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
-      <button type="submit" class="btn-publish" id="submitBtn">Publish</button>
+      <button type="submit" class="btn-publish" id="submitBtn">Pay &amp; Publish</button>
     </div>
 
   </form>
 </div>
 </div>
 
+<script src="/static/pricing.js"></script>
 <script>
   const availabilitySlots = [];
   let calendarStart = startOfDay(new Date());
@@ -827,11 +829,12 @@
     document.getElementById('incentiveInput').value = val;
     const isRaffle = val === 'raffle';
     const isVolunteer = val === 'volunteer';
-    document.getElementById('budgetSection').style.display = isRaffle ? 'none' : 'block';
-    document.getElementById('paidBudgetFields').style.display = isVolunteer ? 'none' : 'block';
+    document.getElementById('budgetSection').style.display = 'block';
+    document.getElementById('paidBudgetFields').style.display = (isVolunteer || isRaffle) ? 'none' : 'block';
     document.getElementById('raffleBox').style.display = isRaffle ? 'block' : 'none';
     document.getElementById('volunteerBox').style.display = isVolunteer ? 'block' : 'none';
-    document.getElementById('submitBtn').textContent = 'Publish';
+    document.getElementById('submitBtn').textContent = 'Pay & Publish';
+    document.getElementById('perPersonInput').disabled = isVolunteer || isRaffle;
     updateCommission();
   }
 
@@ -839,50 +842,13 @@
   const perPersonInput = document.getElementById('perPersonInput');
   const totalBudgetInput = document.getElementById('totalBudgetInput');
 
-  function getRate(ppg) { return ppg >= 25 ? 0.25 : ppg >= 15 ? 0.20 : 0.15; }
-  function getTimelineMultiplier() {
-    const urgency = document.getElementById('urgencyInput').value;
-    if (urgency === 'within_1_week') return 1.10;
-    if (urgency === 'within_1_month') return 1.05;
-    return 1;
-  }
-  function getVolunteerFee(target) { return Math.ceil(Math.max(target, 1) / 10); }
-
-  function updateCommission() {
-    const target = parseInt(document.querySelector('input[name="target_responses"]').value) || 0;
-    const sessionCount = Math.max(parseInt(document.querySelector('input[name="session_count"]').value, 10) || 1, 1);
-    const incentive = document.getElementById('incentiveInput').value;
-    const multiplier = getTimelineMultiplier();
-    if (incentive === 'volunteer') {
-      const baseFee = getVolunteerFee(target || 1);
-      const totalPay = baseFee * multiplier;
-      document.getElementById('dispPerPerson').textContent = '$0.00';
-      document.getElementById('dispFeeRate').textContent = '$1 / 10 people';
-      document.getElementById('dispFee').textContent = `$${baseFee.toFixed(2)}`;
-      document.getElementById('dispReward').textContent = '$0.00';
-      document.getElementById('timelineBoostRow').style.display = multiplier > 1 ? 'flex' : 'none';
-      document.getElementById('dispTimelineBoost').textContent = multiplier > 1 ? `+${Math.round((multiplier - 1) * 100)}%` : '-';
-      document.getElementById('dispTotal').textContent = `$${totalPay.toFixed(2)}`;
-      document.getElementById('commissionBox').style.display = 'block';
-      return;
-    }
-    let ppg = parseFloat(perPersonInput.value) || 0;
-    let total = parseFloat(totalBudgetInput.value) || 0;
-    if (!ppg && !total) { document.getElementById('commissionBox').style.display = 'none'; return; }
-    if (ppg && target && !totalBudgetInput.matches(':focus')) { total = ppg * target * sessionCount; totalBudgetInput.value = total.toFixed(2); }
-    else if (total && target && !perPersonInput.matches(':focus')) { ppg = total / (target * sessionCount); perPersonInput.value = ppg.toFixed(2); }
-    if (!ppg || !target) { document.getElementById('commissionBox').style.display = 'none'; return; }
-    const rate = getRate(ppg);
-    const totalPay = ppg * target * sessionCount * multiplier;
-    document.getElementById('dispPerPerson').textContent = `$${ppg.toFixed(2)}`;
-    document.getElementById('dispFeeRate').textContent = `${Math.round(rate * 100)}%`;
-    document.getElementById('dispFee').textContent = `-$${(ppg * rate).toFixed(2)}`;
-    document.getElementById('dispReward').textContent = `$${(ppg * (1 - rate)).toFixed(2)}`;
-    document.getElementById('timelineBoostRow').style.display = multiplier > 1 ? 'flex' : 'none';
-    document.getElementById('dispTimelineBoost').textContent = multiplier > 1 ? `+${Math.round((multiplier - 1) * 100)}%` : '-';
-    document.getElementById('dispTotal').textContent = `$${totalPay.toFixed(2)}`;
-    document.getElementById('commissionBox').style.display = 'block';
-  }
+  const updateCommission = window.InsightaPricing({
+    box: document.getElementById('commissionBox'),
+    total: totalBudgetInput, status: document.getElementById('quoteStatus'),
+    values: {reward: document.getElementById('dispPerPerson'), fee: document.getElementById('dispFee'),
+              urgency: document.getElementById('dispTimelineBoost'), total: document.getElementById('dispTotal')},
+    input: () => ({study_type: {{ ('interview' if is_online_interview else 'in_person') | tojson }}, incentive_type: document.getElementById('incentiveInput').value, per_person: perPersonInput.value || '0', target_responses: document.querySelector('input[name="target_responses"]').value || '0', urgency_level: document.getElementById('urgencyInput').value})
+  });
 
   perPersonInput.addEventListener('input', updateCommission);
   totalBudgetInput.addEventListener('input', updateCommission);

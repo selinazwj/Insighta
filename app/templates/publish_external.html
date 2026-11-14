@@ -572,35 +572,37 @@
       <!-- volunteer info -->
       <div class="alt-incentive-box" id="volunteerBox">
         <strong>Volunteer fee</strong>
-        No pay to participants. We charge $1 per 10 target participants to cover recruitment and verification.
+        No per-person reward. Recruitment fees still apply at the study type’s per-person minimum. See <a href="/pricing">Pricing</a>.
       </div>
 
       <!-- paid budget fields -->
       <div id="paidFields">
         <div class="info-box" style="margin-bottom:16px;">
           <strong>How pricing works</strong>
-          Enter your per-person budget. We deduct a platform fee (15% under $15/person · 20% for $15–$24 · 25% for $25+) and pass the rest to the participant.
+          Enter the full reward each participant receives. Recruitment fees are added on top. Rates and minimums depend on the study type. See <a href="/pricing">Pricing</a>.
         </div>
         <div class="row" style="margin-bottom:0;">
           <div class="field">
-            <label>Per person budget ($)</label>
-            <div class="field-hint">What you pay per response</div>
+            <label>Reward per person ($)</label>
+            <div class="field-hint">Full reward the participant receives</div>
             <input type="number" id="ppInput" name="per_person_gross" placeholder="e.g. 8.00" step="any" min="0" value="0">
           </div>
           <div class="field">
-            <label>Total budget ($)</label>
-            <div class="field-hint">Total amount you want to spend</div>
-            <input type="number" id="totalInput" name="total_budget" placeholder="e.g. 800.00" step="any" min="0" value="0">
+            <label>Total you pay ($)</label>
+            <div class="field-hint">Includes recruitment fees and urgency</div>
+            <input type="number" id="totalInput" readonly placeholder="e.g. 800.00" step="any" min="0" value="0">
           </div>
         </div>
+
+      </div>
+
         <div class="commission" id="commBox">
-          <div class="commission-row"><span class="c-label">Per person (you pay)</span><span class="c-val" id="cPP">—</span></div>
-          <div class="commission-row"><span class="c-label">Platform fee (<span id="cRate">—</span>)</span><span class="c-val amber" id="cFee">—</span></div>
-          <div class="commission-row"><span class="c-label">Participant receives</span><span class="c-val green" id="cReward">—</span></div>
-          <div class="commission-row" id="cBoostRow" style="display:none;"><span class="c-label">Urgency boost</span><span class="c-val amber" id="cBoost">—</span></div>
+          <div class="commission-row"><span class="c-label">Reward per person</span><span class="c-val" id="cPP">—</span></div>
+          <div class="commission-row"><span class="c-label">Recruitment fee per person</span><span class="c-val amber" id="cFee">—</span></div>
+          <div class="commission-row" id="cBoostRow"><span class="c-label">Urgency surcharge</span><span class="c-val amber" id="cBoost">—</span></div>
           <div class="commission-row"><span class="c-label" style="font-weight:600;color:var(--ink);">Total you pay</span><span class="c-val total" id="cTotal">—</span></div>
         </div>
-      </div>
+        <p id="quoteStatus" role="status" aria-live="polite" style="font-size:13px;"></p>
 
       <div class="field" style="margin-top:22px;">
         <label>Recruitment timeline</label>
@@ -1092,6 +1094,7 @@
   <button type="button" class="btn-save" onclick="document.getElementById('draftConfirmation').close()">Got it</button>
 </dialog>
 <script src="/static/listing_feedback.js"></script>
+<script src="/static/pricing.js"></script>
 <script>
   const IS_ADMIN_PUBLISH = {{ 'true' if is_admin_publish else 'false' }};
   const ADMIN_KEY = {{ (admin_key or '')|tojson if is_admin_publish else 'null' }};
@@ -1241,7 +1244,7 @@
     document.getElementById('raffleBox').style.display    = v === 'raffle'    ? 'block' : 'none';
     document.getElementById('volunteerBox').style.display = v === 'volunteer' ? 'block' : 'none';
     document.getElementById('paidFields').style.display   = (v === 'raffle' || v === 'volunteer') ? 'none' : 'block';
-    document.getElementById('submitLabel').textContent    = IS_ADMIN_PUBLISH ? 'Publish demo listing' : ((v === 'raffle' || v === 'volunteer') ? 'Publish' : 'Pay & Publish');
+    document.getElementById('submitLabel').textContent    = IS_ADMIN_PUBLISH ? 'Publish demo listing' : 'Pay & Publish';
     updateCommission();
   }
 
@@ -1259,38 +1262,13 @@
   const targetInput = document.getElementById('targetInput');
   const sessionCountInput = document.getElementById('sessionCountInput');
 
-  function commRate(pp) { return pp >= 25 ? .25 : pp >= 15 ? .20 : .15; }
-  function urgencyMult() {
-    const v = document.getElementById('urgencyInput').value;
-    return v === 'within_1_week' ? 1.10 : v === 'within_1_month' ? 1.05 : 1;
-  }
-
-  function updateCommission() {
-    const incentive = document.getElementById('incentiveInput').value;
-    if (incentive === 'raffle' || incentive === 'volunteer') { document.getElementById('commBox').style.display = 'none'; return; }
-    const target = parseInt(targetInput.value) || 0;
-    const sessionCount = isInterviewTask(document.getElementById('taskTypeSelect')?.value || '') ? Math.max(parseInt(sessionCountInput?.value, 10) || 1, 1) : 1;
-    let pp    = parseFloat(ppInput.value)    || 0;
-    let total = parseFloat(totalInput.value) || 0;
-    if (!pp && !total) { document.getElementById('commBox').style.display = 'none'; return; }
-    if (pp && target && !totalInput.matches(':focus')) { total = pp * target * sessionCount; totalInput.value = total.toFixed(2); }
-    else if (total && target && !ppInput.matches(':focus')) { pp = total / (target * sessionCount); ppInput.value = pp.toFixed(2); }
-    if (!pp || !target) { document.getElementById('commBox').style.display = 'none'; return; }
-    const rate    = commRate(pp);
-    const fee     = pp * rate;
-    const reward  = pp - fee;
-    const mult    = urgencyMult();
-    const payTotal = pp * target * sessionCount * mult;
-    document.getElementById('cPP').textContent     = `$${pp.toFixed(2)}`;
-    document.getElementById('cRate').textContent   = `${Math.round(rate*100)}%`;
-    document.getElementById('cFee').textContent    = `-$${fee.toFixed(2)}`;
-    document.getElementById('cReward').textContent = `$${reward.toFixed(2)}`;
-    const boostRow = document.getElementById('cBoostRow');
-    boostRow.style.display = mult > 1 ? 'flex' : 'none';
-    document.getElementById('cBoost').textContent  = `+${Math.round((mult-1)*100)}%`;
-    document.getElementById('cTotal').textContent  = `$${payTotal.toFixed(2)}`;
-    document.getElementById('commBox').style.display = 'block';
-  }
+  const updateCommission = window.InsightaPricing({
+    box: document.getElementById('commBox'),
+    total: totalInput, status: document.getElementById('quoteStatus'),
+    values: {reward: document.getElementById('cPP'), fee: document.getElementById('cFee'),
+              urgency: document.getElementById('cBoost'), total: document.getElementById('cTotal')},
+    input: () => ({study_type: document.getElementById('taskTypeSelect')?.value || 'survey', incentive_type: document.getElementById('incentiveInput').value, per_person: ppInput.value || '0', target_responses: targetInput.value || '0', urgency_level: document.getElementById('urgencyInput').value})
+  });
 
   function adminUsesStripe() {
     return IS_ADMIN_PUBLISH && document.getElementById('adminPaymentMode')?.value === 'stripe';

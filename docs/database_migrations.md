@@ -99,3 +99,5 @@ alembic revision -m "describe change"
 
 Then edit the generated file with explicit `upgrade()` and `downgrade()` steps.
 Avoid adding new `ALTER TABLE` logic to app startup code.
+
+Revision `202611140001` adds nullable `surveys.pricing_snapshot` JSON. Existing orders stay unchanged; new listing quotes are stored before Stripe Checkout. See [recruitment pricing](recruitment_pricing.md).

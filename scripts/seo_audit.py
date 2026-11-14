@@ -36,6 +36,7 @@ PUBLIC_TEMPLATES = {
     "about.html",
     "privacy.html",
     "terms.html",
+    "pricing.html",
 }
 
 EXPECTED_PUBLIC_ROUTES = {
@@ -47,6 +48,7 @@ EXPECTED_PUBLIC_ROUTES = {
     "/about",
     "/privacy",
     "/terms",
+    "/pricing",
     "/robots.txt",
     "/sitemap.xml",
 }

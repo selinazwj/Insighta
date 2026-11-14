@@ -300,7 +300,8 @@
       <div class="row" style="margin-bottom:14px;">
         <div class="field">
           <label>Study type</label>
-          <select name="task_type">
+          {% if survey.pricing_snapshot %}<input type="hidden" name="task_type" value="{{ survey.task_type }}">{% endif %}
+          <select name="task_type" {% if survey.pricing_snapshot %}disabled{% endif %}>
             <option value="survey"    {% if survey.task_type in ('survey',none,'') %}selected{% endif %}>Online survey</option>
             <option value="interview" {% if survey.task_type=='interview' %}selected{% endif %}>Interview</option>
             <option value="in_person" {% if survey.task_type in ('in_person','in-person') %}selected{% endif %}>In-person study</option>
@@ -403,7 +404,7 @@
         </label>
       </div>
 
-      {% if survey.status == 'published' %}
+      {% if survey.status == 'published' or survey.pricing_snapshot %}
       <div class="warn-box">
         <strong>Reward locked</strong>
         Reward cannot be changed after publishing to protect participants.
@@ -422,9 +423,12 @@
       {% endif %}
 
       <div class="field" style="max-width:220px;">
-        <label>Additional responses needed</label>
+        {% if survey.pricing_snapshot %}
+        <p>Your quoted reward, recruitment fee, participant cap, and urgency are fixed. Create a new listing for a new order.</p>
+        {% endif %}
+        <label>Remaining responses needed</label>
         <div class="field-hint">Added on top of current {{ survey.current_responses }}</div>
-        <input type="number" name="additional_needed" value="{{ survey.target_responses - survey.current_responses }}" min="0" required>
+        <input type="number" name="additional_needed" {% if survey.pricing_snapshot %}readonly{% endif %} value="{{ survey.target_responses - survey.current_responses }}" min="0" required>
       </div>
 
       {% if is_admin_edit %}
@@ -793,6 +797,7 @@
 
 <script>
   function pickIncentive(el) {
+    if ({{ (survey.pricing_snapshot is not none) | tojson }}) return;
     document.querySelectorAll('#incentivePills .pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     const value = el.dataset.v;
@@ -812,6 +817,7 @@
   }
 
   function pickUrgency(el) {
+    if ({{ (survey.pricing_snapshot is not none) | tojson }}) return;
     document.querySelectorAll('#urgencyPills .pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     document.getElementById('urgencyInput').value = el.dataset.v;

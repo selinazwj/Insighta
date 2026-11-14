@@ -179,6 +179,7 @@ class Survey(Base):
     total_budget = Column(Float, nullable=True)
     per_person_gross = Column(Float, nullable=True)
     commission_rate = Column(Float, nullable=True)
+    pricing_snapshot = Column(JSON, nullable=True)
     target_responses = Column(Integer, nullable=False)
     current_responses = Column(Integer, default=0)
 

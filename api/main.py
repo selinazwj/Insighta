@@ -34,6 +34,7 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
+from app.pricing import calculate_quote, pricing_config, PricingError
 from app.booking_calendar import booked_events, calendar_document, google_calendar_links
 from app.google_calendar import register_calendar_routes, calendar_status, queue_calendar_sync, sync_booking, JOB_TYPE as GOOGLE_CALENDAR_SYNC
 from app.database import engine, get_db, SessionLocal
@@ -201,11 +202,14 @@ SEO_PUBLIC_EXACT_PATHS = {
     "/about",
     "/privacy",
     "/terms",
+    "/pricing",
     "/robots.txt",
     "/sitemap.xml",
 }
 
 def _is_public_seo_path(path: str) -> bool:
+    if os.environ.get("INSIGHTA_ENV") == "staging":
+        return False
     if path in SEO_PUBLIC_EXACT_PATHS:
         return True
     if path.startswith("/studies/"):
@@ -371,6 +375,7 @@ def ensure_survey_listing_columns():
         "total_budget": "FLOAT",
         "per_person_gross": "FLOAT",
         "commission_rate": "FLOAT",
+        "pricing_snapshot": "JSON",
         "payment_status": "VARCHAR",
         "stripe_payment_intent_id": "VARCHAR",
         "quality_auto_filter_enabled": "BOOLEAN DEFAULT false",
@@ -1707,32 +1712,6 @@ def _record_user_event(
 
 
 router = APIRouter()
-
-
-# ---------------------------
-# Commission helper
-# ---------------------------
-
-def calculate_commission(per_person_gross: float):
-    if per_person_gross >= 25:
-        rate = 0.25
-    elif per_person_gross >= 15:
-        rate = 0.20
-    else:
-        rate = 0.15
-    reward = round(per_person_gross * (1 - rate), 2)
-    return rate, reward
-
-def timeline_multiplier(urgency_level: Optional[str]) -> float:
-    urgency = (urgency_level or "flexible").strip().lower()
-    if urgency == "within_1_week":
-        return 1.10
-    if urgency == "within_1_month":
-        return 1.05
-    return 1.0
-
-def volunteer_platform_fee(target_responses: int) -> float:
-    return round(((max(int(target_responses or 0), 1) + 9) // 10) * 1.0, 2)
 
 
 def _extract_client_meta(request: Request, current_user: User) -> dict:
@@ -3213,6 +3192,8 @@ def _sitemap_lastmod(value: Optional[datetime]) -> Optional[str]:
 
 @app.get("/robots.txt", response_class=PlainTextResponse, include_in_schema=False)
 def robots_txt():
+    if os.environ.get("INSIGHTA_ENV") == "staging":
+        return PlainTextResponse("User-agent: *\nDisallow: /\n")
     # Private HTML pages remain crawlable long enough for their noindex directives to be seen.
     body = "\n".join([
         "User-agent: *",
@@ -3243,6 +3224,7 @@ def sitemap_xml(db: Session = Depends(get_db)):
         (seo_site_url("/about"), None),
         (seo_site_url("/privacy"), None),
         (seo_site_url("/terms"), None),
+        (seo_site_url("/pricing"), None),
     ]
     cards = _public_study_cards(db)
     category_lastmods: dict[str, Optional[datetime]] = {}
@@ -3330,6 +3312,14 @@ def privacy_page(request: Request):
         breadcrumb_label="Privacy",
     )
     return templates.TemplateResponse("privacy.html", {"request": request, "seo": seo})
+
+
+@app.get("/pricing", response_class=HTMLResponse)
+def pricing_page(request: Request):
+    seo = content_page_seo(title="Research recruitment pricing | Insighta",
+        description="See recruitment rates, per-person minimum fees, and urgency charges for Insighta studies.",
+        path="/pricing", breadcrumb_label="Pricing")
+    return templates.TemplateResponse("pricing.html", {"request": request, "seo": seo, "pricing": pricing_config()})
 
 
 @app.get("/terms", response_class=HTMLResponse)
@@ -6465,22 +6455,19 @@ def publish_page(
 
 @app.post("/api/calculate-price")
 async def calculate_price(request: Request, current_user: User = Depends(get_current_user)):
-    body = await request.json()
-    per_person = body.get("per_person")
-    total_budget = body.get("total_budget")
-    target_responses = body.get("target_responses", 1)
-    if per_person:
-        ppg = float(per_person)
-    elif total_budget and target_responses:
-        ppg = float(total_budget) / int(target_responses)
-    else:
-        raise HTTPException(400, "Provide per_person or total_budget + target_responses")
-    rate, reward = calculate_commission(ppg)
-    total = round(ppg * int(target_responses), 2)
-    return JSONResponse({
-        "per_person_gross": round(ppg, 2), "commission_rate": rate,
-        "commission_pct": int(rate * 100), "reward_amount": reward, "total_budget": total,
-    })
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(400, "Send a valid quote request.")
+    if not isinstance(body, dict):
+        raise HTTPException(400, "Send a quote object.")
+    try:
+        quote = calculate_quote(body.get("study_type", "survey"), body.get("incentive_type", "cash"),
+                                body.get("per_person", "0"), body.get("target_responses", 1),
+                                body.get("urgency_level", "flexible"))
+    except PricingError as exc:
+        raise HTTPException(400, str(exc))
+    return JSONResponse(quote)
 
 
 # ---------------------------
@@ -6505,6 +6492,7 @@ def publish_interview_page(
         "current_user": current_user,
         "is_online_interview": is_online,
         "interview_mode": "online" if is_online else "in_person",
+        "publish_token": secrets.token_urlsafe(24),
     })
 
 @app.post("/publish_interview")
@@ -6520,100 +6508,23 @@ async def publish_interview(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
-    experience_list = form.getlist("target_experience_tags")
-    lifestyle_list = form.getlist("target_lifestyle_tags")
-    # ive changed this — multiple required occupations, comma separated
-    occupation_list = [o for o in form.getlist("required_occupation") if o]
-    required_occupation = ",".join(occupation_list) if occupation_list else None
-    target_education_min = _parse_optional_int(form.get("target_education_min"))
-    target_education_max = _parse_optional_int(form.get("target_education_max"))
-    availability_slots = (form.get("availability_slots") or "").strip()
-    if availability_slots:
-        try:
-            parsed_slots = json.loads(availability_slots)
-            availability_slots = json.dumps(parsed_slots if isinstance(parsed_slots, list) else [])
-        except Exception:
-            availability_slots = None
-    else:
-        availability_slots = None
-    incentive_clean = _clean_target(incentive_type) or "cash"
-    is_no_pay = incentive_clean in ("raffle", "volunteer")
-    session_count = max(_parse_optional_int(form.get("session_count")) or 1, 1)
-    sessions_per_week = _parse_optional_int(form.get("sessions_per_week"))
-    try:
-        per_person_value = float(per_person_gross) if str(per_person_gross or "").strip() else 0.0
-    except (TypeError, ValueError):
-        per_person_value = 0.0
-    reward = 0.0 if is_no_pay else per_person_value
-
-    normalized_interview_format = (interview_format or "").strip().lower()
-    is_online_interview = normalized_interview_format in {"online", "video", "remote"}
-
-    survey = Survey(
-        publisher_id=current_user.id, title=title, description=description,
-        form_url=scheduling_link or "",
-        task_type="interview" if is_online_interview else "in_person",
-        category=category,
-        estimated_time=estimated_time, reward_amount=reward, per_person_gross=reward,
-        total_budget=round(reward * target_responses * session_count, 2), commission_rate=0.0, payment_status="paid",
-        target_responses=target_responses, urgency_level=_clean_target(urgency_level),
-        incentive_type=incentive_clean,
-        raffle_prize_type=_clean_target(form.get("raffle_prize_type")) if incentive_clean == "raffle" else None,
-        target_age_range=_clean_target(form.get("target_age_range")),
-        target_education_min=target_education_min,
-        target_education_max=target_education_max,
-        target_field=_clean_target(form.get("target_field")),
-        target_status=_clean_target(form.get("target_status")),
-        target_state=_clean_target(form.get("target_state")),
-        target_language=_clean_target(form.get("target_language")),
-        target_ethnicity=_clean_target(form.get("target_ethnicity")),
-        target_sexual_orientation=_clean_target(form.get("target_sexual_orientation")),
-        target_mental_health_diagnosis=_clean_target(form.get("target_mental_health_diagnosis")),
-        target_physical_health_diagnosis=_clean_target(form.get("target_physical_health_diagnosis")),
-        target_sport_type=_clean_target(form.get("target_sport_type")),
-        target_sport_frequency=_clean_target(form.get("target_sport_frequency")),
-        target_smoking=_clean_target(form.get("target_smoking")),
-        target_cannabis_use=_clean_target(form.get("target_cannabis_use")),
-        target_student_status=_clean_target(form.get("target_student_status")),
-        target_year_in_school=None,
-        target_international_domestic=_clean_target(form.get("target_international_domestic")),
-        target_experience_tags=",".join(experience_list) if experience_list else None,
-        target_participation_format=_clean_target(form.get("target_participation_format")),
-        target_device=_clean_target(form.get("target_device")),
-        target_income_level=_clean_target(form.get("target_income_level")),
-        target_lifestyle_tags=",".join(lifestyle_list) if lifestyle_list else None,
-        target_niche_requirements=_clean_target(form.get("target_niche_requirements")),
-        required_occupation=_clean_target(required_occupation),
-        required_verification_tier=_normalize_required_verification_tier(required_verification_tier),
-        required_email_domains=",".join(_normalize_domains(required_email_domains)) or None,
-        availability_slots=availability_slots,
-        interview_location=_clean_target(interview_location),
-        session_count=session_count,
-        sessions_per_week=sessions_per_week,
-        status="published", published_at=datetime.utcnow(), closed_at=None,
+    online = (interview_format or "").strip().lower() in {"online", "video", "remote"}
+    return await publish_survey(
+        request=request, title=title, description=description, form_url=scheduling_link or "",
+        task_type="online_interview" if online else "in_person", category=category,
+        estimated_time=estimated_time, target_responses=target_responses,
+        per_person_gross=per_person_gross, total_budget=None,
+        incentive_type=incentive_type, urgency_level=urgency_level,
+        required_verification_tier=required_verification_tier, required_email_domains=required_email_domains,
+        **{name: form.get(name) for name in (
+            "target_age_range", "target_field", "target_status", "target_state", "target_language",
+            "target_ethnicity", "target_sexual_orientation", "target_mental_health_diagnosis",
+            "target_physical_health_diagnosis", "target_sport_type", "target_sport_frequency",
+            "target_smoking", "target_cannabis_use", "target_student_status", "target_year_in_school",
+            "target_international_domestic", "target_participation_format", "target_device",
+            "target_income_level", "raffle_prize_type")},
+        cover_image=None, admin_display_reward_amount=None, current_user=current_user, db=db,
     )
-    _ensure_survey_share_slug(db, survey)
-    db.add(survey); db.commit(); db.refresh(survey)
-    _record_user_event(
-        db,
-        request,
-        "study_created",
-        user=current_user,
-        target_type="survey",
-        target_id=survey.id,
-        metadata={"study_title": survey.title, "source": "Interview publish", "user_role": "researcher"},
-    )
-    _record_user_event(
-        db,
-        request,
-        "study_published",
-        user=current_user,
-        target_type="survey",
-        target_id=survey.id,
-        metadata={"study_title": survey.title, "source": "Interview publish", "user_role": "researcher"},
-    )
-    db.commit()
-    return RedirectResponse("/publisher", status_code=303)
 
 
 # ---------------------------
@@ -6635,24 +6546,9 @@ def payment_success(
             pass
     survey = db.query(Survey).filter(Survey.id == survey_id).first() if survey_id else None
 
-    # Fallback: mark paid and publish when landing on payment success page
-    if survey and survey.payment_status != "paid":
-        was_published = survey.status == "published"
-        survey.payment_status = "paid"
-        survey.status = "published"
-        survey.published_at = datetime.utcnow()
-        if not was_published:
-            _record_user_event(
-                db,
-                request,
-                "study_published",
-                user=current_user,
-                target_type="survey",
-                target_id=survey.id,
-                metadata={"study_title": survey.title, "source": "Payment success", "user_role": "researcher"},
-            )
-        db.commit()
-
+    if survey and (not current_user or survey.publisher_id != current_user.id):
+        raise HTTPException(404, "Study not found")
+    # Publication is driven only by a verified Stripe webhook.
     return templates.TemplateResponse("payment_success.html", {
         "request": request, "survey": survey, "current_user": current_user,
     })
@@ -6674,7 +6570,12 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         survey_id = event["data"]["object"].get("metadata", {}).get("survey_id")
         if survey_id:
             survey = db.query(Survey).filter(Survey.id == int(survey_id)).first()
-            if survey:
+            checkout = event["data"]["object"]
+            if (survey and survey.payment_status != "paid" and checkout.get("payment_status") == "paid"
+                    and (not survey.pricing_snapshot or (
+                        checkout.get("id") == survey.stripe_payment_intent_id
+                        and checkout.get("amount_total") == survey.pricing_snapshot["total_cents"]
+                        and checkout.get("currency") == survey.pricing_snapshot["currency"]))):
                 was_published = survey.status == "published"
                 survey.payment_status = "paid"
                 survey.status = "published"
@@ -7466,6 +7367,8 @@ def close_existing_survey(survey_id: int, current_user: User = Depends(get_curre
 def reopen_closed_survey(survey_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     s = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
     if not s: raise HTTPException(404, "Survey not found")
+    if s.payment_status not in {"paid", "admin_demo"}:
+        raise HTTPException(400, "Study must be funded before reopening.")
     if s.status == "closed": s.status = "published"; s.closed_at = None
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
@@ -7532,6 +7435,15 @@ async def edit_survey_post(
     survey = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
+    if survey.pricing_snapshot:
+        snapshot = survey.pricing_snapshot
+        current_completed = db.query(Response).filter(Response.survey_id == survey_id, Response.status == "completed").count()
+        if (current_completed + additional_needed != snapshot["target_responses"]
+                or reward_amount != snapshot["reward_per_person_cents"] / 100
+                or task_type != survey.task_type
+                or _clean_target(incentive_type) != survey.incentive_type
+                or (_clean_target(urgency_level) or "flexible") != (survey.urgency_level or "flexible")):
+            raise HTTPException(400, "This funded study has a fixed quote. Create a new listing to change its budget or participant count.")
     if survey.status == "published":
         reward_amount = survey.reward_amount
 
@@ -7585,7 +7497,7 @@ async def edit_survey_post(
 
     # Published survey with additional responses that require payment
     is_no_pay = _clean_target(incentive_type) in ("raffle", "volunteer")
-    if survey.status == "published" and additional_needed > 0 and not is_no_pay:
+    if survey.status == "published" and additional_needed > 0 and not is_no_pay and not survey.pricing_snapshot:
         total = round(reward_amount * additional_needed, 2)
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
@@ -9850,6 +9762,8 @@ async def publish_survey(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
+    if admin_publish and not _admin_key_matches(form.get("admin_key")):
+        raise HTTPException(403, "Admin demo publishing requires administrator authorization.")
     admin_payment_mode = (admin_payment_mode or form.get("admin_payment_mode") or "demo").strip().lower()
     if admin_payment_mode not in {"demo", "stripe"}:
         admin_payment_mode = "demo"
@@ -9886,7 +9800,7 @@ async def publish_survey(
         ).first()
         if not previous:
             raise HTTPException(404, "Survey not found")
-        if previous.status == "published":
+        if previous.status in {"published", "closed"} or previous.payment_status in {"paid", "admin_demo"}:
             if admin_publish:
                 redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
                 return _publish_redirect(request, f"/admin/publish?{redirect_qs}", previous.id)
@@ -9897,7 +9811,7 @@ async def publish_survey(
     is_online_interview = raw_task_type in {"online_interview", "remote_interview"}
     is_in_person_study = raw_task_type in {"in_person_study", "in_person"}
     is_interview_listing = raw_task_type == "interview" or is_online_interview or is_in_person_study
-    normalized_task_type = "interview" if is_interview_listing else raw_task_type
+    normalized_task_type = "in_person" if is_in_person_study else "interview" if is_interview_listing else raw_task_type
     if is_online_interview:
         target_participation_format = "Video interview"
     elif is_in_person_study:
@@ -9922,30 +9836,19 @@ async def publish_survey(
     incentive_clean = _clean_target(incentive_type) or "cash"
     raffle_clean = _clean_target(raffle_prize_type)
     is_raffle = incentive_clean == "raffle"
-    is_volunteer = incentive_clean == "volunteer"
-    is_no_pay = is_raffle
-
-    if is_raffle:
-        ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
-    elif is_volunteer:
-        ppg = 0.0; rate = 0.0; reward = 0.0
-        total = volunteer_platform_fee(target_responses)
+    demo = admin_publish and not admin_uses_stripe
+    quote = None
+    if demo and str(per_person_gross or "").strip() in {"", "0", "0.0", "0.00"}:
+        ppg = rate = reward = total = 0.0
     else:
-        per_person_gross_value = _parse_optional_float(per_person_gross)
-        total_budget_value = _parse_optional_float(total_budget)
-        if admin_uses_stripe and not per_person_gross_value and not total_budget_value:
-            raise HTTPException(400, "Stripe admin publish requires a per-person or total budget.")
-        if admin_publish and not admin_uses_stripe and not per_person_gross_value and not total_budget_value:
-            ppg = 0.0; rate = 0.0; reward = 0.0; total = 0.0
-        elif per_person_gross_value is not None and per_person_gross_value > 0:
-            ppg = per_person_gross_value
-        elif total_budget_value is not None and total_budget_value > 0:
-            ppg = total_budget_value / (int(target_responses) * session_count)
-        else: ppg = 5.0
-        if not (admin_publish and not admin_uses_stripe and ppg == 0.0):
-            rate, reward = calculate_commission(ppg)
-            total = round(ppg * int(target_responses) * session_count, 2)
-    total = round(total * timeline_multiplier(urgency_level), 2)
+        try:
+            quote = calculate_quote(normalized_task_type, incentive_clean, per_person_gross or "0",
+                                    target_responses, urgency_level)
+        except PricingError as exc:
+            raise HTTPException(400, str(exc))
+        ppg = reward = quote["reward_per_person_cents"] / 100
+        rate = quote["rate_bps"] / 10000
+        total = quote["total_cents"] / 100
 
     image_url = None
     if cover_image and cover_image.filename:
@@ -9972,7 +9875,8 @@ async def publish_survey(
         survey.per_person_gross = ppg
         survey.total_budget = total
         survey.commission_rate = rate
-        survey.payment_status = "unpaid" if not is_no_pay else "paid"
+        survey.pricing_snapshot = quote
+        survey.payment_status = "unpaid"
         survey.target_responses = target_responses
         survey.urgency_level = _clean_target(urgency_level)
         survey.incentive_type = incentive_clean
@@ -10026,7 +9930,8 @@ async def publish_survey(
             publisher_id=current_user.id, title=title, description=description, form_url=form_url,
             task_type=normalized_task_type, category=category, estimated_time=estimated_time,
             reward_amount=reward, per_person_gross=ppg, total_budget=total, commission_rate=rate,
-            payment_status="unpaid" if not is_no_pay else "paid",
+            pricing_snapshot=quote,
+            payment_status="unpaid",
             target_responses=target_responses, urgency_level=_clean_target(urgency_level),
             incentive_type=incentive_clean, raffle_prize_type=raffle_clean if is_raffle else None,
             target_age_range=_clean_target(target_age_range),
@@ -10103,39 +10008,20 @@ async def publish_survey(
         redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
         return _publish_redirect(request, f"/admin/publish?{redirect_qs}", survey.id)
 
-    if admin_uses_stripe and not stripe.api_key:
-        raise HTTPException(503, "Stripe is not configured. Use demo mode or add STRIPE_SECRET_KEY.")
-
-    # Handle no-pay incentives, missing Stripe key, and Stripe checkout
-    if is_no_pay or not stripe.api_key:
-        survey.status = "published"
-        survey.published_at = datetime.utcnow()
-        if not stripe.api_key and not is_no_pay:
-            survey.payment_status = "paid"
-        _record_user_event(
-            db,
-            request,
-            "study_published",
-            user=current_user,
-            target_type="survey",
-            target_id=survey.id,
-            metadata={"study_title": survey.title, "source": "Publish flow", "user_role": "researcher"},
-        )
+    if not stripe.api_key:
         db.commit()
-        return _publish_redirect(request, "/publisher", survey.id)
+        raise HTTPException(503, "Stripe is not configured. Your listing is saved as a draft.")
 
-    success_url = f"https://insightaco.org/payment/success?survey_id={survey.id}"
-    cancel_url = "https://insightaco.org/publisher"
+    success_url = f"{BASE_URL.rstrip('/')}/payment/success?survey_id={survey.id}"
+    cancel_url = f"{BASE_URL.rstrip('/')}/publisher"
     if admin_uses_stripe:
-        success_url = f"https://insightaco.org/payment/success?survey_id={survey.id}&admin=1"
-        cancel_url = f"https://insightaco.org/admin#publish"
-    if is_volunteer:
-        stripe_description = f"Volunteer recruitment fee: ${volunteer_platform_fee(target_responses):.2f} per 10 participants"
-    else:
-        stripe_description = f"{survey.target_responses} responses x ${reward:.2f} per person"
+        cancel_url = f"{BASE_URL.rstrip('/')}/admin#publish"
+    stripe_description = (f"{survey.target_responses} participants; full reward ${reward:.2f} each; "
+                          f"recruitment ${quote['recruitment_fee_per_person_cents'] / 100:.2f} each; "
+                          f"urgency ${quote['urgency_amount_cents'] / 100:.2f}")
     checkout_params = dict(
         payment_method_types=["card"],
-        line_items=[{"price_data": {"currency": "usd", "product_data": {"name": f"Survey: {survey.title}", "description": stripe_description}, "unit_amount": int(round(total * 100))}, "quantity": 1}],
+        line_items=[{"price_data": {"currency": "usd", "product_data": {"name": f"Survey: {survey.title}", "description": stripe_description}, "unit_amount": quote["total_cents"]}, "quantity": 1}],
         mode="payment",
         success_url=success_url,
         cancel_url=cancel_url,
@@ -10180,6 +10066,9 @@ async def update_survey_info(
         raise HTTPException(404, "Survey not found")
 
     body = await request.json()
+    financial_fields = {"per_person_gross", "reward_amount", "total_budget", "commission_rate", "target_responses"}
+    if (survey.pricing_snapshot or survey.status != "draft") and financial_fields.intersection(body):
+        raise HTTPException(400, "Published or quoted study pricing cannot be edited here.")
     survey.title = body.get("title", survey.title)
     survey.description = body.get("description", survey.description)
     survey.category = body.get("category", survey.category)
