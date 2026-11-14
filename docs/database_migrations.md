@@ -101,3 +101,5 @@ Then edit the generated file with explicit `upgrade()` and `downgrade()` steps.
 Avoid adding new `ALTER TABLE` logic to app startup code.
 
 Revision `202611140001` adds nullable `surveys.pricing_snapshot` JSON. Existing orders stay unchanged; new listing quotes are stored before Stripe Checkout. See [recruitment pricing](recruitment_pricing.md).
+
+Revision `202611140002` adds response review deadlines, study close/deadline metadata, original funding PaymentIntents, and durable study settlements. Legacy listings without pricing snapshots are not automatically settled.

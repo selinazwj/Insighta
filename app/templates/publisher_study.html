@@ -118,6 +118,9 @@
 
     ::-webkit-scrollbar{width:4px;}
     ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
+    .funding-summary{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:20px 0;}
+    .funding-summary p{font-size:13px;line-height:1.65;color:var(--ink2);margin:8px 0;}
+    .funding-summary p strong{color:var(--green);}
   </style>
 </head>
 <body>
@@ -195,6 +198,26 @@
       <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%;"></div></div>
     </div>
 
+    {% if survey.pricing_snapshot %}
+    <section class="ov-section funding-summary" aria-label="Funding and refunds">
+      <div class="ov-section-title">Funding and refunds</div>
+      <p>Participant rewards are reviewed within seven days of completion. Verified completions without quality or trust holds are approved automatically when that window ends.</p>
+      <p>Completion deadline: {{ survey.deadline_at.strftime('%b %d, %Y at %H:%M UTC') if survey.deadline_at else 'No deadline set' }}.</p>
+      {% if settlement %}
+      {% set settlement_labels = {'waiting_review': 'Waiting for participant reviews', 'waiting_verification': 'Verification or quality review required', 'ready': 'Refund queued', 'retrying': 'Refund retry scheduled', 'refund_pending': 'Refund submitted to Stripe; awaiting confirmation', 'refunded': 'Refund confirmed', 'no_refund': 'Settled — no refund due', 'manual_review': 'Refund needs support review'} %}
+      <p><strong>{{ settlement_labels.get(settlement.status, settlement.status) }}</strong></p>
+      <p>Ordered: {{ settlement.ordered_count }} · Qualified completions: {{ settlement.qualified_count if settlement.qualified_count is not none else 'Under review' }}</p>
+      {% if settlement.refund_amount_cents is not none %}<p>Original-card refund: <strong>${{ '%.2f'|format(settlement.refund_amount_cents / 100) }}</strong></p>{% endif %}
+      {% if settlement.close_reason == 'researcher_cancelled' %}<p>Researcher cancellation: recruitment fees and the corresponding urgency surcharge remain payable.</p>{% endif %}
+      {% if settlement.last_error %}<p>{{ settlement.last_error }} Contact support if it remains unresolved.</p>{% endif %}
+      {% if settlement.status in ('retrying', 'manual_review') and not settlement.stripe_refund_id %}
+      <button type="button" class="action-btn" onclick="retrySettlement(this)">Retry refund reconciliation</button>
+      {% endif %}
+      {% else %}<p>After the study closes or reaches its deadline, unused places are refunded to the original card after outstanding completion reviews finish.</p>{% endif %}
+      <p>Refunds use the saved price and include the corresponding urgency surcharge. Extra completions do not increase the purchased participant cap.</p>
+    </section>
+    {% endif %}
+
     <!-- TABS -->
     <div class="tabs">
       <button class="tab active" id="tab-overview" onclick="switchTab('overview')">Overview</button>
@@ -240,10 +263,12 @@
             <div class="ov-item" style="grid-column:span 2;">
               <div class="ov-label">{{ row.participant }} · {{ row.status | capitalize }}</div>
               <div class="ov-value">{{ row.slot }}</div>
-              {% if row.status != 'completed' %}
+              {% if row.status not in ('completed', 'no_show') and survey.status == 'published' %}
               <button type="button" class="action-btn" style="margin-top:8px;" onclick="confirmStudyInterviewComplete({{ row.response_id }}, this)">Confirm interview completed</button>
-              {% else %}
-              <div style="margin-top:6px;color:var(--green);font-size:12px;font-weight:700;">Awaiting payout review</div>
+              <button type="button" class="action-btn" onclick="markNoShow({{ row.response_id }}, this)">Mark no-show / recruit replacement</button>
+              {% elif row.status == 'completed' %}
+              <div style="margin-top:6px;color:var(--green);font-size:12px;font-weight:700;">Completion recorded; see payout review and settlement status</div>
+              {% else %}<p>No-show recorded; this place can be filled by a replacement before closeout.</p>
               {% endif %}
             </div>
             {% endfor %}
@@ -316,7 +341,14 @@
             <button type="submit" class="action-btn">Close</button>
           </form>
         </div>
-        {% elif survey.status == 'closed' %}
+          {% if survey.pricing_snapshot and survey.task_type in ('interview', 'in_person', 'in_person_study') %}
+          <form method="post" action="/surveys/{{ survey.id }}/close" style="margin-top:12px;">
+            <input type="hidden" name="close_reason" value="researcher_cancelled">
+            <p>Cancel this live study: unused participant rewards are refundable; recruitment fees remain payable.</p>
+            <button type="submit" class="action-btn">Cancel study and retain recruitment fees</button>
+          </form>
+          {% endif %}
+        {% elif survey.status == 'closed' and not settlement %}
         <div class="action-row">
           <div><div class="action-label">Reopen</div><div class="action-desc">Resume collecting responses.</div></div>
           <form method="post" action="/surveys/{{ survey.id }}/reopen" style="margin:0;">
@@ -375,6 +407,9 @@
         </div>
       </div>
 
+      {% if survey.pricing_snapshot and survey.payment_status == 'paid' %}
+      <p style="font-size:13px;color:var(--ink3);">Funded studies are retained with their settlement and payment records.</p>
+      {% else %}
       <div class="action-group">
         <div class="action-group-head">Danger zone</div>
         <div class="action-row">
@@ -386,6 +421,7 @@
         </div>
       </div>
 
+      {% endif %}
     </div>
 
     <!-- AI FORECAST -->
@@ -415,6 +451,19 @@
 </div>
 
 <script>
+async function retrySettlement(button) {
+  button.disabled = true;
+  const response = await fetch(`/api/surveys/{{ survey.id }}/settlement/retry`, {method:'POST'});
+  if (response.ok) location.reload();
+  else { const error = await response.json(); button.disabled = false; alert(error.detail || 'Could not queue refund reconciliation.'); }
+}
+async function markNoShow(responseId, button) {
+  button.disabled = true;
+  const response = await fetch(`/api/surveys/{{ survey.id }}/bookings/${responseId}/no-show`, {method:'POST'});
+  if (response.ok) location.reload();
+  else { const error = await response.json(); button.disabled = false; alert(error.detail || 'Could not record no-show.'); }
+}
+
   const SURVEY_ID = {{ survey.id }};
   const SHARE_URL = {{ share_url | tojson }};
 

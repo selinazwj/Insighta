@@ -187,11 +187,14 @@ class Survey(Base):
     status = Column(String, default="draft")
     published_at = Column(DateTime, nullable=True)
     closed_at = Column(DateTime, nullable=True)
+    deadline_at = Column(DateTime, nullable=True)
+    close_reason = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Stripe payment status
     payment_status = Column(String, default="unpaid")
     stripe_payment_intent_id = Column(String, nullable=True)
+    stripe_funding_payment_intent_id = Column(String, nullable=True)
 
     # Quality auto-filter (publisher default for Results / Excel quality checks)
     quality_auto_filter_enabled = Column(Boolean, default=False)
@@ -200,6 +203,28 @@ class Survey(Base):
     publisher = relationship("User", back_populates="surveys")
     responses = relationship("Response", back_populates="survey")
     questions = relationship("Question", back_populates="survey")
+
+
+class StudySettlement(Base):
+    __tablename__ = "study_settlements"
+
+    id = Column(Integer, primary_key=True)
+    survey_id = Column(Integer, ForeignKey("surveys.id"), unique=True, nullable=False, index=True)
+    status = Column(String, nullable=False, default="waiting_review", index=True)
+    close_reason = Column(String, nullable=False)
+    pricing_snapshot = Column(JSON, nullable=False)
+    qualified_count = Column(Integer, nullable=True)
+    refund_amount_cents = Column(Integer, nullable=True)
+    currency = Column(String, nullable=False, default="usd")
+    payment_intent_id = Column(String, nullable=True)
+    stripe_refund_id = Column(String, nullable=True, unique=True)
+    qualified_response_ids = Column(JSON, nullable=True)
+    attempts = Column(Integer, nullable=False, default=0)
+    next_attempt_at = Column(DateTime, nullable=True)
+    last_error = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    frozen_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 # ======================
@@ -237,6 +262,8 @@ class Response(Base):
     payout_status = Column(String, default="pending")
     payout_amount = Column(Float, nullable=True)
     stripe_transfer_id = Column(String, nullable=True)
+    review_due_at = Column(DateTime, nullable=True)
+    payout_reviewed_at = Column(DateTime, nullable=True)
 
     client_ip = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)

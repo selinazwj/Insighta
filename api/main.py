@@ -34,11 +34,12 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
+from app.settlements import (assert_study_open, ensure_settlement, run_settlement_cycle, settlement_payload, lock_study, process_refund)
 from app.pricing import calculate_quote, pricing_config, PricingError
 from app.booking_calendar import booked_events, calendar_document, google_calendar_links
 from app.google_calendar import register_calendar_routes, calendar_status, queue_calendar_sync, sync_booking, JOB_TYPE as GOOGLE_CALENDAR_SYNC
 from app.database import engine, get_db, SessionLocal
-from app.models import Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision, BackgroundJob, GoogleCalendarEvent, DiditSession, DiditWebhookEvent
+from app.models import StudySettlement, Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision, BackgroundJob, GoogleCalendarEvent, DiditSession, DiditWebhookEvent
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
 from app.jobs.service import (
@@ -376,6 +377,9 @@ def ensure_survey_listing_columns():
         "per_person_gross": "FLOAT",
         "commission_rate": "FLOAT",
         "pricing_snapshot": "JSON",
+        "deadline_at": "TIMESTAMP",
+        "close_reason": "VARCHAR",
+        "stripe_funding_payment_intent_id": "VARCHAR",
         "payment_status": "VARCHAR",
         "stripe_payment_intent_id": "VARCHAR",
         "quality_auto_filter_enabled": "BOOLEAN DEFAULT false",
@@ -402,6 +406,8 @@ def ensure_response_tracking_columns():
         "payout_status": "VARCHAR",
         "payout_amount": "FLOAT",
         "stripe_transfer_id": "VARCHAR",
+        "review_due_at": "TIMESTAMP",
+        "payout_reviewed_at": "TIMESTAMP",
     }
     with engine.begin() as conn:
         for name, column_type in response_columns.items():
@@ -1468,6 +1474,7 @@ Review jobs: {admin_url}
 def run_due_background_jobs(limit: int = 25) -> dict[str, int]:
     db = SessionLocal()
     try:
+        settlement_processed = run_settlement_cycle(db, _verification_satisfies, limit=limit)
         enqueued = _enqueue_due_survey_start_followup_jobs(db, limit=limit)
         didit_reconcile_enqueued = enqueue_stale_didit_reconcile_jobs(db, limit=limit)
         if didit_reconcile_enqueued:
@@ -1479,6 +1486,7 @@ def run_due_background_jobs(limit: int = 25) -> dict[str, int]:
             on_failure=_notify_background_job_failure,
         )
         result["enqueued"] = enqueued
+        result["settlements_processed"] = settlement_processed
         result["didit_reconcile_enqueued"] = didit_reconcile_enqueued
         return result
     finally:
@@ -1561,8 +1569,35 @@ def _cleanup_expired_trust_data() -> dict[str, int]:
         db.close()
 
 
+def _run_settlement_worker_cycle():
+    with SessionLocal() as db:
+        return run_settlement_cycle(db, _verification_satisfies)
+
+
+async def _settlement_worker():
+    while True:
+        try:
+            await asyncio.to_thread(_run_settlement_worker_cycle)
+        except Exception:
+            logger.exception("Study settlement worker cycle failed")
+        await asyncio.sleep(60)
+
+
+@app.on_event("shutdown")
+async def stop_settlement_worker():
+    task = getattr(app.state, "settlement_worker", None)
+    if task:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
 @app.on_event("startup")
 async def start_survey_followup_worker() -> None:
+    if os.environ.get("INSIGHTA_ENABLE_SETTLEMENT_WORKER", "1").lower() in {"1", "true", "yes", "on"}:
+        app.state.settlement_worker = asyncio.create_task(_settlement_worker())
     db = SessionLocal()
     try:
         enqueue_trust_data_cleanup_job(db)
@@ -4252,6 +4287,7 @@ def publisher_study(
         "current_user": current_user,
         "availability_slots": availability_slots,
         "booking_rows": booking_rows,
+        "settlement": settlement_payload(db.query(StudySettlement).filter_by(survey_id=survey.id).first()),
         "share_url": _survey_share_url(request, db, survey, commit=True),
     })
 
@@ -4259,6 +4295,8 @@ def publisher_study(
 # Delete survey
 # ---------------------------
 def _delete_survey_tree(db: Session, survey: Survey) -> None:
+    if survey.pricing_snapshot and (survey.payment_status == "paid" or db.query(StudySettlement).filter_by(survey_id=survey.id).first()):
+        raise HTTPException(409, "Funded studies must be closed and kept for settlement records.")
     survey_id = survey.id
     # Delete dependent rows first. Postgres/Supabase enforces these foreign keys,
     # so deleting the survey directly can fail once quality/AI tracking exists.
@@ -5797,6 +5835,7 @@ async def start_survey(
         existing_bookings = db.query(Response).filter(
             Response.survey_id == survey_id,
             Response.booking_slot.isnot(None),
+            Response.status.notin_(["no_show", "cancelled", "rejected"]),
             Response.participant_id != current_user.id,
         ).all()
         taken_slots = set()
@@ -6024,6 +6063,7 @@ def complete_survey(
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey: raise HTTPException(404, "Survey not found")
     if survey.status != "published": raise HTTPException(400, "Survey not published")
+    assert_study_open(db, survey)
     if _uses_booking_flow(getattr(survey, "task_type", None)):
         return JSONResponse({
             "ok": False,
@@ -6103,6 +6143,24 @@ def complete_survey(
     })
 
 
+@app.post("/api/surveys/{survey_id}/bookings/{response_id}/no-show")
+def mark_booking_no_show(survey_id: int, response_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    study = lock_study(db, survey_id)
+    if not study or study.publisher_id != current_user.id:
+        raise HTTPException(404, "Study not found")
+    if not _uses_booking_flow(study.task_type):
+        raise HTTPException(400, "No-show replacement applies to live studies.")
+    assert_study_open(db, study)
+    response = db.query(Response).filter_by(id=response_id, survey_id=study.id).first()
+    if not response:
+        raise HTTPException(404, "Booking not found")
+    if response.status == "completed" or response.payout_status in {"approved", "paid"}:
+        raise HTTPException(409, "Completed participation cannot be marked as a no-show.")
+    response.status, response.payout_status, response.payout_amount = "no_show", "not_eligible", 0
+    db.commit()
+    return {"ok": True, "message": "No-show recorded. Recruit a replacement within the existing participant cap; no new recruitment fee is charged."}
+
+
 @app.post("/api/surveys/{survey_id}/bookings/{response_id}/complete")
 def confirm_live_interview_complete(
     survey_id: int,
@@ -6117,6 +6175,7 @@ def confirm_live_interview_complete(
     ).first()
     if not survey:
         raise HTTPException(404, "Study not found")
+    assert_study_open(db, survey)
     if not _uses_booking_flow(getattr(survey, "task_type", None)):
         raise HTTPException(400, "This action is only available for live studies.")
     response = db.query(Response).filter(
@@ -6175,6 +6234,9 @@ def modify_completed_survey(
     ).first()
 
     if r and r.status == "completed":
+        if survey:
+            assert_study_open(db, survey)
+
         r.status = "started"; r.completed_at = None
         return_response_to_review(db, r)
         # ive added this — undoing a completion removes the pending bell notification,
@@ -6577,6 +6639,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                         and checkout.get("amount_total") == survey.pricing_snapshot["total_cents"]
                         and checkout.get("currency") == survey.pricing_snapshot["currency"]))):
                 was_published = survey.status == "published"
+                payment_intent = checkout.get("payment_intent")
+                if isinstance(payment_intent, str) and payment_intent.startswith("pi_"):
+                    survey.stripe_funding_payment_intent_id = payment_intent
                 survey.payment_status = "paid"
                 survey.status = "published"
                 survey.published_at = datetime.utcnow()
@@ -6592,6 +6657,22 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                         metadata={"study_title": survey.title, "source": "Stripe webhook", "user_role": "researcher"},
                     )
                 db.commit()
+    elif event["type"] in {"refund.created", "refund.updated", "refund.failed"}:
+        from app.settlements import _apply_refund
+        refund = event["data"]["object"]
+        marker = str(refund.get("metadata", {}).get("insighta_settlement_id", ""))
+        if marker.isdigit():
+            existing = db.get(StudySettlement, int(marker))
+            if existing:
+                lock_study(db, existing.survey_id)
+                row = db.query(StudySettlement).filter_by(id=existing.id).populate_existing().with_for_update().one()
+                if row.frozen_at and row.payment_intent_id and (not row.stripe_refund_id or row.stripe_refund_id == refund.get("id")):
+                    # Re-fetch authoritative status so late events cannot undo a newer result.
+                    try:
+                        _apply_refund(row, stripe.Refund.retrieve(refund["id"]))
+                    except Exception:
+                        raise HTTPException(503, "Refund status could not be reconciled. Retry this webhook.")
+                    db.commit()
     elif event["type"] == "account.updated":
         account = event["data"]["object"]
         if account.get("charges_enabled"):
@@ -7356,22 +7437,56 @@ def publish_existing_survey(
     return RedirectResponse("/publisher", status_code=303)
 
 @app.post("/surveys/{survey_id}/close")
-def close_existing_survey(survey_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    s = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
-    if not s: raise HTTPException(404, "Survey not found")
-    if s.status != "closed": s.status = "closed"; s.closed_at = datetime.utcnow()
+def close_existing_survey(survey_id: int, close_reason: str = Form("completed"),
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    s = lock_study(db, survey_id)
+    if not s or s.publisher_id != current_user.id:
+        raise HTTPException(404, "Survey not found")
+    if close_reason not in {"completed", "researcher_cancelled"}:
+        raise HTTPException(400, "Choose close study or researcher cancellation.")
+    if close_reason == "researcher_cancelled" and s.pricing_snapshot and s.pricing_snapshot["study_type"] not in {"interview", "in_person"}:
+        raise HTTPException(400, "The cancellation recruitment-fee rule applies only to live studies.")
+    if s.status != "closed":
+        s.status, s.closed_at, s.close_reason = "closed", datetime.utcnow(), close_reason
+    ensure_settlement(db, s)
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
+
 
 @app.post("/surveys/{survey_id}/reopen")
 def reopen_closed_survey(survey_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     s = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
     if not s: raise HTTPException(404, "Survey not found")
+    if db.query(StudySettlement).filter_by(survey_id=s.id).first():
+        raise HTTPException(409, "A study in settlement cannot reopen. Create a new listing.")
     if s.payment_status not in {"paid", "admin_demo"}:
         raise HTTPException(400, "Study must be funded before reopening.")
     if s.status == "closed": s.status = "published"; s.closed_at = None
     db.commit()
     return RedirectResponse("/publisher", status_code=303)
+
+
+@app.get("/api/surveys/{survey_id}/settlement")
+def study_settlement_status(survey_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    study = db.query(Survey).filter_by(id=survey_id, publisher_id=current_user.id).first()
+    if not study:
+        raise HTTPException(404, "Study not found")
+    return {"settlement": settlement_payload(db.query(StudySettlement).filter_by(survey_id=study.id).first())}
+
+
+@app.post("/api/surveys/{survey_id}/settlement/retry")
+def retry_study_settlement(survey_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    study = lock_study(db, survey_id)
+    if not study or study.publisher_id != current_user.id:
+        raise HTTPException(404, "Study not found")
+    row = db.query(StudySettlement).filter_by(survey_id=study.id).first()
+    if not row or row.status not in {"retrying", "manual_review"}:
+        raise HTTPException(409, "This settlement is not awaiting a refund retry.")
+    if row.stripe_refund_id:
+        raise HTTPException(409, "An existing refund needs support reconciliation; it will not be submitted twice.")
+    row.status, row.attempts, row.next_attempt_at = "ready", 0, datetime.utcnow()
+    db.commit()
+    return {"ok": True, "message": "Refund reconciliation queued."}
 
 
 # ---------------------------
@@ -9850,6 +9965,16 @@ async def publish_survey(
         rate = quote["rate_bps"] / 10000
         total = quote["total_cents"] / 100
 
+    deadline_at = None
+    raw_deadline = str(form.get("deadline_date") or "").strip()
+    if raw_deadline:
+        try:
+            deadline_at = datetime.combine(date.fromisoformat(raw_deadline), time.max)
+        except ValueError:
+            raise HTTPException(400, "Enter a valid deadline date (UTC).")
+        if deadline_at <= datetime.utcnow():
+            raise HTTPException(400, "The completion deadline must be in the future.")
+
     image_url = None
     if cover_image and cover_image.filename:
         uploads_dir = Path("app/static/uploads"); uploads_dir.mkdir(exist_ok=True)
@@ -9875,6 +10000,7 @@ async def publish_survey(
         survey.per_person_gross = ppg
         survey.total_budget = total
         survey.commission_rate = rate
+        survey.deadline_at = deadline_at
         survey.pricing_snapshot = quote
         survey.payment_status = "unpaid"
         survey.target_responses = target_responses
@@ -9930,7 +10056,7 @@ async def publish_survey(
             publisher_id=current_user.id, title=title, description=description, form_url=form_url,
             task_type=normalized_task_type, category=category, estimated_time=estimated_time,
             reward_amount=reward, per_person_gross=ppg, total_budget=total, commission_rate=rate,
-            pricing_snapshot=quote,
+            pricing_snapshot=quote, deadline_at=deadline_at,
             payment_status="unpaid",
             target_responses=target_responses, urgency_level=_clean_target(urgency_level),
             incentive_type=incentive_clean, raffle_prize_type=raffle_clean if is_raffle else None,
@@ -10504,6 +10630,7 @@ async def submit_answers(
     survey = db.query(Survey).filter(Survey.id == survey_id).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
+    assert_study_open(db, survey)
     if survey.status != "published":
         raise HTTPException(400, "Survey not published")
     if not _screening_passed(db, survey_id, current_user.id):

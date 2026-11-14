@@ -196,6 +196,9 @@ def complete_response_with_token(db: Session, token: str, survey_id: int, reques
     if not response or not survey or not participant:
         raise HTTPException(404, "Jump response context not found")
 
+    from app.settlements import assert_study_open
+    assert_study_open(db, survey)
+
     if response.status != "completed":
         response.status = "completed"
         response.completed_at = datetime.now(timezone.utc)
