@@ -11,7 +11,7 @@ python-dotenv
 psycopg2-binary
 psycopg[binary]>=3,<4
 anthropic
-stripe
+stripe>=17,<18
 httpx
 openpyxl
 scikit-learn

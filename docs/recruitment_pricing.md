@@ -113,3 +113,6 @@ Survey (including built-in survey publication), remote interview, and in-person 
 
 
 Stripe requests explicitly pin `2025-03-31.basil`, matching the configured snapshot webhook endpoint. The SDK otherwise selects its own newer API version: Stripe Python 17 defaults to Endive, which rejects the existing card-only `payment_method_types` Checkout parameter. Upgrade this contract and the webhook deliberately together, rather than inheriting a breaking API change from a package upgrade. Checkout diagnostics log only exception type and Stripe request ID, not provider messages or keys.
+
+
+Provider resources are normalized to plain dictionaries at webhook, funding lookup, and refund reconciliation boundaries. Stripe Python 17 no longer exposes dictionary methods such as `.get()` on resource objects; tests construct real SDK resources and submit HMAC-signed events through the actual webhook verifier. The project uses Stripe Python 17.x consistently in development and staging. A successful Checkout redirect still does not credit funding; a failed callback is retried/replayed after the application fix, preserving exact-once credit.

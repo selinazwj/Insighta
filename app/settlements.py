@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta, timezone
 
 import stripe
+from app.stripe_data import plain_stripe_data
 from fastapi import HTTPException
 from sqlalchemy import or_
 
@@ -160,7 +161,7 @@ def _funding_intent(study, settlement):
     intent = study.stripe_funding_payment_intent_id
     if not intent:
         # Phase-one orders stored a Checkout Session ID in this legacy field.
-        session = stripe.checkout.Session.retrieve(study.stripe_payment_intent_id)
+        session = plain_stripe_data(stripe.checkout.Session.retrieve(study.stripe_payment_intent_id))
         q = settlement.pricing_snapshot
         if (session.get("payment_status") != "paid" or session.get("amount_total") != q["total_cents"]
                 or session.get("currency") != settlement.currency
@@ -173,6 +174,7 @@ def _funding_intent(study, settlement):
 
 
 def _apply_refund(row, refund):
+    refund = plain_stripe_data(refund)
     if (refund.get("amount") != row.refund_amount_cents or refund.get("currency") != row.currency
             or refund.get("payment_intent") != row.payment_intent_id):
         raise RuntimeError("Refund details do not match the frozen settlement.")
@@ -211,7 +213,7 @@ def process_refund(db, settlement_id, *, now=None):
             # idempotency keys for a limited time, so a key alone is insufficient.
             matching = None
             for refund in stripe.Refund.list(payment_intent=row.payment_intent_id, limit=100).auto_paging_iter():
-                if refund.get("metadata", {}).get("insighta_settlement_id") == str(row.id):
+                if plain_stripe_data(refund).get("metadata", {}).get("insighta_settlement_id") == str(row.id):
                     matching = refund
                     break
             if matching is None:

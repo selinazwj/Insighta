@@ -37,6 +37,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from app.settlements import (assert_study_open, ensure_settlement, run_settlement_cycle, settlement_payload, lock_study, process_refund)
 from app import wallet as researcher_wallet
 from app.wallet_models import WalletRefundPart
+from app.stripe_data import plain_stripe_data
 from app.pricing import calculate_quote, pricing_config, PricingError
 from app.booking_calendar import booked_events, calendar_document, google_calendar_links
 from app.google_calendar import register_calendar_routes, calendar_status, queue_calendar_sync, sync_booking, JOB_TYPE as GOOGLE_CALENDAR_SYNC
@@ -6647,7 +6648,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+        event = plain_stripe_data(stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET))
     except Exception as e:
         raise HTTPException(400, str(e))
 

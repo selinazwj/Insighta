@@ -4,6 +4,7 @@ import re
 from sqlalchemy import func, update
 from fastapi import HTTPException
 import stripe
+from app.stripe_data import plain_stripe_data
 
 from app.models import User, Survey
 from app.wallet_models import (WalletAccount, WalletLedger, WalletTopUp, WalletFundingLot, WalletCoupon,
@@ -59,6 +60,7 @@ def _cash_entry(db, user_id, delta, kind, reference, description):
 
 
 def fulfill_topup(db, session):
+    session = plain_stripe_data(session)
     marker = str(session.get('metadata', {}).get('wallet_topup_id', ''))
     if not marker.isdigit(): return False
     found = db.get(WalletTopUp, int(marker))
@@ -116,7 +118,7 @@ def pay_study(db, study_id, user_id, *, use_promo=True, expected_snapshot=None):
     # Never switch a live card checkout to wallet while it could still be paid.
     if study.stripe_payment_intent_id:
         if not stripe.api_key: raise HTTPException(503, 'Reconcile the existing Stripe checkout before switching payment method.')
-        checkout = stripe.checkout.Session.retrieve(study.stripe_payment_intent_id)
+        checkout = plain_stripe_data(stripe.checkout.Session.retrieve(study.stripe_payment_intent_id))
         if checkout.get('payment_status') == 'paid': raise HTTPException(409, 'This checkout is already paid; wait for confirmation.')
         if checkout.get('status') == 'open': stripe.checkout.Session.expire(study.stripe_payment_intent_id)
         elif checkout.get('status') != 'expired': raise HTTPException(409, 'Existing card checkout needs reconciliation.')
@@ -196,6 +198,7 @@ def proportional_parts(amount, allocations):
 
 
 def apply_part(part, refund):
+    refund = plain_stripe_data(refund)
     if (refund.get('amount') != part.amount_cents or refund.get('currency') != 'usd'
         or refund.get('payment_intent') != part.payment_intent_id):
         raise ValueError('Provider refund does not match its funding allocation.')
@@ -260,7 +263,7 @@ def process_wallet_settlement(db, study, row):
             refund = stripe.Refund.retrieve(part.stripe_refund_id)
         else:
             refund = next((r for r in stripe.Refund.list(payment_intent=part.payment_intent_id, limit=100).auto_paging_iter()
-                if r.get('metadata', {}).get('insighta_wallet_part_id') == str(part.id)), None)
+                if plain_stripe_data(r).get('metadata', {}).get('insighta_wallet_part_id') == str(part.id)), None)
             if refund is None:
                 refund = stripe.Refund.create(payment_intent=part.payment_intent_id, amount=part.amount_cents,
                     reason='requested_by_customer', metadata={'insighta_wallet_part_id':str(part.id), 'survey_id':str(study.id)},
@@ -272,6 +275,7 @@ def process_wallet_settlement(db, study, row):
 
 
 def freeze_wallet_for_payment_event(db, event):
+    event = plain_stripe_data(event)
     obj = event.get('data', {}).get('object', {})
     intent = obj.get('payment_intent')
     if not isinstance(intent, str): return
