@@ -1,0 +1,11 @@
+{% if not is_admin_publish %}
+<section class="niche-request-options">
+  <label class="niche-toggle"><input id="nicheRecruitment" name="niche_recruitment" type="checkbox" value="1" {% if request.query_params.get('niche') == '1' %}checked{% endif %}> Niche audience · request a custom quote</label>
+  <div id="nicheRequestDetails" hidden>
+    <label for="nicheDetails">Who do you need to recruit?</label>
+    <textarea id="nicheDetails" name="niche_details" minlength="10" maxlength="4000" rows="3" placeholder="e.g. US-based cardiologists who use a specific clinical system"></textarea>
+    <p>Submit now. Review the quote before paying.</p>
+    {% include "_founder_contact.html" %}
+  </div>
+</section>
+{% endif %}

@@ -256,7 +256,7 @@
       .btn-cancel,.btn-publish{width:100%;justify-content:center;}
     }
   </style>
-<link rel="stylesheet" href="/static/listing_pricing.css?v=2">
+<link rel="stylesheet" href="/static/listing_pricing.css?v=niche-1">
 </head>
 <body>
 
@@ -958,6 +958,8 @@
         </div>
       </div>
 
+      {% include "_niche_request_options.html" %}
+
       <div class="field" style="margin-bottom:20px;">
         <label>Incentive type</label>
         <div class="pills" id="incentivePills">
@@ -1055,7 +1057,7 @@
     </div>
     {% endif %}
 
-    <div data-wizard-step="5" hidden>{% include "_wallet_payment_options.html" %}</div>
+    <div data-wizard-step="5" hidden>{% include "_wallet_payment_options.html" %}{% include "_niche_submit_summary.html" %}</div>
 
     <div class="wizard-nav">
       <button type="button" class="btn-step back" id="wizardBack" onclick="changeWizardStep(-1)">Back</button>
@@ -1591,7 +1593,7 @@
     });
     const incentive = document.getElementById('incentiveInput').value;
     const noPay = incentive === 'raffle' || incentive === 'volunteer';
-    if (!noPay && (!IS_ADMIN_PUBLISH || adminUsesStripe())) {
+    if (!noPay && !document.getElementById('nicheRecruitment')?.checked && (!IS_ADMIN_PUBLISH || adminUsesStripe())) {
       const pp = parseFloat(ppInput.value) || 0;
       const tot = parseFloat(totalInput.value) || 0;
       if (!pp && !tot) {
@@ -1654,5 +1656,6 @@
 </script>
 <script src="/static/support_chat.js"></script>
 <script src="/static/listing_budget.js?v=2"></script>
+<script src="/static/niche_request.js?v=1"></script>
 </body>
 </html>

@@ -42,6 +42,8 @@ from app.pricing import calculate_quote, pricing_config, PricingError
 from app.booking_calendar import booked_events, calendar_document, google_calendar_links
 from app.google_calendar import register_calendar_routes, calendar_status, queue_calendar_sync, sync_booking, JOB_TYPE as GOOGLE_CALENDAR_SYNC
 from app.database import engine, get_db, SessionLocal
+from app import niche
+from app.niche_models import NicheRequest, NicheQuote
 from app.models import StudySettlement, Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision, BackgroundJob, GoogleCalendarEvent, DiditSession, DiditWebhookEvent
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
 from app.observability import configure_logging, request_duration_ms, request_id_from, request_timer_start, slow_request_threshold_ms
@@ -4198,6 +4200,7 @@ def publisher_dashboard(
             "surveys": survey_items,
             "interviews": interview_items,
             "completed_map": completed_map,
+            "niche_requests":{row.survey_id:row for row in db.query(NicheRequest).filter(NicheRequest.survey_id.in_(survey_ids)).all()},
             "current_user": current_user
         }
     )
@@ -4271,6 +4274,8 @@ def publisher_study(
     ).first()
     if not survey:
         raise HTTPException(404, "Not found")
+    if niche.request_for(db, survey.id) and survey.payment_status != 'paid':
+        return RedirectResponse(f'/publisher/study/{survey.id}/quote', status_code=303)
     completed_count = db.query(Response).filter(
         Response.survey_id == survey_id,
         Response.status == "completed"
@@ -4314,6 +4319,7 @@ def publisher_study(
 # Delete survey
 # ---------------------------
 def _delete_survey_tree(db: Session, survey: Survey) -> None:
+    niche.assert_editable(db, survey)
     if survey.pricing_snapshot and (survey.payment_status == "paid" or db.query(StudySettlement).filter_by(survey_id=survey.id).first()):
         raise HTTPException(409, "Funded studies must be closed and kept for settlement records.")
     survey_id = survey.id
@@ -6653,6 +6659,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(400, str(e))
 
     if event["type"] == "checkout.session.completed":
+        if niche.fulfill_checkout(db, event["data"]["object"]):
+            db.commit()
+            return JSONResponse({"status": "ok"})
         if researcher_wallet.fulfill_topup(db, event["data"]["object"]):
             db.commit()
             return JSONResponse({"status": "ok"})
@@ -7464,6 +7473,8 @@ def publish_existing_survey(
 ):
     s = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
     if not s: raise HTTPException(404, "Survey not found")
+    if s.pricing_snapshot and s.status == 'closed':
+        raise HTTPException(409, 'A funded closed study cannot be republished. Create a new listing.')
     if getattr(s, 'payment_status', 'unpaid') != 'paid': raise HTTPException(400, "Survey must be paid before publishing")
     if s.status != "published":
         s.status = "published"
@@ -7487,6 +7498,8 @@ def close_existing_survey(survey_id: int, close_reason: str = Form("completed"),
     s = lock_study(db, survey_id)
     if not s or s.publisher_id != current_user.id:
         raise HTTPException(404, "Survey not found")
+    if niche.request_for(db, s.id) and s.payment_status != 'paid':
+        raise HTTPException(409, 'This niche request has not been funded. Contact our founder to change its scope.')
     if close_reason not in {"completed", "researcher_cancelled"}:
         raise HTTPException(400, "Choose close study or researcher cancellation.")
     if close_reason == "researcher_cancelled" and s.pricing_snapshot and s.pricing_snapshot["study_type"] not in {"interview", "in_person"}:
@@ -7596,6 +7609,7 @@ async def edit_survey_post(
     survey = db.query(Survey).filter(Survey.id == survey_id, Survey.publisher_id == current_user.id).first()
     if not survey:
         raise HTTPException(404, "Survey not found")
+    niche.assert_editable(db, survey)
     if survey.pricing_snapshot:
         snapshot = survey.pricing_snapshot
         current_completed = db.query(Response).filter(Response.survey_id == survey_id, Response.status == "completed").count()
@@ -9086,6 +9100,7 @@ async def admin_edit_listing_post(survey_id: int, request: Request, db: Session 
     if not survey:
         raise HTTPException(404, "Survey not found")
 
+    niche.assert_editable(db, survey)
     current_responses = db.query(Response).filter(
         Response.survey_id == survey_id,
         Response.status == "completed",
@@ -9923,6 +9938,10 @@ async def publish_survey(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     form = await request.form()
+    niche_requested = not admin_publish and str(form.get('niche_recruitment') or '').lower() in {'1', 'true', 'on'}
+    niche_details = str(form.get('niche_details') or '').strip()
+    if niche_requested and not 10 <= len(niche_details) <= 4000:
+        raise HTTPException(400, 'Describe your niche audience in 10–4,000 characters.')
     if admin_publish and not _admin_key_matches(form.get("admin_key")):
         raise HTTPException(403, "Admin demo publishing requires administrator authorization.")
     admin_payment_mode = (admin_payment_mode or form.get("admin_payment_mode") or "demo").strip().lower()
@@ -9961,11 +9980,15 @@ async def publish_survey(
         ).populate_existing().with_for_update().first()
         if not previous:
             raise HTTPException(404, "Survey not found")
+        if niche.request_for(db, previous.id):
+            return _publish_redirect(request, f'/publisher/study/{previous.id}/quote', previous.id)
         if previous.status in {"published", "closed"} or previous.payment_status in {"paid", "admin_demo"}:
             if admin_publish:
                 redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
                 return _publish_redirect(request, f"/admin/publish?{redirect_qs}", previous.id)
             return _publish_redirect(request, "/publisher", previous.id)
+    if niche_requested and not publish_token:
+        raise HTTPException(400, 'Reload the form before submitting a niche request.')
     if not title.strip() or target_responses <= 0 or estimated_time <= 0:
         raise HTTPException(400, "Add a title, a positive duration, and at least one participant.")
     raw_task_type = (task_type or form.get("task_type") or "survey").strip()
@@ -9999,7 +10022,17 @@ async def publish_survey(
     is_raffle = incentive_clean == "raffle"
     demo = admin_publish and not admin_uses_stripe
     quote = None
-    if demo and str(per_person_gross or "").strip() in {"", "0", "0.0", "0.00"}:
+    if niche_requested:
+        from app.pricing import money_cents, positive_count
+        try:
+            desired = money_cents(per_person_gross or '0')
+            calculate_quote(normalized_task_type, incentive_clean, str(desired/100) if desired else '0.01', target_responses, urgency_level)
+            positive_count(target_responses)
+        except PricingError as exc:
+            raise HTTPException(400, str(exc))
+        ppg = reward = desired/100 if incentive_clean in {'cash', 'gift_card'} else 0
+        rate = total = 0
+    elif demo and str(per_person_gross or "").strip() in {"", "0", "0.0", "0.00"}:
         ppg = rate = reward = total = 0.0
     else:
         try:
@@ -10095,6 +10128,8 @@ async def publish_survey(
             survey.publish_token = publish_token
         _ensure_survey_share_slug(db, survey)
         _apply_survey_auto_filter_settings(survey, form)
+        if niche_requested:
+            niche.submit_request(db, survey, niche_details)
         db.commit()
         db.refresh(survey)
     else:
@@ -10142,6 +10177,9 @@ async def publish_survey(
         _apply_survey_auto_filter_settings(survey, form)
         db.add(survey)
         try:
+            db.flush()
+            if niche_requested:
+                niche.submit_request(db, survey, niche_details)
             db.commit()
         except IntegrityError:
             db.rollback()
@@ -10162,6 +10200,9 @@ async def publish_survey(
             target_id=survey.id,
             metadata={"study_title": survey.title, "source": "Publish flow", "user_role": "researcher"},
         )
+
+    if niche_requested:
+        return _publish_redirect(request, f'/publisher/study/{survey.id}/quote', survey.id)
 
     if admin_publish and not admin_uses_stripe:
         survey.status = "published"
@@ -10253,6 +10294,7 @@ async def update_survey_info(
     if not survey:
         raise HTTPException(404, "Survey not found")
 
+    niche.assert_editable(db, survey)
     body = await request.json()
     financial_fields = {"per_person_gross", "reward_amount", "total_budget", "commission_rate", "target_responses"}
     if (survey.pricing_snapshot or survey.status != "draft") and financial_fields.intersection(body):
@@ -11605,3 +11647,6 @@ app.include_router(router)
 
 from app.wallet_routes import register_wallet_routes
 register_wallet_routes(app, templates, get_db, get_current_user, _admin_key_matches, lambda: BASE_URL)
+
+from app.niche_routes import register_niche_routes
+register_niche_routes(app, templates, get_db, get_current_user, _admin_key_matches, lambda: BASE_URL)

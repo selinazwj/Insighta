@@ -1,6 +1,6 @@
 # Recruitment pricing rollout
 
-Phase one introduces additive recruitment fees, quotes, and Stripe funding. Phase two adds completion review deadlines and original-card settlement refunds. Phase three adds researcher wallets, promotional recruitment credits, and billing exports. Niche payment links remain a later phase.
+Phase one introduces additive recruitment fees, quotes, and Stripe funding. Phase two adds completion review deadlines and original-card settlement refunds. Phase three adds researcher wallets, promotional recruitment credits, and billing exports. Phase four adds manual niche requests, versioned offers, and owner-bound payment pages.
 
 ## Rules
 
@@ -13,7 +13,7 @@ Phase one introduces additive recruitment fees, quotes, and Stripe funding. Phas
 - Raffle and volunteer quotes have no per-person reward and charge the study type's minimum recruitment fee per target participant. Raffle prizes are funded separately by the researcher.
 - Urgency applies to the combined reward and fee: flexible 0%, within a month 5%, within a week 10%.
 - Multi-session studies use the full reward per participant for completing all required sessions. Session count is scheduling metadata, not a second pricing multiplier. This matches the single existing completion payout for a participant.
-- Niche audiences remain manually quoted; there is no self-service niche checkout.
+- Niche audiences use a manual quote. Standard-audience estimates do not authorize niche publication or payment.
 
 `app/pricing.py` is the only pricing implementation. Both calculators call `/api/calculate-price`; publication recalculates on the server and ignores any client total. Money is converted to integer cents, percentage recruitment fees round half up to cents per participant, and urgency rounds half up once on the order subtotal.
 
@@ -120,3 +120,17 @@ Provider resources are normalized to plain dictionaries at webhook, funding look
 ### Staging Sandbox acceptance (2026-11-15)
 
 Verified on the isolated staging service at commit `fd09303`: a $10 Stripe Sandbox top-up credited once after signed webhook delivery; manually replaying the same event returned HTTP 200 without adding credit. A $5 wallet-funded volunteer listing published and settled back to its original test card. A separate $5 card-funded volunteer listing published through its paid webhook and settled into the wallet. Both test listings were closed, and the final cash balance was $10 with no spending block. Study invoice PDF downloads were verified. These checks used Stripe Sandbox cards and generated no real charges; production resources were unchanged. The earlier provider-mocked regression checks remain complementary to this hosted integration run.
+
+## Phase four: manual niche recruitment
+
+Apply migration `202611150001`. Survey, built-in survey, remote and in-person publication offer a niche checkbox in the penultimate Budget step. Selecting it replaces immediate checkout with **Submit requirements**. The request remains a private draft, with an optional desired reward, an immutable audience description, and the existing targeting/scheduling fields. Submission tokens prevent duplicate requests and an existing request cannot be resubmitted as a standard purchase. Dashboard rows display Awaiting quote or Awaiting payment and open the owner-bound quote page. Submitted requests cannot be edited or deleted through regular researcher, builder-metadata, or admin listing-edit routes; create a fresh request if its scope needs to change.
+
+The existing admin panel links to `/admin/niche`, protected by the same administrator key. The team enters the full participant reward, a manually chosen platform recruitment fee per participant, scope notes, and 1–30 days of validity (default seven). The survey/remote/in-person platform floors of $5/$10/$15 still apply; no automatic niche percentage is invented. Backend cent arithmetic applies the saved participant count and urgency policy and preserves an append-only offer version. The researcher sees the total first, with reward and platform fee separated, and explicitly accepts before Stripe Checkout. Wallet spending and coupons are not supported for these custom offers; unused funding can still return to Wallet or the original card under the existing settlement rules. Each completed paid quote receives the usual study invoice.
+
+The admin can copy the researcher payment-page link; only the study owner can open and accept it. No email is sent automatically. Niche creation, pending requests and quote pages link to `vfsa@bu.edu` via **Contact our founder**. Where a listing exists, the mail subject includes its ID. The Wallet niche calculator also points to the request flow and founder email.
+
+A replacement quote first confirms that the prior Stripe Checkout has expired (or expires it successfully). A completed payment prevents replacement until its webhook is reconciled. Creation attempts persist their fixed parameters and idempotency key before contacting Stripe, and unknown outcomes block repricing. Retry the same quote to reconcile that attempt. A signed paid webhook can also recover its matching session by authoritative Stripe lookup if the create response was lost. Do not roll an idempotency key to bypass an unresolved payment.
+
+Checkout expires within 23 hours and never later than the offer expiry or study deadline; both relevant expiry dates are shown on the payment page. An expired payment link requires a replacement offer. Stripe session expiry is enforced at the provider, and stale quote IDs, wrong amounts/currencies/owners and unrelated sessions cannot publish. Only the matching signed paid callback saves the manual pricing snapshot and publishes; redirects do not publish. Duplicate events do not duplicate invoices or reopen closed studies. Settlement and original-card refunds reuse the saved snapshot and original PaymentIntent.
+
+Validation: `tests.test_niche` covers idempotent private submission, access control, fee floors, manual totals and refunds, explicit acceptance, quote expiry/replacement, signed paid callbacks, no duplicate publication/invoices, stale/wrong payment rejection, lost-response reconciliation and both interview formats. `tests/test_niche_request.cjs` verifies switching between standard payment and manual request submission. Migration upgrade/downgrade/upgrade is checked on an isolated database; local browser checks cover request submission, admin quotation and the owner payment page. Provider calls in the new automated tests are mocked; they do not represent a new hosted Stripe charge.

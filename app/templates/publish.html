@@ -278,13 +278,13 @@
           <div class="study-dot" style="background:{% if s.status == 'published' %}var(--green){% elif s.status == 'draft' %}#f59e0b{% else %}var(--ink4){% endif %};"></div>
           <div class="study-info">
             <div class="study-title">{{ s.title }}</div>
-            <div class="study-meta">Survey · {{ s.estimated_time }} min · ${{ '%.2f'|format(s.reward_amount or 0) }}</div>
+            <div class="study-meta">Survey · {{ s.estimated_time }} min · {% if s.id in niche_requests and niche_requests[s.id].status != 'paid' %}Custom quote{% else %}${{ '%.2f'|format(s.reward_amount or 0) }}{% endif %}</div>
           </div>
           <div class="study-prog">
             <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%;"></div></div>
             <div class="prog-label">{{ completed }} / {{ target }}</div>
           </div>
-          <div class="study-badge badge-{{ s.status }}">{{ s.status | capitalize }}</div>
+          <div class="study-badge badge-{{ s.status }}">{{ 'Awaiting quote' if s.id in niche_requests and niche_requests[s.id].status == 'requested' else 'Awaiting payment' if s.id in niche_requests and niche_requests[s.id].status == 'quoted' else s.status | capitalize }}</div>
           <div class="study-arrow">→</div>
         </a>
         {% endfor %}
@@ -311,13 +311,13 @@
           <div class="study-dot" style="background:{% if s.status == 'published' %}#7c3aed{% elif s.status == 'draft' %}#f59e0b{% else %}var(--ink4){% endif %};"></div>
           <div class="study-info">
             <div class="study-title">{{ s.title }}</div>
-            <div class="study-meta">{{ task_label }} · {{ s.estimated_time }} min · ${{ '%.2f'|format(s.reward_amount or 0) }}</div>
+            <div class="study-meta">{{ task_label }} · {{ s.estimated_time }} min · {% if s.id in niche_requests and niche_requests[s.id].status != 'paid' %}Custom quote{% else %}${{ '%.2f'|format(s.reward_amount or 0) }}{% endif %}</div>
           </div>
           <div class="study-prog">
             <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%; background:#7c3aed;"></div></div>
             <div class="prog-label">{{ completed }} / {{ target }}</div>
           </div>
-          <div class="study-badge badge-{{ s.status }}">{{ s.status | capitalize }}</div>
+          <div class="study-badge badge-{{ s.status }}">{{ 'Awaiting quote' if s.id in niche_requests and niche_requests[s.id].status == 'requested' else 'Awaiting payment' if s.id in niche_requests and niche_requests[s.id].status == 'quoted' else s.status | capitalize }}</div>
           <div class="study-arrow">→</div>
         </a>
         {% endfor %}

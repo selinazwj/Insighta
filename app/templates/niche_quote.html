@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Niche recruitment quote | Insighta</title>
+{% include "_seo_head.html" %}<link rel="icon" href="/static/favicon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="/static/researcher_workspace.css"><link rel="stylesheet" href="/static/niche.css"></head><body>
+{% set researcher_section = 'listings' %}{% set niche_quote_page = true %}{% include "_researcher_sidebar.html" %}
+<main class="main"><div class="topbar"><div class="topbar-title">Niche recruitment</div><a class="btn-guide" href="/publisher">My listings</a></div><div class="content quote-shell">
+<h1 class="quote-title">{{ 'Payment confirmed' if niche_request.status == 'paid' else 'Your recruitment quote' if quote else 'Request submitted' }}</h1>
+<p class="quote-sub">{{ study.title }} · Listing #{{ study.id }}</p>
+{% if error %}<p class="quote-error" role="alert">{{ error }}</p>{% endif %}
+<section class="quote-card">
+<div class="quote-head"><h2>{{ 'Recruitment confirmed' if niche_request.status == 'paid' else 'Custom recruitment' }}</h2><span class="quote-state">{{ study.status|capitalize if niche_request.status == 'paid' else 'Quote expired' if expired else 'Awaiting payment' if quote else 'Awaiting quote' }}</span></div>
+{% if niche_request.status == 'paid' %}
+<p class="quote-detail">Payment confirmed.</p><div class="quote-actions"><a class="quote-primary" href="/publisher/study/{{ study.id }}">View study</a><a href="/api/surveys/{{ study.id }}/invoice">Invoice PDF</a></div>
+{% elif quote %}
+{% set q = quote.snapshot %}<div class="quote-label">Total · USD</div><div class="quote-total">${{ '%.2f'|format(q.total_cents/100) }}</div>
+<div class="quote-grid"><div><span>Participants</span><strong>{{ q.target_responses }}</strong></div><div><span>Reward / participant</span><strong>${{ '%.2f'|format(q.reward_per_person_cents/100) }}</strong></div><div><span>Platform fee / participant</span><strong>${{ '%.2f'|format(q.recruitment_fee_per_person_cents/100) }}</strong></div></div>
+<p class="quote-label">Quote #{{ quote.id }} · Valid until {{ quote.expires_at.strftime('%b %d, %Y · %H:%M UTC') }}</p>{% if quote.checkout_expires_at %}<p class="quote-label" style="margin-top:6px">Payment link expires {{ quote.checkout_expires_at.strftime('%b %d, %Y · %H:%M UTC') }}. Contact our founder if you need a fresh link.</p>{% endif %}
+{% if quote.notes %}<p class="quote-detail" style="margin-top:18px">{{ quote.notes }}</p>{% endif %}
+{% if expired %}<p class="quote-detail" style="margin-top:18px">Contact our founder for an updated quote.</p>
+{% else %}<form method="post" action="/publisher/study/{{ study.id }}/quote/checkout"><input type="hidden" name="quote_id" value="{{ quote.id }}">
+<label for="nicheRefund">Return unused funds to</label><select name="refund_destination" id="nicheRefund" {% if quote.refund_destination %}disabled{% endif %}><option value="wallet" {% if quote.refund_destination != 'card' %}selected{% endif %}>Wallet balance</option><option value="card" {% if quote.refund_destination == 'card' %}selected{% endif %}>Original card(s)</option></select>
+{% if quote.refund_destination %}<input type="hidden" name="refund_destination" value="{{ quote.refund_destination }}">{% endif %}
+<label><input type="checkbox" name="accept_quote" value="1" required>I accept quote #{{ quote.id }} for ${{ '%.2f'|format(q.total_cents/100) }}.</label>
+<div class="quote-actions"><button type="submit">Accept quote &amp; pay</button></div></form>{% endif %}
+<details><summary>Price breakdown &amp; refund rules</summary><p>Participant rewards: ${{ '%.2f'|format(q.target_responses*q.reward_per_person_cents/100) }} · Platform fees: ${{ '%.2f'|format(q.target_responses*q.recruitment_fee_per_person_cents/100) }} · Urgency: ${{ '%.2f'|format(q.urgency_amount_cents/100) }}.</p><p>Participants receive the full reward. Unused funding is returned after completion reviews. Researcher cancellation retains platform recruitment fees and their urgency surcharge.</p><p>This quote uses card checkout. Wallet spending and promotional credits are unavailable for custom quotes.</p></details>
+{% else %}<p class="quote-detail">Our team will review your audience and prepare a quote. Your listing stays private until payment is confirmed.</p>{% endif %}
+<details><summary>Your recruitment requirements</summary><p class="quote-detail">{{ niche_request.requirements }}</p><p>{{ study.target_responses }} participants · {{ study.task_type.replace('_',' ') }}</p></details>
+</section>{% include "_founder_contact.html" %}
+</div></main></body></html>
