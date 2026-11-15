@@ -256,6 +256,7 @@
       .btn-cancel,.btn-publish{width:100%;justify-content:center;}
     }
   </style>
+<link rel="stylesheet" href="/static/listing_pricing.css?v=2">
 </head>
 <body>
 
@@ -363,6 +364,7 @@
     </div>
   </div>
 
+  <form id="listingPlannerForm"></form>
   <form id="publishForm" method="POST" action="{{ '/admin/publish' if is_admin_publish else '/publish' }}" enctype="multipart/form-data" novalidate>
     {% if is_admin_publish %}
     <input type="hidden" name="admin_key" value="{{ admin_key }}">
@@ -540,7 +542,7 @@
         <div class="section-num">03</div>
         <div>
           <div class="section-title">Budget &amp; timeline</div>
-          <div class="section-sub">Incentive type, target responses, and urgency</div>
+          <div class="section-sub">Set rewards and review your total.</div>
         </div>
       </div>
 
@@ -556,7 +558,7 @@
       </div>
 
       <div class="field" style="margin-bottom:18px;">
-        <label>Target responses <span style="color:var(--red)">*</span></label>
+        <label>Participants <span style="color:var(--red)">*</span></label>
         <input type="number" id="targetInput" name="target_responses" placeholder="e.g. 100" min="1" required style="max-width:220px;">
       </div>
 
@@ -578,36 +580,22 @@
 
       <!-- paid budget fields -->
       <div id="paidFields">
-        <div class="info-box" style="margin-bottom:16px;">
-          <strong>How pricing works</strong>
-          Enter the full reward each participant receives. Recruitment fees are added on top. Rates and minimums depend on the study type. See <a href="/pricing">Pricing</a>.
+        {% set listing_reward_id = 'ppInput' %}{% set listing_target_id = 'targetInput' %}{% set listing_study_type = '' %}
+        {% include "_listing_budget_planner.html" %}
+        <div class="field">
+          <label for="ppInput">Reward per participant (USD)</label>
+          <input type="number" id="ppInput" name="per_person_gross" placeholder="e.g. 8.00" step="0.01" min="0" value="0">
+          <div class="field-hint">Participants receive this full amount.</div>
         </div>
-        <div class="row" style="margin-bottom:0;">
-          <div class="field">
-            <label>Reward per person ($)</label>
-            <div class="field-hint">Full reward the participant receives</div>
-            <input type="number" id="ppInput" name="per_person_gross" placeholder="e.g. 8.00" step="any" min="0" value="0">
-          </div>
-          <div class="field">
-            <label>Total you pay ($)</label>
-            <div class="field-hint">Includes recruitment fees and urgency</div>
-            <input type="number" id="totalInput" readonly placeholder="e.g. 800.00" step="any" min="0" value="0">
-          </div>
-        </div>
-
+        <input type="hidden" id="totalInput" value="0">
       </div>
-
-        <div class="commission" id="commBox">
-          <div class="commission-row"><span class="c-label">Reward per person</span><span class="c-val" id="cPP">—</span></div>
-          <div class="commission-row"><span class="c-label">Recruitment fee per person</span><span class="c-val amber" id="cFee">—</span></div>
-          <div class="commission-row" id="cBoostRow"><span class="c-label">Urgency surcharge</span><span class="c-val amber" id="cBoost">—</span></div>
-          <div class="commission-row"><span class="c-label" style="font-weight:600;color:var(--ink);">Total you pay</span><span class="c-val total" id="cTotal">—</span></div>
-        </div>
-        <p id="quoteStatus" role="status" aria-live="polite" style="font-size:13px;"></p>
+      {% set quote_ids = {'box':'commBox','reward':'cPP','fee':'cFee','urgency':'cBoost','total':'cTotal'} %}
+      {% set listing_initial_fee = 'Survey platform fee: 20% · $5/person minimum' %}
+      {% include "_listing_quote.html" %}
 
       <div class="field" style="margin-top:22px;">
         <label>Recruitment timeline</label>
-        <div class="field-hint">Urgent studies get boosted visibility — and a small surcharge.</div>
+        <div class="field-hint">Urgency fees are included in your total.</div>
         <div class="pills" id="urgencyPills">
           <div class="pill active" data-v="flexible"       onclick="pickUrgency(this)">No deadline</div>
           <div class="pill"        data-v="within_1_month" onclick="pickUrgency(this)">Within 1 month &nbsp;+5%</div>
@@ -1097,7 +1085,7 @@
   <button type="button" class="btn-save" onclick="document.getElementById('draftConfirmation').close()">Got it</button>
 </dialog>
 <script src="/static/listing_feedback.js"></script>
-<script src="/static/pricing.js"></script>
+<script src="/static/pricing.js?v=listing-compact-2"></script>
 <script>
   const IS_ADMIN_PUBLISH = {{ 'true' if is_admin_publish else 'false' }};
   const ADMIN_KEY = {{ (admin_key or '')|tojson if is_admin_publish else 'null' }};
@@ -1590,7 +1578,7 @@
     syncAdminStudyType();
     let err = false;
     this.querySelectorAll('input,select,textarea').forEach(el => {
-      if (el.disabled || el.type === 'hidden') return;
+      if (el.form !== this || el.disabled || el.type === 'hidden') return;
       if (!el.checkValidity()) {
         el.closest('.field')?.classList.add('error');
         err = true;
@@ -1660,5 +1648,6 @@
   syncAdminPaymentMode();
 </script>
 <script src="/static/support_chat.js"></script>
+<script src="/static/listing_budget.js?v=2"></script>
 </body>
 </html>

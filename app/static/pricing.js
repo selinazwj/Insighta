@@ -10,6 +10,10 @@ window.InsightaPricing = function (options) {
     controller?.abort();
     options.box.style.display = 'block';
     options.total.value = '';
+    if (typeof document !== 'undefined') {
+      const review = document.getElementById('reviewPaymentTotal');
+      if (review) review.textContent = '…';
+    }
     for (const el of Object.values(options.values)) el.textContent = '…';
     options.status.textContent = 'Updating quote…';
     timer = setTimeout(async () => {
@@ -19,6 +23,18 @@ window.InsightaPricing = function (options) {
         if (typeof document !== 'undefined') {
           input.payment_method = document.querySelector('[name="payment_method"]:checked')?.value || 'stripe';
           input.use_promo = document.getElementById('usePromoCredits')?.checked === true;
+        }
+        if (!Number(input.target_responses) || (['cash','gift_card'].includes(input.incentive_type) && !Number(input.per_person))) {
+          options.box.style.display = 'none';
+          options.status.textContent = '';
+          for (const el of Object.values(options.values)) el.textContent = '—';
+          if (typeof document !== 'undefined') {
+            const review = document.getElementById('reviewPaymentTotal');
+            if (review) review.textContent = '—';
+            const summary = document.getElementById('walletQuote');
+            if (summary) summary.textContent = '';
+          }
+          return;
         }
         const response = await fetch('/api/calculate-price', {
           method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -35,16 +51,24 @@ window.InsightaPricing = function (options) {
         if (typeof document !== 'undefined') {
           const summary = document.getElementById('walletQuote');
           if (summary) summary.textContent = quote.wallet
-            ? `Promotional credit: ${money(quote.wallet.promo_applied_cents)}. Wallet cash due: ${money(quote.wallet.cash_due_cents)}. Available cash: ${money(quote.wallet.cash_balance_cents)}.`
-            : 'Card checkout charges the full quoted amount. Promotional credit is available with wallet payment.';
+            ? `${money(quote.wallet.promo_applied_cents)} credit applied · ${money(quote.wallet.cash_balance_cents)} wallet balance`
+            : '';
+          const review = document.getElementById('reviewPaymentTotal');
+          if (review) review.textContent = money(quote.wallet ? quote.wallet.cash_due_cents : quote.total_cents);
+          const label = document.getElementById('reviewPaymentLabel');
+          if (label) label.textContent = quote.wallet ? 'Wallet payment' : 'Card payment';
+          const rule = document.getElementById('listingFeeRule');
+          if (rule) rule.textContent = `Platform fee: ${quote.rate_bps/100}% · ${money(quote.minimum_fee_cents)}/person minimum`;
         }
-        options.status.textContent = `${quote.rate_bps / 100}% recruitment rate; ${money(quote.minimum_fee_cents)} minimum per person${quote.minimum_applied ? ' applied' : ''}. Participants receive their full stated reward.`;
+        options.status.textContent = '';
       } catch (error) {
         if (current !== revision || error.name === 'AbortError') return;
         options.total.value = '';
         if (typeof document !== 'undefined') {
           const summary = document.getElementById('walletQuote');
           if (summary) summary.textContent = '';
+          const review = document.getElementById('reviewPaymentTotal');
+          if (review) review.textContent = '—';
         }
         options.status.textContent = error.message;
         for (const el of Object.values(options.values)) el.textContent = '—';

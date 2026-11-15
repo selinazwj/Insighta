@@ -205,6 +205,7 @@
       .btn-cancel, .btn-publish { width: 100%; justify-content: center; }
     }
   </style>
+<link rel="stylesheet" href="/static/listing_pricing.css?v=2">
 </head>
 <body>
 
@@ -278,6 +279,7 @@
     <div class="wizard-labels"><div class="wizard-label active">Basics</div><div class="wizard-label">Schedule</div><div class="wizard-label">Budget</div><div class="wizard-label">Audience</div></div>
   </div>
 
+  <form id="listingPlannerForm"></form>
   <form id="interviewForm" method="POST" action="/publish_interview">
     <input type="hidden" name="publish_token" value="{{ publish_token }}">
 
@@ -336,7 +338,7 @@
         </div>
         <div class="form-group">
           <label>Participants Needed *</label>
-          <input type="number" name="target_responses" placeholder="e.g. 10" min="1" required>
+          <input type="number" id="listingTarget" name="target_responses" placeholder="e.g. 10" min="1" required>
         </div>
       </div>
       <div class="form-row" style="margin-bottom: 20px;">
@@ -419,31 +421,18 @@
 
       <div id="budgetSection">
         <div id="paidBudgetFields">
-          <div class="info-box" style="margin-top: 20px;">
-            <strong>Full-study compensation</strong>
-            Recruitment fees are added to the full participant reward. See <a href="/pricing">current rates and minimums</a>.
+          {% set listing_reward_id = 'perPersonInput' %}{% set listing_target_id = 'listingTarget' %}{% set listing_study_type = 'interview' if is_online_interview else 'in_person' %}
+          {% include "_listing_budget_planner.html" %}
+          <div class="form-group">
+            <label for="perPersonInput">Reward per participant (USD)</label>
+            <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 25.00" step="0.01" min="0">
+            <div class="label-desc">Full reward for all required sessions.</div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Reward per person ($)</label>
-              <div class="label-desc">Total reward for completing all required sessions</div>
-              <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 25.00" step="0.01" min="0">
-            </div>
-            <div class="form-group">
-              <label>Total you pay ($)</label>
-              <div class="label-desc">Auto-calculated from above</div>
-              <input type="number" id="totalBudgetInput" readonly placeholder="Auto" step="0.01" min="0">
-            </div>
-          </div>
+          <input type="hidden" id="totalBudgetInput">
         </div>
-
-        <div class="commission-box" id="commissionBox">
-          <div class="commission-row"><span class="clabel">Reward per person</span><span class="cvalue" id="dispPerPerson">—</span></div>
-          <div class="commission-row"><span class="clabel">Recruitment fee per person</span><span class="cvalue orange" id="dispFee">—</span></div>
-          <div class="commission-row" id="timelineBoostRow"><span class="clabel">Urgency surcharge</span><span class="cvalue orange" id="dispTimelineBoost">—</span></div>
-          <div class="commission-row"><span class="clabel" style="font-weight:700; color: var(--ink);">Total you pay</span><span class="cvalue total" id="dispTotal">—</span></div>
-        </div>
-        <p id="quoteStatus" role="status" aria-live="polite" style="font-size:13px;"></p>
+        {% set quote_ids = {'box':'commissionBox','reward':'dispPerPerson','fee':'dispFee','urgency':'dispTimelineBoost','total':'dispTotal'} %}
+        {% set listing_initial_fee = 'Remote interview platform fee: 25% · $10/person minimum' if is_online_interview else 'In-person platform fee: 25% · $15/person minimum' %}
+        {% include "_listing_quote.html" %}
       </div>
 
       <div class="form-group" style="margin-top: 24px;">
@@ -629,7 +618,7 @@
 </div>
 </div>
 
-<script src="/static/pricing.js"></script>
+<script src="/static/pricing.js?v=listing-compact-2"></script>
 <script>
   const availabilitySlots = [];
   let calendarStart = startOfDay(new Date());
@@ -945,5 +934,6 @@
   renderAvailabilityCalendar();
 </script>
 <script src="/static/support_chat.js"></script>
+<script src="/static/listing_budget.js?v=2"></script>
 </body>
 </html>

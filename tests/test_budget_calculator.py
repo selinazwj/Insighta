@@ -44,6 +44,15 @@ class BudgetCalculatorTest(unittest.TestCase):
         self.assertEqual(self.estimate(study_type='interview')['quote']['minimum_fee_cents'],1000)
         self.assertEqual(self.estimate(study_type='in_person')['quote']['minimum_fee_cents'],1500)
 
+    def test_listing_planner_includes_selected_urgency(self):
+        result=self.estimate(urgency_level='within_1_week')
+        q=result['quote']
+        self.assertEqual(q['urgency_level'],'within_1_week')
+        self.assertGreater(q['urgency_amount_cents'],0)
+        self.assertLessEqual(q['total_cents'],50000)
+        self.assertEqual(q,calculate_quote('survey','cash',f"{q['reward_per_person_cents']/100:.2f}",20,'within_1_week'))
+        self.assertEqual(self.client.post('/api/wallet/budget-estimate',json={**self.body,'urgency_level':'invalid'}).status_code,400)
+
     def test_below_minimum_never_recommends_a_topup(self):
         result=self.estimate(budget='50')
         self.assertEqual(result['status'],'below_minimum')

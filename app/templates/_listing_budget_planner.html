@@ -1,0 +1,16 @@
+{% if not is_admin_publish %}
+<details class="listing-budget-plan" id="listingBudgetPlanner" data-reward-input="{{ listing_reward_id }}" data-target-input="{{ listing_target_id }}" data-study-type="{{ listing_study_type }}">
+  <summary>Plan from a total budget</summary>
+  <div class="listing-plan-fields">
+    <div><label for="listingPlanBudget">Total budget (USD)</label><input id="listingPlanBudget" form="listingPlannerForm" type="number" min="0.01" max="999999.99" step="0.01" placeholder="e.g. 500"></div>
+    <div><label for="listingPlanAudience">Audience</label><select id="listingPlanAudience" form="listingPlannerForm"><option value="broad">General</option><option value="targeted">Targeted</option><option value="specialized">Highly niche</option></select></div>
+    <button id="listingPlanCalculate" type="button">Estimate</button>
+  </div>
+  <p id="listingPlanMessage" role="status" aria-live="polite"></p>
+  <div id="listingPlanResult" hidden>
+    <div class="listing-plan-estimate"><div><span>Reward / participant</span><strong id="listingPlanReward">—</strong></div><div><span>Platform fee · total</span><strong id="listingPlanFee">—</strong></div><div><span>Study total</span><strong id="listingPlanTotal">—</strong></div></div>
+    <button id="listingPlanApply" type="button" hidden>Use this reward</button>
+  </div>
+  <p class="listing-plan-note">Estimate only. Uses your participant count and timeline.</p>
+</details>
+{% endif %}

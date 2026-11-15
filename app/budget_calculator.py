@@ -1,5 +1,5 @@
 """Planning-only budgets, using the same quotes as listing publication."""
-from app.pricing import calculate_quote, money_cents, positive_count, PricingError
+from app.pricing import calculate_quote, money_cents, positive_count, pricing_config, PricingError
 from app.wallet import payment_quote
 
 AUDIENCES = {'broad', 'targeted', 'specialized'}
@@ -14,8 +14,11 @@ def estimate_budget(db, user_id, body):
     if not isinstance(audience, str) or audience not in AUDIENCES:
         raise PricingError('Choose a valid audience specificity.')
     kind = body.get('study_type', 'survey')
+    urgency = body.get('urgency_level', 'flexible')
+    if not isinstance(urgency, str) or urgency not in pricing_config()['urgency_bps']:
+        raise PricingError('Choose a valid recruitment timeline.')
     # Smallest positive cash reward establishes the minimum viable quote.
-    minimum = calculate_quote(kind, 'cash', '0.01', count, 'flexible')
+    minimum = calculate_quote(kind, 'cash', '0.01', count, urgency)
     if budget < minimum['total_cents']:
         return {'status': 'below_minimum', 'budget_cents': budget,
                 'minimum_budget_cents': minimum['total_cents'], 'quote': minimum,
@@ -24,7 +27,7 @@ def estimate_budget(db, user_id, body):
     quote = minimum
     while low <= high:
         cents = (low + high) // 2
-        candidate = calculate_quote(kind, 'cash', f'{cents//100}.{cents%100:02d}', count, 'flexible')
+        candidate = calculate_quote(kind, 'cash', f'{cents//100}.{cents%100:02d}', count, urgency)
         if candidate['total_cents'] <= budget:
             quote = candidate
             low = cents + 1

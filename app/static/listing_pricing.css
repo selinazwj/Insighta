@@ -1,0 +1,33 @@
+.listing-budget-plan,.listing-price-details{margin:16px 0;border-top:1px solid var(--line,#eeece6);padding-top:16px;font-family:inherit}
+.listing-budget-plan summary,.listing-price-details summary{font-size:14px;font-weight:500;cursor:pointer;color:var(--ink,#1a1a18)}
+.listing-plan-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:14px;align-items:end;margin-top:14px}
+.listing-plan-fields label{display:block;font-size:14px;font-weight:500;margin-bottom:6px}
+.listing-plan-fields input,.listing-plan-fields select{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line,#eeece6);border-radius:8px;background:white;font:inherit;font-size:14px}
+.listing-budget-plan button{border:0;background:var(--green,var(--accent,#3b7c4f));color:white;border-radius:20px;padding:12px 18px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.listing-budget-plan button:disabled{opacity:.5;cursor:default}
+.listing-budget-plan p,.listing-price-details p{font-size:14px;line-height:1.6;margin-top:12px;color:var(--ink2,var(--ink-soft,#4a4a44))}
+.listing-budget-plan p:empty,.listing-price-status:empty{display:none}
+.listing-budget-plan .listing-plan-note{font-size:13px;color:var(--ink3,var(--ink-muted,#777))}
+.listing-plan-estimate{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:18px 0}
+.listing-plan-estimate span,.listing-quote-breakdown span{display:block;font-size:13px;color:var(--ink2,var(--ink-soft,#4a4a44))}
+.listing-plan-estimate strong{display:block;font-size:22px;font-weight:600;margin-top:6px}
+.listing-quote{margin-top:20px}
+.listing-quote-hero{padding:22px;background:var(--green-l,rgba(45,106,79,.08));border-radius:10px;color:var(--green,var(--accent,#3b7c4f))}
+.listing-quote-hero>span{display:block;font-size:15px;font-weight:600}
+.listing-quote-hero>strong{display:block;font-size:40px;letter-spacing:-1px;font-weight:600;margin-top:6px}
+.listing-quote-breakdown{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:18px 0}
+.listing-quote-breakdown strong{display:block;font-size:22px;font-weight:600;margin-top:6px}
+.listing-fee-floor{font-size:14px!important;font-weight:600;color:var(--green,var(--accent,#3b7c4f));margin:14px 0}
+.listing-price-status{font-size:14px;margin:12px 0;color:var(--ink2,var(--ink-soft,#4a4a44))}
+.listing-payment{margin:20px 0;padding:22px;border:1px solid var(--line,#eeece6);border-radius:12px;background:white}
+.listing-payment h3{font-size:19px;margin:0 0 18px;color:var(--ink,#1a1a18)}
+.listing-payment .listing-quote-hero{margin-bottom:18px}
+.listing-payment-options{display:flex;gap:20px;flex-wrap:wrap;margin:16px 0}
+.listing-payment label{font-size:14px;font-weight:500;line-height:1.6}
+.listing-payment input[type=checkbox],.listing-payment input[type=radio]{width:auto;margin:0 6px 0 0}
+.listing-payment select{display:block;margin:8px 0;padding:10px;border-radius:8px;border:1px solid var(--line,#eeece6);font:inherit;font-size:14px;max-width:100%}
+.listing-payment p{font-size:14px;line-height:1.6;margin:12px 0;color:var(--ink2,var(--ink-soft,#4a4a44))}
+.listing-payment a{color:var(--green,var(--accent,#3b7c4f))}
+@media(max-width:600px){.listing-plan-fields{grid-template-columns:minmax(0,1fr)}.listing-plan-fields button{justify-self:start}.listing-quote-breakdown{gap:10px}.listing-quote-breakdown strong,.listing-plan-estimate strong{font-size:20px}.listing-payment{padding:18px}}
+
+#ppInput,#perPersonInput{max-width:320px}
