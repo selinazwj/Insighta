@@ -53,6 +53,29 @@ class WalletTest(unittest.TestCase):
         self.db.commit();scan_settlements(self.db,lambda *_:True)
         return self.db.query(StudySettlement).filter_by(survey_id=s.id).one()
 
+    def test_seeded_staging_researcher_can_login_and_open_wallet(self):
+        from scripts.start_staging import seed_researcher_account
+        env={'INSIGHTA_ENV':'staging','DATABASE_URL':'postgresql://test:test@localhost/insighta_pricing_staging','RENDER_EXTERNAL_URL':'https://test.onrender.com','STAGING_RESEARCHER_EMAIL':'seed-test@insighta.invalid','STAGING_RESEARCHER_PASSWORD_HASH':main.pwd_context.hash('Local-seed-test-only!')}
+        seed_researcher_account(self.db,env)
+        self.client.cookies.clear()
+        login=self.client.post('/login',data={'email':env['STAGING_RESEARCHER_EMAIL'],'password':'Local-seed-test-only!','role':'researcher','next':'/publisher/wallet'},follow_redirects=False)
+        self.assertEqual(login.status_code,303)
+        self.assertEqual(login.headers['location'],'/publisher/wallet')
+        page=self.client.get('/publisher/wallet')
+        self.assertEqual(page.status_code,200)
+        self.assertIn('Researcher Preview',page.text)
+        self.assertEqual(self.client.get('/api/wallet').json()['cash_cents'],0)
+
+    def test_staging_login_explains_test_account_and_hides_unconfigured_oauth(self):
+        with patch.dict(os.environ,{'INSIGHTA_ENV':'staging'}):
+            page=self.client.get('/login?role=researcher&next=/publisher/wallet')
+            self.assertEqual(page.status_code,200)
+            self.assertIn('separate researcher test account',page.text)
+            self.assertNotIn('href="/auth/google"',page.text)
+            self.assertNotIn('href="/auth/linkedin"',page.text)
+        with patch.dict(os.environ,{'INSIGHTA_ENV':'production'}):
+            self.assertIn('href="/auth/google"',self.client.get('/login').text)
+
     def test_wallet_page_redirects_missing_invalid_and_stale_sessions(self):
         self.client.cookies.clear()
         for cookie in [None, 'not-an-id', '999999999', '9999999999999999999999999999999999']:

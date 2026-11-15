@@ -241,6 +241,12 @@
     <div class="success-box">{{ success }}</div>
     {% endif %}
 
+    {% if staging_login() %}
+    <div class="success-box" role="note">
+      <strong>Insighta test environment</strong><br>
+      Sign in below with your separate researcher test account. Accounts from the main Insighta site are not shared here. Google and LinkedIn sign-in are unavailable on this test site.
+    </div>
+    {% else %}
     <!-- SOCIAL LOGIN -->
     <div class="social-btns">
       <a href="/auth/google" class="btn-social">
@@ -263,6 +269,8 @@
     </div>
 
     <div class="divider"><span>or sign in with email or username</span></div>
+
+    {% endif %}
 
     <!-- LOGIN FORM -->
     <form method="POST" action="/login">

@@ -32,6 +32,32 @@ def configure_staging(env):
     env["INSIGHTA_AUTO_SCHEMA_BOOTSTRAP"] = "1"
 
 
+def seed_researcher_account(db, env):
+    """Provision an optional isolated test identity; never reset an existing user."""
+    configure_staging(env)
+    email = (env.get("STAGING_RESEARCHER_EMAIL") or "").strip().lower()
+    password_hash = env.get("STAGING_RESEARCHER_PASSWORD_HASH") or ""
+    if not email and not password_hash:
+        return False
+    if not email.endswith(".invalid") or "@" not in email or len(password_hash) != 60:
+        raise RuntimeError("Staging researcher requires a .invalid test email and bcrypt password hash.")
+    from passlib.context import CryptContext
+    if CryptContext(schemes=["bcrypt"]).identify(password_hash) != "bcrypt":
+        raise RuntimeError("Staging researcher password hash must use bcrypt.")
+    from app.models import User
+    if db.query(User).filter_by(email=email).first():
+        return False
+    from datetime import datetime
+    db.add(User(email=email, password=password_hash, username="Researcher Preview",
+        first_name="Test", last_name="Researcher", birth_year="1990", birth_month="1",
+        education_level="Graduate", field="Psychology", status="Graduate student",
+        state="Massachusetts", language="English", participation_format="Any format",
+        profile_description="Isolated staging test account. Fictional profile for product testing.",
+        welcome_email_sent_at=datetime.utcnow(), welcome_email_role="researcher"))
+    db.commit()
+    return True
+
+
 def main():
     configure_staging(os.environ)
     os.chdir(ROOT)
@@ -44,6 +70,9 @@ def main():
     from alembic import command
     from alembic.config import Config
     command.upgrade(Config(str(ROOT / "alembic.ini")), "head")
+    from app.database import SessionLocal
+    with SessionLocal() as db:
+        seed_researcher_account(db, os.environ)
     engine.dispose()
     os.execv(sys.executable, [sys.executable, "-m", "uvicorn", "api.main:app",
                             "--host", "0.0.0.0", "--port", os.environ.get("PORT", "10000")])

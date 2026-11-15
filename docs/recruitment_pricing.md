@@ -95,3 +95,8 @@ Cash history, top-up status, coupon history, and PDF downloads are available in 
 Stripe test-mode webhook subscriptions also need `charge.refunded` and `charge.dispute.created`. Without Stripe test keys, top-ups and new card checkout stay unavailable; tests use provider mocks and do not constitute a real Stripe end-to-end run.
 
 Validation: `python -m unittest tests.test_wallet` covers exact-once top-ups, funding validation, concurrent spending/coupon limits, promo restrictions, wallet refunds, multi-source card refund reconciliation, billing ownership and snapshots, signed webhook dispatch, and wallet publication. Existing pricing, publication, settlement and booking regressions also apply. Migration downgrade/upgrade is checked on an isolated database; browser and PDF rendering are reviewed locally before staging deployment.
+
+
+### Accessing the isolated test site
+
+Production users and OAuth credentials are not copied to staging. The staging login page explicitly uses email/password and explains that test accounts are separate. Optional service-only `STAGING_RESEARCHER_EMAIL` (a fictional `.invalid` address) and `STAGING_RESEARCHER_PASSWORD_HASH` (bcrypt) provision one ordinary researcher at startup. The staging entrypoint validates the environment and dedicated database before provisioning. It never resets existing passwords, grants admin access, or credits money. Supply these variables through Render's merge operation; they are deliberately omitted from the Blueprint so a future sync preserves them. Do not commit the generated password or hash. Email-code registration still requires a configured test mail provider.

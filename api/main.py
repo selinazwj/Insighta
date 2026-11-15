@@ -196,6 +196,7 @@ QUALITY_IMPORT_UPLOAD_DIR = Path(os.environ.get(
     str(BASE_DIR.parent / "private_uploads" / "quality_imports"),
 ))
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["staging_login"] = lambda: os.environ.get("INSIGHTA_ENV") == "staging"
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 SEO_PUBLIC_EXACT_PATHS = {
