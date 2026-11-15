@@ -30,12 +30,12 @@ test('niche audiences hide top-up action and show manual quote warning',async()=
   await ui.submit();
   assert.equal(ui.get('calculatorNicheNote').hidden,false);
   assert.equal(ui.get('calculatorUseTopup').hidden,true);
-  assert.match(ui.get('calculatorMessage').textContent,/Confirm a niche quote/);
+  assert.equal(ui.get('calculatorTopupLabel').textContent,'General-audience reference');
 });
 test('changed inputs discard an older response and clear its funding recommendation',async()=>{
   let resolve;const ui=setup(()=>new Promise(r=>resolve=r));
   const pending=ui.submit();
-  ui.get('calculatorBudget').value='100';ui.get('budgetCalculatorForm').handlers.input();
+  ui.get('calculatorBudget').value='100';ui.get('budgetCalculatorForm').handlers.input({target:{id:"calculatorBudget"}});
   resolve(reply(data));await pending;
   assert.equal(ui.get('calculatorResults').hidden,true);
   assert.equal(ui.get('calculateBudgetButton').disabled,false);
