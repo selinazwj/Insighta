@@ -1,0 +1,7 @@
+.founder-contact{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;font-size:13px;line-height:1.6;margin-top:16px;color:var(--ink2,#4a4a44)}
+.founder-contact a{color:var(--green,#3b7c4f);font-weight:500}
+.founder-contact button{font:500 12px var(--sans,system-ui,sans-serif);background:var(--bg,#fff);color:var(--green,#3b7c4f);border:1px solid var(--line2,#e0ddd6);border-radius:16px;padding:5px 12px;cursor:pointer}
+.founder-contact button:hover{background:var(--green-l,#e8f2eb)}
+.founder-contact button:focus-visible{outline:2px solid var(--green,#3b7c4f);outline-offset:3px}
+.founder-contact [data-founder-status]:empty{display:none}
+.founder-contact[hidden]{display:none!important}

@@ -62,7 +62,7 @@
 .calculator-details p { margin-top:12px; max-width:760px; }
 @media(max-width:1100px) { .calculator-inputs { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:520px) { .calculator-inputs { gap:0 12px; } .calculator-inputs > div:nth-child(n+3) { grid-column:1/-1; } .calculator-actions { align-items:flex-start; gap:16px; } .calculator-funding { align-items:flex-start; flex-direction:column; padding:18px; } .calculator-funding strong { font-size:42px; } .calculator-results > div { padding:0 10px; } .calculator-results span { font-size:13px; } .calculator-results strong { font-size:20px; } }
-</style></head><body>
+</style><link rel="stylesheet" href="/static/founder_contact.css?v=1"></head><body>
 {% set researcher_section = 'wallet' %}
 {% include "_researcher_sidebar.html" %}
 <main class="main">
@@ -97,4 +97,4 @@ document.getElementById('topupForm').addEventListener('submit',function(event){e
 document.getElementById('couponForm').addEventListener('submit',function(event){event.preventDefault();walletAction(this,'/api/wallet/redeem',{code:document.getElementById('couponCode').value});});
 document.getElementById('billingForm').addEventListener('submit',function(event){event.preventDefault();walletAction(this,'/api/wallet/billing',{name:document.getElementById('billingName').value,institution:document.getElementById('billingInstitution').value,address:document.getElementById('billingAddress').value});});
 </script>
-<script src="/static/budget_calculator.js?v=compact-1"></script></body></html>
+<script src="/static/budget_calculator.js?v=compact-1"></script><script src="/static/founder_contact.js?v=1"></script></body></html>

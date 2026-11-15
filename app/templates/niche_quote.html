@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Niche recruitment quote | Insighta</title>
-{% include "_seo_head.html" %}<link rel="icon" href="/static/favicon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="/static/researcher_workspace.css"><link rel="stylesheet" href="/static/niche.css"></head><body>
+{% include "_seo_head.html" %}<link rel="icon" href="/static/favicon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="/static/researcher_workspace.css"><link rel="stylesheet" href="/static/niche.css"><link rel="stylesheet" href="/static/founder_contact.css?v=1"></head><body>
 {% set researcher_section = 'listings' %}{% set niche_quote_page = true %}{% include "_researcher_sidebar.html" %}
 <main class="main"><div class="topbar"><div class="topbar-title">Niche recruitment</div><a class="btn-guide" href="/publisher">My listings</a></div><div class="content quote-shell">
 <h1 class="quote-title">{{ 'Payment confirmed' if niche_request.status == 'paid' else 'Your recruitment quote' if quote else 'Request submitted' }}</h1>
@@ -24,4 +24,4 @@
 {% else %}<p class="quote-detail">Our team will review your audience and prepare a quote. Your listing stays private until payment is confirmed.</p>{% endif %}
 <details><summary>Your recruitment requirements</summary><p class="quote-detail">{{ niche_request.requirements }}</p><p>{{ study.target_responses }} participants · {{ study.task_type.replace('_',' ') }}</p></details>
 </section>{% include "_founder_contact.html" %}
-</div></main></body></html>
+</div></main><script src="/static/founder_contact.js?v=1"></script></body></html>
