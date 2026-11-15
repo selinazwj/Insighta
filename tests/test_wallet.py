@@ -53,6 +53,40 @@ class WalletTest(unittest.TestCase):
         self.db.commit();scan_settlements(self.db,lambda *_:True)
         return self.db.query(StudySettlement).filter_by(survey_id=s.id).one()
 
+    def test_wallet_page_redirects_missing_invalid_and_stale_sessions(self):
+        self.client.cookies.clear()
+        for cookie in [None, 'not-an-id', '999999999', '9999999999999999999999999999999999']:
+            self.client.cookies.clear()
+            if cookie: self.client.cookies.set('user_id',cookie)
+            page=self.client.get('/publisher/wallet',follow_redirects=False)
+            self.assertEqual(page.status_code,303)
+            self.assertEqual(page.headers['location'],'/login?role=researcher&next=%2Fpublisher%2Fwallet')
+            self.assertEqual(self.db.query(WalletLedger).count(),0)
+        self.client.cookies.clear()
+        self.assertEqual(self.client.get('/api/wallet').status_code,401)
+        self.assertEqual(self.client.post('/api/wallet/topups',json={}).status_code,401)
+        login=self.client.get('/publisher/wallet')
+        self.assertEqual(login.status_code,200)
+        self.assertIn('/login',str(login.url))
+
+    def test_dashboard_wallet_entry_and_login_return(self):
+        dashboard=self.client.get('/publisher')
+        self.assertEqual(dashboard.status_code,200)
+        self.assertIn('href="/publisher/wallet"',dashboard.text)
+        self.assertIn('/static/researcher_workspace.css',dashboard.text)
+        page=self.client.get('/publisher/wallet')
+        self.assertIn('aria-current="page"',page.text)
+        self.assertIn('/static/researcher_workspace.css',page.text)
+        self.assertNotIn('class="public-nav"',page.text)
+        self.user.password=main.pwd_context.hash('Wallet-login-test!')
+        for key,value in dict(first_name='Wallet',last_name='Tester',username='Wallet Tester',birth_year='1995',birth_month='1',education_level='Graduate',field='Psychology',status='Graduate student',state='Massachusetts',language='English',participation_format='Any format').items():
+            setattr(self.user,key,value)
+        self.db.commit();self.client.cookies.clear()
+        logged_in=self.client.post('/login',data={'email':self.user.email,'password':'Wallet-login-test!','role':'researcher','next':'/publisher/wallet'},follow_redirects=False)
+        self.assertEqual(logged_in.status_code,303)
+        self.assertEqual(logged_in.headers['location'],'/publisher/wallet')
+        self.assertEqual(self.client.get('/publisher/wallet').status_code,200)
+
     def test_signed_topup_is_exactly_once_and_receipt_is_immutable(self):
         session=self.fund();wallet.fulfill_topup(self.db,session);self.db.commit()
         self.assertEqual(wallet.cash_balance(self.db,self.uid),10000)

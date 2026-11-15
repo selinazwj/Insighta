@@ -27,7 +27,20 @@ def register_wallet_routes(app, templates, get_db, get_current_user, admin_key_m
     from fastapi import Depends, Request, Query
 
     @app.get('/publisher/wallet')
-    def wallet_page(request: Request, current_user=Depends(get_current_user), db=Depends(get_db)):
+    def wallet_page(request: Request, db=Depends(get_db)):
+        login = RedirectResponse('/login?role=researcher&next=%2Fpublisher%2Fwallet', status_code=303)
+        user_id = request.cookies.get('user_id')
+        try:
+            if not 0 < int(user_id) <= 2**63 - 1:
+                return login
+        except (ValueError, TypeError):
+            return login
+        try:
+            current_user = get_current_user(user_id=user_id, db=db)
+        except HTTPException as exc:
+            if exc.status_code == 401:
+                return login
+            raise
         return templates.TemplateResponse('wallet.html', {'request':request, 'current_user':current_user,
             'wallet':wallet.summary(db,current_user.id), 'topup_token':secrets.token_urlsafe(24),
             'entries':db.query(WalletLedger).filter_by(user_id=current_user.id).order_by(WalletLedger.id.desc()).limit(100).all(),
