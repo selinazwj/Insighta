@@ -88,8 +88,8 @@
     .wizard-progress-title{font-size:14px;font-weight:700;color:var(--ink);}
     .wizard-progress-count{font-size:12px;font-weight:700;color:var(--green);}
     .wizard-track{height:7px;border-radius:999px;background:var(--bg3);overflow:hidden;}
-    .wizard-fill{height:100%;width:25%;border-radius:inherit;background:var(--green);transition:width .22s ease;}
-    .wizard-labels{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+    .wizard-fill{height:100%;width:20%;border-radius:inherit;background:var(--green);transition:width .22s ease;}
+    .wizard-labels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px;}
     .wizard-label{font-size:11px;font-weight:600;color:var(--ink4);text-align:center;}
     .wizard-label.active{color:var(--green);}
     .wizard-nav{background:var(--bg);border:.5px solid var(--line);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;}
@@ -356,11 +356,11 @@
   <div class="wizard-progress" aria-label="Listing progress">
     <div class="wizard-progress-top">
       <div class="wizard-progress-title" id="wizardTitle">Basics</div>
-      <div class="wizard-progress-count" id="wizardCount">Step 1 of 4</div>
+      <div class="wizard-progress-count" id="wizardCount">Step 1 of 5</div>
     </div>
     <div class="wizard-track"><div class="wizard-fill" id="wizardFill"></div></div>
     <div class="wizard-labels">
-      <div class="wizard-label active">Basics</div><div class="wizard-label">Budget</div><div class="wizard-label">Audience</div><div class="wizard-label">Review</div>
+      <div class="wizard-label active">Basics</div><div class="wizard-label">Budget</div><div class="wizard-label">Audience</div><div class="wizard-label">Review</div><div class="wizard-label">Payment</div>
     </div>
   </div>
 
@@ -1023,7 +1023,7 @@
     </div>
 
     {% if is_admin_publish %}
-    <div class="form-section admin-box" data-wizard-step="4" hidden>
+    <div class="form-section admin-box" data-wizard-step="5" hidden>
       <div class="section-head">
         <div class="section-num">A</div>
         <div>
@@ -1055,7 +1055,7 @@
     </div>
     {% endif %}
 
-    <div data-wizard-step="4" hidden>{% include "_wallet_payment_options.html" %}</div>
+    <div data-wizard-step="5" hidden>{% include "_wallet_payment_options.html" %}</div>
 
     <div class="wizard-nav">
       <button type="button" class="btn-step back" id="wizardBack" onclick="changeWizardStep(-1)">Back</button>
@@ -1065,7 +1065,7 @@
 
     <div class="publish-error" id="publishError" role="alert" hidden></div>
     <!-- SUBMIT -->
-    <div class="submit-bar" data-wizard-step="4" hidden>
+    <div class="submit-bar" data-wizard-step="5" hidden>
       <span class="draft-status" id="bottomDraftStatus" role="status" aria-live="polite"></span>
       <button type="button" class="btn-cancel" onclick="history.back()">Cancel</button>
       {% if not is_admin_publish %}<button type="button" class="btn-save" onclick="saveDraft()">Save draft</button>{% endif %}
@@ -1091,7 +1091,7 @@
   const ADMIN_KEY = {{ (admin_key or '')|tojson if is_admin_publish else 'null' }};
   const DRAFT_KEY = `insighta_publish_draft_{{ current_user.id }}_{{ 'admin' if is_admin_publish else 'builtin' if builtin else 'external' }}_{{ existing_survey_id or 0 }}`;
   const DRAFT_NOTICE_KEY = 'insighta_draft_notice_{{ current_user.id }}';
-  const WIZARD_TITLES = ['Basics', 'Budget & timeline', 'Target audience', 'Review & publish'];
+  const WIZARD_TITLES = ['Basics', 'Budget & timeline', 'Target audience', 'Review', 'Payment & publish'];
   let currentWizardStep = 1;
   let adminSlots = [];
   let publishPending = false;
@@ -1189,15 +1189,16 @@
   }
 
   function showWizardStep(step, shouldScroll = true) {
-    currentWizardStep = Math.max(1, Math.min(4, step));
+    currentWizardStep = Math.max(1, Math.min(WIZARD_TITLES.length, step));
     document.querySelectorAll('[data-wizard-step]').forEach(section => {
       section.hidden = Number(section.dataset.wizardStep) !== currentWizardStep;
     });
     document.getElementById('wizardBack').style.visibility = currentWizardStep === 1 ? 'hidden' : 'visible';
-    document.getElementById('wizardNext').hidden = currentWizardStep === 4;
+    document.getElementById('wizardNext').hidden = currentWizardStep === WIZARD_TITLES.length;
+    document.getElementById('wizardNext').textContent = currentWizardStep === WIZARD_TITLES.length - 1 ? 'Continue to payment' : 'Continue';
     document.getElementById('wizardTitle').textContent = WIZARD_TITLES[currentWizardStep - 1];
-    document.getElementById('wizardCount').textContent = `Step ${currentWizardStep} of 4`;
-    document.getElementById('wizardFill').style.width = `${currentWizardStep * 25}%`;
+    document.getElementById('wizardCount').textContent = `Step ${currentWizardStep} of ${WIZARD_TITLES.length}`;
+    document.getElementById('wizardFill').style.width = `${currentWizardStep / WIZARD_TITLES.length * 100}%`;
     document.querySelectorAll('.wizard-label').forEach((label, index) => {
       label.classList.toggle('active', index < currentWizardStep);
     });
@@ -1572,6 +1573,10 @@
   // ── VALIDATION ──
   document.getElementById('publishForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    if (currentWizardStep < WIZARD_TITLES.length) {
+      changeWizardStep(1);
+      return;
+    }
     if (publishPending) return;
     const errorBox = document.getElementById('publishError');
     errorBox.hidden = true;

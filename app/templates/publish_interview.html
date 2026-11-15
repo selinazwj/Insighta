@@ -65,8 +65,8 @@
     .wizard-progress-top { display:flex; justify-content:space-between; gap:12px; margin-bottom:12px; font-size:14px; font-weight:700; color:var(--ink); }
     .wizard-progress-top span:last-child { color:var(--green); font-size:12px; }
     .wizard-track { height:7px; border-radius:999px; background:var(--paper-warm); overflow:hidden; }
-    .wizard-fill { width:25%; height:100%; border-radius:inherit; background:var(--green); transition:width .22s ease; }
-    .wizard-labels { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; }
+    .wizard-fill { width:20%; height:100%; border-radius:inherit; background:var(--green); transition:width .22s ease; }
+    .wizard-labels { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:10px; }
     .wizard-label { text-align:center; font-size:11px; font-weight:600; color:var(--ink-muted); }
     .wizard-label.active { color:var(--green); }
     .wizard-nav { background:var(--bg); border:.5px solid var(--line); border-radius:12px; padding:16px 20px; display:flex; align-items:center; gap:12px; margin-bottom:16px; }
@@ -274,9 +274,9 @@
   </div>
 
   <div class="wizard-progress" aria-label="Listing progress">
-    <div class="wizard-progress-top"><span id="wizardTitle">Basics</span><span id="wizardCount">Step 1 of 4</span></div>
+    <div class="wizard-progress-top"><span id="wizardTitle">Basics</span><span id="wizardCount">Step 1 of 5</span></div>
     <div class="wizard-track"><div class="wizard-fill" id="wizardFill"></div></div>
-    <div class="wizard-labels"><div class="wizard-label active">Basics</div><div class="wizard-label">Schedule</div><div class="wizard-label">Budget</div><div class="wizard-label">Audience</div></div>
+    <div class="wizard-labels"><div class="wizard-label active">Basics</div><div class="wizard-label">Schedule</div><div class="wizard-label">Budget</div><div class="wizard-label">Audience</div><div class="wizard-label">Payment</div></div>
   </div>
 
   <form id="listingPlannerForm"></form>
@@ -600,7 +600,7 @@
       <div class="label-desc" style="margin-top:14px;">Account checks establish basic trust. Screening questions decide study eligibility.</div>
     </div>
 
-    <div data-wizard-step="4" hidden>{% include "_wallet_payment_options.html" %}</div>
+    <div data-wizard-step="5" hidden>{% include "_wallet_payment_options.html" %}</div>
 
     <div class="wizard-nav">
       <button type="button" class="btn-step back" id="wizardBack" onclick="changeWizardStep(-1)">Back</button>
@@ -609,7 +609,7 @@
     </div>
 
     <!-- SUBMIT -->
-    <div class="submit-section" data-wizard-step="4" hidden>
+    <div class="submit-section" data-wizard-step="5" hidden>
       <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
       <button type="submit" class="btn-publish" id="submitBtn">Pay &amp; Publish</button>
     </div>
@@ -624,19 +624,20 @@
   let calendarStart = startOfDay(new Date());
   let isDraggingCalendar = false;
   let dragModeSelect = true;
-  const WIZARD_TITLES = ['Basics', 'Schedule & location', 'Budget & timeline', 'Target audience'];
+  const WIZARD_TITLES = ['Basics', 'Schedule & location', 'Budget & timeline', 'Target audience', 'Payment & publish'];
   let currentWizardStep = 1;
 
   function showWizardStep(step, shouldScroll = true) {
-    currentWizardStep = Math.max(1, Math.min(4, step));
+    currentWizardStep = Math.max(1, Math.min(WIZARD_TITLES.length, step));
     document.querySelectorAll('[data-wizard-step]').forEach(section => {
       section.hidden = Number(section.dataset.wizardStep) !== currentWizardStep;
     });
     document.getElementById('wizardBack').style.visibility = currentWizardStep === 1 ? 'hidden' : 'visible';
-    document.getElementById('wizardNext').hidden = currentWizardStep === 4;
+    document.getElementById('wizardNext').hidden = currentWizardStep === WIZARD_TITLES.length;
+    document.getElementById('wizardNext').textContent = currentWizardStep === WIZARD_TITLES.length - 1 ? 'Continue to payment' : 'Continue';
     document.getElementById('wizardTitle').textContent = WIZARD_TITLES[currentWizardStep - 1];
-    document.getElementById('wizardCount').textContent = `Step ${currentWizardStep} of 4`;
-    document.getElementById('wizardFill').style.width = `${currentWizardStep * 25}%`;
+    document.getElementById('wizardCount').textContent = `Step ${currentWizardStep} of ${WIZARD_TITLES.length}`;
+    document.getElementById('wizardFill').style.width = `${currentWizardStep / WIZARD_TITLES.length * 100}%`;
     document.querySelectorAll('.wizard-label').forEach((label, index) => label.classList.toggle('active', index < currentWizardStep));
     if (shouldScroll) document.querySelector('.wizard-progress').scrollIntoView({ behavior:'smooth', block:'start' });
   }
@@ -900,7 +901,12 @@
     document.getElementById('advArrow').textContent = this.open ? '-' : '+';
   });
 
-  document.getElementById('interviewForm').addEventListener('submit', function() {
+  document.getElementById('interviewForm').addEventListener('submit', function(event) {
+    if (currentWizardStep < WIZARD_TITLES.length) {
+      event.preventDefault();
+      changeWizardStep(1);
+      return;
+    }
     rebuildSlotLabels();
     document.getElementById('availabilitySlots').value = JSON.stringify(availabilitySlots);
     document.querySelectorAll('input[type="number"]').forEach(input => {
