@@ -224,7 +224,7 @@ class SettlementTest(unittest.TestCase):
         self.assertEqual(status.json()['settlement']['refund_amount_cents'], 4400)
         detail = self.client.get(f'/publisher/study/{s.id}')
         self.assertEqual(detail.status_code, 200, detail.text)
-        self.assertIn('Original-card refund:', detail.text)
+        self.assertIn('Refund to original card(s)', detail.text)
         other = User(email='other@example.invalid', password='x')
         self.db.add(other); self.db.commit()
         self.client.cookies.set('user_id', str(other.id))

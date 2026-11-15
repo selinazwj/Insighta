@@ -120,7 +120,21 @@
     ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
     .funding-summary{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:20px 0;}
     .funding-summary p{font-size:13px;line-height:1.65;color:var(--ink2);margin:8px 0;}
-    .funding-summary p strong{color:var(--green);}
+    .funding-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px;}
+    .funding-head .ov-section-title{margin:0;}
+    .funding-status{font-size:12px;font-weight:600;padding:5px 10px;border-radius:20px;background:var(--bg3);color:var(--ink2);}
+    .funding-status.confirmed{background:var(--green-l);color:var(--green);}
+    .funding-status.attention{background:#fff5df;color:#79591b;}
+    .funding-amount{font-size:36px;font-weight:500;letter-spacing:-1px;line-height:1.15;color:var(--ink);}
+    .funding-summary .funding-caption{margin:5px 0 14px;color:var(--ink2);}
+    .funding-meta{font-size:12px;line-height:1.6;color:var(--ink3);display:flex;gap:6px 18px;flex-wrap:wrap;}
+    .funding-actions{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0;}
+    .funding-destination{display:flex;align-items:center;gap:12px;font-size:13px;margin:14px 0;flex-wrap:wrap;}
+    .funding-destination select{font:inherit;color:var(--ink2);background:var(--bg);border:1px solid var(--line2);border-radius:7px;padding:8px;}
+    .funding-rules{border-top:.5px solid var(--line);margin-top:16px;padding-top:14px;}
+    .funding-rules summary{font-size:12px;font-weight:500;color:var(--ink3);cursor:pointer;}
+    .funding-summary .funding-alert{padding:10px 12px;border-radius:8px;background:#fff5df;color:#79591b;}
+    @media(max-width:520px){.funding-summary{padding:18px;}.funding-amount{font-size:32px;}}
   </style>
 </head>
 <body>
@@ -201,32 +215,39 @@
 
     {% if survey.pricing_snapshot %}
     <section class="ov-section funding-summary" aria-label="Funding and refunds">
-      <div class="ov-section-title">Funding and refunds</div>
-      <p>Participant rewards are reviewed within seven days of completion. Verified completions without quality or trust holds are approved automatically when that window ends.</p>
-      <p>Completion deadline: {{ survey.deadline_at.strftime('%b %d, %Y at %H:%M UTC') if survey.deadline_at else 'No deadline set' }}.</p>
+      {% set settlement_labels = {'waiting_review': 'Reviews pending', 'waiting_verification': 'Verification pending', 'ready': 'Refund queued', 'retrying': 'Refund retry scheduled', 'refund_pending': 'Refund processing', 'refunded': 'Refund complete', 'wallet_refunded': 'Refund complete', 'no_refund': 'Settled', 'manual_review': 'Support review needed'} %}
+      <div class="funding-head">
+        <div class="ov-section-title">Funding &amp; refunds</div>
+        {% if settlement %}<span class="funding-status {{ 'confirmed' if settlement.status in ('refunded', 'wallet_refunded', 'no_refund') else 'attention' }}">{{ settlement_labels.get(settlement.status, 'Settlement in progress') }}</span>{% endif %}
+      </div>
       {% if settlement %}
-      {% set settlement_labels = {'waiting_review': 'Waiting for participant reviews', 'waiting_verification': 'Verification or quality review required', 'ready': 'Refund queued', 'retrying': 'Refund retry scheduled', 'refund_pending': 'Refund submitted to Stripe; awaiting confirmation', 'refunded': 'Original-card refund confirmed', 'wallet_refunded': 'Refund returned to wallet', 'no_refund': 'Settled — no refund due', 'manual_review': 'Refund needs support review'} %}
-      <p><strong>{{ settlement_labels.get(settlement.status, settlement.status) }}</strong></p>
-      <p>Ordered: {{ settlement.ordered_count }} · Qualified completions: {{ settlement.qualified_count if settlement.qualified_count is not none else 'Under review' }}</p>
-      {% if settlement.refund_amount_cents is not none %}<p>{{ 'Wallet refund' if settlement.refund_destination == 'wallet' else 'Original-card refund' }}: <strong>${{ '%.2f'|format(settlement.refund_amount_cents / 100) }}</strong></p>{% endif %}
-      {% if settlement.close_reason == 'researcher_cancelled' %}<p>Researcher cancellation: recruitment fees and the corresponding urgency surcharge remain payable.</p>{% endif %}
-      {% if settlement.last_error %}<p>{{ settlement.last_error }} Contact support if it remains unresolved.</p>{% endif %}
-      {% if settlement.status in ('retrying', 'manual_review') and not settlement.stripe_refund_id %}
-      <button type="button" class="action-btn" onclick="retrySettlement(this)">Retry refund reconciliation</button>
-      {% endif %}
-      {% else %}<p>After the study closes or reaches its deadline, unused cash funding is refunded after outstanding completion reviews finish. Promotional credits are not refundable.</p>{% endif %}
+        {% if settlement.refund_amount_cents is not none %}
+        <div class="funding-amount">${{ '%.2f'|format(settlement.refund_amount_cents / 100) }}</div>
+        <p class="funding-caption">{{ 'No refund due' if settlement.status == 'no_refund' else 'Refund to Wallet' if settlement.refund_destination == 'wallet' else 'Refund to original card(s)' }}</p>
+        {% else %}<p class="funding-caption">Refund amount available after reviews finish.</p>{% endif %}
+        <div class="funding-meta"><span>{{ settlement.qualified_count if settlement.qualified_count is not none else 'Pending' }} qualified / {{ settlement.ordered_count }} participants</span></div>
+        {% if settlement.last_error %}<p class="funding-alert">{{ settlement.last_error }} Contact support if unresolved.</p>{% endif %}
+        {% if settlement.status in ('retrying', 'manual_review') and not settlement.stripe_refund_id %}
+        <button type="button" class="action-btn" onclick="retrySettlement(this)">Retry refund</button>
+        {% endif %}
+      {% else %}<p class="funding-caption">Unused cash is returned after closeout and completion reviews.</p>{% endif %}
+      {% if survey.deadline_at %}<div class="funding-meta"><span>Deadline · {{ survey.deadline_at.strftime('%b %d, %Y · %H:%M UTC') }}</span></div>{% endif %}
       {% if survey.payment_status == 'paid' %}
-      <p><a href="/api/surveys/{{ survey.id }}/invoice">Download study invoice (PDF)</a> · <a href="/publisher/wallet">Wallet &amp; billing</a></p>
+      <div class="funding-actions"><a class="action-btn" href="/api/surveys/{{ survey.id }}/invoice">Invoice PDF</a><a class="action-btn" href="/publisher/wallet">Wallet &amp; billing</a></div>
       {% if not settlement or settlement.status in ('waiting_review', 'waiting_verification') %}
-      <label style="font-size:13px;">Refund destination
-        <select id="refundDestination" style="padding:8px;" onchange="updateRefundDestination(this)">
+      <label class="funding-destination" for="refundDestination">Return unused funds to
+        <select id="refundDestination" onchange="updateRefundDestination(this)">
           <option value="wallet" {% if survey.refund_destination == 'wallet' %}selected{% endif %}>Wallet balance</option>
           <option value="card" {% if survey.refund_destination != 'wallet' %}selected{% endif %}>Original card(s)</option>
         </select>
       </label>
       {% endif %}
       {% endif %}
-      <p>Refunds use the saved price and include the corresponding urgency surcharge. Extra completions do not increase the purchased participant cap.</p>
+      <details class="funding-rules"><summary>Review &amp; refund rules</summary>
+        <p>Reviews take up to 7 days after completion. Verified completions are auto-approved unless quality or trust holds remain.</p>
+        <p>Refunds use your saved price, including eligible urgency fees. Promotional credit is non-refundable. Extra completions do not increase your purchased participant cap.</p>
+        {% if settlement and settlement.close_reason == 'researcher_cancelled' %}<p>Cancellation retains recruitment fees and their urgency surcharge.</p>{% endif %}
+      </details>
     </section>
     {% endif %}
 

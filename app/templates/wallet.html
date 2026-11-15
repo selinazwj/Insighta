@@ -5,15 +5,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/researcher_workspace.css">
+<link rel="stylesheet" href="/static/researcher_workspace.css?v=wallet-type-2">
 <style>
 .wallet-shell { max-width: 1180px; width: 100%; }
 .wallet-top { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:8px; }
-.wallet-top h1 { font-size:30px; font-weight:300; letter-spacing:-.7px; }
-.wallet-top h1 strong { font-weight:800; }
+.wallet-top h1 { font-family:var(--serif); font-size:clamp(28px,4vw,40px); font-weight:400; letter-spacing:-1px; }
 .wallet-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; margin:22px 0; }
 .wallet-card { min-width:0; background:var(--bg); border:.5px solid var(--line); border-radius:12px; padding:24px; }
-.wallet-card h2 { font-size:17px; font-weight:600; margin:0 0 16px; }
+.wallet-card h2 { font-family:var(--serif); font-size:20px; font-weight:400; margin:0 0 16px; }
 .balance { font-size:36px; font-weight:300; letter-spacing:-1px; color:var(--green); margin:12px 0; }
 .wallet-card p,.wallet-intro { font-size:14px; line-height:1.65; color:var(--ink2); }
 .wallet-card label { display:block; font-size:13px; font-weight:500; margin-top:15px; }
@@ -45,7 +44,7 @@
 .calculator-floor strong { display:block; font-size:15px; color:var(--green); margin-top:3px; }
 .calculator-funding { display:flex; align-items:center; justify-content:space-between; gap:20px; background:var(--green-l); color:var(--green); padding:24px; border-radius:10px; margin-top:20px; }
 .calculator-funding span { display:block; font-size:15px; font-weight:600; }
-.calculator-funding strong { display:block; font-size:48px; font-weight:500; letter-spacing:-1.5px; margin:6px 0; }
+.calculator-funding strong { display:block; font-size:42px; font-weight:500; letter-spacing:-1.5px; margin:6px 0; }
 .wallet-card .calculator-funding p { font-size:13px; color:var(--green-d); }
 .calculator-results { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin:20px 0; }
 .calculator-results > div { padding:0 20px; border-right:.5px solid var(--line); }
@@ -67,7 +66,7 @@
 <main class="main">
   <div class="topbar"><div class="topbar-title">Wallet &amp; billing</div><a class="btn-guide" href="/publisher">My listings</a></div>
   <div class="content wallet-shell">
-    <div class="wallet-top"><h1><strong>Wallet &amp; billing</strong></h1></div>
+    <div class="wallet-top"><h1>Wallet &amp; billing</h1></div>
 
 {% if wallet.blocked %}<p class="wallet-notice">Wallet spending is paused while a payment is reconciled. Contact support; your transaction history remains available.</p>{% endif %}
 
@@ -77,13 +76,13 @@
 <section class="wallet-card full"><h2>Payments &amp; refunds</h2><div class="table-scroll"><table class="wallet-table"><thead><tr><th>Date (UTC)</th><th>Description</th><th>Type</th><th>USD</th></tr></thead><tbody>{% for entry in entries %}<tr><td>{{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ entry.description }}</td><td>{{ entry.kind.replace('_',' ') }}</td><td>{{ '+' if entry.delta_cents>0 else '' }}{{ '%.2f'|format(entry.delta_cents/100) }}</td></tr>{% else %}<tr><td colspan="4">No cash transactions yet.</td></tr>{% endfor %}</tbody></table></div></section>
 <section class="wallet-card"><h2>Cash balance</h2><div class="balance">${{ '%.2f'|format(wallet.cash_cents/100) }}</div><p class="wallet-muted">Available for your next study.</p>
 {% if not stripe_configured %}<p class="wallet-notice">Card top-ups are currently unavailable.</p>{% endif %}
-<form id="topupForm"><label for="topupAmount">Add funds (USD)</label><input type="number" id="topupAmount" name="amount" min="1" max="999999.99" step="0.01" placeholder="e.g. 250.00" required><button type="submit" {% if not stripe_configured or wallet.blocked %}disabled{% endif %}>Continue to Stripe</button></form><p class="wallet-muted">Added after payment is confirmed.</p></section>
+<form id="topupForm"><label for="topupAmount">Add funds (USD)</label><input type="number" id="topupAmount" name="amount" min="1" max="999999.99" step="0.01" placeholder="e.g. 250.00" required><button type="submit" {% if not stripe_configured or wallet.blocked %}disabled{% endif %}>Continue to Stripe</button></form></section>
 <section class="wallet-card"><h2>Promotional recruitment credit</h2><div class="balance">${{ '%.2f'|format(wallet.promo_cents/100) }}</div><p class="wallet-muted">Covers platform recruitment fees only.</p><form id="couponForm"><label for="couponCode">Redeem coupon</label><input id="couponCode" maxlength="64" autocomplete="off" required placeholder="Enter code"><button type="submit" {% if wallet.blocked %}disabled{% endif %}>Redeem credit</button></form><details class="calculator-details"><summary>Credit rules</summary><p>Promotional credit expires and is non-refundable. Participant rewards and urgency charges require cash.</p></details></section>
 
 <section class="wallet-card full"><h2>Top-up status</h2><table class="wallet-table"><thead><tr><th>Order</th><th>USD</th><th>Status</th></tr></thead><tbody>{% for topup in topups %}<tr><td>#{{ topup.id }}</td><td>{{ '%.2f'|format(topup.amount_cents/100) }}</td><td>{{ 'Payment confirmed' if topup.status=='paid' else 'Awaiting payment confirmation' }}</td></tr>{% else %}<tr><td colspan="3">No top-ups yet.</td></tr>{% endfor %}</tbody></table></section>
 
-<section class="wallet-card"><h2>Billing details</h2><p class="wallet-muted">For future invoices.</p>{% set billing=wallet.billing_profile or {} %}<form id="billingForm"><label for="billingName">Billing name</label><input id="billingName" maxlength="160" value="{{ billing.name or current_user.username or '' }}"><label for="billingInstitution">Institution / department</label><input id="billingInstitution" maxlength="200" value="{{ billing.institution or '' }}"><label for="billingAddress">Billing address</label><textarea id="billingAddress" maxlength="600" rows="3">{{ billing.address or '' }}</textarea><button type="submit">Save billing details</button></form></section>
-<section class="wallet-card"><h2>Invoices & receipts</h2><p class="wallet-muted">Download receipts and study invoices.</p><table class="wallet-table"><tbody>{% for invoice in invoices %}<tr><td>{{ invoice.number }}<br>{{ invoice.created_at.strftime('%Y-%m-%d') }}</td><td><a href="/api/wallet/invoices/{{ invoice.id }}.pdf">Download PDF</a></td></tr>{% else %}<tr><td>No documents yet.</td></tr>{% endfor %}</tbody></table></section>
+<section class="wallet-card"><h2>Billing details</h2>{% set billing=wallet.billing_profile or {} %}<form id="billingForm"><label for="billingName">Billing name</label><input id="billingName" maxlength="160" value="{{ billing.name or current_user.username or '' }}"><label for="billingInstitution">Institution / department</label><input id="billingInstitution" maxlength="200" value="{{ billing.institution or '' }}"><label for="billingAddress">Billing address</label><textarea id="billingAddress" maxlength="600" rows="3">{{ billing.address or '' }}</textarea><button type="submit">Save billing details</button></form></section>
+<section class="wallet-card"><h2>Invoices & receipts</h2><table class="wallet-table"><tbody>{% for invoice in invoices %}<tr><td>{{ invoice.number }}<br>{{ invoice.created_at.strftime('%Y-%m-%d') }}</td><td><a href="/api/wallet/invoices/{{ invoice.id }}.pdf">Download PDF</a></td></tr>{% else %}<tr><td>No documents yet.</td></tr>{% endfor %}</tbody></table></section>
 </div></div></main>
 <script>
 const message=document.getElementById('walletMessage');
