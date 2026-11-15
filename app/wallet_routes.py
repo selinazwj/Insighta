@@ -6,7 +6,7 @@ import stripe
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from app.models import Survey, StudySettlement
-from app.wallet_models import WalletTopUp, WalletCoupon, WalletLedger, WalletPromoGrant, BillingInvoice, WalletRefundPart
+from app.wallet_models import WalletTopUp, WalletCoupon, WalletLedger, BillingInvoice, WalletRefundPart
 from app.pricing import money_cents, positive_count, PricingError
 from sqlalchemy.exc import IntegrityError
 from app import wallet
@@ -45,13 +45,21 @@ def register_wallet_routes(app, templates, get_db, get_current_user, admin_key_m
             'wallet':wallet.summary(db,current_user.id), 'topup_token':secrets.token_urlsafe(24),
             'entries':db.query(WalletLedger).filter_by(user_id=current_user.id).order_by(WalletLedger.id.desc()).limit(100).all(),
             'topups':db.query(WalletTopUp).filter_by(user_id=current_user.id).order_by(WalletTopUp.id.desc()).limit(50).all(),
-            'grants':db.query(WalletPromoGrant).filter_by(user_id=current_user.id).order_by(WalletPromoGrant.id.desc()).limit(50).all(),
             'invoices':db.query(BillingInvoice).filter_by(user_id=current_user.id).order_by(BillingInvoice.id.desc()).limit(100).all(),
-            'now':datetime.utcnow(), 'stripe_configured':bool(stripe.api_key)})
+            'stripe_configured':bool(stripe.api_key)})
 
     @app.get('/api/wallet')
     def wallet_status(current_user=Depends(get_current_user),db=Depends(get_db)):
         return wallet.summary(db,current_user.id)
+
+    @app.post('/api/wallet/budget-estimate')
+    async def budget_estimate(request: Request, current_user=Depends(get_current_user), db=Depends(get_db)):
+        from app.budget_calculator import estimate_budget
+        body = await json_object(request)
+        try:
+            return estimate_budget(db, current_user.id, body)
+        except PricingError as exc:
+            raise HTTPException(400, str(exc))
 
     @app.post('/api/wallet/topups')
     async def top_up(request: Request,current_user=Depends(get_current_user),db=Depends(get_db)):

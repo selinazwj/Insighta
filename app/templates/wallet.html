@@ -17,7 +17,7 @@
 .balance { font-size:36px; font-weight:300; letter-spacing:-1px; color:var(--green); margin:12px 0; }
 .wallet-card p,.wallet-intro { font-size:13px; line-height:1.65; color:var(--ink2); }
 .wallet-card label { display:block; font-size:12px; font-weight:500; margin-top:15px; }
-.wallet-card input,.wallet-card textarea { width:100%; padding:11px; border:.5px solid var(--line2); border-radius:8px; font:inherit; font-size:13px; margin:6px 0 12px; background:var(--bg); color:var(--ink); }
+.wallet-card input,.wallet-card textarea,.wallet-card select { width:100%; padding:11px; border:.5px solid var(--line2); border-radius:8px; font:inherit; font-size:13px; margin:6px 0 12px; background:var(--bg); color:var(--ink); }
 .wallet-card input:focus,.wallet-card textarea:focus { outline:2px solid var(--green-m); outline-offset:1px; }
 .wallet-card button { border:0; background:var(--green); color:white; padding:10px 16px; border-radius:20px; cursor:pointer; font:600 13px var(--sans); }
 .wallet-card button:hover { background:var(--green-d); }
@@ -34,6 +34,25 @@
 .full { grid-column:1/-1; }
 @media(max-width:900px) { .wallet-grid { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:680px) { .wallet-card { padding:18px; } .balance { font-size:32px; } }
+.calculator-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.calculator-heading h2 { font-size:22px; margin-bottom:10px; }
+.wallet-card .calculator-eyebrow { font-size:10px; font-weight:600; letter-spacing:1.2px; color:var(--green); margin-bottom:7px; }
+.calculator-badge { font-size:11px; color:var(--green); background:var(--green-l); border-radius:20px; padding:5px 10px; white-space:nowrap; }
+.wallet-card .calculator-minimum { background:var(--bg3); border-radius:8px; padding:12px 14px; margin-top:14px; font-size:12px; }
+.calculator-inputs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-top:6px; }
+.calculator-inputs small,.calculator-results small { display:block; color:var(--ink3); font-size:11px; line-height:1.6; }
+.wallet-card .calculator-help { font-size:12px; color:var(--ink3); margin:12px 0; }
+.calculator-results { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:.5px solid var(--line); border-radius:10px; margin:16px 0; overflow:hidden; }
+.calculator-results > div { padding:18px; border-right:.5px solid var(--line); }
+.calculator-results > div:last-child { border:0; }
+.calculator-results span { display:block; font-size:11px; color:var(--ink2); min-height:32px; }
+.calculator-results strong { display:block; font-size:26px; font-weight:400; letter-spacing:-.7px; margin:8px 0; }
+.calculator-funding { background:var(--green-l); color:var(--green); }
+#calculatorMessage { font-size:13px; margin-top:12px; }
+#calculatorMessage:empty { display:none; }
+.wallet-card .calculator-disclaimer { padding-top:14px; margin-top:18px; border-top:.5px solid var(--line); font-size:12px; color:var(--ink3); }
+@media(max-width:1100px) { .calculator-inputs,.calculator-results { grid-template-columns:repeat(2,minmax(0,1fr)); } .calculator-results > div { border-bottom:.5px solid var(--line); } }
+@media(max-width:520px) { .calculator-inputs { grid-template-columns:minmax(0,1fr); gap:0; } .calculator-results > div { padding:12px; } .calculator-results strong { font-size:23px; } }
 </style></head><body>
 {% set researcher_section = 'wallet' %}
 {% include "_researcher_sidebar.html" %}
@@ -41,17 +60,20 @@
   <div class="topbar"><div class="topbar-title">Wallet &amp; billing</div><a class="btn-guide" href="/publisher">My listings</a></div>
   <div class="content wallet-shell">
     <div class="wallet-top"><h1>Your <strong>wallet &amp; billing</strong></h1></div>
-    <p class="wallet-intro">Manage recruitment funding, promotional credit, and billing documents.</p>
+    <p class="wallet-intro">Plan your recruitment budget, then manage funding and billing.</p>
 {% if wallet.blocked %}<p class="wallet-notice">Wallet spending is paused while a payment is reconciled. Contact support; your transaction history remains available.</p>{% endif %}
-{% if not stripe_configured %}<p class="wallet-notice">Card top-ups are currently unavailable. Existing funded balances and eligible promotional credits remain visible.</p>{% endif %}
+
 <p id="walletMessage" role="status" aria-live="polite"></p>
 <div class="wallet-grid">
+{% include "_budget_calculator.html" %}
+<section class="wallet-card full"><h2>Payments &amp; refunds</h2><p class="wallet-muted">Track top-ups, study payments, and refunds.</p><div class="table-scroll"><table class="wallet-table"><thead><tr><th>Date (UTC)</th><th>Description</th><th>Type</th><th>USD</th></tr></thead><tbody>{% for entry in entries %}<tr><td>{{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ entry.description }}</td><td>{{ entry.kind.replace('_',' ') }}</td><td>{{ '+' if entry.delta_cents>0 else '' }}{{ '%.2f'|format(entry.delta_cents/100) }}</td></tr>{% else %}<tr><td colspan="4">No cash transactions yet.</td></tr>{% endfor %}</tbody></table></div></section>
 <section class="wallet-card"><h2>Cash balance</h2><div class="balance">${{ '%.2f'|format(wallet.cash_cents/100) }}</div><p class="wallet-muted">USD from confirmed card top-ups and unused study funding returned to your wallet.</p>
+{% if not stripe_configured %}<p class="wallet-notice">Card top-ups are currently unavailable. Existing funded balances and eligible promotional credits remain visible.</p>{% endif %}
 <form id="topupForm"><label for="topupAmount">Add funds (USD)</label><input type="number" id="topupAmount" name="amount" min="1" max="999999.99" step="0.01" placeholder="e.g. 250.00" required><button type="submit" {% if not stripe_configured or wallet.blocked %}disabled{% endif %}>Continue to Stripe</button></form><p class="wallet-muted">Balance is credited after Stripe confirms payment. Returning from checkout alone does not add funds.</p></section>
 <section class="wallet-card"><h2>Promotional recruitment credit</h2><div class="balance">${{ '%.2f'|format(wallet.promo_cents/100) }}</div><p class="wallet-muted">Applies only to platform recruitment fees when paying from wallet. Participant rewards and urgency require cash. Credit expires and is non-refundable.</p><form id="couponForm"><label for="couponCode">Redeem coupon</label><input id="couponCode" maxlength="64" autocomplete="off" required placeholder="Enter code"><button type="submit" {% if wallet.blocked %}disabled{% endif %}>Redeem credit</button></form></section>
-<section class="wallet-card full"><h2>Cash transaction history</h2><div class="table-scroll"><table class="wallet-table"><thead><tr><th>Date (UTC)</th><th>Description</th><th>Type</th><th>USD</th></tr></thead><tbody>{% for entry in entries %}<tr><td>{{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ entry.description }}</td><td>{{ entry.kind.replace('_',' ') }}</td><td>{{ '+' if entry.delta_cents>0 else '' }}{{ '%.2f'|format(entry.delta_cents/100) }}</td></tr>{% else %}<tr><td colspan="4">No cash transactions yet.</td></tr>{% endfor %}</tbody></table></div></section>
-<section class="wallet-card"><h2>Top-up status</h2><table class="wallet-table"><thead><tr><th>Order</th><th>USD</th><th>Status</th></tr></thead><tbody>{% for topup in topups %}<tr><td>#{{ topup.id }}</td><td>{{ '%.2f'|format(topup.amount_cents/100) }}</td><td>{{ 'Payment confirmed' if topup.status=='paid' else 'Awaiting payment confirmation' }}</td></tr>{% else %}<tr><td colspan="3">No top-ups yet.</td></tr>{% endfor %}</tbody></table></section>
-<section class="wallet-card"><h2>Promotional credit history</h2><table class="wallet-table"><thead><tr><th>Remaining USD</th><th>Expires (UTC)</th><th>Status</th></tr></thead><tbody>{% for grant in grants %}<tr><td>{{ '%.2f'|format(grant.remaining_cents/100) }}</td><td>{{ grant.expires_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ 'Expired' if grant.expires_at<=now else ('Used' if grant.remaining_cents==0 else 'Available') }}</td></tr>{% else %}<tr><td colspan="3">No promotional credit redeemed.</td></tr>{% endfor %}</tbody></table></section>
+
+<section class="wallet-card full"><h2>Top-up status</h2><table class="wallet-table"><thead><tr><th>Order</th><th>USD</th><th>Status</th></tr></thead><tbody>{% for topup in topups %}<tr><td>#{{ topup.id }}</td><td>{{ '%.2f'|format(topup.amount_cents/100) }}</td><td>{{ 'Payment confirmed' if topup.status=='paid' else 'Awaiting payment confirmation' }}</td></tr>{% else %}<tr><td colspan="3">No top-ups yet.</td></tr>{% endfor %}</tbody></table></section>
+
 <section class="wallet-card"><h2>Billing details</h2><p class="wallet-muted">Used for newly issued documents. Existing invoices keep the billing details recorded when issued.</p>{% set billing=wallet.billing_profile or {} %}<form id="billingForm"><label for="billingName">Billing name</label><input id="billingName" maxlength="160" value="{{ billing.name or current_user.username or '' }}"><label for="billingInstitution">Institution / department</label><input id="billingInstitution" maxlength="200" value="{{ billing.institution or '' }}"><label for="billingAddress">Billing address</label><textarea id="billingAddress" maxlength="600" rows="3">{{ billing.address or '' }}</textarea><button type="submit">Save billing details</button></form></section>
 <section class="wallet-card"><h2>Invoices & receipts</h2><p class="wallet-muted">Top-up receipts record funds added. Study invoices describe the services purchased with those funds. Each paid quoted study also has an export link in its details.</p><table class="wallet-table"><tbody>{% for invoice in invoices %}<tr><td>{{ invoice.number }}<br>{{ invoice.created_at.strftime('%Y-%m-%d') }}</td><td><a href="/api/wallet/invoices/{{ invoice.id }}.pdf">Download PDF</a></td></tr>{% else %}<tr><td>Documents appear after a confirmed top-up or paid study.</td></tr>{% endfor %}</tbody></table></section>
 </div></div></main>
@@ -65,4 +87,5 @@ async function walletAction(form,url,body,redirect){
 document.getElementById('topupForm').addEventListener('submit',function(event){event.preventDefault();walletAction(this,'/api/wallet/topups',{amount:document.getElementById('topupAmount').value,token:{{ topup_token|tojson }}},true);});
 document.getElementById('couponForm').addEventListener('submit',function(event){event.preventDefault();walletAction(this,'/api/wallet/redeem',{code:document.getElementById('couponCode').value});});
 document.getElementById('billingForm').addEventListener('submit',function(event){event.preventDefault();walletAction(this,'/api/wallet/billing',{name:document.getElementById('billingName').value,institution:document.getElementById('billingInstitution').value,address:document.getElementById('billingAddress').value});});
-</script></body></html>
+</script>
+<script src="/static/budget_calculator.js"></script></body></html>

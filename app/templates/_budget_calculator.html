@@ -1,0 +1,28 @@
+<section class="wallet-card full budget-calculator" aria-labelledby="budgetCalculatorTitle">
+  <div class="calculator-heading"><div><p class="calculator-eyebrow">PLAN YOUR RECRUITMENT</p><h2 id="budgetCalculatorTitle">Budget calculator</h2></div><span class="calculator-badge">Estimate only</span></div>
+  <p>Enter your total budget and target number of participants to estimate participant rewards, our commission, and how much to add to your wallet.</p>
+  <p class="calculator-minimum"><strong>Platform recruitment fees start at $5 per participant for surveys.</strong> This minimum is paid to Insighta, in addition to the participant’s full reward. Remote interviews have a $10 minimum; in-person studies have a $15 minimum per participant.</p>
+  <form id="budgetCalculatorForm">
+    <div class="calculator-inputs">
+      <div><label for="calculatorBudget">Total study budget (USD)</label><input id="calculatorBudget" type="number" min="0.01" max="999999.99" step="0.01" value="500" required><small>Includes participant rewards and platform fees.</small></div>
+      <div><label for="calculatorParticipants">Participants you want</label><input id="calculatorParticipants" type="number" min="1" max="100000" step="1" value="20" required></div>
+      <div><label for="calculatorStudyType">Study format</label><select id="calculatorStudyType"><option value="survey">Survey · 20% / $5 minimum</option><option value="interview">Remote interview · 25% / $10 minimum</option><option value="in_person">In-person study · 25% / $15 minimum</option></select></div>
+      <div><label for="calculatorAudience">How niche is your audience?</label><select id="calculatorAudience"><option value="broad">Broad · general audience</option><option value="targeted">Targeted · specific traits</option><option value="specialized">Highly niche · specialists</option></select></div>
+    </div>
+    <p class="calculator-help">Rates are a percentage of each participant’s reward, subject to the platform minimum. Targeted and highly niche audiences require a manual quote; no niche surcharge is assumed here.</p>
+    <button type="submit" id="calculateBudgetButton">Calculate budget</button>
+  </form>
+  <p id="calculatorMessage" role="status" aria-live="polite"></p>
+  <div id="calculatorResults" hidden>
+    <div class="calculator-results">
+      <div><span>Reward per participant</span><strong id="calculatorReward">—</strong><small>Full amount for each participant</small></div>
+      <div><span>Platform recruitment fee (commission)</span><strong id="calculatorFee">—</strong><small id="calculatorFeeDetail"></small></div>
+      <div><span>Estimated study total</span><strong id="calculatorTotal">—</strong><small>Standard audience, flexible timeline</small></div>
+      <div class="calculator-funding"><span id="calculatorTopupLabel">Suggested top-up</span><strong id="calculatorTopup">—</strong><small id="calculatorFundingDetail"></small></div>
+    </div>
+    <p id="calculatorNicheNote" class="calculator-minimum" hidden><strong>Get a manual niche quote before adding funds.</strong> These figures are a standard-audience reference only. Your niche requirements may change the price and recruitment feasibility.</p>
+    <p id="calculatorRemainder" class="calculator-help"></p>
+    <button type="button" id="calculatorUseTopup" hidden>Use suggested top-up amount</button>
+  </div>
+  <p class="calculator-disclaimer">This is a planning calculator, not a charge or confirmed quote. Pricing calculators are also available when you <a href="/publisher">create a listing</a>, where you set the participant reward and review the final price, urgency charges, and funding before publishing.</p>
+</section>
