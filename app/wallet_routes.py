@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import asyncio
 import re
 import secrets
+import logging
 import stripe
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse, Response
@@ -90,7 +91,8 @@ def register_wallet_routes(app, templates, get_db, get_current_user, admin_key_m
                 cancel_url=base_url().rstrip('/')+'/publisher/wallet',
                 metadata={'wallet_topup_id':str(row.id),'user_id':str(current_user.id)},
                 idempotency_key=f'wallet-topup:{row.id}:v1')
-        except stripe.error.StripeError:
+        except stripe.error.StripeError as exc:
+            logging.getLogger(__name__).warning("Wallet checkout failed (%s); Stripe request=%s", type(exc).__name__, exc.request_id or "none")
             raise HTTPException(502,'Checkout could not be started. No wallet balance was credited; retry this top-up.')
         wallet.lock_wallet(db,current_user.id)
         row=db.query(WalletTopUp).filter_by(id=row.id).populate_existing().one()

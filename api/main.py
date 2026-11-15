@@ -487,6 +487,9 @@ def ensure_phase_two_trust_schema():
 
 ensure_phase_two_trust_schema()
 
+# Keep the payment contract aligned with the configured snapshot webhook.
+# New SDK releases otherwise silently select newer, breaking API versions.
+stripe.api_version = "2025-03-31.basil"
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
