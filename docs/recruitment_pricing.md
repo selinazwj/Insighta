@@ -116,3 +116,7 @@ Stripe requests explicitly pin `2025-03-31.basil`, matching the configured snaps
 
 
 Provider resources are normalized to plain dictionaries at webhook, funding lookup, and refund reconciliation boundaries. Stripe Python 17 no longer exposes dictionary methods such as `.get()` on resource objects; tests construct real SDK resources and submit HMAC-signed events through the actual webhook verifier. The project uses Stripe Python 17.x consistently in development and staging. A successful Checkout redirect still does not credit funding; a failed callback is retried/replayed after the application fix, preserving exact-once credit.
+
+### Staging Sandbox acceptance (2026-11-15)
+
+Verified on the isolated staging service at commit `fd09303`: a $10 Stripe Sandbox top-up credited once after signed webhook delivery; manually replaying the same event returned HTTP 200 without adding credit. A $5 wallet-funded volunteer listing published and settled back to its original test card. A separate $5 card-funded volunteer listing published through its paid webhook and settled into the wallet. Both test listings were closed, and the final cash balance was $10 with no spending block. Study invoice PDF downloads were verified. These checks used Stripe Sandbox cards and generated no real charges; production resources were unchanged. The earlier provider-mocked regression checks remain complementary to this hosted integration run.
