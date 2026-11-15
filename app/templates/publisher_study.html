@@ -225,7 +225,7 @@
         <div class="funding-amount">${{ '%.2f'|format(settlement.refund_amount_cents / 100) }}</div>
         <p class="funding-caption">{{ 'No refund due' if settlement.status == 'no_refund' else 'Refund to Wallet' if settlement.refund_destination == 'wallet' else 'Refund to original card(s)' }}</p>
         {% else %}<p class="funding-caption">Refund amount available after reviews finish.</p>{% endif %}
-        <div class="funding-meta"><span>{{ settlement.qualified_count if settlement.qualified_count is not none else 'Pending' }} qualified / {{ settlement.ordered_count }} participants</span></div>
+        <div class="funding-meta"><span>Qualified · {{ settlement.qualified_count if settlement.qualified_count is not none else 'Pending' }} / {{ settlement.ordered_count }}</span></div>
         {% if settlement.last_error %}<p class="funding-alert">{{ settlement.last_error }} Contact support if unresolved.</p>{% endif %}
         {% if settlement.status in ('retrying', 'manual_review') and not settlement.stripe_refund_id %}
         <button type="button" class="action-btn" onclick="retrySettlement(this)">Retry refund</button>
