@@ -180,6 +180,8 @@ class Survey(Base):
     per_person_gross = Column(Float, nullable=True)
     commission_rate = Column(Float, nullable=True)
     pricing_snapshot = Column(JSON, nullable=True)
+    funding_source = Column(String, nullable=True)
+    refund_destination = Column(String, nullable=True)
     target_responses = Column(Integer, nullable=False)
     current_responses = Column(Integer, default=0)
 
@@ -212,6 +214,8 @@ class StudySettlement(Base):
     survey_id = Column(Integer, ForeignKey("surveys.id"), unique=True, nullable=False, index=True)
     status = Column(String, nullable=False, default="waiting_review", index=True)
     close_reason = Column(String, nullable=False)
+    refund_destination = Column(String, nullable=True)
+    refund_gross_cents = Column(Integer, nullable=True)
     pricing_snapshot = Column(JSON, nullable=False)
     qualified_count = Column(Integer, nullable=True)
     refund_amount_cents = Column(Integer, nullable=True)
@@ -628,3 +632,6 @@ class DiditWebhookEvent(Base):
     webhook_type = Column(String, nullable=True)
     provider_status = Column(String, nullable=True)
     processed_at = Column(DateTime, default=datetime.utcnow)
+
+# Register researcher wallet tables on the shared metadata.
+from app import wallet_models as _wallet_models  # noqa: E402,F401

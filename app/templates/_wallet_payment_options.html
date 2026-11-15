@@ -1,0 +1,20 @@
+{% if not is_admin_publish %}
+<section style="margin:20px 0;padding:18px;border:1px solid #dce5de;border-radius:12px;background:#f5f8f4;">
+  <h3 style="font-size:16px;margin:0 0 10px;">Payment and refunds</h3>
+  <p style="font-size:13px;line-height:1.6;">Wallet cash: <strong>${{ '%.2f'|format((wallet.cash_cents if wallet else 0)/100) }}</strong> · Promotional credit: <strong>${{ '%.2f'|format((wallet.promo_cents if wallet else 0)/100) }}</strong> · <a href="/publisher/wallet" target="_blank" rel="noopener">Manage wallet / add funds</a></p>
+  <div style="display:flex;gap:20px;flex-wrap:wrap;margin:12px 0;">
+    <label style="font-size:14px;"><input type="radio" name="payment_method" value="stripe" checked> Stripe card checkout</label>
+    <label style="font-size:14px;"><input type="radio" name="payment_method" value="wallet"> Pay from wallet</label>
+  </div>
+  <label style="font-size:13px;"><input type="checkbox" name="use_promo" id="usePromoCredits" value="1" checked> Use eligible promotional credit with wallet payment</label>
+  <p style="font-size:12px;line-height:1.6;">Promotional credit covers platform recruitment fees only. Participant rewards and urgency charges require cash. Promotional credit expires and cannot be refunded.</p>
+  <p id="walletQuote" role="status" aria-live="polite" style="font-size:13px;margin:10px 0;"></p>
+  <label style="font-size:13px;">Unused funding refund destination
+    <select name="refund_destination" style="display:block;margin-top:8px;padding:8px;max-width:100%;">
+      <option value="wallet">Return to wallet balance</option>
+      <option value="card">Return to original card(s)</option>
+    </select>
+  </label>
+  <p style="font-size:12px;margin-top:8px;">You can change the destination until settlement is calculated. Participants still receive the full reward you set.</p>
+</section>
+{% endif %}

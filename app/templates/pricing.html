@@ -32,7 +32,7 @@
       <p class="lead">Participants receive the full reward you set. Recruitment fees are added on top.</p>
       {% for key, rule in pricing.study_types.items() %}
       <h2>{{ rule.label }}</h2>
-      <p>{{ rule.rate_bps / 100 }}% of each participant’s reward, with a ${{ '%.2f'|format(rule.minimum_fee_cents / 100) }} minimum recruitment fee per person.</p>
+      <p>{{ rule.rate_bps / 100 }}% of each participant’s reward, with a ${{ '%.2f'|format(rule.minimum_fee_cents / 100) }} minimum platform recruitment fee per person.</p>
       {% endfor %}
       <p>Self-guided UX / product tests and diary studies use the survey rate.</p>
       <h2>Your total</h2>
@@ -42,7 +42,10 @@
       <p>No per-person reward is included in the quote. Each target participant incurs the minimum recruitment fee for that study type, plus any urgency surcharge. Researchers fund and describe raffle prizes separately.</p>
       <h2>Payment and refunds</h2>
       <p>Pay the full quoted amount at publication. A price snapshot locks your funded listing’s rates. Existing published studies keep their previous pricing.</p>
-      <p>Unused or ineligible places are eligible for return of their reward and recruitment fee, including the corresponding urgency surcharge. After closeout, original-card refunds are calculated from the saved quote once outstanding completion reviews are resolved. Refunds can be pending with Stripe; wallet balances are not yet available. Contact <a href="mailto:insightacom@gmail.com">insightacom@gmail.com</a> for a review.</p>
+      <p>Unused or ineligible places are eligible for return of their reward and recruitment fee, including the corresponding urgency surcharge. After closeout, original-card refunds are calculated from the saved quote once outstanding completion reviews are resolved. For new orders, unused cash returns to your wallet by default; you may choose the original card before settlement is calculated. Card refunds can be pending with Stripe. Promotional credit is not refundable. Contact <a href="mailto:insightacom@gmail.com">insightacom@gmail.com</a> for a review.</p>
+      <h2>Wallet and promotional credit</h2>
+      <p>Add USD funds through Stripe and pay study quotes from your wallet. Promotional credit can cover platform recruitment fees only; it cannot cover participant rewards or urgency surcharges. Credit expires on the stated date and is not refundable. Participants receive their full reward.</p>
+      <p>Top-up receipts and paid study invoices are available as PDF downloads from Wallet &amp; billing.</p>
       <h2>Completion reviews</h2>
       <p>Researchers have seven days after completion to reject a response. Verified completions without quality or trust holds are automatically approved after seven days; flagged completions require review before closeout can finish. Only purchased places are funded.</p>
       <p>Participant no-shows in live studies can be replaced without an additional recruitment fee before the deadline. If the researcher cancels a live study, recruitment fees and their urgency surcharge remain payable.</p>

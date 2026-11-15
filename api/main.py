@@ -35,6 +35,8 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from app.settlements import (assert_study_open, ensure_settlement, run_settlement_cycle, settlement_payload, lock_study, process_refund)
+from app import wallet as researcher_wallet
+from app.wallet_models import WalletRefundPart
 from app.pricing import calculate_quote, pricing_config, PricingError
 from app.booking_calendar import booked_events, calendar_document, google_calendar_links
 from app.google_calendar import register_calendar_routes, calendar_status, queue_calendar_sync, sync_booking, JOB_TYPE as GOOGLE_CALENDAR_SYNC
@@ -377,6 +379,8 @@ def ensure_survey_listing_columns():
         "per_person_gross": "FLOAT",
         "commission_rate": "FLOAT",
         "pricing_snapshot": "JSON",
+        "funding_source": "VARCHAR",
+        "refund_destination": "VARCHAR",
         "deadline_at": "TIMESTAMP",
         "close_reason": "VARCHAR",
         "stripe_funding_payment_intent_id": "VARCHAR",
@@ -393,6 +397,16 @@ def ensure_survey_listing_columns():
 
 if auto_schema_bootstrap_enabled():
     ensure_survey_listing_columns()
+
+def ensure_settlement_wallet_columns():
+    columns = {col["name"] for col in inspect(engine).get_columns("study_settlements")}
+    with engine.begin() as conn:
+        for name, column_type in {"refund_destination": "VARCHAR", "refund_gross_cents": "INTEGER"}.items():
+            if name not in columns:
+                conn.execute(text(f"ALTER TABLE study_settlements ADD COLUMN {name} {column_type}"))
+
+if auto_schema_bootstrap_enabled():
+    ensure_settlement_wallet_columns()
 
 def ensure_response_tracking_columns():
     columns = {col["name"] for col in inspect(engine).get_columns("responses")}
@@ -6508,7 +6522,8 @@ def publish_page(
         "prefill_title": title or (existing_survey.title if existing_survey else ""),
         "prefill_desc": desc or (existing_survey.description if existing_survey else ""),
         "existing_survey": existing_survey,
-        "current_user": current_user
+        "current_user": current_user,
+        "wallet": researcher_wallet.summary(db, current_user.id)
     })
 
 # ---------------------------
@@ -6516,7 +6531,7 @@ def publish_page(
 # ---------------------------
 
 @app.post("/api/calculate-price")
-async def calculate_price(request: Request, current_user: User = Depends(get_current_user)):
+async def calculate_price(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         body = await request.json()
     except ValueError:
@@ -6529,6 +6544,8 @@ async def calculate_price(request: Request, current_user: User = Depends(get_cur
                                 body.get("urgency_level", "flexible"))
     except PricingError as exc:
         raise HTTPException(400, str(exc))
+    if body.get("payment_method") == "wallet":
+        quote["wallet"] = researcher_wallet.payment_quote(db, current_user.id, quote, body.get("use_promo") is True)
     return JSONResponse(quote)
 
 
@@ -6547,6 +6564,7 @@ def publish_interview_page(
     request: Request,
     mode: str = Query("in_person"),
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     is_online = (mode or "").strip().lower() in {"online", "remote", "video"}
     return templates.TemplateResponse("publish_interview.html", {
@@ -6554,6 +6572,7 @@ def publish_interview_page(
         "current_user": current_user,
         "is_online_interview": is_online,
         "interview_mode": "online" if is_online else "in_person",
+        "wallet": researcher_wallet.summary(db, current_user.id),
         "publish_token": secrets.token_urlsafe(24),
     })
 
@@ -6629,11 +6648,14 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(400, str(e))
 
     if event["type"] == "checkout.session.completed":
+        if researcher_wallet.fulfill_topup(db, event["data"]["object"]):
+            db.commit()
+            return JSONResponse({"status": "ok"})
         survey_id = event["data"]["object"].get("metadata", {}).get("survey_id")
         if survey_id:
-            survey = db.query(Survey).filter(Survey.id == int(survey_id)).first()
+            survey = lock_study(db, int(survey_id))
             checkout = event["data"]["object"]
-            if (survey and survey.payment_status != "paid" and checkout.get("payment_status") == "paid"
+            if (survey and survey.funding_source != "wallet" and survey.payment_status != "paid" and checkout.get("payment_status") == "paid"
                     and (not survey.pricing_snapshot or (
                         checkout.get("id") == survey.stripe_payment_intent_id
                         and checkout.get("amount_total") == survey.pricing_snapshot["total_cents"]
@@ -6656,10 +6678,25 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                         target_id=survey.id,
                         metadata={"study_title": survey.title, "source": "Stripe webhook", "user_role": "researcher"},
                     )
+                researcher_wallet.issue_study_invoice(db, survey)
                 db.commit()
     elif event["type"] in {"refund.created", "refund.updated", "refund.failed"}:
         from app.settlements import _apply_refund
         refund = event["data"]["object"]
+        part_marker = str(refund.get("metadata", {}).get("insighta_wallet_part_id", ""))
+        if part_marker.isdigit():
+            part = db.get(WalletRefundPart, int(part_marker))
+            if part:
+                row = db.get(StudySettlement, part.settlement_id)
+                lock_study(db, row.survey_id)
+                if not part.stripe_refund_id or part.stripe_refund_id == refund.get("id"):
+                    try:
+                        researcher_wallet.apply_part(part, stripe.Refund.retrieve(refund["id"]))
+                        researcher_wallet.refresh_parts_status(db, row)
+                    except Exception:
+                        raise HTTPException(503, "Refund allocation could not be reconciled. Retry this webhook.")
+                    db.commit()
+            return JSONResponse({"status":"ok"})
         marker = str(refund.get("metadata", {}).get("insighta_settlement_id", ""))
         if marker.isdigit():
             existing = db.get(StudySettlement, int(marker))
@@ -6673,6 +6710,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     except Exception:
                         raise HTTPException(503, "Refund status could not be reconciled. Retry this webhook.")
                     db.commit()
+    elif event["type"] in {"charge.refunded", "charge.dispute.created"}:
+        researcher_wallet.freeze_wallet_for_payment_event(db, event)
+        db.commit()
     elif event["type"] == "account.updated":
         account = event["data"]["object"]
         if account.get("charges_enabled"):
@@ -7482,7 +7522,8 @@ def retry_study_settlement(survey_id: int, current_user: User = Depends(get_curr
     row = db.query(StudySettlement).filter_by(survey_id=study.id).first()
     if not row or row.status not in {"retrying", "manual_review"}:
         raise HTTPException(409, "This settlement is not awaiting a refund retry.")
-    if row.stripe_refund_id:
+    if row.stripe_refund_id or db.query(WalletRefundPart).filter(
+        WalletRefundPart.settlement_id == row.id, WalletRefundPart.status == "manual_review").first():
         raise HTTPException(409, "An existing refund needs support reconciliation; it will not be submitted twice.")
     row.status, row.attempts, row.next_attempt_at = "ready", 0, datetime.utcnow()
     db.commit()
@@ -9912,7 +9953,7 @@ async def publish_survey(
     if existing_survey_id:
         previous = db.query(Survey).filter(
             Survey.id == existing_survey_id, Survey.publisher_id == current_user.id
-        ).first()
+        ).populate_existing().with_for_update().first()
         if not previous:
             raise HTTPException(404, "Survey not found")
         if previous.status in {"published", "closed"} or previous.payment_status in {"paid", "admin_demo"}:
@@ -10133,6 +10174,22 @@ async def publish_survey(
         db.commit()
         redirect_qs = urlencode({"admin_key": admin_redirect_key or "", "created": "1"})
         return _publish_redirect(request, f"/admin/publish?{redirect_qs}", survey.id)
+
+    payment_method = str(form.get("payment_method") or "stripe").strip()
+    destination = str(form.get("refund_destination") or "wallet").strip()
+    if payment_method not in {"stripe", "wallet"} or destination not in {"wallet", "card"}:
+        raise HTTPException(400, "Choose a valid payment method and refund destination.")
+    survey.refund_destination = destination
+    db.flush()
+    if payment_method == "wallet" and not admin_uses_stripe:
+        researcher_wallet.pay_study(db, survey.id, current_user.id,
+            use_promo=str(form.get("use_promo") or "").lower() in {"1", "true", "on"}, expected_snapshot=quote)
+        _record_user_event(db, request, "study_published", user=current_user,
+            target_type="survey", target_id=survey.id,
+            metadata={"study_title":survey.title, "source":"Wallet publish", "user_role":"researcher"})
+        db.commit()
+        return _publish_redirect(request, "/publisher", survey.id)
+    survey.funding_source = "stripe"
 
     if not stripe.api_key:
         db.commit()
@@ -11540,3 +11597,6 @@ def import_excel_for_quality_check(
 
 
 app.include_router(router)
+
+from app.wallet_routes import register_wallet_routes
+register_wallet_routes(app, templates, get_db, get_current_user, _admin_key_matches, lambda: BASE_URL)

@@ -275,6 +275,7 @@
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
       Schedule
     </a>
+    <a href="/publisher/wallet" class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M15 10h6v5h-6zM3 5l13-3v3"/></svg>Wallet &amp; billing</a>
     <a href="/profile" class="nav-item">
       <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Profile
@@ -1066,6 +1067,8 @@
     </div>
     {% endif %}
 
+    <div data-wizard-step="4" hidden>{% include "_wallet_payment_options.html" %}</div>
+
     <div class="wizard-nav">
       <button type="button" class="btn-step back" id="wizardBack" onclick="changeWizardStep(-1)">Back</button>
       <div class="wizard-nav-note">Your entries stay in this form while you move between steps.</div>
@@ -1269,6 +1272,8 @@
               urgency: document.getElementById('cBoost'), total: document.getElementById('cTotal')},
     input: () => ({study_type: document.getElementById('taskTypeSelect')?.value || 'survey', incentive_type: document.getElementById('incentiveInput').value, per_person: ppInput.value || '0', target_responses: targetInput.value || '0', urgency_level: document.getElementById('urgencyInput').value})
   });
+
+  document.querySelectorAll('[name="payment_method"], #usePromoCredits').forEach(el => el.addEventListener('change', updateCommission));
 
   function adminUsesStripe() {
     return IS_ADMIN_PUBLISH && document.getElementById('adminPaymentMode')?.value === 'stripe';

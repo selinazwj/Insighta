@@ -19,3 +19,4 @@ numpy
 qrcode[pil]
 redis>=5,<7
 cryptography>=46,<47
+reportlab>=4,<5

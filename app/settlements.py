@@ -74,7 +74,8 @@ def ensure_settlement(db, study):
     row = db.query(StudySettlement).filter_by(survey_id=study.id).first()
     if not row:
         row = StudySettlement(survey_id=study.id, status="waiting_review",
-            close_reason=study.close_reason or "completed", pricing_snapshot=dict(study.pricing_snapshot),
+            close_reason=study.close_reason or "completed", refund_destination=study.refund_destination or "card",
+            pricing_snapshot=dict(study.pricing_snapshot),
             currency=study.pricing_snapshot["currency"])
         db.add(row)
         db.flush()
@@ -144,8 +145,11 @@ def scan_settlements(db, verification_satisfies, *, now=None):
                     distinct.setdefault(response.participant_id, response.id)
                 settlement.qualified_response_ids = list(distinct.values())[:study.pricing_snapshot["target_responses"]]
                 settlement.qualified_count = len(settlement.qualified_response_ids)
-                settlement.refund_amount_cents = refund_cents(settlement.pricing_snapshot,
+                from app.wallet import settlement_cash_refund
+                settlement.refund_gross_cents = refund_cents(settlement.pricing_snapshot,
                     settlement.qualified_count, settlement.close_reason)
+                settlement.refund_amount_cents = settlement_cash_refund(db, study,
+                    settlement.refund_gross_cents, settlement.qualified_count, settlement.close_reason)
                 settlement.frozen_at = now
                 settlement.status = "ready" if settlement.refund_amount_cents else "no_refund"
                 settlement.next_attempt_at = now
@@ -192,6 +196,11 @@ def process_refund(db, settlement_id, *, now=None):
         return
     row.attempts += 1
     try:
+        from app.wallet import process_wallet_settlement
+        if process_wallet_settlement(db, study, row):
+            row.updated_at = now
+            db.commit()
+            return
         if not stripe.api_key:
             raise RuntimeError("Stripe is not configured; refund has not been submitted.")
         if row.stripe_refund_id:
@@ -237,4 +246,5 @@ def settlement_payload(row):
         "ordered_count": row.pricing_snapshot["target_responses"], "qualified_count": row.qualified_count,
         "refund_amount_cents": row.refund_amount_cents, "currency": row.currency,
         "last_error": row.last_error, "stripe_refund_id": row.stripe_refund_id,
+        "refund_destination": row.refund_destination or "card", "refund_gross_cents": row.refund_gross_cents,
         "updated_at": row.updated_at.isoformat() if row.updated_at else None}

@@ -1,12 +1,14 @@
 # Recruitment pricing rollout
 
-Phase one introduces additive recruitment fees, quotes, and Stripe funding. Phase two adds completion review deadlines and original-card settlement refunds. Wallets, coupons, invoices, and niche payment links remain later phases.
+Phase one introduces additive recruitment fees, quotes, and Stripe funding. Phase two adds completion review deadlines and original-card settlement refunds. Phase three adds researcher wallets, promotional recruitment credits, and billing exports. Niche payment links remain a later phase.
 
 ## Rules
 
-- External and built-in surveys: 20%, minimum $5 per target participant. Existing self-guided UX / product-test and diary-study options use the external-survey rate.
-- Remote interviews: 25%, minimum $10 per target participant.
-- In-person studies: 25%, minimum $15 per target participant.
+**Platform minimum recruitment fee per participant:** the minimum is paid to Insighta for recruitment and service delivery. It is added to the researcher-entered participant reward. Participants receive that reward in full. For example, a $40 participant reward plus a $15 platform minimum fee means $55 per person before urgency; $40 goes to the participant and $15 is the platform recruitment fee.
+
+- External and built-in surveys: 20%, with a $5 minimum platform recruitment fee per target participant. Existing self-guided UX / product-test and diary-study options use the external-survey rate.
+- Remote interviews: 25%, with a $10 minimum platform recruitment fee per target participant.
+- In-person studies: 25%, with a $15 minimum platform recruitment fee per target participant.
 - Cash and gift card quotes include the full researcher-entered participant reward. Fees are added on top.
 - Raffle and volunteer quotes have no per-person reward and charge the study type's minimum recruitment fee per target participant. Raffle prizes are funded separately by the researcher.
 - Urgency applies to the combined reward and fee: flexible 0%, within a month 5%, within a week 10%.
@@ -27,9 +29,9 @@ python scripts/run_migrations.py
 
 The nullable JSON `surveys.pricing_snapshot` records inputs, currency, version, reward and recruitment cents, rate, minimum and whether it applied, urgency basis points and amount, subtotal, and total. Existing listings are not backfilled or repriced. New submissions save the quote with the draft before opening Checkout; payment confirmation preserves it. Funded quoted listings cannot change their price or participant cap through edit/builder routes; create a new listing for a new order.
 
-Stripe must be configured for researcher publication, including raffles and volunteers. Missing configuration leaves an unpaid draft and returns 503. Admin demo publication remains available without charging and is explicitly marked `admin_demo`. Stripe Checkout uses the snapshot total in cents and an idempotency key. Only a signed webhook confirming the expected session, amount, currency, and paid status publishes a quoted study. Visiting the success URL alone does not mark a study paid. Webhook retries do not reopen paid closed studies.
+Stripe must be configured for card-funded researcher publication and wallet top-ups, including raffles and volunteers. A funded wallet can publish without a new Stripe Checkout. Missing configuration leaves an unpaid draft and returns 503. Admin demo publication remains available without charging and is explicitly marked `admin_demo`. Stripe Checkout uses the snapshot total in cents and an idempotency key. Only a signed webhook confirming the expected session, amount, currency, and paid status publishes a quoted study. Visiting the success URL alone does not mark a study paid. Webhook retries do not reopen paid closed studies.
 
-Pricing and Terms describe automatic seven-day approval for verified completions without quality or trust holds, and original-card refunds after closeout. Unresolved holds pause settlement for review. Wallet balances are not available yet.
+Pricing and Terms describe automatic seven-day approval for verified completions without quality or trust holds, and original-card refunds after closeout. Unresolved holds pause settlement for review. New orders default to wallet refunds, with original-card refunds selectable before settlement freezes. Legacy orders retain their original-card default.
 
 ## Verification
 
@@ -76,3 +78,20 @@ python -m unittest discover -s tests -p test_settlements.py
 python -m unittest discover -s tests -p test_publish_flow.py
 python -m unittest discover -s tests -p test_booking_calendar.py
 ```
+
+
+## Phase three: researcher wallet and billing
+
+Apply migration `202611140003`. `/publisher/wallet` keeps researcher funding separate from participant earnings. Cash movements are append-only integer-cent ledger entries; funding lots retain the original Stripe PaymentIntent. Top-ups use saved orders and stable idempotency keys. Only a signed, matching `checkout.session.completed` event credits cash; checkout redirects never credit funds. Repeated events and publication retries cannot charge twice. Wallet and study locks serialize spending; cash cannot exceed available funding lots. Unexpected external refunds or disputes pause further wallet spending pending support reconciliation.
+
+Researchers can pay a quoted draft with wallet cash, or use the existing card checkout. An open card checkout must be expired before switching the draft to wallet; a paid checkout cannot switch. The payment records an immutable price snapshot and cash/promotion allocation. A server quote determines amounts; client-supplied balances or discounts are never trusted.
+
+Coupons are created at `/admin/wallet` using existing admin authentication. Each has a positive USD credit amount, UTC expiry, and whole-number redemption cap; each researcher redeems it once. Promotional grants expire and offset only base platform recruitment fees during wallet payment. Participant rewards and urgency charges still require cash. Promotional credit is consumed earliest-expiry first, is never withdrawn or refunded, and is excluded from unused-funding cash refunds.
+
+New purchases default to wallet refunds. The researcher can select original card(s) at purchase or change the destination in study details before the settlement freezes. Old orders with no saved destination keep original-card refunds. Wallet refunds credit only the cash portion once, restore its funding provenance, and do not call Stripe Refund. Original-card refunds for wallet orders are split proportionally over the original funding lots. Durable refund parts are committed before provider calls; retries reconcile metadata and fixed idempotency keys, and pending parts are polled. Failed provider parts require support review. Researcher cancellation still retains platform fees according to phase-two rules.
+
+Cash history, top-up status, coupon history, and PDF downloads are available in Wallet & billing. Billing profiles apply to newly issued documents; immutable invoice snapshots preserve the buyer, issuer, line items, discount, and payment method. Top-up documents are funding receipts; each funded quoted listing has its own service invoice, avoiding a second charge for the same funding. Configure `INVOICE_ISSUER_NAME`, `INVOICE_ISSUER_ADDRESS`, and `INVOICE_ISSUER_EMAIL` for the actual issuing entity before production use. No tax registration or tax treatment is inferred. The bundled Noto Sans SC font supports English and Chinese billing text under the included OFL license.
+
+Stripe test-mode webhook subscriptions also need `charge.refunded` and `charge.dispute.created`. Without Stripe test keys, top-ups and new card checkout stay unavailable; tests use provider mocks and do not constitute a real Stripe end-to-end run.
+
+Validation: `python -m unittest tests.test_wallet` covers exact-once top-ups, funding validation, concurrent spending/coupon limits, promo restrictions, wallet refunds, multi-source card refund reconciliation, billing ownership and snapshots, signed webhook dispatch, and wallet publication. Existing pricing, publication, settlement and booking regressions also apply. Migration downgrade/upgrade is checked on an isolated database; browser and PDF rendering are reviewed locally before staging deployment.

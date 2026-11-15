@@ -141,6 +141,7 @@
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
       Schedule
     </a>
+    <a href="/publisher/wallet" class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M15 10h6v5h-6zM3 5l13-3v3"/></svg>Wallet &amp; billing</a>
     <a href="/profile" class="nav-item">
       <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Profile
@@ -204,16 +205,27 @@
       <p>Participant rewards are reviewed within seven days of completion. Verified completions without quality or trust holds are approved automatically when that window ends.</p>
       <p>Completion deadline: {{ survey.deadline_at.strftime('%b %d, %Y at %H:%M UTC') if survey.deadline_at else 'No deadline set' }}.</p>
       {% if settlement %}
-      {% set settlement_labels = {'waiting_review': 'Waiting for participant reviews', 'waiting_verification': 'Verification or quality review required', 'ready': 'Refund queued', 'retrying': 'Refund retry scheduled', 'refund_pending': 'Refund submitted to Stripe; awaiting confirmation', 'refunded': 'Refund confirmed', 'no_refund': 'Settled — no refund due', 'manual_review': 'Refund needs support review'} %}
+      {% set settlement_labels = {'waiting_review': 'Waiting for participant reviews', 'waiting_verification': 'Verification or quality review required', 'ready': 'Refund queued', 'retrying': 'Refund retry scheduled', 'refund_pending': 'Refund submitted to Stripe; awaiting confirmation', 'refunded': 'Original-card refund confirmed', 'wallet_refunded': 'Refund returned to wallet', 'no_refund': 'Settled — no refund due', 'manual_review': 'Refund needs support review'} %}
       <p><strong>{{ settlement_labels.get(settlement.status, settlement.status) }}</strong></p>
       <p>Ordered: {{ settlement.ordered_count }} · Qualified completions: {{ settlement.qualified_count if settlement.qualified_count is not none else 'Under review' }}</p>
-      {% if settlement.refund_amount_cents is not none %}<p>Original-card refund: <strong>${{ '%.2f'|format(settlement.refund_amount_cents / 100) }}</strong></p>{% endif %}
+      {% if settlement.refund_amount_cents is not none %}<p>{{ 'Wallet refund' if settlement.refund_destination == 'wallet' else 'Original-card refund' }}: <strong>${{ '%.2f'|format(settlement.refund_amount_cents / 100) }}</strong></p>{% endif %}
       {% if settlement.close_reason == 'researcher_cancelled' %}<p>Researcher cancellation: recruitment fees and the corresponding urgency surcharge remain payable.</p>{% endif %}
       {% if settlement.last_error %}<p>{{ settlement.last_error }} Contact support if it remains unresolved.</p>{% endif %}
       {% if settlement.status in ('retrying', 'manual_review') and not settlement.stripe_refund_id %}
       <button type="button" class="action-btn" onclick="retrySettlement(this)">Retry refund reconciliation</button>
       {% endif %}
-      {% else %}<p>After the study closes or reaches its deadline, unused places are refunded to the original card after outstanding completion reviews finish.</p>{% endif %}
+      {% else %}<p>After the study closes or reaches its deadline, unused cash funding is refunded after outstanding completion reviews finish. Promotional credits are not refundable.</p>{% endif %}
+      {% if survey.payment_status == 'paid' %}
+      <p><a href="/api/surveys/{{ survey.id }}/invoice">Download study invoice (PDF)</a> · <a href="/publisher/wallet">Wallet &amp; billing</a></p>
+      {% if not settlement or settlement.status in ('waiting_review', 'waiting_verification') %}
+      <label style="font-size:13px;">Refund destination
+        <select id="refundDestination" style="padding:8px;" onchange="updateRefundDestination(this)">
+          <option value="wallet" {% if survey.refund_destination == 'wallet' %}selected{% endif %}>Wallet balance</option>
+          <option value="card" {% if survey.refund_destination != 'wallet' %}selected{% endif %}>Original card(s)</option>
+        </select>
+      </label>
+      {% endif %}
+      {% endif %}
       <p>Refunds use the saved price and include the corresponding urgency surcharge. Extra completions do not increase the purchased participant cap.</p>
     </section>
     {% endif %}
@@ -451,6 +463,13 @@
 </div>
 
 <script>
+async function updateRefundDestination(select) {
+  select.disabled=true;
+  try { const response=await fetch(`/api/surveys/{{ survey.id }}/refund-destination`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({destination:select.value})});
+    if (!response.ok) {const error=await response.json();throw new Error(error.detail||'Could not update destination.');}
+    location.reload();
+  } catch(error){alert(error.message);select.disabled=false;}
+}
 async function retrySettlement(button) {
   button.disabled = true;
   const response = await fetch(`/api/surveys/{{ survey.id }}/settlement/retry`, {method:'POST'});
