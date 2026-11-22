@@ -6,19 +6,11 @@
   <title>{{ seo.title }}</title>
   {% include "_seo_head.html" %}
   <link rel="icon" type="image/png" href="/static/favicon.png">
-  <link rel="stylesheet" href="/static/seo_public.css">
+  <link rel="stylesheet" href="/static/seo_public.css?v=20261121">
+  {% include "_public_site_head.html" %}
 </head>
 <body>
-  <header class="public-nav">
-    <a class="public-brand" href="/" aria-label="Insighta home">Insight<span>a</span></a>
-    <nav class="public-nav-links" aria-label="Primary navigation">
-      <a href="/about">About</a>
-      <a href="/pricing">Pricing</a>
-      <a href="/participant">For participants</a>
-      <a href="/login?role=participant">Sign in</a>
-      <a class="nav-cta" href="/register?role=participant">Join Insighta</a>
-    </nav>
-  </header>
+  {% include "_public_site_header.html" %}
 
   <main class="public-shell">
     <nav class="breadcrumbs" aria-label="Breadcrumb">

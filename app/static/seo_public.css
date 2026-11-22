@@ -3,14 +3,15 @@
   --green-dark: #2a5c39;
   --green-soft: #e8f2eb;
   --ink: #1a1a18;
-  --ink-2: #4a4a44;
-  --ink-3: #73736c;
+  --ink-2: #39443b;
+  --ink-3: #596358;
   --paper: #fafaf8;
   --white: #ffffff;
   --line: #e8e5de;
   --shadow: 0 16px 42px rgba(38, 57, 42, 0.08);
   --radius: 16px;
-  --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --serif: Georgia, 'Times New Roman', serif;
 }
 
 * { box-sizing: border-box; }
@@ -19,8 +20,9 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--sans);
+  font-weight: 500;
   color: var(--ink);
-  background: var(--paper);
+  background: var(--white);
   -webkit-font-smoothing: antialiased;
 }
 a { color: inherit; }
@@ -342,4 +344,24 @@ img { max-width: 100%; }
   .study-grid, .content-grid { grid-template-columns: 1fr; }
   .section { padding-top: 42px; }
   .section-head { align-items: flex-start; flex-direction: column; }
+}
+
+/* Use the homepage's typography, spacing and restrained white surfaces. */
+.public-shell { width: min(1040px, calc(100% - 96px)); }
+.public-hero { padding: 48px 0 56px; border: 0; border-bottom: .5px solid var(--line); border-radius: 0; background: none; box-shadow: none; }
+.public-hero h1, .prose h1 { font-family: var(--serif); font-size: clamp(36px, 4.6vw, 56px); font-weight: 700; line-height: 1.12; letter-spacing: -.025em; text-wrap: balance; }
+.public-hero p { font-size: 17px; line-height: 1.7; }
+.eyebrow { font-weight: 600; letter-spacing: .07em; }
+.section h2, .prose h2 { font-family: var(--serif); font-weight: 700; letter-spacing: -.025em; }
+.section h2 { font-size: clamp(28px, 4vw, 36px); line-height: 1.18; }
+.content-card h3, .study-title { font-weight: 600; }
+.button { font-weight: 600; }
+.prose { padding: 32px 0; border: 0; border-radius: 0; box-shadow: none; }
+@media (max-width: 860px) {
+  .public-shell { width: calc(100% - 48px); }
+  .public-hero { padding: 32px 0 40px; }
+}
+@media (max-width: 560px) {
+  .public-shell { width: calc(100% - 36px); }
+  .public-hero h1, .prose h1 { font-size: clamp(32px, 9.6vw, 40px); }
 }

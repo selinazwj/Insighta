@@ -468,29 +468,14 @@
     @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .reveal { opacity:1; transform:none; animation:none; } .theme-wipe.run { animation:none; } .mode-text { transition:none; } body.is-switching .mode-text { opacity:1; transform:none; } .journey-floating,.journey-panel,.journey-item,.journey-person-icon,.journey-level-icon,.journey-network,.journey-copy-option > span { animation:none; } .journey-item { opacity:1; transform:none; } .walkthrough-viewport img,.walkthrough-focus,.journey-computer,.journey-screening-person,.journey-network-node,.journey-item,.journey-copy-option { transition:none; } }
 
   </style>
+  {% include "_public_site_head.html" %}
 </head>
 <body>
 <a href="#main-content" class="skip-link">Skip to content</a>
 <div class="theme-wipe" id="themeWipe"></div>
 
 <!-- NAV -->
-<nav class="nav" aria-label="Main navigation">
-  <a href="/" class="nav-logo">Insight<span>a</span></a>
-  <div class="nav-links">
-    <a href="/studies">Browse studies</a>
-    <a href="#how">How it works</a>
-    <a href="/about">About</a>
-      <a href="/pricing">Pricing</a>
-  </div>
-  <div class="role-switch" role="group" aria-label="Choose Insighta side">
-    <button class="role-tab active" id="tab-researcher" type="button" aria-pressed="true" onclick="setHomepageMode('researcher')">Researcher</button>
-    <button class="role-tab" id="tab-participant" type="button" aria-pressed="false" onclick="setHomepageMode('participant')">Participant</button>
-  </div>
-  <div class="nav-right">
-    <a href="/login?role=researcher" class="nav-signin mode-login-link">Sign in</a>
-    <a href="/register?role=researcher" class="nav-cta mode-register-link">Get started</a>
-  </div>
-</nav>
+{% include "_public_site_header.html" %}
 
 <main id="main-content" tabindex="-1">
 <!-- HERO -->
