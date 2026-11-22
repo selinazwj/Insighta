@@ -155,5 +155,13 @@ Validation: 77 financial tests (withdrawals, niche quotes, wallet, settlements, 
 
 - Production was inspected read-only: it still runs main commit `58516aa`, predating the pricing changes. Pricing phases one through four have been validated on staging, not released to production.
 - The production service uses a paid Starter instance. Verify the settlement-worker environment toggle and runtime logs after release; the free staging worker pauses while its service sleeps. Do not run general queued production jobs as a smoke test because they can send real email.
-- Confirm live Stripe keys, signed webhook destination/API version, invoice issuer details, and participant payout jurisdiction/account configuration. Sandbox recruitment acceptance does not prove live settlement or bank payout readiness.
+- Confirm live Stripe keys, signed webhook destination/API version, and participant payout jurisdiction/account configuration. Sandbox recruitment acceptance does not prove live settlement or bank payout readiness. Formal invoice issuer details are tracked separately for lawyer review below.
 - Rotate the staging admin credential after acceptance: browser tooling unexpectedly echoed it during the authorized login workflow. No production credential was read. Do not reuse the staging key in production.
+
+### Updated launch scope: Stripe first
+
+User decision on 2026-11-21: proceed with Stripe for the initial release; postpone the alternative banking/provider integration. WorldFirst is no longer the planned provider. PingPong is the intended later option and is not a prerequisite for the initial Stripe release. No PingPong integration or compatibility with Stripe has been verified. The current application contains no user-facing promises that either WorldFirst or PingPong is available.
+
+Keep researcher card payments, wallet funding, listing payments and original-card refunds on the existing Stripe paths. Keep participant withdrawal on the existing Stripe Connect path; an actual connected-account onboarding and payout check remains outstanding before treating withdrawals as bank-ready. Platform settlement to its own bank and participant payouts are distinct flows. Evaluate the intended PingPong account/provider role, supported account holder, country, currency and Stripe compatibility later, before changing payment routing. This decision does not deploy production or move funds.
+
+Formal invoice issuer information and tax/document wording are deferred to the user's discussion with their lawyer. Do not invent legal entity, address or tax registration data, or describe the current generated PDFs as lawyer-approved tax invoices. The existing invoice configuration requirements describe the eventual formal setup, not a completed legal review.
