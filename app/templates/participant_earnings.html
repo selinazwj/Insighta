@@ -137,7 +137,7 @@
       {% if stripe_onboarding_complete == 'true' %}
       <button class="withdraw-btn" id="withdrawBtn" onclick="doWithdraw()" {% if pending_earnings < 1 %}disabled{% endif %}>
         <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        Withdraw to bank
+        Withdraw earnings
       </button>
       {% else %}
       <a href="/connect/onboard" class="setup-btn">
@@ -196,10 +196,10 @@
     try {
       const res = await fetch('/api/withdraw', { method:'POST', credentials:'same-origin' });
       const d   = await res.json();
-      if (!res.ok) { alert(d.detail || 'Withdrawal failed'); btn.disabled = false; btn.textContent = 'Withdraw to bank'; return; }
-      alert('✓ $' + d.amount.toFixed(2) + ' sent to your bank!');
+      if (!res.ok) { alert(d.detail || 'Withdrawal failed'); btn.disabled = false; btn.textContent = 'Withdraw earnings'; return; }
+      alert('✓ $' + d.amount.toFixed(2) + ' transferred to your Stripe account. Bank payout is handled separately by Stripe.');
       window.location.reload();
-    } catch { alert('Network error'); btn.disabled = false; btn.textContent = 'Withdraw to bank'; }
+    } catch { alert('Network error'); btn.disabled = false; btn.textContent = 'Withdraw earnings'; }
   }
 </script>
 <script src="/static/support_chat.js"></script>

@@ -38,6 +38,9 @@ def release_response_payout(db: Session, response: Response, *, automated=False,
     if response.payout_status in {APPROVED, PAID}:
         return
     participant = _participant(db, response)
+    db.refresh(response)
+    if response.payout_status in {APPROVED, PAID}:
+        return
     if participant and response.payout_status != LEGACY_RELEASED:
         participant.pending_earnings = (getattr(participant, "pending_earnings", 0.0) or 0.0) + _amount(response)
     response.payout_status = APPROVED
@@ -51,6 +54,11 @@ def reject_response_payout(db: Session, response: Response) -> None:
     if response.payout_status == PAID:
         return
     participant = _participant(db, response)
+    db.refresh(response)
+    if response.payout_status == PAID:
+        return
+    from app.withdrawals import assert_not_reserved
+    assert_not_reserved(db, response)
     if participant and response.payout_status in {APPROVED, LEGACY_RELEASED}:
         participant.pending_earnings = max(
             0.0,
@@ -65,6 +73,12 @@ def return_response_to_review(db: Session, response: Response) -> None:
     from app.settlements import assert_review_mutable
     assert_review_mutable(db, response, action="reset")
     participant = _participant(db, response)
+    db.refresh(response)
+    if response.payout_status == PAID:
+        from fastapi import HTTPException
+        raise HTTPException(409, 'Paid participant rewards cannot return to review.')
+    from app.withdrawals import assert_not_reserved
+    assert_not_reserved(db, response)
     if participant and response.payout_status in {APPROVED, LEGACY_RELEASED}:
         participant.pending_earnings = max(
             0.0,

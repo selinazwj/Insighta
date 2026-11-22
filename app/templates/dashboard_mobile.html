@@ -372,7 +372,7 @@
         <div class="balance-amt" id="balanceAmt">${{ "%.2f"|format(pending_earnings) }}</div>
         <div class="balance-sub">Total withdrawn: ${{ "%.2f"|format(total_withdrawn) }}</div>
         <button class="btn-withdraw" id="withdrawBtn" onclick="doWithdraw()" {% if pending_earnings < 1 %}disabled{% endif %}>
-          <i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw to bank
+          <i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw earnings
         </button>
       </div>
       {% else %}
@@ -918,10 +918,10 @@
     try {
       const res = await fetch('/api/withdraw', { method: 'POST', credentials: 'same-origin' });
       const d = await res.json();
-      if (!res.ok) { alert(d.detail || 'Withdrawal failed'); btn.disabled = false; btn.innerHTML = '<i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw to bank'; lucide.createIcons(); return; }
-      alert(`✓ $${d.amount.toFixed(2)} sent to your bank!`);
+      if (!res.ok) { alert(d.detail || 'Withdrawal failed'); btn.disabled = false; btn.innerHTML = '<i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw earnings'; lucide.createIcons(); return; }
+      alert(`✓ $${d.amount.toFixed(2)} transferred to your Stripe account. Bank payout is handled separately by Stripe.`);
       window.location.reload();
-    } catch { alert('Network error'); btn.disabled = false; btn.innerHTML = '<i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw to bank'; lucide.createIcons(); }
+    } catch { alert('Network error'); btn.disabled = false; btn.innerHTML = '<i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw earnings'; lucide.createIcons(); }
   }
 
   function buildEarningsHistory() {

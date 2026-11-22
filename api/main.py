@@ -43,6 +43,7 @@ from app.booking_calendar import booked_events, calendar_document, google_calend
 from app.google_calendar import register_calendar_routes, calendar_status, queue_calendar_sync, sync_booking, JOB_TYPE as GOOGLE_CALENDAR_SYNC
 from app.database import engine, get_db, SessionLocal
 from app import niche
+from app import withdrawals
 from app.niche_models import NicheRequest, NicheQuote
 from app.models import StudySettlement, Base, User, Survey, Response, Feedback, Notification, EmailVerificationCode, Question, Answer, ResponseQualityCheck, QualityBlacklist, SupportThread, SupportMessage, UserEvent, Verification, ScreeningQuestion, ScreeningAttempt, RiskSignalEvent, ParticipationDecision, BackgroundJob, GoogleCalendarEvent, DiditSession, DiditWebhookEvent
 from app.schema_bootstrap import auto_schema_bootstrap_enabled
@@ -6797,19 +6798,23 @@ async def didit_webhook(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/connect/onboard")
 def connect_onboard(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    current_user = db.query(User).filter_by(id=current_user.id).populate_existing().with_for_update().one()
+    if not stripe.api_key:
+        raise HTTPException(503, 'Stripe onboarding is unavailable.')
     if not getattr(current_user, 'stripe_account_id', None):
         account = stripe.Account.create(
             type="express",
             email=current_user.email,
             business_type="individual",
             individual={"email": current_user.email},
-            capabilities={"transfers": {"requested": True}}
+            capabilities={"transfers": {"requested": True}},
+            idempotency_key=f'connect-onboarding:{current_user.id}:v1'
         )
         current_user.stripe_account_id = account.id; db.commit()
     account_link = stripe.AccountLink.create(
         account=current_user.stripe_account_id,
-        refresh_url="https://insightaco.org/connect/onboard",
-        return_url="https://insightaco.org/connect/complete",
+        refresh_url=BASE_URL.rstrip('/')+"/connect/onboard",
+        return_url=BASE_URL.rstrip('/')+"/connect/complete",
         type="account_onboarding",
     )
     return RedirectResponse(account_link.url)
@@ -6824,9 +6829,13 @@ def logout(request: Request):
 def connect_complete(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if getattr(current_user, 'stripe_account_id', None):
         account = stripe.Account.retrieve(current_user.stripe_account_id)
-        if account.charges_enabled:
+        account = plain_stripe_data(account)
+        if (account.get('details_submitted') and account.get('payouts_enabled')
+                and (account.get('capabilities') or {}).get('transfers') == 'active'):
             current_user.stripe_onboarding_complete = "true"
-            db.commit()
+        else:
+            current_user.stripe_onboarding_complete = "false"
+        db.commit()
     return RedirectResponse("/dashboard")
 
 
@@ -6836,25 +6845,17 @@ def connect_complete(request: Request, current_user: User = Depends(get_current_
 
 @app.post("/api/withdraw")
 async def withdraw(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if getattr(current_user, 'stripe_onboarding_complete', 'false') != 'true':
-        raise HTTPException(400, "Please complete Stripe onboarding first")
-    pending = getattr(current_user, 'pending_earnings', 0.0) or 0.0
-    if pending < 1.0: raise HTTPException(400, "Minimum withdrawal is $1.00")
+    return await asyncio.to_thread(withdrawals.withdraw, db, current_user.id)
 
-    # ive moved the verification gate to the researcher approval step — by the time
-    # funds are in pending_earnings the researcher already approved, so withdraw is clean
-    try:
-        transfer = stripe.Transfer.create(amount=int(pending * 100), currency="usd", destination=current_user.stripe_account_id, description=f"Insighta payout for user {current_user.id}")
-        for r in db.query(Response).filter(
-            Response.participant_id == current_user.id,
-            Response.payout_status.in_([APPROVED, LEGACY_RELEASED]),
-        ).all():
-            r.payout_status = "paid"; r.stripe_transfer_id = transfer.id
-        current_user.total_withdrawn = (getattr(current_user, 'total_withdrawn', 0.0) or 0.0) + pending
-        current_user.pending_earnings = 0.0; db.commit()
-        return JSONResponse({"success": True, "amount": pending, "transfer_id": transfer.id})
-    except stripe.error.StripeError as e:
-        raise HTTPException(400, str(e))
+
+@app.get('/api/withdrawal/status')
+def withdrawal_status(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    row = db.query(withdrawals.ParticipantWithdrawal).filter_by(user_id=current_user.id).order_by(
+        withdrawals.ParticipantWithdrawal.id.desc()).first()
+    if not row:
+        return {'withdrawal':None}
+    return {'withdrawal':{'id':row.id, 'amount_cents':row.amount_cents, 'currency':'usd',
+            'status':row.status, 'created_at':row.created_at.isoformat()+'Z'}}
 
 
 # ---------------------------
@@ -8234,6 +8235,24 @@ async def admin_verify(request: Request):
     return JSONResponse({"success": True})
 
 
+@app.get('/admin/withdrawals')
+def admin_withdrawals(request: Request, db: Session = Depends(get_db)):
+    if not _admin_key_matches(request.headers.get('x-admin-key')):
+        raise HTTPException(403, 'Administrator authorization required.')
+    rows = db.query(withdrawals.ParticipantWithdrawal).order_by(withdrawals.ParticipantWithdrawal.id.desc()).limit(100).all()
+    return {'withdrawals':[{'id':row.id, 'user_id':row.user_id, 'amount_cents':row.amount_cents,
+        'status':row.status, 'transfer_id':row.stripe_transfer_id, 'last_error':row.last_error,
+        'created_at':row.created_at.isoformat()+'Z'} for row in rows]}
+
+
+@app.post('/admin/withdrawals/{withdrawal_id}/reconcile')
+async def admin_reconcile_withdrawal(withdrawal_id: int, request: Request, db: Session = Depends(get_db)):
+    if not _admin_key_matches(request.headers.get('x-admin-key')):
+        raise HTTPException(403, 'Administrator authorization required.')
+    # This endpoint only locates an existing Stripe transfer. It cannot send money.
+    return await asyncio.to_thread(withdrawals.reconcile, db, withdrawal_id)
+
+
 def _background_job_payload(job: BackgroundJob) -> dict[str, Any]:
     payload = job.payload_json or {}
     safe_payload = {}
@@ -9175,14 +9194,31 @@ async def admin_edit_listing_post(survey_id: int, request: Request, db: Session 
 async def grant_credit(feedback_id: int, request: Request, db: Session = Depends(get_db)):
     body = await request.json()
     if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
-    amount = float(body.get("amount", 0))
-    if amount <= 0: raise HTTPException(400, "Amount must be > 0")
+    from app.pricing import money_cents
+    try:
+        amount_cents = money_cents(body.get('amount'))
+    except PricingError as exc:
+        raise HTTPException(400, str(exc))
+    if amount_cents <= 0:
+        raise HTTPException(400, 'Amount must be positive.')
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
-    if not feedback: raise HTTPException(404, "Feedback not found")
-    user = db.query(User).filter(User.id == feedback.user_id).first()
-    if not user: raise HTTPException(404, "User not found")
+    if not feedback:
+        raise HTTPException(404, 'Feedback not found')
+    user = db.query(User).filter(User.id == feedback.user_id).populate_existing().with_for_update().first()
+    if not user:
+        raise HTTPException(404, 'User not found')
+    user = withdrawals.lock_participant(db, user.id)
+    feedback = db.query(Feedback).filter_by(id=feedback_id).populate_existing().with_for_update().one()
+    if feedback.status == 'credited':
+        if withdrawals.cents(feedback.credit_amount) != amount_cents:
+            raise HTTPException(409, 'This feedback was already credited with a different amount.')
+        return {'success':True, 'user_email':user.email, 'amount':feedback.credit_amount,
+                'new_balance':user.pending_earnings, 'already_credited':True}
+    amount = amount_cents/100
     user.pending_earnings = (getattr(user, 'pending_earnings', 0.0) or 0.0) + amount
-    feedback.status = "credited"; feedback.credit_amount = amount; feedback.reviewed_at = datetime.utcnow()
+    feedback.status = 'credited'
+    feedback.credit_amount = amount
+    feedback.reviewed_at = datetime.utcnow()
     db.commit()
     return JSONResponse({"success": True, "user_email": user.email, "amount": amount, "new_balance": user.pending_earnings})
 
@@ -9192,7 +9228,14 @@ async def reject_feedback(feedback_id: int, request: Request, db: Session = Depe
     if not _admin_key_matches(body.get("admin_key")): raise HTTPException(403, "Unauthorized")
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
     if not feedback: raise HTTPException(404, "Feedback not found")
-    feedback.status = "rejected"; feedback.reviewed_at = datetime.utcnow(); db.commit()
+    feedback = db.query(Feedback).filter_by(id=feedback_id).populate_existing().with_for_update().one()
+    if feedback.status == 'credited':
+        raise HTTPException(409, 'Credited feedback cannot be rejected; retain the award record.')
+    changed = db.query(Feedback).filter(Feedback.id == feedback_id, Feedback.status != 'credited').update(
+        {'status':'rejected', 'reviewed_at':datetime.utcnow()}, synchronize_session=False)
+    if not changed:
+        raise HTTPException(409, 'Credited feedback cannot be rejected; retain the award record.')
+    db.commit()
     return JSONResponse({"success": True})
 
 @app.get("/admin/listings")
