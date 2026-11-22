@@ -168,7 +168,7 @@ class DashboardPerformanceTest(unittest.TestCase):
         ) as captured:
             response = client.get(
                 "/dashboard",
-                cookies={"user_id": str(self.participant_id)},
+                cookies={"user_id": main.sign_session(self.participant_id)},
                 headers={"user-agent": "Mozilla/5.0 desktop"},
             )
         self.assertEqual(response.status_code, 200)
@@ -236,7 +236,7 @@ class DashboardPerformanceTest(unittest.TestCase):
         with patch.dict(os.environ, {"INSIGHTA_DASHBOARD_AI_RECOMMENDATIONS": "1"}, clear=False):
             response = client.get(
                 "/dashboard",
-                cookies={"user_id": str(self.participant_id)},
+                cookies={"user_id": main.sign_session(self.participant_id)},
                 headers={"user-agent": "Mozilla/5.0 desktop"},
             )
 
@@ -281,7 +281,7 @@ class DashboardPerformanceTest(unittest.TestCase):
         ) as sync_ai:
             response = client.get(
                 "/dashboard",
-                cookies={"user_id": str(self.participant_id)},
+                cookies={"user_id": main.sign_session(self.participant_id)},
                 headers={"user-agent": "Mozilla/5.0 desktop"},
             )
 
@@ -327,7 +327,7 @@ class DashboardPerformanceTest(unittest.TestCase):
         with patch.dict(os.environ, {"INSIGHTA_DASHBOARD_AI_AUTO_REFRESH": "1"}, clear=False):
             response = client.get(
                 "/dashboard",
-                cookies={"user_id": str(self.participant_id)},
+                cookies={"user_id": main.sign_session(self.participant_id)},
                 headers={"user-agent": "Mozilla/5.0 desktop"},
             )
         self.assertEqual(response.status_code, 200)
@@ -423,7 +423,7 @@ class DashboardPerformanceTest(unittest.TestCase):
                     response, query_count = self._count_queries(
                         lambda path=path, user_agent=user_agent: client.get(
                             path,
-                            cookies={"user_id": str(participant_id)},
+                            cookies={"user_id": main.sign_session(participant_id)},
                             headers={"user-agent": user_agent},
                         )
                     )

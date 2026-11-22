@@ -68,6 +68,17 @@ def fulfill_topup(db, session):
     user, account = lock_wallet(db, found.user_id, allow_blocked=True)
     topup = db.query(WalletTopUp).filter_by(id=found.id).populate_existing().with_for_update().one()
     if topup.status == 'paid': return True
+    if not topup.stripe_session_id:
+        # A signed webhook may arrive after Stripe accepted Checkout but the
+        # create response was lost. Recover only an authoritative matching session.
+        session_id = session.get('id')
+        if not stripe.api_key or not isinstance(session_id,str) or not session_id.startswith('cs_'):
+            raise HTTPException(503,'Top-up payment reconciliation is pending.')
+        session = plain_stripe_data(stripe.checkout.Session.retrieve(session_id))
+        if (session.get('id') != session_id or session.get('mode') != 'payment'
+                or str(session.get('metadata',{}).get('wallet_topup_id')) != str(topup.id)):
+            raise HTTPException(400,'Top-up funding does not match the saved order.')
+        topup.stripe_session_id = session_id
     intent = session.get('payment_intent')
     if (session.get('id') != topup.stripe_session_id or session.get('payment_status') != 'paid'
         or session.get('currency') != 'usd' or session.get('amount_total') != topup.amount_cents

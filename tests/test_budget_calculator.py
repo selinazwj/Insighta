@@ -17,7 +17,7 @@ class BudgetCalculatorTest(unittest.TestCase):
         self.db=main.SessionLocal();self.addCleanup(self.db.close)
         self.user=User(email='calculator@example.invalid',password='x');self.db.add(self.user);self.db.commit()
         self.client=TestClient(main.app);self.addCleanup(self.client.close)
-        self.client.cookies.set('user_id',str(self.user.id))
+        self.client.cookies.set('user_id',main.sign_session(self.user.id))
         self.body={'budget':'500','target_responses':'20','study_type':'survey','audience':'broad'}
 
     def estimate(self,**overrides):return estimate_budget(self.db,self.user.id,{**self.body,**overrides})

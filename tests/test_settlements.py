@@ -27,7 +27,7 @@ class SettlementTest(unittest.TestCase):
         self.db.flush()
         self.now = datetime.utcnow()
         self.client = TestClient(main.app)
-        self.client.cookies.set('user_id', str(self.owner.id))
+        self.client.cookies.set('user_id', main.sign_session(self.owner.id))
         self.addCleanup(self.client.close)
         self.key = patch.object(main.stripe, 'api_key', 'sk_test_mock')
         self.key.start()
@@ -227,7 +227,7 @@ class SettlementTest(unittest.TestCase):
         self.assertIn('Refund to original card(s)', detail.text)
         other = User(email='other@example.invalid', password='x')
         self.db.add(other); self.db.commit()
-        self.client.cookies.set('user_id', str(other.id))
+        self.client.cookies.set('user_id', main.sign_session(other.id))
         self.assertEqual(self.client.get(f'/api/surveys/{s.id}/settlement').status_code, 404)
 
     def test_deadline_completion_and_late_live_completion_are_blocked(self):

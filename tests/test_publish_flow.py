@@ -25,7 +25,7 @@ class PublishFlowTest(unittest.TestCase):
             db.commit()
             self.user_id, self.other_id = user.id, other.id
         self.client = TestClient(main.app)
-        self.client.cookies.set('user_id', str(self.user_id))
+        self.client.cookies.set('user_id', main.sign_session(self.user_id))
         self.addCleanup(self.client.close)
         self.data = dict(title='Color preferences', description='A study of favorite colors.',
                          form_url='https://example.com/survey', category='research', estimated_time='5',
@@ -91,7 +91,7 @@ class PublishFlowTest(unittest.TestCase):
             main.stripe.checkout.Session, 'create', return_value=SimpleNamespace(id='cs_mock', url='https://checkout.stripe.com/mock')
         ):
             first = self.submit(incentive_type='raffle')
-            self.client.cookies.set('user_id', str(self.other_id))
+            self.client.cookies.set('user_id', main.sign_session(self.other_id))
             forbidden = self.submit(existing_survey_id=first.json()['survey_id'])
             self.assertEqual(forbidden.status_code, 404)
             second = self.submit(incentive_type='raffle')
@@ -283,7 +283,7 @@ class PublishFlowTest(unittest.TestCase):
             self.client.post('/webhook/stripe', content=b'mocked')
         with main.SessionLocal() as db:
             self.assertEqual(db.get(Survey, survey_id).status, 'closed')
-        self.client.cookies.set('user_id', str(self.other_id))
+        self.client.cookies.set('user_id', main.sign_session(self.other_id))
         self.assertEqual(self.client.get(f'/payment/success?survey_id={survey_id}').status_code, 404)
 
     def test_quote_is_protected_from_builder_edits(self):
@@ -351,7 +351,7 @@ class PublishFlowTest(unittest.TestCase):
         self.assertIn('$15.00', response.text)
         self.assertNotIn('noindex', response.headers.get('x-robots-tag', ''))
         self.assertIn('/pricing', self.client.get('/sitemap.xml').text)
-        self.client.cookies.set('user_id', str(self.user_id))
+        self.client.cookies.set('user_id', main.sign_session(self.user_id))
         for payload in [[], {'per_person': 'NaN'}, {'per_person': '5', 'target_responses': -1}]:
             self.assertEqual(self.client.post('/api/calculate-price', json=payload).status_code, 400)
 

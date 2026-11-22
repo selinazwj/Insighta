@@ -30,7 +30,7 @@ class NicheFlowTest(unittest.TestCase):
         self.owner, self.other = owner.id, other.id
         self.client = TestClient(main.app)
         self.addCleanup(self.client.close)
-        self.client.cookies.set('user_id', str(self.owner))
+        self.client.cookies.set('user_id', main.sign_session(self.owner))
         self.auth = patch.dict(os.environ, {'ADMIN_KEY':'niche-unit-admin'})
         self.auth.start(); self.addCleanup(self.auth.stop)
         self.data = dict(title='Specialist recruitment', description='Research for specialist users.',
@@ -109,7 +109,7 @@ class NicheFlowTest(unittest.TestCase):
         self.assertEqual(self.client.get('/admin/niche').status_code,403)
         self.assertEqual(self.client.post(f'/admin/niche/{self.row.id}/quotes',data={'admin_key':'wrong'}).status_code,403)
         self.assertEqual(self.client.get('/admin/niche?admin_key=niche-unit-admin').status_code,200)
-        self.client.cookies.set('user_id',str(self.other))
+        self.client.cookies.set('user_id',main.sign_session(self.other))
         self.assertEqual(self.client.get(f'/publisher/study/{self.study_id}/quote').status_code,404)
         self.client.cookies.clear()
         self.assertEqual(self.client.get(f'/publisher/study/{self.study_id}/quote',follow_redirects=False).status_code,303)

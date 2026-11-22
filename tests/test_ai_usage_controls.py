@@ -55,7 +55,7 @@ class AiUsageControlsTest(unittest.TestCase):
         return self.client.post(
             f"/api/surveys/{self.survey_id}/prediction/jobs",
             json=payload,
-            cookies={"user_id": str(self.publisher_id)},
+            cookies={"user_id": main.sign_session(self.publisher_id)},
         )
 
     def test_prediction_job_is_deduped_private_and_audited(self):
@@ -72,7 +72,7 @@ class AiUsageControlsTest(unittest.TestCase):
 
         forbidden = self.client.get(
             f"/api/ai-jobs/{first_payload['job_id']}",
-            cookies={"user_id": str(self.other_id)},
+            cookies={"user_id": main.sign_session(self.other_id)},
         )
         self.assertEqual(forbidden.status_code, 404)
 
@@ -92,7 +92,7 @@ class AiUsageControlsTest(unittest.TestCase):
 
         completed = self.client.get(
             f"/api/ai-jobs/{first_payload['job_id']}",
-            cookies={"user_id": str(self.publisher_id)},
+            cookies={"user_id": main.sign_session(self.publisher_id)},
         )
         self.assertEqual(completed.status_code, 200)
         self.assertEqual(completed.json()["status"], "done")
@@ -115,7 +115,7 @@ class AiUsageControlsTest(unittest.TestCase):
         ):
             response = self.client.get(
                 f"/api/surveys/{self.survey_id}/prediction/summary",
-                cookies={"user_id": str(self.publisher_id)},
+                cookies={"user_id": main.sign_session(self.publisher_id)},
             )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()["llm_ok"])
@@ -199,7 +199,7 @@ class AiUsageControlsTest(unittest.TestCase):
 
         queued = self.client.post(
             f"/api/quality-checks/{check_id}/ai-review",
-            cookies={"user_id": str(self.publisher_id)},
+            cookies={"user_id": main.sign_session(self.publisher_id)},
         )
         self.assertEqual(queued.status_code, 202)
 

@@ -28,7 +28,7 @@ class WithdrawalsTest(unittest.TestCase):
         self.db.add(self.study);self.db.flush()
         self.response=Response(participant_id=self.uid,survey_id=self.study.id,status='completed',payout_status='approved',payout_amount=19.99)
         self.db.add(self.response);self.db.commit()
-        self.client=TestClient(main.app);self.addCleanup(self.client.close);self.client.cookies.set('user_id',str(self.uid))
+        self.client=TestClient(main.app);self.addCleanup(self.client.close);self.client.cookies.set('user_id',main.sign_session(self.uid))
         key=patch.object(main.stripe,'api_key','sk_unit');key.start();self.addCleanup(key.stop)
 
     def transfer(self, **params):
@@ -51,7 +51,7 @@ class WithdrawalsTest(unittest.TestCase):
         self.assertEqual(self.db.get(Response,self.response.id).payout_status,'paid')
         self.assertEqual(self.client.get('/api/withdrawal/status').json()['withdrawal']['status'],'paid')
         other=User(email='withdraw-other@example.invalid',password='x');self.db.add(other);self.db.commit()
-        self.client.cookies.set('user_id',str(other.id))
+        self.client.cookies.set('user_id',main.sign_session(other.id))
         self.assertIsNone(self.client.get('/api/withdrawal/status').json()['withdrawal'])
 
     def test_lost_response_reconciles_original_transfer_without_spending_new_earnings(self):

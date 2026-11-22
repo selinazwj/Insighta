@@ -59,10 +59,10 @@ class BookingCalendarTest(unittest.TestCase):
         response = self.client.get(self.path, follow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertIn('next=', response.headers['location'])
-        self.client.cookies.set('user_id', str(self.other.id))
+        self.client.cookies.set('user_id', main.sign_session(self.other.id))
         self.assertEqual(self.client.get(self.path).status_code, 404)
         for user in [self.participant, self.publisher]:
-            self.client.cookies.set('user_id', str(user.id))
+            self.client.cookies.set('user_id', main.sign_session(user.id))
             response = self.client.get(self.path)
             self.assertEqual(response.status_code, 200)
             self.assertIn('attachment;', response.headers['content-disposition'])
@@ -89,7 +89,7 @@ class BookingCalendarTest(unittest.TestCase):
         self.survey.target_participation_format = 'In person'
         self.survey.interview_location = 'Room 210, Research Center'
         self.db.commit()
-        self.client.cookies.set('user_id', str(self.participant.id))
+        self.client.cookies.set('user_id', main.sign_session(self.participant.id))
         studies = self.client.get('/my-studies')
         self.assertEqual(studies.status_code, 200)
         self.assertIn(self.path, studies.text)
@@ -144,7 +144,7 @@ class BookingCalendarTest(unittest.TestCase):
         return patch.object(calendar_oauth.httpx, 'Client', side_effect=lambda **kwargs: actual_client(transport=httpx.MockTransport(handler), **kwargs))
 
     def authorize_calendar(self):
-        self.client.cookies.set('user_id', str(self.participant.id))
+        self.client.cookies.set('user_id', main.sign_session(self.participant.id))
         start = self.client.get('/auth/google/calendar/connect', follow_redirects=False)
         self.assertEqual(start.status_code, 303)
         params = parse_qs(urlsplit(start.headers['location']).query)
@@ -168,12 +168,12 @@ class BookingCalendarTest(unittest.TestCase):
         self.assertIn('Disconnect Google Calendar', page.text)
 
     def test_oauth_user_binding_and_cancel(self):
-        self.client.cookies.set('user_id', str(self.participant.id))
+        self.client.cookies.set('user_id', main.sign_session(self.participant.id))
         start = self.client.get('/auth/google/calendar/connect', follow_redirects=False)
         state = parse_qs(urlsplit(start.headers['location']).query)['state'][0]
-        self.client.cookies.set('user_id', str(self.other.id))
+        self.client.cookies.set('user_id', main.sign_session(self.other.id))
         self.assertEqual(self.client.get('/auth/google/calendar/callback', params={'state': state, 'code': 'x'}).status_code, 400)
-        self.client.cookies.set('user_id', str(self.participant.id))
+        self.client.cookies.set('user_id', main.sign_session(self.participant.id))
         cancelled = self.client.get('/auth/google/calendar/callback', params={'state': state, 'error': 'access_denied'}, follow_redirects=False)
         self.assertIn('calendar=cancelled', cancelled.headers['location'])
         self.assertEqual(self.client.get('/auth/google/calendar/callback', params={'state': state, 'code': 'x'}).status_code, 400)
@@ -222,7 +222,7 @@ class BookingCalendarTest(unittest.TestCase):
         self.assertEqual(booked_events(json.dumps(self.slots), ['unknown']), [])
         self.survey.availability_slots = '[]'
         self.db.commit()
-        self.client.cookies.set('user_id', str(self.participant.id))
+        self.client.cookies.set('user_id', main.sign_session(self.participant.id))
         self.assertEqual(self.client.get(self.path).status_code, 409)
 
     def test_legacy_local_times_and_unicode_folding(self):

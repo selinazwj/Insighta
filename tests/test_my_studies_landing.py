@@ -41,7 +41,7 @@ class MyStudiesLandingTest(unittest.TestCase):
         self.db.commit()
         self.client = TestClient(main.app)
         self.addCleanup(self.client.close)
-        self.client.cookies.set('user_id', str(participant.id))
+        self.client.cookies.set('user_id', main.sign_session(participant.id))
 
     def listing(self):
         return self.client.get('/r/my-study-test?from=my-studies')

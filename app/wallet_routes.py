@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import asyncio
 import re
 import secrets
@@ -78,6 +78,8 @@ def register_wallet_routes(app, templates, get_db, get_current_user, admin_key_m
         if row and row.amount_cents!=amount: raise HTTPException(409,'This top-up token belongs to a different amount. Reload the page.')
         if row and row.status=='paid': return {'redirect_url':'/publisher/wallet','topup_id':row.id}
         if row and row.checkout_url: return {'redirect_url':row.checkout_url,'topup_id':row.id}
+        if row and datetime.utcnow()-row.created_at >= timedelta(hours=20):
+            raise HTTPException(409,'This top-up needs payment reconciliation. Contact support before starting another payment.')
         if not row:
             row=WalletTopUp(user_id=current_user.id,token=key,amount_cents=amount,status='pending')
             db.add(row);db.flush()

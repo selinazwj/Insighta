@@ -26,7 +26,7 @@ class WalletTest(unittest.TestCase):
         self.db.add(self.user);self.db.commit()
         self.uid=self.user.id
         self.client=TestClient(main.app);self.addCleanup(self.client.close)
-        self.client.cookies.set('user_id',str(self.uid))
+        self.client.cookies.set('user_id',main.sign_session(self.uid))
         key=patch.object(main.stripe,'api_key','sk_test_mock');key.start();self.addCleanup(key.stop)
 
     def fund(self,amount=10000,tag='one'):
@@ -206,7 +206,7 @@ class WalletTest(unittest.TestCase):
         self.db.refresh(invoice);self.assertEqual(invoice.snapshot['customer'],'张三 Research')
         self.assertEqual(self.client.get(f'/api/wallet/invoices/{invoice.id}.pdf').status_code,200)
         other=User(email='other@example.invalid',password='x');self.db.add(other);self.db.commit()
-        self.client.cookies.set('user_id',str(other.id))
+        self.client.cookies.set('user_id',main.sign_session(other.id))
         self.assertEqual(self.client.get(f'/api/wallet/invoices/{invoice.id}.pdf').status_code,404)
 
     def test_json_validation_and_unsigned_return_never_credit(self):
@@ -224,6 +224,31 @@ class WalletTest(unittest.TestCase):
         self.assertEqual(a.status_code,200);self.assertEqual(a.json(),b.json());self.assertEqual(create.call_count,1)
         self.assertEqual(wallet.cash_balance(self.db,self.uid),0)
         self.assertEqual(self.client.post('/api/wallet/topups',json={**body,'amount':'21'}).status_code,409)
+
+    def test_lost_topup_response_is_recovered_from_authoritative_payment(self):
+        row=WalletTopUp(user_id=self.uid,token='unknown-response',amount_cents=600)
+        self.db.add(row);self.db.commit()
+        paid={'id':'cs_recovered','mode':'payment','payment_status':'paid','currency':'usd','amount_total':600,
+              'payment_intent':'pi_recovered','metadata':{'wallet_topup_id':str(row.id),'user_id':str(self.uid)}}
+        with patch.object(main.stripe.checkout.Session,'retrieve',return_value={**paid,'amount_total':601}):
+            with self.assertRaises(HTTPException):wallet.fulfill_topup(self.db,paid)
+        self.db.rollback()
+        with patch.object(main.stripe.checkout.Session,'retrieve',return_value=paid) as retrieve:
+            self.assertTrue(wallet.fulfill_topup(self.db,paid));self.db.commit()
+            self.assertTrue(wallet.fulfill_topup(self.db,paid));self.db.commit()
+            self.assertEqual(retrieve.call_count,1)
+        self.assertEqual(wallet.cash_balance(self.db,self.uid),600)
+        self.assertEqual(self.db.get(WalletTopUp,row.id).stripe_session_id,'cs_recovered')
+
+    def test_old_unknown_topup_cannot_start_another_checkout(self):
+        token='old_unknown_topup_token'
+        self.db.add(WalletTopUp(user_id=self.uid,token=f'{self.uid}:{token}',amount_cents=600,
+                               created_at=datetime.utcnow()-timedelta(days=2)))
+        self.db.commit()
+        with patch.object(main.stripe.checkout.Session,'create') as create:
+            response=self.client.post('/api/wallet/topups',json={'amount':'6','token':token})
+            self.assertEqual(response.status_code,409,response.text);create.assert_not_called()
+        self.assertEqual(wallet.cash_balance(self.db,self.uid),0)
 
     def test_refund_destination_is_owner_only_and_freezes(self):
         self.fund();s=self.study();wallet.pay_study(self.db,s.id,self.uid);self.db.commit()

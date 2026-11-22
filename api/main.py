@@ -191,6 +191,8 @@ from app.seo import (
 
 app = FastAPI(title="Insighta")
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+from app.auth_session import SignedSessionMiddleware, sign_session
+app.add_middleware(SignedSessionMiddleware)
 app.include_router(ai_growth_router)
 app.include_router(discovery_router)
 
@@ -271,6 +273,9 @@ async def apply_seo_and_delivery_headers(request: Request, call_next):
     elif not _is_public_seo_path(path):
         # Defense in depth: the Jinja partial also emits noindex for non-public HTML pages.
         response.headers.setdefault("X-Robots-Tag", "noindex, nofollow, noarchive")
+
+    if not path.startswith('/static/') and not _is_public_seo_path(path):
+        response.headers.setdefault('Cache-Control', 'private, no-store')
 
     return response
 
@@ -1618,6 +1623,10 @@ async def stop_settlement_worker():
 
 @app.on_event("startup")
 async def start_survey_followup_worker() -> None:
+    logger.info('Release configuration: stripe_mode=%s webhook_configured=%s settlement_worker=%s',
+        'live' if str(stripe.api_key or '').startswith(('sk_live_', 'rk_live_')) else
+        ('test' if str(stripe.api_key or '').startswith(('sk_test_', 'rk_test_')) else 'missing'),
+        bool(STRIPE_WEBHOOK_SECRET), os.environ.get('INSIGHTA_ENABLE_SETTLEMENT_WORKER', '1'))
     if os.environ.get("INSIGHTA_ENABLE_SETTLEMENT_WORKER", "1").lower() in {"1", "true", "yes", "on"}:
         app.state.settlement_worker = asyncio.create_task(_settlement_worker())
     db = SessionLocal()
@@ -2472,7 +2481,7 @@ def _cookie_policy(request: Optional[Request]) -> dict:
         forwarded_proto = (request.headers.get("x-forwarded-proto") or "").split(",")[0].strip().lower()
         is_https = (request.url.scheme == "https") or (forwarded_proto == "https")
     if is_https:
-        return {"httponly": True, "samesite": "none", "secure": True}
+        return {"httponly": True, "samesite": "lax", "secure": True}
     return {"httponly": True, "samesite": "lax", "secure": False}
 
 def _post_auth_url_with_next(
@@ -2540,7 +2549,7 @@ AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
 def _set_user_cookie(response, request: Request, user: User) -> None:
     response.set_cookie(
         "user_id",
-        str(user.id),
+        sign_session(user.id),
         max_age=AUTH_COOKIE_MAX_AGE,
         **_cookie_policy(request),
     )
@@ -3837,6 +3846,8 @@ def get_current_user(
 ):
     if not user_id:
         raise HTTPException(401, "Not logged in")
+    if not str(user_id).isdigit() or not 0 < int(user_id) <= 2**63-1:
+        raise HTTPException(401, "Invalid login session")
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:
         raise HTTPException(401, "User not found")
