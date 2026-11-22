@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ seo.title }}</title>
+  {% include "_seo_head.html" %}
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="stylesheet" href="/static/seo_public.css?v=20261121">
+  {% include "_public_site_head.html" %}
+</head>
+<body>
+  {% include "_public_site_header.html" %}
+  <main class="public-shell">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">How it works</span>
+    </nav>
+    <section class="public-hero">
+      <div>
+        <p class="eyebrow">From discovery to completion</p>
+        <h1>How Insighta works</h1>
+        <p>Recruit participants, join studies, and keep track of progress in one place.</p>
+      </div>
+    </section>
+    <section class="section" aria-labelledby="researcher-workflow">
+      <div class="section-head"><h2 id="researcher-workflow">For researchers</h2></div>
+      <div class="content-grid">
+        <article class="content-card"><span class="number" aria-hidden="true">1</span><h3>Create your listing</h3><p>Describe your study, audience, time commitment, and full participant reward. Add eligibility checks where needed.</p></article>
+        <article class="content-card"><span class="number" aria-hidden="true">2</span><h3>Review, fund, and publish</h3><p>See the total before paying by card or wallet. Niche audiences receive a manual quote before payment.</p></article>
+        <article class="content-card"><span class="number" aria-hidden="true">3</span><h3>Track and review</h3><p>Manage participation and review completions. After closeout and outstanding reviews, eligible unused cash returns to your chosen destination.</p></article>
+      </div>
+    </section>
+    <section class="section" aria-labelledby="participant-workflow">
+      <div class="section-head"><h2 id="participant-workflow">For participants</h2></div>
+      <div class="content-grid">
+        <article class="content-card"><span class="number" aria-hidden="true">1</span><h3>Find a study</h3><p>Browse opportunities and check the eligibility, format, time, and reward before deciding to join.</p></article>
+        <article class="content-card"><span class="number" aria-hidden="true">2</span><h3>Check eligibility and take part</h3><p>Complete any required verification or screening, then follow the study instructions or book your session.</p></article>
+        <article class="content-card"><span class="number" aria-hidden="true">3</span><h3>Track your progress</h3><p>Use your dashboard to follow participation and reward reviews. Approved cash earnings can be withdrawn after Stripe setup.</p></article>
+      </div>
+    </section>
+  </main>
+  <footer class="public-footer">
+    <span>© 2026 Insighta</span>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="/">Home</a><a href="/how-it-works" aria-current="page">How it works</a><a href="/about">About</a><a href="/pricing">Pricing</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a>
+    </nav>
+  </footer>
+</body>
+</html>

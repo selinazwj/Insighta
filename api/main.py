@@ -210,6 +210,7 @@ SEO_PUBLIC_EXACT_PATHS = {
     "/participant",
     "/studies",
     "/about",
+    "/how-it-works",
     "/privacy",
     "/terms",
     "/pricing",
@@ -3288,6 +3289,7 @@ def sitemap_xml(db: Session = Depends(get_db)):
         (seo_site_url("/participant"), None),
         (seo_site_url("/studies"), None),
         (seo_site_url("/about"), None),
+        (seo_site_url("/how-it-works"), None),
         (seo_site_url("/privacy"), None),
         (seo_site_url("/terms"), None),
         (seo_site_url("/pricing"), None),
@@ -3355,6 +3357,16 @@ def public_studies_by_category(category_slug: str, request: Request, db: Session
     if not cards:
         response.headers["X-Robots-Tag"] = "noindex, follow"
     return response
+
+
+@app.get("/how-it-works", response_class=HTMLResponse)
+def how_it_works_page(request: Request):
+    seo = content_page_seo(
+        title="How Insighta works | Research Recruitment & Participation",
+        description="See how researchers create and fund studies, and how participants find opportunities, complete eligibility checks and track rewards.",
+        path="/how-it-works", breadcrumb_label="How it works",
+    )
+    return templates.TemplateResponse("how_it_works.html", {"request":request, "seo":seo})
 
 
 @app.get("/about", response_class=HTMLResponse)

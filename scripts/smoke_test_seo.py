@@ -93,6 +93,7 @@ def main() -> int:
             "/studies": 200,
             "/studies/market": 200,
             "/about": 200,
+            "/how-it-works": 200,
             "/privacy": 200,
             "/terms": 200,
             "/pricing": 200,

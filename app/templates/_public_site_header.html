@@ -3,8 +3,9 @@
 <header class="site-nav" data-site-nav>
   <a class="site-logo" href="/" aria-label="Insighta home">Insight<span>a</span></a>
   <nav class="site-links" id="site-menu" aria-label="Main navigation">
+    <a href="/"{% if site_path == '/' %} aria-current="page"{% endif %}>Home</a>
     <a href="/studies"{% if site_path.startswith('/studies') %} aria-current="page"{% endif %}>Browse studies</a>
-    <a href="/#how">How it works</a>
+    <a href="/how-it-works"{% if site_path == '/how-it-works' %} aria-current="page"{% endif %}>How it works</a>
     <a href="/about"{% if site_path == '/about' %} aria-current="page"{% endif %}>About</a>
     <a href="/pricing"{% if site_path == '/pricing' %} aria-current="page"{% endif %}>Pricing</a>
   </nav>
