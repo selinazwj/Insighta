@@ -36,7 +36,7 @@ def main() -> int:
         os.environ["SURVEY_START_FOLLOWUP_POLL_SECONDS"] = "3600"
 
         from fastapi.testclient import TestClient
-        from api.main import app
+        from api.main import app, sign_session
         from app.database import SessionLocal
         from app.models import Survey, User
 
@@ -154,7 +154,7 @@ def main() -> int:
             if "closed-campus-study" in sitemap.text:
                 raise AssertionError("Closed study should not be present in sitemap")
 
-            client.cookies.set("user_id", str(publisher_id))
+            client.cookies.set("user_id", sign_session(publisher_id))
             verification = client.get("/verify/didit/return")
             if verification.status_code != 200:
                 raise AssertionError(f"Verification result page: expected 200, got {verification.status_code}")
