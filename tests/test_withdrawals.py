@@ -39,6 +39,16 @@ class WithdrawalsTest(unittest.TestCase):
     def post(self):
         return self.client.post('/api/withdraw')
 
+    def test_connect_account_update_cannot_enable_incomplete_payouts(self):
+        for details,payouts,capability,expected in [(False,True,'active','false'),
+                (True,False,'active','false'),(True,True,'inactive','false'),(True,True,'active','true')]:
+            event={'type':'account.updated','data':{'object':{'id':'acct_withdraw',
+                'charges_enabled':True,'details_submitted':details,'payouts_enabled':payouts,
+                'capabilities':{'transfers':capability}}}}
+            with patch.object(main.stripe.Webhook,'construct_event',return_value=event):
+                self.assertEqual(self.client.post('/webhook/stripe',content=b'{}').status_code,200)
+            self.db.expire_all();self.assertEqual(self.db.get(User,self.uid).stripe_onboarding_complete,expected)
+
     def test_exact_cents_paid_once_and_status_is_owner_scoped(self):
         with patch.object(main.stripe.Transfer,'create',return_value=self.transfer()) as create:
             response=self.post();self.assertEqual(response.status_code,200,response.text)

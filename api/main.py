@@ -6741,11 +6741,12 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         db.commit()
     elif event["type"] == "account.updated":
         account = event["data"]["object"]
-        if account.get("charges_enabled"):
-            user = db.query(User).filter(User.stripe_account_id == account.get("id")).first()
-            if user:
-                user.stripe_onboarding_complete = "true"
-                db.commit()
+        user = db.query(User).filter(User.stripe_account_id == account.get("id")).first()
+        if user:
+            ready = (account.get('details_submitted') and account.get('payouts_enabled')
+                     and (account.get('capabilities') or {}).get('transfers') == 'active')
+            user.stripe_onboarding_complete = 'true' if ready else 'false'
+            db.commit()
 
     return JSONResponse({"status": "ok"})
 
