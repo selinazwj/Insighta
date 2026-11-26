@@ -1,0 +1,28 @@
+  // ── AI GENERATE ──
+  async function generateWithAI() {
+    const prompt = document.getElementById('aiPrompt').value.trim();
+    if (!prompt) { showMsg('error','Please describe your research goal first.'); return; }
+    const btn = document.getElementById('aiBtn');
+    if (btn.disabled) return;
+    setAIBusy(btn, true);
+    showMsg('','');
+    try {
+      const res = await fetch('/api/ai-generate-questions', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        credentials:'same-origin', body:JSON.stringify({prompt})
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || 'Questions could not be generated. Please try again.');
+      for (const q of d.questions) await addQuestion(q);
+      showMsg('success', `${d.questions.length} questions generated. Review and edit below.`);
+      const titleEl = document.getElementById('infoTitle');
+      if (!titleEl.value.trim()) { titleEl.value = prompt.slice(0,60); scheduleInfoSave(); }
+    } catch (error) { showMsg('error',error.message || 'Something went wrong. Please try again.'); }
+    finally { setAIBusy(btn, false); }
+  }
+  function showMsg(type, msg) {
+    const el = document.getElementById('aiMsg');
+    el.className = 'ai-msg' + (type ? ' '+type : '');
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }

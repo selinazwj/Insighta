@@ -1,0 +1,43 @@
+<!-- CONSENT MODAL -->
+<div class="modal-backdrop" id="consentModal" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Privacy & Data Agreement</h2>
+      <p>Please read and agree to our data practices before creating your account.</p>
+    </div>
+    <div class="modal-body">
+      <div class="privacy-section">
+        <h4>What we collect</h4>
+        <p>We collect your email address and encrypted password to create your account. After registration, you can add optional profile details such as background, location, education, and study preferences from your Profile page.</p>
+      </div>
+      <div class="privacy-divider"></div>
+      <div class="privacy-section">
+        <h4>How we use your data</h4>
+        <p>Your profile information is used exclusively to match you with relevant research studies on Insighta. We do not use your data for advertising, and we do not sell or share your personal information with third parties.</p>
+      </div>
+      <div class="privacy-divider"></div>
+      <div class="privacy-section">
+        <h4>Research participation</h4>
+        <p>When you participate in a study, researchers can see that a participant matching their criteria completed their survey — but they cannot identify you personally.</p>
+      </div>
+      <div class="privacy-divider"></div>
+      <div class="privacy-section">
+        <h4>Data security</h4>
+        <p>Your password is hashed and never stored in plain text. We use industry-standard encryption to protect data in transit and at rest.</p>
+      </div>
+      <div class="privacy-divider"></div>
+      <div class="privacy-section">
+        <h4>Your rights</h4>
+        <p>You can update or delete your profile information at any time. You may request full account deletion by contacting us, and we will remove your data within 30 days.</p>
+      </div>
+    </div>
+    <div class="consent-check-area">
+      <label class="consent-label">
+        <input type="checkbox" class="consent-checkbox" id="consentCheckbox" onchange="toggleAgree(this)">
+        <span class="consent-text">I have read and agree to Insighta's data practices. I understand my profile data will be used to match me with research studies and will not be sold to third parties.</span>
+      </label>
+      <button class="btn-agree" id="btnAgree" onclick="agreeAndContinue()">Agree & Create Account →</button>
+      <button class="btn-decline" onclick="closeConsent()">Not now — go back</button>
+    </div>
+  </div>
+</div>

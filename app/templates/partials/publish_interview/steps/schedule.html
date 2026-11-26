@@ -1,0 +1,72 @@
+    <!-- IN-PERSON DETAILS -->
+    <div class="form-section" data-wizard-step="2" hidden>
+      <div class="section-header">
+        <div class="section-icon">02</div>
+        <div><h2>{{ 'Online interview details' if is_online_interview else 'In-person study details' }}</h2><p>{{ 'Call format, duration, and scheduling' if is_online_interview else 'Location, duration, and scheduling' }}</p></div>
+      </div>
+
+      <input type="hidden" name="interview_format" id="formatInput" value="{{ 'online' if is_online_interview else 'in_person' }}">
+      <input type="hidden" name="target_participation_format" value="{{ 'Video interview' if is_online_interview else 'In-person study' }}">
+
+      <div class="form-row" style="margin-bottom: 20px;">
+        <div class="form-group">
+          <label>Session Duration *</label>
+          <select name="estimated_time" required>
+            <option value="" disabled selected>How long per session?</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">60 minutes</option>
+            <option value="90">90 minutes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Participants Needed *</label>
+          <input type="number" id="listingTarget" name="target_responses" placeholder="e.g. 10" min="1" required>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom: 20px;">
+        <div class="form-group">
+          <label>Total sessions per participant</label>
+          <div class="label-desc">How many times should each participant attend in total?</div>
+          <input type="number" name="session_count" placeholder="e.g. 2" min="1">
+        </div>
+        <div class="form-group">
+          <label>Sessions per week</label>
+          <div class="label-desc">Optional. For example, enter 2 if participants come twice per week.</div>
+          <input type="number" name="sessions_per_week" placeholder="e.g. 2" min="1">
+        </div>
+      </div>
+
+      <div class="form-group" id="onlineLinkRow" {% if not is_online_interview %}style="display:none;"{% endif %}>
+        <label>Online meeting link</label>
+        <div class="label-desc">Optional. Add Zoom, Teams, or Meet. Participants choose a time below, and Insighta includes this link in their booking confirmation.</div>
+        <input type="url" name="scheduling_link" placeholder="https://zoom.us/j/... or https://meet.google.com/....">
+      </div>
+
+      <div class="form-group" id="locationRow" {% if is_online_interview %}style="display:none;"{% endif %}>
+        <label>In-person location</label>
+        <div class="label-desc">Where will the in-person session take place?</div>
+        <input type="text" name="interview_location" placeholder="e.g. Questrom School of Business, Room 315, Boston, MA">
+      </div>
+
+      <div class="form-group">
+        <label>Bookable times</label>
+        <div class="label-desc">Drag across the calendar to mark every start time participants can book. Insighta records these bookings and immediately emails both sides.</div>
+        <div class="slot-builder">
+          <div class="calendar-tools">
+            <div class="calendar-nav">
+              <button type="button" onclick="moveCalendarWeek(-7)">Previous week</button>
+              <button type="button" onclick="moveCalendarWeek(7)">Next week</button>
+              <button type="button" onclick="resetCalendarWeek()">Today</button>
+            </div>
+            <div class="calendar-range" id="calendarRange">This week</div>
+            <button class="slot-add" type="button" onclick="clearSlots()">Clear all</button>
+          </div>
+          <div class="calendar-hint">Tip: click or drag to paint availability. Click a selected time again to remove it.</div>
+          <div class="availability-grid" id="availabilityGrid" aria-label="Availability calendar"></div>
+          <div class="slot-list" id="slotList"><span class="slot-empty">No bookable times added yet.</span></div>
+          <input type="hidden" name="availability_slots" id="availabilitySlots" value="[]">
+        </div>
+      </div>
+    </div>

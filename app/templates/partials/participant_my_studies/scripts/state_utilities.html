@@ -1,0 +1,36 @@
+  const surveys = {{ surveys | tojson | safe }};
+  let activeTab = 'all';
+
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+
+  function studyPageUrl(s) {
+    return `${s.share_path}?from=my-studies`;
+  }
+
+  function classify(s) {
+    if (s.is_completed) return 'completed';
+    if (s.is_started)   return 'inprogress';
+    if (s.is_skipped)   return 'skipped';
+    return 'inprogress';
+  }
+
+  function statusPill(s) {
+    const c = classify(s);
+    if (c === 'completed') return `<div class="status-pill done"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Completed</div>`;
+    if (s.is_live_study && s.awaiting_interview) {
+      const label = s.status === 'scheduled' ? 'Interview scheduled' : 'Awaiting interview';
+      return `<div class="status-pill scheduled"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${label}</div>`;
+    }
+    if (c === 'inprogress') return `<div class="status-pill pending"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>In progress</div>`;
+    return `<div class="status-pill skipped"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Skipped</div>`;
+  }
+
+  function rewardPill(s) {
+    if (s.is_completed) return `<div class="row-reward pending">${s.reward}</div><div style="font-size:11px;font-weight:700;color:var(--ink3);margin-top:2px;">Pending approval</div>`;
+    if (s.is_live_study) return `<div class="row-reward pending">${s.reward}</div><div style="font-size:11px;font-weight:700;color:var(--ink3);margin-top:2px;">After researcher confirmation</div>`;
+    return `<div class="row-reward">${s.reward}</div>`;
+  }

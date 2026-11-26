@@ -1,0 +1,13 @@
+  // ── INIT ──
+  const urlAdminKey = new URLSearchParams(window.location.search).get('admin_key');
+  const storedAdminKey = sessionStorage.getItem('insighta_admin_key');
+  const initialAdminKey = (urlAdminKey || storedAdminKey || '').trim();
+  if (initialAdminKey) {
+    document.getElementById('adminKeyInput').value = initialAdminKey;
+    login().then(() => {
+      const hash = (window.location.hash || '').replace('#', '');
+      if (hash) switchPanel(hash);
+    });
+  } else {
+    document.getElementById('adminKeyInput').focus();
+  }

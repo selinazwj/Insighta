@@ -1,0 +1,57 @@
+    async function startStudy(targetUrl, bookingSlot) {
+      const slots = bookingSlot ? [bookingSlot] : Array.from(selectedSlots);
+      if (hasBookableSlots && slots.length !== requiredSessions) {
+        alert(`Please select ${requiredSessions} session${requiredSessions > 1 ? 's' : ''}.`);
+        return;
+      }
+      try {
+        const res = await fetch('/surveys/{{ survey.id }}/start', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          credentials: 'same-origin',
+          body: JSON.stringify({booking_slot: slots[0] || '', booking_slots: slots})
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (data.screening_required && data.screening_url) {
+            window.location.href = data.screening_url;
+            return;
+          }
+          if (data.verification_required) {
+            window.location.href = data.verification_url || '/verify';
+            return;
+          }
+          alert(data.detail || data.reason || 'Could not save this time. Please try again.');
+          return;
+        }
+      } catch {
+        alert('Could not save this time. Please try again.');
+        return;
+      }
+      window.location.href = hasBookableSlots ? '/my-studies' : (targetUrl || '/dashboard');
+    }
+
+    function startExternalStudy(targetUrl) {
+      window.location.href = targetUrl;
+    }
+
+    function bookSlot(slotLabel) {
+      const targetUrl = {{ (external_start_url if external_start_url else "/dashboard") | tojson }};
+      startStudy(targetUrl, slotLabel);
+    }
+
+    function toggleSlot(button) {
+      const slot = button.dataset.slot;
+      if (!slot) return;
+      if (selectedSlots.has(slot)) {
+        selectedSlots.delete(slot);
+        button.classList.remove('selected');
+        return;
+      }
+      if (selectedSlots.size >= requiredSessions) {
+        alert(`Please select ${requiredSessions} session${requiredSessions > 1 ? 's' : ''}.`);
+        return;
+      }
+      selectedSlots.add(slot);
+      button.classList.add('selected');
+    }

@@ -1,0 +1,8 @@
+  // ── QUALITY AUTO FILTER ──
+  function togglePublishAutoFilter() {
+    const enabled = document.getElementById('publishAutoFilterEnabled')?.checked;
+    const scoreInput = document.getElementById('publishAutoFilterMinScore');
+    const wrap = document.getElementById('publishAutoFilterScoreWrap');
+    if (scoreInput) scoreInput.disabled = !enabled;
+    if (wrap) wrap.classList.toggle('is-disabled', !enabled);
+  }

@@ -1,0 +1,22 @@
+  async function loadTrustSummary() {
+    const root = document.getElementById('trust-summary');
+    if (!root) return;
+    try {
+      const res = await fetch(`/api/surveys/${SURVEY_ID}/trust-summary`, { credentials:'same-origin' });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const stages = Object.entries(data.by_stage || {});
+      if (!stages.length) {
+        root.textContent = 'No participation decisions have been recorded yet.';
+        return;
+      }
+      root.innerHTML = stages.map(([stage, counts]) => `
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);">
+          <strong style="color:var(--ink);text-transform:capitalize;">${escapeScreenerHtml(stage)}</strong>
+          <span>${counts.allow || 0} allowed · ${counts.review || 0} review · ${counts.block || 0} blocked</span>
+        </div>
+      `).join('') + '<div style="margin-top:9px;">Signals are privacy-minimized. Automated flags recommend review; they do not expose raw IP addresses or device identifiers.</div>';
+    } catch {
+      root.textContent = 'Trust summary unavailable.';
+    }
+  }

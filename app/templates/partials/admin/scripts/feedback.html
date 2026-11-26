@@ -1,0 +1,102 @@
+  // ── FEEDBACK ──
+  async function loadFeedbacks() {
+    try {
+      const res = await fetch(`/admin/feedbacks?admin_key=${encodeURIComponent(adminKey)}`);
+      if (!res.ok) throw new Error();
+      allFeedbacks = await res.json();
+      updateStats();
+      renderFeedbacks();
+      const pending = allFeedbacks.filter(f => f.status === 'pending').length;
+      const badge = document.getElementById('pending-badge');
+      badge.textContent = pending;
+      badge.style.display = pending > 0 ? 'flex' : 'none';
+    } catch {
+      document.getElementById('feedbackList').innerHTML = '<div class="empty"><div class="empty-sub">Failed to load feedback</div></div>';
+    }
+  }
+
+  function updateStats() {
+    const pending   = allFeedbacks.filter(f => f.status === 'pending').length;
+    const credited  = allFeedbacks.filter(f => f.status === 'credited').length;
+    const amount    = allFeedbacks.reduce((s,f) => s + (f.credit_amount || 0), 0);
+    document.getElementById('statPending').textContent  = pending;
+    document.getElementById('statCredited').textContent = credited;
+    document.getElementById('statAmount').textContent   = '$' + amount.toFixed(2);
+  }
+
+  function filterFeedback(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.f-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderFeedbacks();
+  }
+
+  function renderFeedbacks() {
+    const list = document.getElementById('feedbackList');
+    const CAT = { bug:'Bug', feature_request:'Feature', ux:'UX', general:'General', other:'Other' };
+    let items = allFeedbacks;
+    if (currentFilter === 'pending')  items = items.filter(f => f.status === 'pending');
+    else if (currentFilter === 'credited') items = items.filter(f => f.status === 'credited');
+    else if (currentFilter === 'rejected') items = items.filter(f => f.status === 'rejected');
+    else if (['bug','feature_request','ux'].includes(currentFilter)) items = items.filter(f => f.category === currentFilter);
+
+    if (!items.length) {
+      list.innerHTML = '<div class="empty"><div class="empty-title">No feedback here</div></div>';
+      return;
+    }
+
+    list.innerHTML = items.map(f => {
+      const date = new Date(f.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const cc = f.status === 'credited' ? 'credited' : f.status === 'rejected' ? 'rejected' : '';
+      const sp = `s-${f.status}`;
+      const actions = f.status === 'pending'
+        ? `<input type="number" class="credit-input" id="amt-${f.id}" placeholder="$0.00" step="0.5" min="0.5">
+           <button class="btn-credit" onclick="grantCredit(${f.id})">Grant credit</button>
+           <button class="btn-reject-sm" onclick="rejectFeedback(${f.id})">Reject</button>`
+        : f.status === 'credited'
+          ? `<span class="credited-note">$${f.credit_amount.toFixed(2)} credited</span>`
+          : `<span style="font-size:12px;color:var(--ink3);">Rejected</span>`;
+      return `<div class="fb-card ${cc}" id="fbc-${f.id}">
+        <div class="fb-top">
+          <div class="fb-meta">
+            <span class="cat-pill">${CAT[f.category]||f.category}</span>
+            <span class="status-pill ${sp}">${f.status}</span>
+            <span class="fb-user">${esc(f.user_email)}</span>
+          </div>
+          <span class="fb-date">${date}</span>
+        </div>
+        <div class="fb-title">${esc(f.title)}</div>
+        <div class="fb-body">${esc(f.content)}</div>
+        <div class="fb-actions">${actions}</div>
+      </div>`;
+    }).join('');
+  }
+
+  async function grantCredit(id) {
+    const input = document.getElementById(`amt-${id}`);
+    const amount = parseFloat(input.value);
+    if (!amount || amount <= 0) { alert('Enter a valid amount'); return; }
+    const btn = input.nextElementSibling;
+    btn.disabled = true; btn.textContent = '...';
+    try {
+      const res = await fetch(`/admin/feedback/${id}/credit`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, amount })
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Error');
+      const f = allFeedbacks.find(x => x.id === id);
+      if (f) { f.status = 'credited'; f.credit_amount = amount; }
+      updateStats(); renderFeedbacks();
+    } catch(e) { alert(e.message); btn.disabled = false; btn.textContent = 'Grant credit'; }
+  }
+
+  async function rejectFeedback(id) {
+    if (!confirm('Reject this feedback?')) return;
+    await fetch(`/admin/feedback/${id}/reject`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ admin_key: adminKey })
+    });
+    const f = allFeedbacks.find(x => x.id === id);
+    if (f) f.status = 'rejected';
+    updateStats(); renderFeedbacks();
+  }

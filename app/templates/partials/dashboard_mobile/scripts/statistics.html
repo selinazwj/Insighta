@@ -1,0 +1,14 @@
+  function updateStats() {
+    const tz = new Date().getTimezoneOffset();
+    fetch(`/api/dashboard/stats?timezone_offset=${tz}`)
+      .then(r => r.json())
+      .then(d => {
+        const e = parseFloat(d.total_earned).toFixed(2);
+        document.getElementById('earningsPill').textContent = `$${e} earned`;
+        document.getElementById('impactMsg').textContent = `${d.completed_today} studies completed`;
+        const ba = document.getElementById('balanceAmt');
+        if (ba) ba.textContent = `$${e}`;
+        const wb = document.getElementById('withdrawBtn');
+        if (wb) wb.disabled = d.total_earned < 1;
+      }).catch(()=>{});
+  }

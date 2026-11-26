@@ -1,0 +1,48 @@
+  // ── Select color fix ──────────────────────────────────────
+  document.querySelectorAll('select').forEach(s => {
+    const update = () => s.classList.toggle('has-value', !!s.value && s.value !== '');
+    s.addEventListener('change', update); update();
+  });
+
+  // ── Advanced toggle ───────────────────────────────────────
+  document.querySelector('details').addEventListener('toggle', function() {
+    document.getElementById('advArrow').textContent = this.open ? '-' : '+';
+  });
+
+  document.getElementById('interviewForm').addEventListener('submit', function(event) {
+    if (currentWizardStep < WIZARD_TITLES.length) {
+      event.preventDefault();
+      changeWizardStep(1);
+      return;
+    }
+    rebuildSlotLabels();
+    document.getElementById('availabilitySlots').value = JSON.stringify(availabilitySlots);
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+      if (!String(input.value || '').trim() && !input.required) input.disabled = true;
+    });
+  });
+  document.querySelector('select[name="estimated_time"]').addEventListener('change', function() {
+    rebuildSlotLabels();
+    renderSlots();
+    renderAvailabilityCalendar();
+  });
+  document.getElementById('availabilityGrid').addEventListener('mousedown', function(event) {
+    if (!event.target.classList.contains('cal-cell')) return;
+    event.preventDefault();
+    isDraggingCalendar = true;
+    toggleCalendarCell(event.target);
+  });
+  document.getElementById('availabilityGrid').addEventListener('mouseover', function(event) {
+    if (!isDraggingCalendar) return;
+    paintCalendarCell(event.target);
+  });
+  document.addEventListener('mouseup', function() {
+    isDraggingCalendar = false;
+  });
+  document.getElementById('availabilityGrid').addEventListener('touchstart', function(event) {
+    const cell = event.target.closest('.cal-cell');
+    if (!cell) return;
+    toggleCalendarCell(cell);
+  }, { passive: true });
+  showWizardStep(1, false);
+  renderAvailabilityCalendar();

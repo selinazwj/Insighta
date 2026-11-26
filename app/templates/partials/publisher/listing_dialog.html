@@ -1,0 +1,55 @@
+<!-- NEW LISTING MODAL -->
+<div class="modal-backdrop" id="newListingModal" style="display:none;" onclick="handleBackdropClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-close" onclick="closeModal()">✕</span>
+      <h2>What are you creating?</h2>
+      <p>Choose the type of study you want to post.</p>
+    </div>
+    <div class="modal-body">
+
+      <!-- External link survey -->
+      <a href="/publish" class="type-card">
+        <div class="type-card-icon icon-survey">📋</div>
+        <div class="type-card-text">
+          <div class="type-card-title">Survey — External Link</div>
+          <div class="type-card-desc">Use your own Google Form, Qualtrics, or any survey link.</div>
+        </div>
+        <div class="type-card-arrow">→</div>
+      </a>
+
+      <!-- Built-in survey: POST to create draft and go straight to builder -->
+      <form method="post" action="/surveys/create-builtin" style="margin:0;">
+        <button type="submit" class="type-card">
+          <div class="type-card-icon icon-builtin">✨</div>
+          <div class="type-card-text">
+            <div class="type-card-title">Survey — Build in Insighta</div>
+            <div class="type-card-desc">Design your questions with AI. Start building right away.</div>
+          </div>
+          <div class="type-card-arrow">→</div>
+        </button>
+      </form>
+
+      <!-- In-person study -->
+      <a href="/publish_interview" class="type-card">
+        <div class="type-card-icon icon-interview">🎙️</div>
+        <div class="type-card-text">
+          <div class="type-card-title">In-person study</div>
+          <div class="type-card-desc">Schedule lab visits, field studies, or on-site sessions.</div>
+        </div>
+        <div class="type-card-arrow">→</div>
+      </a>
+
+      <!-- Online interview -->
+      <a href="/publish_interview?mode=online" class="type-card">
+        <div class="type-card-icon icon-interview">🎙️</div>
+        <div class="type-card-text">
+          <div class="type-card-title">Online interview</div>
+          <div class="type-card-desc">Schedule live remote interviews or video sessions.</div>
+        </div>
+        <div class="type-card-arrow">→</div>
+      </a>
+
+    </div>
+  </div>
+</div>

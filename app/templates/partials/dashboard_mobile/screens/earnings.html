@@ -1,0 +1,28 @@
+  <!-- EARNINGS -->
+  <div class="screen" id="screen-earnings">
+    <div class="earnings-wrap">
+      {% if stripe_onboarding_complete == 'true' %}
+      <div class="balance-card">
+        <div class="balance-lbl">Available balance</div>
+        <div class="balance-amt" id="balanceAmt">${{ "%.2f"|format(pending_earnings) }}</div>
+        <div class="balance-sub">Total withdrawn: ${{ "%.2f"|format(total_withdrawn) }}</div>
+        <button class="btn-withdraw" id="withdrawBtn" onclick="doWithdraw()" {% if pending_earnings < 1 %}disabled{% endif %}>
+          <i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw earnings
+        </button>
+      </div>
+      {% else %}
+      <div class="balance-card">
+        <div class="balance-lbl">Set up payouts</div>
+        <div class="balance-amt" style="font-size:20px;font-weight:600;margin-bottom:8px;">Connect your bank</div>
+        <div class="balance-sub" style="margin-bottom:16px;">Required to receive your earnings</div>
+        <a href="/connect/onboard" class="btn-setup">
+          <i data-lucide="link" style="width:16px;height:16px"></i> Set Up Payouts
+        </a>
+      </div>
+      {% endif %}
+      <div class="history-box">
+        <div class="history-head">Recent earnings</div>
+        <div id="earningsHistory"><div style="padding:20px;text-align:center;font-size:13px;color:var(--ink-muted)">Loading...</div></div>
+      </div>
+    </div>
+  </div>

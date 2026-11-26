@@ -1,0 +1,31 @@
+    <!-- SURVEYS -->
+    <div id="panel-surveys">
+      {% if surveys %}
+      <div class="study-list" data-tour="study-list">
+        {% for s in surveys %}
+        {% set completed = completed_map.get(s.id, 0) %}
+        {% set target    = s.target_responses or 0 %}
+        {% set pct       = (completed * 100 // target) if target > 0 else 0 %}
+        <a href="/publisher/study/{{ s.id }}" class="study-row">
+          <div class="study-dot" style="background:{% if s.status == 'published' %}var(--green){% elif s.status == 'draft' %}#f59e0b{% else %}var(--ink4){% endif %};"></div>
+          <div class="study-info">
+            <div class="study-title">{{ s.title }}</div>
+            <div class="study-meta">Survey · {{ s.estimated_time }} min · {% if s.id in niche_requests and niche_requests[s.id].status != 'paid' %}Custom quote{% else %}${{ '%.2f'|format(s.reward_amount or 0) }}{% endif %}</div>
+          </div>
+          <div class="study-prog">
+            <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%;"></div></div>
+            <div class="prog-label">{{ completed }} / {{ target }}</div>
+          </div>
+          <div class="study-badge badge-{{ s.status }}">{{ 'Awaiting quote' if s.id in niche_requests and niche_requests[s.id].status == 'requested' else 'Awaiting payment' if s.id in niche_requests and niche_requests[s.id].status == 'quoted' else s.status | capitalize }}</div>
+          <div class="study-arrow">→</div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty" data-tour="study-list">
+        <div class="empty-title">No surveys yet</div>
+        <div class="empty-sub">Create your first survey and start collecting responses.</div>
+        <button class="btn-new" onclick="openNewListing()">+ New listing</button>
+      </div>
+      {% endif %}
+    </div>

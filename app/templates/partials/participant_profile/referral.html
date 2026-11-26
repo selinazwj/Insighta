@@ -1,0 +1,16 @@
+    <div class="referral-card">
+      <div class="referral-title">Your referral code</div>
+      <div class="referral-sub">Share your code or invite link. Friends can enter it when they register.</div>
+      <div class="referral-label">Code</div>
+      <div class="referral-row">
+        <div class="referral-code" id="referralCodeValue">{{ referral_code }}</div>
+        <button type="button" class="referral-btn" onclick="copyReferral('code')">Copy</button>
+      </div>
+      <div class="referral-label" style="margin-top:12px;">Invite link</div>
+      <div class="referral-row">
+        <div class="referral-link" id="referralLinkValue" title="{{ invite_url }}">{{ invite_url }}</div>
+        <button type="button" class="referral-btn" onclick="copyReferral('link')">Copy</button>
+      </div>
+      <div class="referral-hint">Anyone who opens this link will land on signup with your referral code filled in.</div>
+      <div class="referral-copied" id="referralCopied"></div>
+    </div>

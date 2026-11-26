@@ -1,0 +1,33 @@
+  // ── CHECKBOXES ──
+  function syncCheck(input) { input.closest('.check-item').classList.toggle('checked', input.checked); }
+
+  // ── Occupation multiselect dropdown ──
+  function toggleOccDD() { document.getElementById('occDD').classList.toggle('open'); }
+
+  function occDDChanged() {
+    const boxes = document.querySelectorAll('#occDDPanel input[type="checkbox"]');
+    const picked = [];
+    boxes.forEach(b => {
+      b.closest('.occ-dd-item').classList.toggle('on', b.checked);
+      if (b.checked) picked.push(b.dataset.label);
+    });
+    const lbl = document.getElementById('occDDLabel');
+    const cnt = document.getElementById('occDDCount');
+    if (!picked.length) {
+      lbl.textContent = 'Any occupation';
+      cnt.style.display = 'none';
+    } else {
+      lbl.textContent = picked.slice(0, 3).join(', ') + (picked.length > 3 ? '…' : '');
+      cnt.textContent = picked.length + ' selected';
+      cnt.style.display = 'inline-block';
+    }
+  }
+
+  // close the dropdown when clicking anywhere else
+  document.addEventListener('click', e => {
+    const dd = document.getElementById('occDD');
+    if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+  });
+
+  // reflect any preselected occupations (edit flow) in the dropdown label
+  occDDChanged();

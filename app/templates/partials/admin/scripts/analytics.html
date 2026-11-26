@@ -1,0 +1,116 @@
+  // ── ANALYTICS ──
+  async function loadAnalytics() {
+    const cards = document.getElementById('analyticsCards');
+    const funnel = document.getElementById('analyticsFunnel');
+    const activity = document.getElementById('analyticsActivity');
+    if (!adminKey || !cards) return;
+    funnel.innerHTML = '<div class="empty"><div class="empty-sub">Loading funnel...</div></div>';
+    activity.innerHTML = '<div class="empty"><div class="empty-sub">Loading activity...</div></div>';
+    try {
+      const res = await fetch(`/admin/analytics?admin_key=${encodeURIComponent(adminKey)}&days=30`, { cache:'no-store' });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Failed to load analytics');
+      analytics = await res.json();
+      renderAnalytics();
+    } catch(err) {
+      funnel.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message)}</div></div>`;
+      activity.innerHTML = '<div class="empty"><div class="empty-sub">Analytics unavailable.</div></div>';
+    }
+  }
+
+  function renderAnalytics() {
+    if (!analytics) return;
+    const o = analytics.overview || {};
+    const cardData = [
+      [fmtNum(o.total_events), 'Total events'],
+      [fmtNum(o.unique_people), 'Unique users'],
+      [fmtNum(o.listing_views), 'Listing views'],
+      [fmtNum(o.start_clicks), 'Starts'],
+      [fmtNum(o.completed_surveys), 'Completed'],
+      [`${Number(o.start_to_complete_rate || 0).toFixed(1)}%`, 'Start to complete'],
+    ];
+    document.getElementById('analyticsCards').innerHTML = cardData.map(([num,label]) => `
+      <div class="analytics-card"><div class="analytics-num">${esc(num)}</div><div class="analytics-label">${esc(label)}</div></div>
+    `).join('');
+    renderAnalyticsFunnel(analytics.listing_funnel || []);
+    renderAnalyticsActivity(analytics.recent_activity || []);
+  }
+
+  function renderAnalyticsFunnel(rows) {
+    const wrap = document.getElementById('analyticsFunnel');
+    const useful = rows.filter(r => (r.views || r.starts || r.completed));
+    if (!useful.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-title">No funnel data yet</div><div class="empty-sub">Data will appear after users view or start listings.</div></div>';
+      return;
+    }
+    const body = useful.slice(0, 60).map(r => {
+      const startRate = r.start_rate == null ? '<span class="rate-empty">—</span>' : `<span class="rate-good">${Number(r.start_rate).toFixed(1)}%</span>`;
+      const completionRate = r.completion_rate == null ? '<span class="rate-empty">—</span>' : `<span class="rate-good">${Number(r.completion_rate).toFixed(1)}%</span>`;
+      return `<tr>
+        <td><div class="listing-title">${esc(r.title)}</div><div class="listing-desc">${esc(r.status || '')}</div></td>
+        <td>${fmtNum(r.views)}</td>
+        <td>${fmtNum(r.unique_viewers)}</td>
+        <td>${fmtNum(r.starts)}</td>
+        <td>${fmtNum(r.completed)}</td>
+        <td>${startRate}</td>
+        <td>${completionRate}</td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>Study</th><th>Views</th><th>Unique viewers</th><th>Starts</th><th>Completed</th><th>Start rate</th><th>Completion rate</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>`;
+  }
+
+  function renderAnalyticsActivity(items) {
+    const wrap = document.getElementById('analyticsActivity');
+    if (!items.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-sub">No recent activity yet.</div></div>';
+      return;
+    }
+    wrap.innerHTML = items.slice(0, 50).map(item => {
+      const label = activityLabel(item);
+      const when = item.created_at ? new Date(item.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+      const target = item.target_label ? ` · ${esc(item.target_label)}` : '';
+      return `<div class="activity-item">
+        <div class="activity-main">${label}${target}</div>
+        <div class="activity-meta">${esc(when)} · ${esc(item.page_path || '')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function activityLabel(item) {
+    const actor = item.actor_type === 'guest'
+      ? `<strong>${esc(item.user || 'Guest visitor')}</strong> <span style="color:var(--ink4);font-weight:600;">guest</span>`
+      : `<strong>${esc(item.user || 'Logged-in user')}</strong>`;
+    const names = {
+      listing_view: 'viewed a listing',
+      listing_viewed: 'viewed a listing',
+      study_impression: 'saw a study',
+      study_card_viewed: 'saw a study',
+      study_click: 'clicked Take study',
+      study_start: 'clicked Start',
+      survey_started: 'clicked Start',
+      study_complete: 'completed a study',
+      survey_completed: 'completed a study',
+      sign_up: 'signed up',
+      signup_completed: 'signed up',
+      login: 'signed in',
+      login_success: 'signed in',
+      profile_update: 'updated profile',
+      study_created: 'created a study',
+      study_published: 'published a study',
+      participant_approved: 'approved a participant',
+      participant_rejected: 'rejected a participant',
+      study_shared: 'shared a study',
+      page_view: 'opened a page',
+      page_viewed: 'opened a page',
+      page_exit: 'left a page',
+      page_hidden: 'left a page',
+      dashboard_opened: 'opened participant dashboard',
+    };
+    return `${actor} ${names[item.event_name] || esc(item.event_name || 'did something')}`;
+  }
+
+  function fmtNum(n) {
+    return Number(n || 0).toLocaleString('en-US');
+  }

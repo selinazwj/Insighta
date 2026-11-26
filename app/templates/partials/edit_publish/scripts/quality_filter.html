@@ -1,0 +1,27 @@
+  function toggleAutoFilter() {
+    const enabled = document.getElementById('autoFilterEnabled').checked;
+    const scoreInput = document.getElementById('filterMinScore');
+    const wrap = document.getElementById('filterScoreWrap');
+    scoreInput.disabled = !enabled;
+    wrap.classList.toggle('disabled', !enabled);
+  }
+
+  document.getElementById('posterInput').addEventListener('change', function() {
+    const n = document.getElementById('fzName');
+    n.textContent = this.files[0] ? this.files[0].name : '';
+    n.style.display = this.files[0] ? 'block' : 'none';
+  });
+
+  document.querySelector('form').addEventListener('submit', function(e) {
+    ['target_education_min','target_education_max'].forEach(name => {
+      const el = this.querySelector(`select[name="${name}"]`);
+      if (el && !el.value) el.removeAttribute('name');
+    });
+    const r = document.getElementById('rewardInput');
+    const incentive = document.getElementById('incentiveInput')?.value;
+    if (r && !['raffle','volunteer'].includes(incentive) && (parseFloat(r.value) || 0) <= 0) {
+      e.preventDefault();
+      alert('Please enter a reward amount greater than 0.');
+      r.focus();
+    }
+  });

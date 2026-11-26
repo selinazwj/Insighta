@@ -1,0 +1,99 @@
+  // ── LISTINGS ──
+  async function loadListings() {
+    const wrap = document.getElementById('listingsResults');
+    const q = document.getElementById('listingSearch')?.value.trim() || '';
+    wrap.innerHTML = '<div class="empty"><div class="empty-sub">Loading listings...</div></div>';
+    try {
+      const res = await fetch(`/admin/listings?admin_key=${encodeURIComponent(adminKey)}&q=${encodeURIComponent(q)}`, {cache:'no-store'});
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Failed to load listings');
+      listings = await res.json();
+      renderListings();
+    } catch(err) {
+      wrap.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message)}</div></div>`;
+    }
+  }
+
+  function renderListings() {
+    const wrap = document.getElementById('listingsResults');
+    if (!listings.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-title">No listings found</div></div>';
+      return;
+    }
+    const rows = listings.map(s => {
+      const created = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+      const displayReward = s.admin_display_reward_amount ?? s.reward_amount ?? 0;
+      return `<tr>
+        <td>
+          <div class="listing-title">${esc(s.title)}</div>
+          <div class="listing-desc">${esc(s.description || '')}</div>
+        </td>
+        <td>${esc(s.status || '')}<br><span style="color:var(--ink3);">${esc(s.payment_status || '')}</span></td>
+        <td>${esc(s.task_type_label || s.task_type || '')}<br><span style="color:var(--ink3);">${esc(s.category || '')}</span></td>
+        <td>$${Number(displayReward || 0).toFixed(2)}</td>
+        <td>${s.completed_count || 0}/${s.target_responses || 0}</td>
+        <td>${esc(s.publisher_email || '')}</td>
+        <td>${created}</td>
+        <td>
+          <button class="btn-refresh" onclick="editListing(${s.id})">Edit</button>
+          <button class="btn-refresh" data-share-url="${escAttr(s.share_url || '')}" onclick="copyListingLink(this.dataset.shareUrl)">Copy link</button>
+          <button class="danger-btn" data-title="${escAttr(s.title)}" onclick="deleteListing(${s.id}, this.dataset.title)">Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>Listing</th><th>Status</th><th>Type</th><th>Reward</th><th>Responses</th><th>Publisher</th><th>Created</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+
+  async function deleteListing(id, title) {
+    if (!confirm(`Delete listing "${title}"? This also deletes related responses and quality data.`)) return;
+    try {
+      const res = await fetch(`/admin/listings/${id}/delete`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey })
+      });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Delete failed');
+      listings = listings.filter(s => s.id !== id);
+      renderListings();
+    } catch(err) {
+      alert(err.message);
+    }
+  }
+
+  function editListing(id) {
+    if (!adminKey) return;
+    window.location.href = `/admin/listings/${id}/edit?admin_key=${encodeURIComponent(adminKey)}`;
+  }
+
+  async function copyListingLink(url) {
+    if (!url) { alert('This listing does not have a share link yet.'); return; }
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Share link copied.');
+    } catch {
+      prompt('Copy this link', url);
+    }
+  }
+
+  async function deleteKnownTestListings() {
+    const titles = [
+      'Campus Life Discovery Survey',
+      'Help Improve Campus Life for Students Like You'
+    ];
+    if (!confirm(`Delete these test listings if present?\\n\\n${titles.join('\\n')}`)) return;
+    try {
+      const res = await fetch('/admin/listings/delete-by-title', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, titles })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.detail || 'Delete failed');
+      alert(`Deleted ${data.deleted?.length || 0} listing(s).`);
+      await loadListings();
+    } catch(err) {
+      alert(err.message);
+    }
+  }

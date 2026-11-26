@@ -1,0 +1,57 @@
+  async function loadForecast(force) {
+    const loading = document.getElementById('ai-loading');
+    const result  = document.getElementById('ai-result');
+    loading.style.display = 'block'; result.style.display = 'none';
+    try {
+      const d = await queueStudyAiJob('summary', force);
+      const pct  = Math.round((d.completion_probability || 0) * 100);
+      const cand = d.candidate_count || 0;
+      const seg  = d.segment_label || 'General';
+      const risk = (d.risk_reasons || [])[0] || 'No major risk detected.';
+      const sugg = d.recommended_action || 'Current settings look good.';
+
+      document.getElementById('ai-stats').innerHTML = `
+        <div class="ai-stat"><div class="ai-stat-n">${pct}%</div><div class="ai-stat-l">Expected completion</div></div>
+        <div class="ai-stat"><div class="ai-stat-n">${cand}</div><div class="ai-stat-l">Candidates</div></div>
+        <div class="ai-stat"><div class="ai-stat-n" style="font-size:14px;letter-spacing:0;">${seg}</div><div class="ai-stat-l">Top segment</div></div>
+      `;
+      document.getElementById('ai-insight').innerHTML = `<strong>Risk:</strong> ${risk}<br><strong>Suggestion:</strong> ${sugg}`;
+      loading.style.display = 'none'; result.style.display = 'block';
+    } catch (error) {
+      document.getElementById('ai-loading-text').textContent = error.message || 'Forecast unavailable.';
+    }
+  }
+
+  async function queueStudyAiJob(mode, force=false) {
+    const scope = document.getElementById('ai-scope')?.value || 'quick';
+    const res = await fetch(`/api/surveys/${SURVEY_ID}/prediction/jobs`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, scope, force, display_limit: 8 }),
+    });
+    const job = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(job.detail || 'AI request could not be queued');
+    document.getElementById('ai-loading-text').textContent = `AI analysis queued (job #${job.job_id}). You can leave this page safely.`;
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const statusRes = await fetch(`/api/ai-jobs/${job.job_id}`, { credentials:'same-origin', cache:'no-store' });
+      const status = await statusRes.json().catch(() => ({}));
+      if (!statusRes.ok) throw new Error(status.detail || 'Could not read AI job');
+      if (status.status === 'done') return status.result || {};
+      if (status.status === 'failed') throw new Error(status.error || 'AI analysis failed');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+    throw new Error('AI analysis is still queued. Refresh this page in a moment.');
+  }
+
+  async function showTopCandidates() {
+    try {
+      const d = await queueStudyAiJob('respondents', false);
+      const lines = (d.respondents || []).map((r,i) =>
+        `${i+1}. ${Math.round((r.completion_probability||0)*100)}% · ${r.segment_label||'Respondent'} · ${(r.top_reasons||[])[0]||''}`
+      );
+      alert(lines.join('\n') || 'No candidate predictions yet.');
+    } catch { alert('Unavailable.'); }
+  }
+
+  loadScreener();
+  loadTrustSummary();

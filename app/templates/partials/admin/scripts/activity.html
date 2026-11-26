@@ -1,0 +1,218 @@
+  // ── ACTIVITY LOG ──
+  async function loadActivity(reset) {
+    if (!adminKey || activityState.loading) return;
+    const table = document.getElementById('activityTable');
+    const moreBtn = document.getElementById('activityMoreBtn');
+    const surveyId = document.getElementById('activitySurvey')?.value || '';
+    const eventName = document.getElementById('activityEvent')?.value || '';
+    const q = document.getElementById('activitySearch')?.value.trim() || '';
+    if (reset) {
+      activityState.offset = 0;
+      activityRows = [];
+      table.innerHTML = '<div class="empty"><div class="empty-sub">Loading activity...</div></div>';
+      if (moreBtn) moreBtn.style.display = 'none';
+    }
+    activityState.loading = true;
+    try {
+      const params = new URLSearchParams({
+        admin_key: adminKey,
+        limit: String(activityState.limit),
+        offset: String(activityState.offset)
+      });
+      if (surveyId) params.set('survey_id', surveyId);
+      if (eventName) params.set('event_name', eventName);
+      if (q) params.set('q', q);
+      const res = await fetch(`/admin/activity?${params.toString()}`, { cache:'no-store' });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).detail || 'Failed to load activity');
+      const data = await res.json();
+      populateActivitySurveys(data.surveys || [], surveyId);
+      renderActivityPeople(data.people || [], surveyId);
+      activityRows = reset ? (data.events || []) : activityRows.concat(data.events || []);
+      activityState.total = data.total || 0;
+      activityState.offset = activityRows.length;
+      renderActivityTable(activityRows, activityState.total);
+      if (moreBtn) moreBtn.style.display = activityRows.length < activityState.total ? 'inline-flex' : 'none';
+    } catch(err) {
+      table.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message)}</div></div>`;
+      if (moreBtn) moreBtn.style.display = 'none';
+    } finally {
+      activityState.loading = false;
+    }
+  }
+
+  function populateActivitySurveys(surveys, selectedId) {
+    const select = document.getElementById('activitySurvey');
+    if (!select) return;
+    const current = selectedId || select.value || '';
+    select.innerHTML = '<option value="">All studies</option>' + surveys.map(s => (
+      `<option value="${s.id}">${esc(s.title || `Study #${s.id}`)}</option>`
+    )).join('');
+    select.value = current;
+  }
+
+  function renderActivityPeople(people, surveyId) {
+    const wrap = document.getElementById('activityPeople');
+    if (!surveyId) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-sub">Choose a study to see who opened it.</div></div>';
+      return;
+    }
+    if (!people.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-title">No tracked users yet</div><div class="empty-sub">Rows will appear after someone opens this listing or clicks Start.</div></div>';
+      return;
+    }
+    const rows = people.map(p => `<tr>
+      <td>
+        <div class="listing-title">${esc(p.user)}</div>
+        <div class="listing-desc">${esc(p.actor_type === 'guest' ? (p.anonymous_id || 'Guest visitor') : (p.username || p.user_email || ''))}</div>
+      </td>
+      <td>${formatActivityTime(p.first_opened_at)}</td>
+      <td>${formatActivityTime(p.first_started_at)}</td>
+      <td>${formatActivityTime(p.completed_at)}</td>
+        <td>${formatActivityTime(p.last_event_at)}<br>${eventPillHtml(p.last_event_name)}</td>
+      <td>${fmtNum(p.event_count)}</td>
+    </tr>`).join('');
+    wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>User</th><th>First opened</th><th>Start clicked</th><th>Completed</th><th>Last event</th><th>Events</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+
+  function renderActivityTable(rows, total) {
+    const wrap = document.getElementById('activityTable');
+    if (!rows.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-title">No matching events</div><div class="empty-sub">Try a different study, event type, or search term.</div></div>';
+      return;
+    }
+    const body = rows.map(item => {
+      const details = item.details || activityDetails(item);
+      const userLabel = item.username || item.user_email || (item.actor_type === 'guest' ? (item.anonymous_id || 'Guest') : item.user);
+      return `<tr>
+        <td>${formatActivityTime(item.created_at)}</td>
+        <td>
+          <div class="listing-title">${esc(item.user)}</div>
+          <div class="listing-desc">${esc(userLabel)}</div>
+        </td>
+        <td>${esc(item.role || '—')}</td>
+        <td>${eventPillHtml(item.event_name)}</td>
+        <td>${esc(item.target_label || (item.target_type === 'survey' ? `Survey #${item.target_id}` : ''))}</td>
+        <td>${esc(item.page_path || '')}</td>
+        <td>${esc(item.source || '—')}</td>
+        <td>${esc(details)}</td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>Time</th><th>User</th><th>Role</th><th>Event</th><th>Study</th><th>Page</th><th>Source</th><th>Details</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+    <div class="activity-meta" style="padding:10px 16px;border-top:0.5px solid var(--line);">Showing ${fmtNum(rows.length)} of ${fmtNum(total)} events.</div>`;
+  }
+
+  function resetActivityFilters() {
+    document.getElementById('activitySurvey').value = '';
+    document.getElementById('activityEvent').value = '';
+    document.getElementById('activitySearch').value = '';
+    loadActivity(true);
+  }
+
+  function eventTooltip(name) {
+    const tips = {
+      page_view: 'User opens any page.',
+      page_exit: 'User leaves the current page.',
+      study_impression: 'Study is shown to the user.',
+      study_click: 'User clicks Take study on a study card.',
+      study_start: 'User clicks Start Study to begin questionnaire or interview.',
+      study_complete: 'User submits questionnaire or completes study task.',
+      sign_up: 'User creates an Insighta account.',
+      login: 'User signs in to the platform.',
+      profile_update: 'User updates profile information.',
+      study_created: 'Researcher creates a new study project.',
+      study_published: 'Researcher publishes a study so participants can see it.',
+      participant_approved: 'Researcher approves a participant submission.',
+      participant_rejected: 'Researcher rejects a participant submission.',
+      listing_view: 'User opens a public recruitment link.',
+      study_shared: 'Researcher copies or shares a recruitment link.',
+    };
+    const aliases = {
+      page_viewed: 'page_view',
+      page_hidden: 'page_exit',
+      study_card_viewed: 'study_impression',
+      survey_started: 'study_start',
+      survey_completed: 'study_complete',
+      signup_completed: 'sign_up',
+      login_success: 'login',
+      listing_viewed: 'listing_view',
+      dashboard_opened: 'page_view',
+    };
+    const key = aliases[name] || name;
+    return tips[key] || '';
+  }
+
+  function eventPillHtml(name) {
+    const label = eventNameLabel(name);
+    const tip = eventTooltip(name);
+    const cls = `event-pill ${eventPillClass(name)}${tip ? ' has-tip' : ''}`;
+    const tipAttr = tip ? ` data-tip="${escAttr(tip)}"` : '';
+    return `<span class="${cls}"${tipAttr}>${esc(label)}</span>`;
+  }
+
+  function eventNameLabel(name) {
+    const labels = {
+      page_view: 'Page View',
+      page_viewed: 'Page View',
+      page_exit: 'Page Exit',
+      page_hidden: 'Page Exit',
+      study_impression: 'Study Impression',
+      study_card_viewed: 'Study Impression',
+      study_click: 'Study Clicked',
+      study_start: 'Start Clicked',
+      survey_started: 'Start Clicked',
+      study_complete: 'Study Completed',
+      survey_completed: 'Study Completed',
+      sign_up: 'Sign Up',
+      signup_completed: 'Sign Up',
+      login: 'Login',
+      login_success: 'Login',
+      profile_update: 'Profile Update',
+      study_created: 'Study Created',
+      study_published: 'Study Published',
+      participant_approved: 'Participant Approved',
+      participant_rejected: 'Participant Rejected',
+      listing_view: 'Listing View',
+      listing_viewed: 'Listing View',
+      study_shared: 'Study Shared',
+      dashboard_opened: 'Page View',
+    };
+    return labels[name] || (name || 'Event').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  function eventPillClass(name) {
+    if (['listing_view','listing_viewed','study_impression','study_card_viewed','page_view','page_viewed','dashboard_opened'].includes(name)) return 'view';
+    if (['study_click'].includes(name)) return 'click';
+    if (['study_start','survey_started'].includes(name)) return 'start';
+    if (['study_complete','survey_completed'].includes(name)) return 'complete';
+    if (['participant_approved','participant_rejected'].includes(name)) return 'review';
+    return '';
+  }
+
+  function formatActivityTime(value) {
+    if (!value) return '<span class="rate-empty">—</span>';
+    return esc(new Date(value).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }));
+  }
+
+  function activityDetails(item) {
+    const meta = item.metadata || {};
+    const pieces = [];
+    if (meta.match_score !== undefined && meta.match_score !== null && meta.match_score !== '') {
+      pieces.push(`Match score: ${meta.match_score}`);
+    }
+    if (meta.position !== undefined && meta.position !== null && meta.position !== '') {
+      pieces.push(`Position: ${meta.position}`);
+    }
+    if (meta.reward_amount !== undefined && meta.reward_amount !== null && meta.reward_amount !== '') {
+      pieces.push(`Reward: $${meta.reward_amount}`);
+    }
+    if (meta.participant_email) pieces.push(meta.participant_email);
+    if (meta.button) pieces.push(`Button: ${meta.button}`);
+    if (!pieces.length && meta.referrer) pieces.push(`referrer: ${meta.referrer}`);
+    return pieces.slice(0, 4).join(', ') || '—';
+  }

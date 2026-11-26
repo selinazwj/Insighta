@@ -1,0 +1,68 @@
+  async function loadQualityResults() {
+    const wrap = document.getElementById('qualityList');
+    wrap.innerHTML = '<div class="quality-empty">Loading quality checks...</div>';
+    try {
+      const res = await fetch(
+        `/api/surveys/${SURVEY_ID}/quality-results?scope=${QUALITY_SCOPE}&_=${Date.now()}`,
+        { credentials: 'same-origin', cache: 'no-store' }
+      );
+      if (!res.ok) throw new Error('Failed to load quality checks');
+      const rows = await res.json();
+      qualityRows = Array.isArray(rows) ? rows : [];
+      renderQualityResultsTable();
+    } catch (e) {
+      wrap.innerHTML = `<div class="quality-empty">${escHtml(e.message || 'Failed to load quality checks.')}</div>`;
+    }
+  }
+
+  async function waitForQualityAiJob(jobId) {
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const res = await fetch(`/api/ai-jobs/${jobId}`, { credentials:'same-origin', cache:'no-store' });
+      const job = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(apiErrorMessage(job, 'Could not read AI review job'));
+      if (job.status === 'done') return job.result || {};
+      if (job.status === 'failed') throw new Error(job.error || 'AI review failed');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+    throw new Error('AI review is still queued. Refresh in a moment.');
+  }
+
+  async function queueQualityAiReview(url, body={}) {
+    const status = document.getElementById('qualityAiStatus');
+    status.className = 'quality-import-status success';
+    status.textContent = 'Queueing AI semantic review…';
+    const res = await fetch(url, {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+    });
+    const job = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(apiErrorMessage(job, 'Could not queue AI review'));
+    status.textContent = `AI review queued (job #${job.job_id}). You can leave this page safely.`;
+    await waitForQualityAiJob(job.job_id);
+    status.textContent = 'AI semantic review completed.';
+    await loadQualityResults();
+  }
+
+  async function reviewOneWithAi(checkId) {
+    try {
+      await queueQualityAiReview(`/api/quality-checks/${checkId}/ai-review`);
+    } catch (error) {
+      const status = document.getElementById('qualityAiStatus');
+      status.className = 'quality-import-status error';
+      status.textContent = error.message || 'AI review failed.';
+    }
+  }
+
+  async function reviewFlaggedWithAi() {
+    const btn = document.getElementById('qualityAiFlaggedBtn');
+    if (btn) btn.disabled = true;
+    try {
+      await queueQualityAiReview(`/api/surveys/${SURVEY_ID}/quality/ai-review`, { scope:'flagged' });
+    } catch (error) {
+      const status = document.getElementById('qualityAiStatus');
+      status.className = 'quality-import-status error';
+      status.textContent = error.message || 'AI review failed.';
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }

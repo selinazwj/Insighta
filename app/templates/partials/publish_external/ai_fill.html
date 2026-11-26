@@ -1,0 +1,16 @@
+  <!-- AI FILL -->
+  <div class="ai-card">
+    <div class="ai-card-head">
+      <div class="ai-badge">AI</div>
+      <div>
+        <div class="ai-card-title">Fill with AI</div>
+        <div class="ai-card-sub">Describe your study in one sentence and we'll fill the form.</div>
+      </div>
+    </div>
+    <div class="ai-row">
+      <input class="ai-input" type="text" id="aiPrompt" placeholder="e.g. Study sleep patterns in college students, need 50 responses" autocomplete="off">
+      <button class="ai-btn" type="button" id="aiBtn" onclick="fillWithAI()">Generate</button>
+    </div>
+    <div class="ai-msg error" id="aiError"></div>
+    <div class="ai-msg success" id="aiSuccess">Done. Review the fields and adjust before publishing.</div>
+  </div>

@@ -1,0 +1,26 @@
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+  function spotsLabel(value) {
+    const text = String(value || '').trim();
+    const match = text.match(/^(\d+)\s*\/\s*(\d+)$/);
+    if (match) return `${match[1]} of ${match[2]} spots filled`;
+    return text || 'Open spots';
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  function syncViewToggle() {
+    document.getElementById('viewCardsBtn')?.classList.toggle('active', viewMode === 'cards');
+    document.getElementById('viewListBtn')?.classList.toggle('active', viewMode === 'list');
+  }
+
+  function switchView(mode) {
+    viewMode = mode;
+    localStorage.setItem('participantViewMode', mode);
+    syncViewToggle();
+    renderHome();
+  }

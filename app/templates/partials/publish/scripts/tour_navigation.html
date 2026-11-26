@@ -1,0 +1,117 @@
+  function showTourStep() {
+    const step = tourSteps[tourIndex];
+    const target = findTourTarget(step.target);
+    const card = document.getElementById('tourCard');
+
+    if (currentTourTarget) currentTourTarget.classList.remove('tour-highlight');
+    if (currentTourLift) currentTourLift.classList.remove('tour-lift');
+    currentTourTarget = target;
+    currentTourLift = target ? target.closest('.topbar, .sidebar') : null;
+    if (target) {
+      target.classList.add('tour-highlight');
+      if (currentTourLift) currentTourLift.classList.add('tour-lift');
+      target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+    }
+
+    document.getElementById('tourStep').textContent = `Step ${tourIndex + 1} of ${tourSteps.length}`;
+    document.getElementById('tourTitle').textContent = step.title;
+    document.getElementById('tourBody').textContent = step.body;
+    document.getElementById('tourPrev').disabled = tourIndex === 0;
+    document.getElementById('tourNext').textContent = tourIndex === tourSteps.length - 1 ? 'Done' : 'Next';
+    // ive added this — hide skip on the last step since Next already says Done
+    document.getElementById('tourSkip').style.visibility = tourIndex === tourSteps.length - 1 ? 'hidden' : 'visible';
+
+    card.classList.add('open');
+    window.setTimeout(() => {
+      positionTourSpotlight(target);
+      positionTourCard(target);
+    }, 180);
+  }
+
+  function startResearcherTour(replay = false) {
+    closeNewListing();
+    if (replay) {
+      try {
+        sessionStorage.removeItem(TOUR_KEY);
+      } catch {}
+    }
+    tourIndex = 0;
+    document.body.classList.add('tour-active');
+    document.getElementById('tourBackdrop').classList.add('open');
+    showTourStep();
+  }
+
+  function endResearcherTour() {
+    document.body.classList.remove('tour-active');
+    document.getElementById('tourBackdrop').classList.remove('open');
+    document.getElementById('tourSpotlight').classList.remove('open');
+    document.getElementById('tourCard').classList.remove('open');
+    if (currentTourTarget) currentTourTarget.classList.remove('tour-highlight');
+    if (currentTourLift) currentTourLift.classList.remove('tour-lift');
+    currentTourTarget = null;
+    currentTourLift = null;
+    markResearcherTourDone();
+  }
+
+  function nextTourStep() {
+    if (tourIndex >= tourSteps.length - 1) {
+      endResearcherTour();
+      return;
+    }
+    tourIndex += 1;
+    showTourStep();
+  }
+
+  function prevTourStep() {
+    if (tourIndex === 0) return;
+    tourIndex -= 1;
+    showTourStep();
+  }
+
+  function shouldAutoStartResearcherTour() {
+    try {
+      return !sessionStorage.getItem(TOUR_KEY);
+    } catch {
+      return true;
+    }
+  }
+
+  function markResearcherTourDone() {
+    try {
+      sessionStorage.setItem(TOUR_KEY, 'done');
+    } catch {}
+  }
+
+  function scheduleResearcherTour() {
+    try {
+      if (sessionStorage.getItem('openNewListing') === '1') {
+        sessionStorage.removeItem('openNewListing');
+        openNewListing();
+        return;
+      }
+    } catch {}
+    if (shouldAutoStartResearcherTour()) {
+      window.setTimeout(() => startResearcherTour(), 350);
+    }
+  }
+
+  window.addEventListener('resize', () => {
+    if (document.body.classList.contains('tour-active')) {
+      positionTourSpotlight(currentTourTarget);
+      positionTourCard(currentTourTarget);
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleResearcherTour);
+  } else {
+    scheduleResearcherTour();
+  }
+
+  window.startResearcherTour = startResearcherTour;
+  window.nextTourStep = nextTourStep;
+  window.prevTourStep = prevTourStep;
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !document.body.classList.contains('tour-active')) closeNewListing();
+  });

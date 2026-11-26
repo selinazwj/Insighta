@@ -1,0 +1,79 @@
+  // ── DISCOVERY ──
+  async function runDiscovery() {
+    const btn = document.getElementById('discBtn');
+    const results = document.getElementById('discoveryResults');
+    const criteria = {
+      population:   document.getElementById('dpopulation').value.trim(),
+      location:     document.getElementById('dlocation').value.trim() || null,
+      in_person:    document.getElementById('dparticipation').value === 'true',
+      age_min:      numOrNull('dageMin'),
+      age_max:      numOrNull('dageMax'),
+      sample_size:  numOrNull('dsampleSize'),
+      study_topic:  document.getElementById('dtopic').value.trim() || null,
+      notes:        document.getElementById('dnotes').value.trim() || null,
+    };
+    if (!criteria.population) { alert('Population is required'); return; }
+    btn.disabled = true; btn.textContent = 'Searching...';
+    results.innerHTML = `<div class="discovery-results"><div class="dr-summary">Searching for compliant channels...</div></div>`;
+    try {
+      const res = await fetch('/admin/discovery/find', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, criteria })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Discovery failed');
+      renderDiscovery(data);
+    } catch(err) {
+      results.innerHTML = `<div class="discovery-results"><div class="warn-box">${esc(err.message)}</div></div>`;
+    } finally { btn.disabled = false; btn.textContent = 'Find channels'; }
+  }
+
+  function numOrNull(id) {
+    const v = document.getElementById(id).value;
+    if (!v) return null;
+    const n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+
+  function renderDiscovery(data) {
+    const channels = data.channels || [];
+    const warnings = (data.warnings || []).filter(Boolean);
+    const results = document.getElementById('discoveryResults');
+
+    if (!channels.length) {
+      results.innerHTML = `<div class="discovery-results"><div class="dr-head"><div class="dr-title">No channels found</div><div class="dr-source">${esc(data.source||'unknown')}</div></div><div class="dr-summary">${esc(data.summary||'Try broadening the criteria.')}</div></div>`;
+      return;
+    }
+
+    const warnHtml = warnings.map(w => `<div class="warn-box">${esc(w)}</div>`).join('');
+    const rows = channels.map(ch => {
+      const urls = [...new Set([ch.url,ch.contact_url].filter(Boolean))];
+      const urlHtml = urls.length ? urls.map(u=>`<a class="channel-link" href="${esc(u)}" target="_blank">${esc(u)}</a>`).join('') : '—';
+      const localFit = ch.local_fit || ch.population_fit || '';
+      const ratingMatch = String(localFit).match(/([1-5])\/5/);
+      const ratingHtml = ratingMatch ? `<span class="fit-rating">Fit ${ratingMatch[1]}/5</span>` : '';
+      const fitText = String(localFit).replace(/[1-5]\/5/g,'').trim();
+      const notes = [ch.compliance_notes,(ch.evidence||[]).slice(0,2).join(' | ')].filter(Boolean).join(' · ');
+      return `<tr>
+        <td class="name">${esc(ch.name)}</td>
+        <td class="type">${esc(ch.channel_type)}</td>
+        <td>${esc(ch.scale_activity||ch.estimated_reach||'Unknown')}</td>
+        <td>${ratingHtml}${esc(fitText)}</td>
+        <td>${esc(ch.compliant_contact||ch.access_method||'—')}</td>
+        <td>${urlHtml}</td>
+        <td>${esc(notes)}</td>
+      </tr>`;
+    }).join('');
+
+    results.innerHTML = `<div class="discovery-results">
+      <div class="dr-head"><div class="dr-title">${channels.length} channels found</div><div class="dr-source">${esc(data.source||'unknown')}</div></div>
+      <div class="dr-summary">${esc(data.summary||data.compliance_rule||'')}</div>
+      ${warnHtml}
+      <div class="table-wrap">
+        <table class="disc-table">
+          <thead><tr><th>Channel</th><th>Type</th><th>Scale / Activity</th><th>Fit</th><th>Contact method</th><th>URL</th><th>Notes</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }

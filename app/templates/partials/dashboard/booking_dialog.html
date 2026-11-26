@@ -1,0 +1,12 @@
+<div class="slot-modal-bg" id="slotModalBg" onclick="if(event.target===this)closeSlotModal()">
+  <div class="slot-modal">
+    <h3>Choose a time</h3>
+    <p id="slotModalSub">Pick the available session times you want to book.</p>
+    <div class="slot-requirement" id="slotRequirement"></div>
+    <div class="slot-options" id="slotOptions"></div>
+    <div class="slot-modal-actions">
+      <button type="button" class="slot-cancel" onclick="closeSlotModal()">Cancel</button>
+      <button type="button" class="slot-confirm" onclick="confirmSlotBooking()">Continue</button>
+    </div>
+  </div>
+</div>

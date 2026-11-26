@@ -1,0 +1,52 @@
+  let role = 'researcher';
+  let homepageSwitchTimer;
+
+  const homepageCopy = {
+    researcher: {
+      kicker: 'Community research platform',
+      title: 'Research that<br><strong>moves people.</strong><br>Done by people.',
+      sub: 'Insighta connects researchers who need real insights with participants who deserve real credit — so the studies that matter actually get done.',
+      primary: 'Start as researcher',
+      walkthrough: 'A closer look.<br><strong>The actual workflow.</strong>',
+    },
+    participant: {
+      kicker: 'Research participation platform',
+      title: 'Find studies<br><strong>that fit you.</strong><br>Choose what <span class="keep-together">to join.</span>',
+      sub: 'Browse research studies, review eligibility, time, format, and reward details, then decide which opportunities match your profile and schedule.',
+      primary: 'Join as participant',
+      walkthrough: 'Before you join.<br><strong>How studies are prepared.</strong>',
+    }
+  };
+
+  function setHomepageMode(mode, animate = true) {
+    window.clearTimeout(homepageSwitchTimer);
+    animate = animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    role = mode === 'participant' ? 'participant' : 'researcher';
+    const isParticipant = role === 'participant';
+    const copy = homepageCopy[role];
+    const wipe = document.getElementById('themeWipe');
+
+    if (animate) {
+      document.body.classList.add('is-switching');
+      wipe.classList.remove('run');
+      void wipe.offsetWidth;
+      wipe.classList.add('run');
+    }
+
+    homepageSwitchTimer = window.setTimeout(() => {
+      document.body.classList.toggle('participant-mode', isParticipant);
+      document.getElementById('tab-researcher').classList.toggle('active', !isParticipant);
+      document.getElementById('tab-participant').classList.toggle('active', isParticipant);
+      document.getElementById('tab-researcher').setAttribute('aria-pressed', String(!isParticipant));
+      document.getElementById('tab-participant').setAttribute('aria-pressed', String(isParticipant));
+      document.getElementById('heroKicker').textContent = copy.kicker;
+      document.getElementById('heroTitle').innerHTML = copy.title;
+      document.getElementById('heroSub').textContent = copy.sub;
+      document.getElementById('heroPrimary').textContent = copy.primary;
+      document.getElementById('walkthroughHeading').innerHTML = copy.walkthrough;
+      document.querySelectorAll('.mode-login-link').forEach(link => { link.href = `/login?role=${role}`; });
+      document.querySelectorAll('.mode-register-link').forEach(link => { link.href = `/register?role=${role}`; });
+      pickRole(role);
+      document.body.classList.remove('is-switching');
+    }, animate ? 180 : 0);
+  }

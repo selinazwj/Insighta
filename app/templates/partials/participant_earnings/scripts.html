@@ -1,0 +1,13 @@
+<script>
+  async function doWithdraw() {
+    const btn = document.getElementById('withdrawBtn');
+    btn.disabled = true; btn.textContent = 'Processing…';
+    try {
+      const res = await fetch('/api/withdraw', { method:'POST', credentials:'same-origin' });
+      const d   = await res.json();
+      if (!res.ok) { alert(d.detail || 'Withdrawal failed'); btn.disabled = false; btn.textContent = 'Withdraw earnings'; return; }
+      alert('✓ $' + d.amount.toFixed(2) + ' transferred to your Stripe account. Bank payout is handled separately by Stripe.');
+      window.location.reload();
+    } catch { alert('Network error'); btn.disabled = false; btn.textContent = 'Withdraw earnings'; }
+  }
+</script>

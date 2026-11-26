@@ -1,0 +1,27 @@
+  function initSwipe() {
+    const card = document.getElementById('frontCard');
+    if (!card) return;
+    card.addEventListener('touchstart', e => {
+      touchX0 = e.touches[0].clientX;
+      touchY0 = e.touches[0].clientY;
+      dragging = false;
+    }, { passive: true });
+    card.addEventListener('touchmove', e => {
+      const dx = e.touches[0].clientX - touchX0;
+      const dy = e.touches[0].clientY - touchY0;
+      if (!dragging && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) dragging = true;
+      if (dragging) {
+        card.style.transition = 'none';
+        card.style.transform = `translateX(${dx}px) rotate(${dx * 0.05}deg)`;
+      }
+    }, { passive: true });
+    card.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchX0;
+      card.style.transition = '';
+      if (dragging && Math.abs(dx) > 80) {
+        advanceFromCurrent(dx < 0 ? 'left' : 'right');
+      } else {
+        card.style.transform = '';
+      }
+    });
+  }

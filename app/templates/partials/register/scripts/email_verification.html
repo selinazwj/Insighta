@@ -1,0 +1,65 @@
+  // ── Email existence check ─────────────────────────────────
+  async function checkEmailExists(email) {
+    const hint = document.getElementById('emailExistsHint');
+    const emailInput = document.getElementById('email');
+    if (!email || !email.includes('@')) { hint.style.display = 'none'; return; }
+    try {
+      const res = await fetch('/auth/check-email?email=' + encodeURIComponent(email.trim()));
+      const data = await res.json();
+      if (data.exists) {
+        hint.style.display = 'block';
+        emailInput.style.borderColor = '#fc8181';
+        emailInput.style.boxShadow = '0 0 0 3px rgba(252,129,129,0.15)';
+      } else {
+        hint.style.display = 'none';
+        emailInput.style.borderColor = '';
+        emailInput.style.boxShadow = '';
+      }
+    } catch { hint.style.display = 'none'; }
+  }
+
+  // ── Send verification code ────────────────────────────────
+  async function sendCode() {
+    const email = document.getElementById('email').value.trim();
+    const btn = document.getElementById('btnSendCode');
+    const hint = document.getElementById('codeHint');
+    if (!email) { hint.textContent = 'Please enter your email first.'; hint.className = 'code-hint error'; return; }
+    btn.disabled = true; btn.textContent = 'Sending...';
+    hint.textContent = ''; hint.className = 'code-hint';
+    try {
+      const fd = new FormData();
+      fd.append('email', email); fd.append('purpose', 'register');
+      const res = await fetch('/auth/send-code', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.ok) {
+        if (data.dev_code) {
+          document.getElementById('verificationCode').value = data.dev_code;
+        }
+        hint.textContent = data.message; hint.className = 'code-hint success';
+        let secs = 60;
+        const interval = setInterval(() => {
+          secs--;
+          btn.textContent = `Resend (${secs}s)`;
+          if (secs <= 0) { clearInterval(interval); btn.disabled = false; btn.textContent = 'Resend Code'; }
+        }, 1000);
+      } else {
+        hint.textContent = data.message; hint.className = 'code-hint error';
+        btn.disabled = false; btn.textContent = 'Send Code';
+      }
+    } catch {
+      hint.textContent = 'Network error. Please try again.'; hint.className = 'code-hint error';
+      btn.disabled = false; btn.textContent = 'Send Code';
+    }
+  }
+
+  // ── Auto verify feedback ──────────────────────────────────
+  function autoVerifyCode(val) {
+    const hint = document.getElementById('codeHint');
+    if (val.length === 6) {
+      hint.textContent = 'Code entered. Click Continue to proceed.';
+      hint.className = 'code-hint success';
+    } else if (val.length > 0) {
+      hint.textContent = '';
+      hint.className = 'code-hint';
+    }
+  }

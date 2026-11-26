@@ -1,0 +1,25 @@
+    <!-- SURVEY INFO -->
+    <div class="info-card">
+      <div class="info-card-head">
+        <div>
+          <div class="info-card-title">Survey details</div>
+          <div class="info-card-sub">Auto-saved as you type</div>
+        </div>
+        <span class="save-status" id="infoSaveStatus"></span>
+      </div>
+      <div class="info-grid">
+        <div class="info-field full">
+          <label>Title</label>
+          <input type="text" id="infoTitle"
+            value="{{ survey.title if survey.title != 'Untitled Survey' else '' }}"
+            placeholder="e.g. Student Sleep Habits Study"
+            oninput="scheduleInfoSave()">
+        </div>
+        <div class="info-field full">
+          <label>Description</label>
+          <textarea id="infoDescription"
+            placeholder="Brief description of your research..."
+            oninput="scheduleInfoSave()">{{ survey.description or '' }}</textarea>
+        </div>
+      </div>
+    </div>

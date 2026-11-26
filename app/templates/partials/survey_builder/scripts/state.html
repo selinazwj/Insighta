@@ -1,0 +1,9 @@
+  const SURVEY_ID = {{ survey_id }};
+  let questions = [];
+  const saveTimers = new Map();
+  const questionSaves = new Map();
+  const failedQuestionSaves = new Set();
+  let activeQuestionSaves = 0;
+  let infoSaveChain = Promise.resolve();
+  let publishPending = false;
+  let infoTimer = null;

@@ -1,0 +1,56 @@
+  // ── ADD QUESTION ──
+  async function addQuestion(preset = null) {
+    const q = preset || { question_text:'', question_type:'single', options:['Option 1','Option 2'], is_required:true };
+    const res = await fetch(`/surveys/${SURVEY_ID}/questions`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      credentials:'same-origin', body:JSON.stringify(q)
+    });
+    if (!res.ok) return;
+    const saved = await res.json();
+    questions.push(saved);
+    renderAll();
+    setTimeout(() => document.getElementById(`card-${saved.id}`)?.scrollIntoView({behavior:'smooth',block:'center'}), 80);
+  }
+
+  async function deleteQ(id) {
+    if (!confirm('Delete this question?')) return;
+    await fetch(`/surveys/${SURVEY_ID}/questions/${id}`, { method:'DELETE', credentials:'same-origin' });
+    questions = questions.filter(q => q.id !== id);
+    renderAll();
+  }
+
+  function updateText(id, v) { const q = questions.find(q=>q.id===id); if(q) q.question_text=v; scheduleSave(id); }
+  function updateReq(id, v)  { const q = questions.find(q=>q.id===id); if(q) q.is_required=v;   scheduleSave(id); }
+
+  async function updateType(id, t) {
+    const q = questions.find(q=>q.id===id);
+    if (!q) return;
+    q.question_type = t;
+    if (['single','multiple','dropdown'].includes(t) && !q.options?.length) q.options = ['Option 1','Option 2'];
+    await saveQ(id);
+    renderAll();
+  }
+
+  function updateOpt(id, i, v) { const q=questions.find(q=>q.id===id); if(q&&q.options) { q.options[i]=v; scheduleSave(id); } }
+  function addOpt(id)    { const q=questions.find(q=>q.id===id); if(q) { q.options=[...(q.options||[]),`Option ${(q.options||[]).length+1}`]; saveQ(id).then(renderAll); } }
+  function removeOpt(id,i){ const q=questions.find(q=>q.id===id); if(q&&q.options&&q.options.length>1) { q.options.splice(i,1); saveQ(id).then(renderAll); } }
+
+  async function moveUp(id) {
+    const i = questions.findIndex(q=>q.id===id);
+    if(i<=0) return;
+    [questions[i-1],questions[i]]=[questions[i],questions[i-1]];
+    await reorderAll(); renderAll();
+  }
+  async function moveDown(id) {
+    const i = questions.findIndex(q=>q.id===id);
+    if(i>=questions.length-1) return;
+    [questions[i],questions[i+1]]=[questions[i+1],questions[i]];
+    await reorderAll(); renderAll();
+  }
+  async function reorderAll() {
+    await fetch(`/surveys/${SURVEY_ID}/questions/reorder`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      credentials:'same-origin',
+      body: JSON.stringify(questions.map((q,i)=>({id:q.id,order_index:i+1})))
+    });
+  }

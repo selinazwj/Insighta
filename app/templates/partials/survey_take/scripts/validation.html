@@ -1,0 +1,40 @@
+  // ── Progress bar ──────────────────────────────────────────
+  function updateProgress() {
+    const required = questions.filter(q => q.is_required);
+    const answered = required.filter(q => {
+      const a = answers[q.id];
+      return a !== undefined && a !== '' &&
+        !(Array.isArray(a) && a.length === 0);
+    });
+    const pct = required.length > 0
+      ? Math.round((answered.length / required.length) * 100) : 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = pct + '%';
+
+    const remaining = required.length - answered.length;
+    document.getElementById('submitHint').textContent = remaining > 0
+      ? `${remaining} required question${remaining > 1 ? 's' : ''} remaining`
+      : 'Ready to submit!';
+  }
+
+  // ── Validate before submit ────────────────────────────────
+  function validate() {
+    let valid = true;
+    questions.forEach(q => {
+      if (!q.is_required) return;
+      const a = answers[q.id];
+      const empty = a === undefined || a === '' ||
+        (Array.isArray(a) && a.length === 0);
+      if (empty) {
+        const block = document.getElementById(`qblock-${q.id}`);
+        if (block) block.classList.add('has-error');
+        valid = false;
+      }
+    });
+    if (!valid) {
+      // Scroll to first error
+      const first = document.querySelector('.q-block.has-error');
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return valid;
+  }

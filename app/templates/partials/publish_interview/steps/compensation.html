@@ -1,0 +1,65 @@
+    <!-- COMPENSATION & TIMELINE -->
+    <div class="form-section" data-wizard-step="4" hidden>
+      <div class="section-header">
+        <div class="section-icon">05</div>
+        <div><h2>Compensation & Timeline</h2><p>How you'll reward participants and when you need them</p></div>
+      </div>
+
+      {% include "_niche_request_options.html" %}
+
+      <div class="form-group">
+        <label>Incentive Type</label>
+        <div class="incentive-pills">
+          <div class="incentive-pill selected" data-value="cash" onclick="selectIncentive(this)">Cash</div>
+          <div class="incentive-pill" data-value="gift_card" onclick="selectIncentive(this)">Gift card</div>
+          <div class="incentive-pill" data-value="raffle" onclick="selectIncentive(this)">Raffle</div>
+          <div class="incentive-pill" data-value="volunteer" onclick="selectIncentive(this)">Volunteer</div>
+        </div>
+        <input type="hidden" name="incentive_type" id="incentiveInput" value="cash">
+      </div>
+
+      <div class="raffle-box" id="raffleBox">
+        <strong>Raffle reward</strong>
+        Choose the raffle reward type. Insighta will run the draw after the study closes and notify participants of the result.
+        <div class="raffle-options">
+          <label><input type="radio" name="raffle_prize_type" value="gift_card" checked> Gift card</label>
+          <label><input type="radio" name="raffle_prize_type" value="cash"> Cash</label>
+        </div>
+      </div>
+
+      <div class="raffle-box" id="volunteerBox">
+        <strong>Volunteer recruitment fee</strong>
+        No per-person reward. Recruitment fees still apply at the study type’s per-person minimum. See <a href="/pricing">Pricing</a>.
+      </div>
+
+      <div id="budgetSection">
+        <div id="paidBudgetFields">
+          {% set listing_reward_id = 'perPersonInput' %}{% set listing_target_id = 'listingTarget' %}{% set listing_study_type = 'interview' if is_online_interview else 'in_person' %}
+          {% include "_listing_budget_planner.html" %}
+          <div class="form-group">
+            <label for="perPersonInput">Reward per participant (USD)</label>
+            <input type="number" id="perPersonInput" name="per_person_gross" placeholder="e.g. 25.00" step="0.01" min="0">
+            <div class="label-desc">Full reward for all required sessions.</div>
+          </div>
+          <input type="hidden" id="totalBudgetInput">
+        </div>
+        {% set quote_ids = {'box':'commissionBox','reward':'dispPerPerson','fee':'dispFee','urgency':'dispTimelineBoost','total':'dispTotal'} %}
+        {% set listing_initial_fee = 'Remote interview platform fee: 25% · $10/person minimum' if is_online_interview else 'In-person platform fee: 25% · $15/person minimum' %}
+        {% include "_listing_quote.html" %}
+      </div>
+
+      <div class="form-group" style="margin-top: 24px;">
+        <label>Recruitment Timeline</label>
+        <div class="urgency-pills">
+          <div class="urgency-pill selected" data-value="flexible" onclick="selectUrgency(this)">No deadline</div>
+          <div class="urgency-pill" data-value="within_1_month" onclick="selectUrgency(this)">Within 1 month +5%</div>
+          <div class="urgency-pill urgent" data-value="within_1_week" onclick="selectUrgency(this)">Within 1 week +10%</div>
+        </div>
+        <input type="hidden" name="urgency_level" id="urgencyInput" value="flexible">
+      </div>
+
+      <div class="form-group" style="margin-top: 8px;">
+        <label>Completion deadline (UTC) <span style="font-weight:300; color: var(--ink-muted);">(Optional)</span></label>
+        <input type="date" name="deadline_date" style="max-width: 240px; margin-top: 8px;">
+      </div>
+    </div>

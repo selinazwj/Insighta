@@ -1,0 +1,29 @@
+  // ── INFO SAVE ──
+  async function saveInfo() {
+    clearTimeout(infoTimer);
+    const title = document.getElementById('infoTitle').value.trim();
+    if (!title) return false;
+    const body = JSON.stringify({ title, description: document.getElementById('infoDescription').value });
+    setInfoStatus('saving');
+    infoSaveChain = infoSaveChain.then(async () => {
+      try {
+        const res = await fetch(`/surveys/${SURVEY_ID}/update-info`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body
+        });
+        if (!res.ok) throw new Error('Save failed');
+        setInfoStatus('saved');
+        return true;
+      } catch {
+        setInfoStatus('error');
+        return false;
+      }
+    });
+    return infoSaveChain;
+  }
+  function scheduleInfoSave() { clearTimeout(infoTimer); setInfoStatus('saving'); infoTimer = setTimeout(saveInfo, 800); }
+  function setInfoStatus(s) {
+    const el = document.getElementById('infoSaveStatus');
+    if (!el) return;
+    el.className = 'save-status ' + s;
+    el.textContent = s==='saving'?'Saving…':s==='saved'?'Saved':s==='error'?'Could not save. Please retry.':'';
+  }

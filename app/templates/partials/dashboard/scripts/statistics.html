@@ -1,0 +1,37 @@
+  function updateStats() {
+    const tz = new Date().getTimezoneOffset();
+    fetch(`/api/dashboard/stats?timezone_offset=${tz}`)
+      .then(r => r.json())
+      .then(d => {
+        const e = parseFloat(d.total_earned).toFixed(2);
+        document.getElementById('earningsPill').textContent = '$' + e;
+        document.getElementById('impactMsg').textContent   = d.completed_today + ' studies completed today';
+        document.getElementById('streakNum').textContent   = d.completed_today;
+        const nb = surveys.filter(s => !s.is_completed).length;
+        document.getElementById('newBadge').textContent = nb;
+      }).catch(()=>{});
+  }
+
+  function burst(e) {
+    if (!e) return;
+    const el = e.currentTarget || e.target;
+    const r  = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const cols = ['var(--teal)','var(--lime2)','var(--yale)','var(--em)'];
+    for (let i = 0; i < 10; i++) {
+      const b = document.createElement('span');
+      b.className = 'burst';
+      const angle = (Math.PI * 2 * i) / 10;
+      const dist  = 20 + Math.random() * 14;
+      b.style.cssText = `left:${cx}px;top:${cy}px;background:${cols[i%4]};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;`;
+      document.body.appendChild(b);
+      setTimeout(() => b.remove(), 450);
+    }
+  }
+
+  // date
+  const d = new Date();
+  document.getElementById('todayDate').textContent =
+    d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+
+  renderList();

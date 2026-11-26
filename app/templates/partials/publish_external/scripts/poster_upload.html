@@ -1,0 +1,36 @@
+  // ── FILE UPLOAD ──
+  const posterInput = document.getElementById('posterInput');
+  const fileZone = document.getElementById('fileZone');
+  function updatePosterName() {
+    const n = document.getElementById('fzName');
+    const error = document.getElementById('posterError');
+    const file = posterInput.files[0];
+    const valid = !file || ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+    error.hidden = valid;
+    error.textContent = valid ? '' : 'Please select a JPG, PNG, or WebP image.';
+    if (!valid) posterInput.value = '';
+    n.textContent = valid && file ? file.name : '';
+    n.style.display = valid && file ? 'block' : 'none';
+  }
+  posterInput.addEventListener('change', updatePosterName);
+  ['dragenter', 'dragover'].forEach(name => fileZone.addEventListener(name, e => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    fileZone.classList.add('drag-over');
+  }));
+  fileZone.addEventListener('dragleave', e => {
+    if (!fileZone.contains(e.relatedTarget)) fileZone.classList.remove('drag-over');
+  });
+  fileZone.addEventListener('drop', e => {
+    e.preventDefault();
+    fileZone.classList.remove('drag-over');
+    if (!e.dataTransfer?.files.length) return;
+    const transfer = new DataTransfer();
+    transfer.items.add(e.dataTransfer.files[0]);
+    posterInput.files = transfer.files;
+    updatePosterName();
+  });
+  // Prevent dropping elsewhere from navigating away and discarding the form.
+  ['dragover', 'drop'].forEach(name => window.addEventListener(name, e => {
+    if ([...(e.dataTransfer?.types || [])].includes('Files')) e.preventDefault();
+  }));

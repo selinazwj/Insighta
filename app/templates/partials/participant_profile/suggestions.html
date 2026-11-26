@@ -1,0 +1,20 @@
+<datalist id="state-options">
+  {% for option in ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','Washington DC','West Virginia','Wisconsin','Wyoming','Other'] %}
+    <option value="{{ option }}"></option>
+  {% endfor %}
+</datalist>
+<datalist id="city-options">
+  {% for option in ['New York','Los Angeles','San Francisco','San Jose','Seattle','Boston','Chicago','Austin','Dallas','Houston','Atlanta','Washington DC','Philadelphia','Phoenix','San Diego','Denver','Miami','Portland','Other'] %}
+    <option value="{{ option }}"></option>
+  {% endfor %}
+</datalist>
+<datalist id="mental-diagnosis-options">
+  {% for option in ['None','ADHD','Anxiety disorder','Depression','Bipolar disorder','PTSD','OCD','Autism spectrum disorder','Eating disorder','Panic disorder','Social anxiety disorder','Specific phobia','Borderline personality disorder','Schizophrenia spectrum disorder','Substance use disorder','Sleep disorder','Prefer not to say','Other'] %}
+    <option value="{{ option }}"></option>
+  {% endfor %}
+</datalist>
+<datalist id="physical-diagnosis-options">
+  {% for option in ['None','Asthma','Diabetes type 1','Diabetes type 2','Hypertension','Heart disease','Chronic pain','Migraine','Arthritis','Autoimmune condition','Thyroid condition','PCOS','Endometriosis','IBS','Crohn disease / ulcerative colitis','Allergies','Eczema','Epilepsy','Cancer history','Long COVID','Mobility impairment','Hearing impairment','Vision impairment','Prefer not to say','Other'] %}
+    <option value="{{ option }}"></option>
+  {% endfor %}
+</datalist>

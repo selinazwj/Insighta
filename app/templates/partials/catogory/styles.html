@@ -1,0 +1,16 @@
+<style>
+    :root{--green:#3b7c4f;--green-d:#2a5c39;--green-l:#e8f2eb;--ink:#1a1a18;--ink2:#4a4a44;--ink3:#8a8a82;--bg:#fafaf8;--card:#fff;--line:#eeece6;--line2:#e0ddd6;--serif:'DM Serif Display',Georgia,serif;--sans:'DM Sans',system-ui,sans-serif;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+    .nav{height:56px;padding:0 40px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+    .brand{font-size:15px;font-weight:700;color:var(--ink);text-decoration:none;letter-spacing:-.2px}.brand span{color:var(--green);}
+    .back{font-size:13px;font-weight:600;color:var(--ink3);text-decoration:none;border:.5px solid var(--line2);border-radius:8px;padding:7px 12px}.back:hover{background:#f5f3ee;color:var(--ink2);}
+    .wrap{max-width:920px;margin:0 auto;padding:42px 24px 80px;}
+    .head{margin-bottom:28px}.eyebrow{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px}.head h1{font-family:var(--serif);font-size:38px;font-weight:400;letter-spacing:-.8px}.head p{margin-top:8px;font-size:14px;color:var(--ink3);}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;}
+    .card{background:var(--card);border:.5px solid var(--line);border-radius:10px;padding:18px 20px;text-decoration:none;color:inherit;transition:border-color .15s,box-shadow .15s,transform .15s;}
+    .card:hover{border-color:#c2deca;box-shadow:0 8px 24px rgba(59,124,79,.08);transform:translateY(-1px);}
+    .title{font-size:15px;font-weight:700;color:var(--ink);line-height:1.35;margin-bottom:8px}.meta{font-size:12px;color:var(--ink3);font-weight:500}.arrow{margin-top:16px;font-size:12px;font-weight:700;color:var(--green);}
+    .empty{background:#fff;border:.5px dashed var(--line2);border-radius:12px;padding:48px 24px;text-align:center;color:var(--ink3);font-size:14px;}
+    @media(max-width:640px){.nav{padding:0 16px}.wrap{padding:32px 16px 64px}.head h1{font-size:30px}}
+  </style>

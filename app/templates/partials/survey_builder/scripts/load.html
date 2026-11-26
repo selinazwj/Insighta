@@ -1,0 +1,7 @@
+  // ── LOAD ──
+  async function loadQuestions() {
+    const res = await fetch(`/surveys/${SURVEY_ID}/questions`, { credentials:'same-origin' });
+    if (!res.ok) return;
+    questions = await res.json();
+    renderAll();
+  }

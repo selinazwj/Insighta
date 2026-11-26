@@ -1,0 +1,15 @@
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--teal2);"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div class="sh-title">Location</div>
+        </div>
+        <div class="section-body">
+          <div class="form-grid two">
+            <label class="form-group"><span class="form-label">State you live in now</span><input class="form-input" list="state-options" name="current_province" value="{{ current_user.current_province or current_user.state or '' }}" placeholder="Search U.S. state"></label>
+            <label class="form-group"><span class="form-label">City now</span><input class="form-input" list="city-options" name="current_city" value="{{ current_user.current_city or '' }}" placeholder="Search city"></label>
+            <label class="form-group"><span class="form-label">State you are from</span><input class="form-input" list="state-options" name="origin_province" value="{{ current_user.origin_province or '' }}" placeholder="Search U.S. state"></label>
+            <label class="form-group"><span class="form-label">City from</span><input class="form-input" list="city-options" name="origin_city" value="{{ current_user.origin_city or '' }}" placeholder="Search city"></label>
+          </div>
+          <div class="helper" style="margin-top:10px;">Use the second row only if where you are from is different from where you live now.</div>
+        </div>
+      </section>

@@ -1,0 +1,31 @@
+    <!-- 07 QUALITY AUTO FILTER -->
+    <div class="form-section" data-wizard-step="3" hidden>
+      <div class="section-head">
+        <div class="section-num">06</div>
+        <div>
+          <div class="section-title">Quality auto filter</div>
+          <div class="section-sub">Auto-approve strong responses and flag weaker ones for review</div>
+        </div>
+      </div>
+      <p class="auto-filter-intro">When quality checks run, scores at or above your threshold are approved; below-threshold responses are rejected for manual review.</p>
+      <div class="auto-filter-row">
+        <label class="auto-filter-toggle">
+          <input type="checkbox" name="quality_auto_filter_enabled" value="1" id="publishAutoFilterEnabled"
+            {% if existing_survey and existing_survey.quality_auto_filter_enabled %}checked{% endif %}
+            onchange="togglePublishAutoFilter()">
+          <span>Enable auto filter</span>
+        </label>
+        <div class="auto-filter-score {% if not (existing_survey and existing_survey.quality_auto_filter_enabled) %}is-disabled{% endif %}" id="publishAutoFilterScoreWrap">
+          <span>Scores >=</span>
+          <input type="number" name="quality_auto_filter_min_score" id="publishAutoFilterMinScore" min="0" max="100" step="1"
+            value="{{ (existing_survey.quality_auto_filter_min_score if existing_survey and existing_survey.quality_auto_filter_min_score is not none else 80) | int }}"
+            {% if not (existing_survey and existing_survey.quality_auto_filter_enabled) %}disabled{% endif %}
+            aria-label="Minimum quality score">
+          <span>approved</span>
+        </div>
+      </div>
+      <div class="auto-filter-tips">
+        <strong>Recommended</strong>
+        80 is a balanced default. Use 70 if you need volume; use 85-90 for paid studies where low-effort responses are costly.
+      </div>
+    </div>

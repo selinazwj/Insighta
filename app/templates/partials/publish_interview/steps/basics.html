@@ -1,0 +1,28 @@
+    <!-- BASIC INFO -->
+    <div class="form-section" data-wizard-step="1">
+      <div class="section-header">
+        <div class="section-icon">01</div>
+        <div><h2>Basic Information</h2><p>What your {{ 'online interview' if is_online_interview else 'in-person study' }} is about</p></div>
+      </div>
+      <div class="form-group">
+        <label>Study Title *</label>
+        <input type="text" name="title" placeholder="{{ 'e.g., 45-minute online interview about student wellness apps' if is_online_interview else 'e.g., In-person usability study for a campus app' }}" required>
+      </div>
+      <div class="form-group">
+        <label>Description *</label>
+        <div class="label-desc">Explain what the {{ 'online interview' if is_online_interview else 'in-person session' }} is about and what participants can expect</div>
+        <textarea name="description" placeholder="{{ 'We are conducting live online interviews to understand student experiences...' if is_online_interview else 'We are conducting 30-minute in-person sessions to understand how students use campus services...' }}" required style="min-height: 120px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Category *</label>
+        <select name="category" required style="max-width: 300px;">
+          <option value="" disabled selected>Select a category</option>
+          <option value="research">Research</option>
+          <option value="life">Lifestyle</option>
+          <option value="clubs">Clubs & Events</option>
+          <option value="market">Market Research</option>
+          <option value="academic">Academic</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>

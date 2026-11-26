@@ -1,0 +1,73 @@
+  // ── Render questions ──────────────────────────────────────
+  function renderQuestions() {
+    const list = document.getElementById('questionsList');
+    if (questions.length === 0) {
+      list.innerHTML = '<div class="loading-state"><p>No questions found.</p></div>';
+      return;
+    }
+    list.innerHTML = questions.map((q, i) => renderQuestion(q, i)).join('');
+    updateProgress();
+  }
+
+  function renderQuestion(q, index) {
+    const requiredStar = q.is_required
+      ? `<span class="q-required-star">*</span>` : '';
+    let inputHtml = '';
+
+    if (q.question_type === 'single') {
+      inputHtml = `<div class="radio-group">
+        ${(q.options || []).map(opt => `
+          <label class="radio-item" data-option="${escHtml(opt)}" onclick="selectRadio(${q.id}, this.dataset.option, this)">
+            <input type="radio" name="q_${q.id}" value="${escHtml(opt)}">
+            <span>${escHtml(opt)}</span>
+          </label>`).join('')}
+      </div>`;
+
+    } else if (q.question_type === 'multiple') {
+      inputHtml = `<div class="checkbox-group">
+        ${(q.options || []).map(opt => `
+          <label class="checkbox-item" data-option="${escHtml(opt)}" onclick="toggleCheckbox(${q.id}, this.dataset.option, this)">
+            <input type="checkbox" value="${escHtml(opt)}">
+            <span>${escHtml(opt)}</span>
+          </label>`).join('')}
+      </div>`;
+
+    } else if (q.question_type === 'text') {
+      inputHtml = `<textarea class="text-answer" rows="4"
+        placeholder="Type your answer here..."
+        oninput="updateAnswer(${q.id}, this.value); updateProgress()"></textarea>`;
+
+    } else if (q.question_type === 'scale') {
+      inputHtml = `
+        <div class="scale-group">
+          ${[1,2,3,4,5].map(n => `
+            <button type="button" class="scale-btn" data-q="${q.id}" data-val="${n}"
+              onclick="selectScale(${q.id}, ${n}, this)">${n}</button>
+          `).join('')}
+        </div>
+        <div class="scale-labels">
+          <span>Strongly disagree</span>
+          <span>Strongly agree</span>
+        </div>`;
+
+    } else if (q.question_type === 'dropdown') {
+      inputHtml = `<select class="dropdown-answer"
+        onchange="updateAnswer(${q.id}, this.value); updateProgress()">
+        <option value="">— Select an option —</option>
+        ${(q.options || []).map(opt =>
+          `<option value="${escHtml(opt)}">${escHtml(opt)}</option>`
+        ).join('')}
+      </select>`;
+    }
+
+    return `
+      <div class="q-block" id="qblock-${q.id}">
+        <div class="q-label">
+          <span style="color:var(--ink-muted); font-size:13px; font-weight:400;">Q${index+1}</span>
+          &nbsp;${escHtml(q.question_text)}${requiredStar}
+        </div>
+        ${q.is_required ? '' : '<div class="q-sublabel">Optional</div>'}
+        ${inputHtml}
+        <div class="q-error" id="err-${q.id}">This question is required.</div>
+      </div>`;
+  }

@@ -1,0 +1,120 @@
+<script>
+        const RESEARCHER_TOTAL = 5;
+        const PARTICIPANT_TOTAL = 4;
+
+        function loadProgress() {
+            return JSON.parse(localStorage.getItem('insighta_guide_progress') || '{}');
+        }
+
+        function saveProgress(progress) {
+            localStorage.setItem('insighta_guide_progress', JSON.stringify(progress));
+        }
+
+        function applyProgress() {
+            const progress = loadProgress();
+            Object.keys(progress).forEach(step => {
+                if (progress[step]) {
+                    const card = document.querySelector(`[data-step="${step}"]`);
+                    if (card) setCompleted(card, step.startsWith('p') ? 'participant' : 'researcher');
+                }
+            });
+            updateProgressBars();
+        }
+
+        function setCompleted(card, role) {
+            card.classList.add('completed');
+            const badge = card.querySelector('.step-done-badge');
+            const btn = card.querySelector('.btn-mark-done');
+            if (badge) badge.style.display = 'inline-flex';
+            if (btn) {
+                btn.textContent = 'Completed';
+                btn.classList.add('marked');
+                if (role === 'participant') btn.classList.add('participant');
+            }
+            card.querySelector('.step-number').textContent = '✓';
+        }
+
+        function markDone(step, role) {
+            const progress = loadProgress();
+            progress[step] = true;
+            saveProgress(progress);
+            const card = document.querySelector(`[data-step="${step}"]`);
+            if (card) {
+                setCompleted(card, role);
+                const btn = card.querySelector('.btn-mark-done');
+                if (btn) launchConfetti(btn);
+            }
+            updateProgressBars();
+        }
+
+        function launchConfetti(el) {
+            const rect = el.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const colors = ['#2d6a4f', '#52b788', '#e07a3c', '#f4a261', '#ffd700', '#fff'];
+            for (let i = 0; i < 36; i++) {
+                const dot = document.createElement('div');
+                const size = Math.random() * 8 + 5;
+                const angle = Math.random() * 360;
+                const distance = Math.random() * 120 + 60;
+                const duration = Math.random() * 600 + 600;
+                dot.style.cssText = `
+                    position: fixed;
+                    left: ${cx}px;
+                    top: ${cy}px;
+                    width: ${size}px;
+                    height: ${size}px;
+                    border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+                    background: ${colors[Math.floor(Math.random() * colors.length)]};
+                    pointer-events: none;
+                    z-index: 9999;
+                    transform: translate(-50%, -50%);
+                    transition: all ${duration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                `;
+                document.body.appendChild(dot);
+                requestAnimationFrame(() => {
+                    const rad = (angle * Math.PI) / 180;
+                    dot.style.left = `${cx + Math.cos(rad) * distance}px`;
+                    dot.style.top = `${cy + Math.sin(rad) * distance}px`;
+                    dot.style.opacity = '0';
+                    dot.style.transform = `translate(-50%, -50%) scale(0)`;
+                });
+                setTimeout(() => dot.remove(), duration + 100);
+            }
+        }
+
+        function updateProgressBars() {
+            const progress = loadProgress();
+            const rDone = ['r1', 'r2', 'r3', 'r4', 'r5'].filter(s => progress[s]).length;
+            const pDone = ['p1', 'p2', 'p3', 'p4'].filter(s => progress[s]).length;
+            document.getElementById('researcherProgress').style.width = `${(rDone / RESEARCHER_TOTAL) * 100}%`;
+            document.getElementById('researcherCount').textContent = `${rDone} of ${RESEARCHER_TOTAL} completed`;
+            document.getElementById('participantProgress').style.width = `${(pDone / PARTICIPANT_TOTAL) * 100}%`;
+            document.getElementById('participantCount').textContent = `${pDone} of ${PARTICIPANT_TOTAL} completed`;
+        }
+
+        function toggleStep(header) {
+            const card = header.closest('.step-card');
+            const isOpen = card.classList.contains('open');
+            document.querySelectorAll('.step-card.open').forEach(c => c.classList.remove('open'));
+            if (!isOpen) card.classList.add('open');
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('active');
+                b.classList.remove('participant');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            const btn = document.getElementById(`tabBtn${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+            btn.classList.add('active');
+            if (tab === 'participant') btn.classList.add('participant');
+        }
+
+        document.querySelector('#researcherSteps .step-card')?.classList.add('open');
+        applyProgress();
+
+        const urlTab = new URLSearchParams(window.location.search).get('tab');
+        if (urlTab === 'participant') switchTab('participant');
+    </script>

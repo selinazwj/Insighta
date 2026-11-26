@@ -1,0 +1,65 @@
+"""Existing low-sensitivity screening constraints and vocabulary."""
+from __future__ import annotations
+
+
+PROHIBITED_PROMPT_TERMS = frozenset({
+    "social security",
+    "ssn",
+    "passport number",
+    "driver's license number",
+    "government id",
+    "exact date of birth",
+    "full legal name",
+    "home address",
+    "phone number",
+    "email address",
+    "credit card",
+    "bank account",
+    "medical record",
+    "diagnosis",
+    "sexual orientation",
+    "biometric",
+    "selfie",
+    "身份证",
+    "护照号码",
+    "驾照号码",
+    "出生日期",
+    "家庭住址",
+    "电话号码",
+    "邮箱地址",
+    "银行卡",
+    "病历",
+    "诊断",
+    "性取向",
+    "生物识别",
+    "自拍",
+})
+
+EDITABLE_ATTRIBUTES = frozenset({
+    "occupation",
+    "student_enrollment",
+    "student_program_area",
+    "student_course_load",
+    "student_status",
+    "year_in_school",
+    "participation_format",
+    "device",
+    "language",
+    "state",
+})
+
+OCCUPATION_LABELS = {
+    "physician": "Physician",
+    "nurse": "Nurse",
+    "lawyer": "Lawyer",
+    "therapist": "Therapist",
+    "engineer": "Engineer",
+    "student": "Student",
+    "teacher": "Teacher",
+    "it_professional": "IT Professional",
+    "researcher": "Researcher",
+    "marketer": "Marketer",
+    "business": "Business",
+    "general_public": "General Public",
+    "other": "Other",
+}

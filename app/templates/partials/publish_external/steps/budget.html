@@ -1,0 +1,75 @@
+    <!-- 07 BUDGET & TIMELINE -->
+    <div class="form-section" data-wizard-step="4" hidden>
+      <div class="section-head">
+        <div class="section-num">07</div>
+        <div>
+          <div class="section-title">Budget &amp; timeline</div>
+          <div class="section-sub">Set rewards and review your total.</div>
+        </div>
+      </div>
+
+      {% include "_niche_request_options.html" %}
+
+      <div class="field" style="margin-bottom:20px;">
+        <label>Incentive type</label>
+        <div class="pills" id="incentivePills">
+          <div class="pill active" data-v="cash"       onclick="pickIncentive(this)">Cash</div>
+          <div class="pill"        data-v="gift_card"  onclick="pickIncentive(this)">Gift card</div>
+          <div class="pill"        data-v="raffle"     onclick="pickIncentive(this)">Raffle</div>
+          <div class="pill"        data-v="volunteer"  onclick="pickIncentive(this)">Volunteer</div>
+        </div>
+        <input type="hidden" name="incentive_type" id="incentiveInput" value="cash">
+      </div>
+
+      <div class="field" style="margin-bottom:18px;">
+        <label>Participants <span style="color:var(--red)">*</span></label>
+        <input type="number" id="targetInput" name="target_responses" placeholder="e.g. 100" min="1" required style="max-width:220px;">
+      </div>
+
+      <!-- raffle info -->
+      <div class="alt-incentive-box" id="raffleBox">
+        <strong>Raffle reward</strong>
+        Choose your prize type. After the study closes, we'll run the draw and notify all participants with the result.
+        <div class="raffle-opts">
+          <label><input type="radio" name="raffle_prize_type" value="gift_card" checked> Gift card</label>
+          <label><input type="radio" name="raffle_prize_type" value="cash"> Cash</label>
+        </div>
+      </div>
+
+      <!-- volunteer info -->
+      <div class="alt-incentive-box" id="volunteerBox">
+        <strong>Volunteer fee</strong>
+        No per-person reward. Recruitment fees still apply at the study type’s per-person minimum. See <a href="/pricing">Pricing</a>.
+      </div>
+
+      <!-- paid budget fields -->
+      <div id="paidFields">
+        {% set listing_reward_id = 'ppInput' %}{% set listing_target_id = 'targetInput' %}{% set listing_study_type = '' %}
+        {% include "_listing_budget_planner.html" %}
+        <div class="field">
+          <label for="ppInput">Reward per participant (USD)</label>
+          <input type="number" id="ppInput" name="per_person_gross" placeholder="e.g. 8.00" step="0.01" min="0" value="0">
+          <div class="field-hint">Participants receive this full amount.</div>
+        </div>
+        <input type="hidden" id="totalInput" value="0">
+      </div>
+      {% set quote_ids = {'box':'commBox','reward':'cPP','fee':'cFee','urgency':'cBoost','total':'cTotal'} %}
+      {% set listing_initial_fee = 'Survey platform fee: 20% · $5/person minimum' %}
+      {% include "_listing_quote.html" %}
+
+      <div class="field" style="margin-top:22px;">
+        <label>Recruitment timeline</label>
+        <div class="field-hint">Urgency fees are included in your total.</div>
+        <div class="pills" id="urgencyPills">
+          <div class="pill active" data-v="flexible"       onclick="pickUrgency(this)">No deadline</div>
+          <div class="pill"        data-v="within_1_month" onclick="pickUrgency(this)">Within 1 month &nbsp;+5%</div>
+          <div class="pill urgent" data-v="within_1_week"  onclick="pickUrgency(this)">Within 1 week &nbsp;+10%</div>
+        </div>
+        <input type="hidden" name="urgency_level" id="urgencyInput" value="flexible">
+      </div>
+
+      <div class="field" style="margin-top:18px;">
+        <label>Completion deadline (UTC) <span style="font-weight:400;color:var(--ink3);">(optional)</span></label>
+        <input type="date" name="deadline_date" style="max-width:220px;">
+      </div>
+    </div>

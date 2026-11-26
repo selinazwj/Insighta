@@ -1,0 +1,44 @@
+  // ── Answer handlers ───────────────────────────────────────
+  function selectRadio(qId, value, labelEl) {
+    answers[qId] = value;
+    document.querySelectorAll(`[name="q_${qId}"]`).forEach(r => {
+      r.closest('.radio-item').classList.remove('selected');
+    });
+    labelEl.classList.add('selected');
+    clearError(qId);
+    updateProgress();
+  }
+
+  function toggleCheckbox(qId, value, labelEl) {
+    const cb = labelEl.querySelector('input[type="checkbox"]');
+    // Let browser toggle the checkbox first
+    setTimeout(() => {
+      const selected = Array.from(
+        document.querySelectorAll(`#qblock-${qId} input[type="checkbox"]:checked`)
+      ).map(c => c.value);
+      answers[qId] = selected.length > 0 ? selected : undefined;
+      labelEl.classList.toggle('selected', cb.checked);
+      clearError(qId);
+      updateProgress();
+    }, 0);
+  }
+
+  function selectScale(qId, value, btn) {
+    answers[qId] = value;
+    document.querySelectorAll(`.scale-btn[data-q="${qId}"]`).forEach(b => {
+      b.classList.remove('selected');
+    });
+    btn.classList.add('selected');
+    clearError(qId);
+    updateProgress();
+  }
+
+  function updateAnswer(qId, value) {
+    answers[qId] = value || undefined;
+    clearError(qId);
+  }
+
+  function clearError(qId) {
+    const block = document.getElementById(`qblock-${qId}`);
+    if (block) block.classList.remove('has-error');
+  }

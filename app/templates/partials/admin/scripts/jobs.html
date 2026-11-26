@@ -1,0 +1,108 @@
+  // ── BACKGROUND JOBS ──
+  async function loadBackgroundJobs() {
+    const stats = document.getElementById('jobStats');
+    const table = document.getElementById('jobsTable');
+    if (!adminKey || !stats || !table) return;
+    table.innerHTML = '<div class="empty"><div class="empty-sub">Loading background jobs...</div></div>';
+    try {
+      const res = await fetch(`/admin/background-jobs?admin_key=${encodeURIComponent(adminKey)}&limit=50&_=${Date.now()}`, { cache:'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not load background jobs');
+      backgroundJobs = data;
+      renderBackgroundJobs();
+    } catch (err) {
+      table.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message || 'Could not load background jobs')}</div></div>`;
+    }
+  }
+
+  function renderBackgroundJobs() {
+    const stats = document.getElementById('jobStats');
+    const table = document.getElementById('jobsTable');
+    const data = backgroundJobs || {};
+    const counts = data.counts || {};
+    const statRows = [
+      ['Pending', counts.pending || 0],
+      ['Running', counts.running || 0],
+      ['Done', counts.done || 0],
+      ['Failed', counts.failed || 0],
+      ['Due now', data.due_pending || 0],
+      ['Stale running', data.stale_running || 0],
+    ];
+    stats.innerHTML = statRows.map(([label, value]) => `
+      <div class="analytics-card"><div class="analytics-num">${esc(value)}</div><div class="analytics-label">${esc(label)}</div></div>
+    `).join('');
+
+    const jobs = data.jobs || [];
+    if (!jobs.length) {
+      table.innerHTML = '<div class="empty"><div class="empty-title">No background jobs yet</div><div class="empty-sub">Queued emails, imports, recommendations, and cleanup jobs will appear here.</div></div>';
+      return;
+    }
+    const rows = jobs.map(job => {
+      const status = job.status || 'unknown';
+      const payload = renderJobPayload(job.payload || {});
+      return `<tr>
+        <td><div class="listing-title">#${job.id}</div><div class="listing-desc">${esc(job.job_type || '')}</div></td>
+        <td><span class="status-pill s-${escAttr(status)}">${esc(status)}</span></td>
+        <td>${esc(job.attempts ?? 0)} / ${esc(job.max_attempts ?? 0)}</td>
+        <td>${formatDateTime(job.run_after)}</td>
+        <td>${formatDateTime(job.updated_at)}</td>
+        <td>${payload}</td>
+        <td>${job.last_error ? `<span style="color:#b91c1c;">${esc(job.last_error)}</span>` : '—'}</td>
+      </tr>`;
+    }).join('');
+    table.innerHTML = `<div class="table-wrap"><table class="disc-table">
+      <thead><tr><th>Job</th><th>Status</th><th>Attempts</th><th>Run after</th><th>Updated</th><th>Context</th><th>Error</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+
+  async function runDueBackgroundJobs() {
+    if (!adminKey) return;
+    const btn = document.getElementById('runJobsBtn');
+    const status = document.getElementById('jobsRunStatus');
+    if (!confirm('Run due background jobs now? This may send queued emails and process imports.')) return;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+    if (status) {
+      status.style.display = 'block';
+      status.textContent = 'Running due background jobs...';
+    }
+    try {
+      const res = await fetch('/admin/background-jobs/run-due', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, limit: 25 })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not run due jobs');
+      if (status) {
+        status.textContent = `Runner finished: claimed ${data.claimed || 0}, succeeded ${data.succeeded || 0}, failed ${data.failed || 0}, stale recovered ${data.stale_recovered || 0}.`;
+      }
+      await loadBackgroundJobs();
+    } catch (err) {
+      if (status) {
+        status.style.display = 'block';
+        status.textContent = err.message || 'Could not run due jobs';
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }
+
+  function renderJobPayload(payload) {
+    const entries = Object.entries(payload || {});
+    if (!entries.length) return '—';
+    return entries.slice(0, 5).map(([key, value]) => {
+      const text = Array.isArray(value) ? value.join(', ') : String(value);
+      return `<div><strong>${esc(key)}:</strong> ${esc(text)}</div>`;
+    }).join('');
+  }
+
+  function formatDateTime(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleString();
+  }

@@ -1,0 +1,29 @@
+  function openAdminPublish() {
+    if (!adminKey) return;
+    window.location.href = `/admin/publish?admin_key=${encodeURIComponent(adminKey)}`;
+  }
+
+  async function resetResearchParticipationDemo() {
+    if (!adminKey) return;
+    if (!confirm('Delete and rebuild the research participation listing as an online interview with the Calendly start link?')) return;
+    const btn = document.getElementById('resetResearchDemoBtn');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Resetting...';
+    try {
+      const res = await fetch('/admin/listings/reset-research-participation-demo', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ admin_key: adminKey })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not reset listing');
+      alert(`Rebuilt listing. Start link: ${data.created?.start_url || 'Calendly link saved'}`);
+      if (currentPanel === 'listings') loadListings();
+    } catch (error) {
+      alert(error.message || 'Could not reset listing');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }

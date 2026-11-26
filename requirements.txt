@@ -5,6 +5,7 @@ sqlalchemy
 alembic
 asyncpg
 python-multipart
+email-validator>=2,<3
 passlib[bcrypt]
 bcrypt==4.0.1
 python-dotenv

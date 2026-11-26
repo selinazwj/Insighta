@@ -1,0 +1,78 @@
+    <!-- 02 STUDY DETAILS -->
+    <div class="form-section">
+      <div class="section-head">
+        <div class="section-num">02</div>
+        <div>
+          <div class="section-title">Study details</div>
+          <div class="section-sub">Type, format, and poster</div>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="field">
+          <label>Study type</label>
+          {% if survey.pricing_snapshot %}<input type="hidden" name="task_type" value="{{ survey.task_type }}">{% endif %}
+          <select name="task_type" {% if survey.pricing_snapshot %}disabled{% endif %}>
+            <option value="survey"    {% if survey.task_type in ('survey',none,'') %}selected{% endif %}>Online survey</option>
+            <option value="interview" {% if survey.task_type=='interview' %}selected{% endif %}>Interview</option>
+            <option value="in_person" {% if survey.task_type in ('in_person','in-person') %}selected{% endif %}>In-person study</option>
+            <option value="ux_test"   {% if survey.task_type=='ux_test' %}selected{% endif %}>UX / product test</option>
+            <option value="diary_study" {% if survey.task_type=='diary_study' %}selected{% endif %}>Diary study</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select name="category" required>
+            <option value="research" {% if survey.category=='research' %}selected{% endif %}>Research</option>
+            <option value="life"     {% if survey.category=='life' %}selected{% endif %}>Lifestyle</option>
+            <option value="clubs"    {% if survey.category=='clubs' %}selected{% endif %}>Clubs &amp; Events</option>
+            <option value="market"   {% if survey.category=='market' %}selected{% endif %}>Market research</option>
+            <option value="academic" {% if survey.category=='academic' %}selected{% endif %}>Academic</option>
+            <option value="other"    {% if survey.category=='other' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="field">
+          <label>Estimated time</label>
+          <select name="estimated_time" required>
+            <option value="5"  {% if survey.estimated_time==5  %}selected{% endif %}>Under 5 min</option>
+            <option value="10" {% if survey.estimated_time==10 %}selected{% endif %}>10 min</option>
+            <option value="15" {% if survey.estimated_time==15 %}selected{% endif %}>15 min</option>
+            <option value="20" {% if survey.estimated_time==20 %}selected{% endif %}>20 min</option>
+            <option value="30" {% if survey.estimated_time==30 %}selected{% endif %}>30 min</option>
+            <option value="45" {% if survey.estimated_time==45 %}selected{% endif %}>45 min</option>
+            <option value="60" {% if survey.estimated_time==60 %}selected{% endif %}>60+ min</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Participation format</label>
+          <select name="target_participation_format">
+            <option value="all"               {% if not survey.target_participation_format %}selected{% endif %}>Any format</option>
+            <option value="Online surveys"    {% if survey.target_participation_format=='Online surveys' %}selected{% endif %}>Online</option>
+            <option value="Video interview"   {% if survey.target_participation_format=='Video interview' %}selected{% endif %}>Remote live session</option>
+            <option value="In-person study"   {% if survey.target_participation_format=='In-person study' %}selected{% endif %}>In-person</option>
+            <option value="Hybrid"            {% if survey.target_participation_format=='Hybrid' %}selected{% endif %}>Hybrid</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="max-width:280px;margin-bottom:16px;">
+        <label>Device requirement</label>
+        <select name="target_device">
+          <option value="any"    {% if not survey.target_device or survey.target_device=='any' %}selected{% endif %}>Any device</option>
+          <option value="laptop" {% if survey.target_device=='laptop' %}selected{% endif %}>Laptop / desktop</option>
+          <option value="mobile" {% if survey.target_device=='mobile' %}selected{% endif %}>Mobile phone</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Update poster <span style="font-weight:400;color:var(--ink3);">(optional)</span></label>
+        <div class="file-zone">
+          <input type="file" id="posterInput" name="cover_image" accept="image/*">
+          <div class="fz-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+          <div class="fz-text"><strong>Click to upload</strong> or drag and drop — leave empty to keep current</div>
+          <div class="fz-name" id="fzName"></div>
+        </div>
+        {% if survey.image_url %}
+        <div class="current-img">Current: {{ survey.image_url.split('/')[-1] }}</div>
+        {% endif %}
+      </div>
+    </div>

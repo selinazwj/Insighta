@@ -1,0 +1,20 @@
+<script>
+async function confirmInterviewComplete(surveyId, responseId) {
+  if (!confirm('Confirm that this interview took place and send it to payout review?')) return;
+  const button = document.getElementById(`booking-complete-${responseId}`);
+  if (button) { button.disabled = true; button.textContent = 'Saving…'; }
+  const res = await fetch(`/api/surveys/${surveyId}/bookings/${responseId}/complete`, {
+    method: 'POST', credentials: 'same-origin'
+  }).catch(() => null);
+  const data = res ? await res.json().catch(() => ({})) : {};
+  if (!res || !res.ok) {
+    alert(data.detail || 'Could not confirm this interview.');
+    if (button) { button.disabled = false; button.textContent = 'Confirm interview completed'; }
+    return;
+  }
+  const status = document.getElementById(`booking-status-${responseId}`);
+  if (status) status.textContent = 'Payout review';
+  if (button) button.remove();
+  alert('Interview completed. Review the new notification to approve or reject payout.');
+}
+</script>

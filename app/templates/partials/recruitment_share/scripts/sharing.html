@@ -1,0 +1,34 @@
+    const shareUrl = {{ share_url | tojson }};
+    const dashboardUrl = {{ dashboard_url | tojson }};
+    const requiredSessions = {{ (survey.session_count or 1) | tojson }};
+    const hasBookableSlots = {{ (is_interview and availability_slots) | tojson }};
+    const selectedSlots = new Set();
+
+    function handleBrandNav(event) {
+      const action = event.currentTarget.dataset.brandAction;
+      if (action === 'back') {
+        event.preventDefault();
+        const referrer = document.referrer || '';
+        const sameOrigin = referrer.startsWith(window.location.origin);
+        const fromDashboard = sameOrigin && /\/dashboard(\/mobile)?/.test(new URL(referrer).pathname);
+        if (fromDashboard && window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = dashboardUrl;
+        }
+        return;
+      }
+      if (action === 'none') {
+        event.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    async function copyShareLink() {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Share link copied.');
+      } catch {
+        prompt('Copy this link', shareUrl);
+      }
+    }

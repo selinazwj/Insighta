@@ -1,0 +1,38 @@
+    <!-- 01 BASIC INFO -->
+    <div class="form-section" data-wizard-step="1">
+      <div class="section-head">
+        <div class="section-num">01</div>
+        <div>
+          <div class="section-title">Basic information</div>
+          <div class="section-sub">Title, description, and access</div>
+        </div>
+      </div>
+
+      {% if builtin %}
+      <input type="hidden" name="form_url" value="__builtin__">
+      <div class="info-box">
+        <strong>Before you start</strong>
+        Your built-in questions are ready. Review the listing details below before publishing.
+      </div>
+      {% else %}
+      <div class="info-box">
+        <strong>Before you start</strong>
+        Make sure your survey link, meeting link, or booking details are ready before publishing.
+      </div>
+      {% endif %}
+
+      <div class="field">
+        <label>Title <span style="color:var(--red)">*</span></label>
+        <input type="text" name="title" value="{{ prefill_title }}" placeholder="e.g. Student Mental Health Study" required>
+      </div>
+      <div class="field">
+        <label>Description <span style="color:var(--red)">*</span></label>
+        <textarea name="description" placeholder="Brief description of your study and what you're researching..." required>{{ prefill_desc }}</textarea>
+      </div>
+      {% if not builtin %}
+      <div class="field" id="surveyLinkField">
+        <label id="formUrlLabel">Survey link <span style="color:var(--red)">*</span></label>
+        <input type="url" name="form_url" id="formUrlInput" placeholder="https://your-survey-link.com/..." required>
+      </div>
+      {% endif %}
+    </div>

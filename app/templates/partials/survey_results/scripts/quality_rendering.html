@@ -1,0 +1,86 @@
+  function renderQualityResultsTable() {
+    const wrap = document.getElementById('qualityList');
+    if (!wrap) return;
+    if (!qualityRows.length) {
+      wrap.innerHTML = '<div class="quality-empty">No completed responses yet. Scores appear after participants submit.</div>';
+      return;
+    }
+    const summary = qualityRows.reduce((acc, row) => {
+      const label = String(row.quality_label || '').toLowerCase();
+      const action = reviewStatusToAction(row.review_status);
+      if (label === 'high') acc.high += 1;
+      if (label === 'medium' || label === 'low' || label === 'fraud_risk') acc.review += 1;
+      if (action === 'approve') acc.approved += 1;
+      if (action === 'reject') acc.rejected += 1;
+      return acc;
+    }, { high: 0, review: 0, approved: 0, rejected: 0 });
+    wrap.innerHTML = `
+      <div class="quality-summary">
+        <div class="quality-summary-card"><div class="quality-summary-n">${qualityRows.length}</div><div class="quality-summary-l">Total checks</div></div>
+        <div class="quality-summary-card"><div class="quality-summary-n">${summary.high}</div><div class="quality-summary-l">Clean</div></div>
+        <div class="quality-summary-card"><div class="quality-summary-n">${summary.review}</div><div class="quality-summary-l">Needs review</div></div>
+        <div class="quality-summary-card"><div class="quality-summary-n">${summary.approved}/${summary.rejected}</div><div class="quality-summary-l">Approved / rejected</div></div>
+      </div>
+      <div class="quality-list">
+        ${qualityRows.map(row => renderQualityCard(row)).join('')}
+      </div>
+    `;
+  }
+
+  function renderQualityCard(row) {
+    const score = Number(row.quality_score || 0).toFixed(0);
+    const label = row.quality_label || 'medium';
+    const reasons = (row.reasons || []).map(r => escHtml(String(r))).join(' · ') || 'No triggered reasons.';
+    return `
+      <article class="quality-row-card">
+        <div class="quality-row-main">
+          <div class="quality-row-top">
+            <div class="quality-row-title">${escHtml(row.row_label || '-')}</div>
+            <span class="quality-tag quality-${escClass(label)}">${escHtml(label)}</span>
+          </div>
+          <div class="quality-row-desc">${escHtml(qualityDescription(row))}</div>
+          <div class="quality-row-reasons">${reasons}</div>
+        </div>
+        <div class="quality-score-box">
+          <div class="quality-score-n">${score}</div>
+          <div class="quality-score-l">Score</div>
+        </div>
+        <div>
+          ${QUALITY_SCOPE === 'builtin' ? `<button type="button" class="quality-refresh-btn" style="margin-bottom:8px;" onclick="reviewOneWithAi(${row.id})">AI review</button>` : ''}
+          ${renderReviewSelect(row)}
+        </div>
+      </article>
+    `;
+  }
+
+  function qualityDescription(row) {
+    const label = String(row.quality_label || '').toLowerCase();
+    const score = Number(row.quality_score || 0);
+    const reasons = Array.isArray(row.reasons) ? row.reasons.filter(Boolean) : [];
+    const triggered = Array.isArray(row.triggered_rules) ? row.triggered_rules.filter(Boolean) : [];
+
+    if (label === 'fraud_risk') {
+      return 'High-risk response. Review identity, duplicate, device, timing, and answer consistency signals before approving payout.';
+    }
+    if (label === 'low') {
+      return reasons[0]
+        ? `Low-quality response flagged mainly because: ${String(reasons[0])}`
+        : 'Low-quality response. Please inspect answers before approving payout.';
+    }
+    if (label === 'medium') {
+      return reasons[0] || triggered[0]
+        ? `Some quality signals need review: ${String(reasons[0] || triggered[0])}`
+        : 'Mixed quality signals. Review if the response looks unusual.';
+    }
+    if (score >= 80 && !reasons.length && !triggered.length) {
+      return 'No major issues detected. This response looks ready for approval.';
+    }
+    return reasons[0] || triggered[0] || 'Quality check completed. Open the row details if you need more context.';
+  }
+
+  function updateQualityRowInList(checkId, patch) {
+    const idx = qualityRows.findIndex(row => row.id === checkId);
+    if (idx < 0) return;
+    qualityRows[idx] = { ...qualityRows[idx], ...patch };
+    renderQualityResultsTable();
+  }

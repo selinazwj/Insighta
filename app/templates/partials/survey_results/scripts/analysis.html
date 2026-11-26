@@ -1,0 +1,25 @@
+  // ── AI Analysis ───────────────────────────────────────────
+  async function runAnalysis() {
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+
+    try {
+      const res = await fetch(`/surveys/${SURVEY_ID}/analyze`, {
+        method: 'POST', credentials: 'same-origin'
+      });
+      if (!res.ok) throw new Error('Analysis failed');
+      const data = await res.json();
+
+      const resultEl = document.getElementById('analysisResult');
+      resultEl.innerHTML = data.analysis.replace(/\n/g, '<br>') +
+        `<div class="analysis-footer">Generated at ${new Date(data.generated_at).toLocaleString()}</div>`;
+      resultEl.classList.add('visible');
+      btn.textContent = 'Re-analyze →';
+    } catch(e) {
+      alert('Analysis failed. Please try again.');
+      btn.textContent = 'Analyze Results →';
+    } finally {
+      btn.disabled = false;
+    }
+  }

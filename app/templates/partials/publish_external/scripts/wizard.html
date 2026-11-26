@@ -1,0 +1,38 @@
+  function showWizardStep(step, shouldScroll = true) {
+    currentWizardStep = Math.max(1, Math.min(WIZARD_TITLES.length, step));
+    document.querySelectorAll('[data-wizard-step]').forEach(section => {
+      section.hidden = Number(section.dataset.wizardStep) !== currentWizardStep;
+    });
+    document.getElementById('wizardBack').style.visibility = currentWizardStep === 1 ? 'hidden' : 'visible';
+    document.getElementById('wizardNext').hidden = currentWizardStep === WIZARD_TITLES.length;
+    document.getElementById('wizardNext').textContent = currentWizardStep === WIZARD_TITLES.length - 1 ? 'Continue to payment' : 'Continue';
+    document.getElementById('wizardTitle').textContent = WIZARD_TITLES[currentWizardStep - 1];
+    document.getElementById('wizardCount').textContent = `Step ${currentWizardStep} of ${WIZARD_TITLES.length}`;
+    document.getElementById('wizardFill').style.width = `${currentWizardStep / WIZARD_TITLES.length * 100}%`;
+    document.querySelectorAll('.wizard-label').forEach((label, index) => {
+      label.classList.toggle('active', index < currentWizardStep);
+    });
+    if (shouldScroll) document.querySelector('.wizard-progress').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function validateWizardStep(step) {
+    let firstInvalid = null;
+    document.querySelectorAll(`[data-wizard-step="${step}"] [required]`).forEach(el => {
+      if (el.disabled || el.closest('[hidden]') || el.offsetParent === null) return;
+      if (!String(el.value || '').trim()) {
+        el.closest('.field')?.classList.add('error');
+        if (!firstInvalid) firstInvalid = el;
+      }
+    });
+    if (firstInvalid) {
+      firstInvalid.scrollIntoView({ behavior:'smooth', block:'center' });
+      firstInvalid.focus({ preventScroll:true });
+      return false;
+    }
+    return true;
+  }
+
+  function changeWizardStep(delta) {
+    if (delta > 0 && !validateWizardStep(currentWizardStep)) return;
+    showWizardStep(currentWizardStep + delta);
+  }

@@ -1,0 +1,22 @@
+  <!-- ── FLAGGED ACCOUNTS PANEL ── -->
+  <div class="panel" id="panel-trust">
+    <div class="filter-tabs" id="trustFilterTabs">
+      <button class="f-tab active" data-status="pending" onclick="setTrustFilter('pending',this)">Pending</button>
+      <button class="f-tab" data-status="approved" onclick="setTrustFilter('approved',this)">Approved</button>
+      <button class="f-tab" data-status="blocked" onclick="setTrustFilter('blocked',this)">Blocked</button>
+      <button class="f-tab" data-status="all" onclick="setTrustFilter('all',this)">All</button>
+    </div>
+    <div class="analytics-box">
+      <div class="analytics-head">
+        <div>
+          <div class="analytics-title">Flagged participant accounts</div>
+          <div class="analytics-sub">Account-level human-risk and response-quality flags only. Study eligibility failures do not appear here.</div>
+        </div>
+        <button class="btn-refresh" onclick="loadTrustReviews()">Refresh</button>
+      </div>
+      <div class="warn-box">Approve creates a 30-day human-risk override. It does not bypass study screening, required email domains, or account-assurance requirements. Block immediately disables login and active-session access.</div>
+      <div id="trustReviewList">
+        <div class="empty"><div class="empty-sub">Open this panel to load flagged accounts.</div></div>
+      </div>
+    </div>
+  </div>

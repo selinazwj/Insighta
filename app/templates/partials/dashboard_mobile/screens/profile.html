@@ -1,0 +1,119 @@
+  <!-- PROFILE -->
+  <div class="screen" id="screen-profile">
+    <div class="profile-wrap">
+      {% include "_didit_verification.html" %}
+      {% set languages = (current_user.language or '').split(',') %}
+      {% set experiences = (current_user.experience_tags or '').split(',') %}
+      {% set lifestyles = (current_user.lifestyle_tags or '').split(',') %}
+      {% set field_other = current_user.field.split(':', 1)[1].strip() if current_user.field and current_user.field.startswith('Other:') else '' %}
+      {% set status_other = current_user.status.split(':', 1)[1].strip() if current_user.status and current_user.status.startswith('Other:') else '' %}
+      {% set race_other = current_user.race.split(':', 1)[1].strip() if current_user.race and current_user.race.startswith('Prefer to self-describe:') else '' %}
+      {% set language_other = current_user.language.split('Other:', 1)[1].split(',')[0].strip() if current_user.language and 'Other:' in current_user.language else '' %}
+      {% set experience_other = current_user.experience_tags.split('Other:', 1)[1].split(',')[0].strip() if current_user.experience_tags and 'Other:' in current_user.experience_tags else '' %}
+      {% set lifestyle_other = current_user.lifestyle_tags.split('Other:', 1)[1].split(',')[0].strip() if current_user.lifestyle_tags and 'Other:' in current_user.lifestyle_tags else '' %}
+      {% set mental_other = current_user.mental_health_diagnosis.split(':', 1)[1].strip() if current_user.mental_health_diagnosis and current_user.mental_health_diagnosis.startswith('Other:') else '' %}
+      {% set physical_other = current_user.physical_health_diagnosis.split(':', 1)[1].strip() if current_user.physical_health_diagnosis and current_user.physical_health_diagnosis.startswith('Other:') else '' %}
+      <datalist id="state-options-mobile">{% for option in ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','Washington DC','West Virginia','Wisconsin','Wyoming','Other'] %}<option value="{{ option }}"></option>{% endfor %}</datalist>
+      <datalist id="city-options-mobile">{% for option in ['New York','Los Angeles','San Francisco','San Jose','Seattle','Boston','Chicago','Austin','Dallas','Houston','Atlanta','Washington DC','Philadelphia','Phoenix','San Diego','Denver','Miami','Portland','Other'] %}<option value="{{ option }}"></option>{% endfor %}</datalist>
+      <datalist id="mental-diagnosis-options-mobile">{% for option in ['None','ADHD','Anxiety disorder','Depression','Bipolar disorder','PTSD','OCD','Autism spectrum disorder','Eating disorder','Panic disorder','Social anxiety disorder','Specific phobia','Borderline personality disorder','Schizophrenia spectrum disorder','Substance use disorder','Sleep disorder','Prefer not to say','Other'] %}<option value="{{ option }}"></option>{% endfor %}</datalist>
+      <datalist id="physical-diagnosis-options-mobile">{% for option in ['None','Asthma','Diabetes type 1','Diabetes type 2','Hypertension','Heart disease','Chronic pain','Migraine','Arthritis','Autoimmune condition','Thyroid condition','PCOS','Endometriosis','IBS','Crohn disease / ulcerative colitis','Allergies','Eczema','Epilepsy','Cancer history','Long COVID','Mobility impairment','Hearing impairment','Vision impairment','Prefer not to say','Other'] %}<option value="{{ option }}"></option>{% endfor %}</datalist>
+      <div class="profile-head">
+        <div class="avatar-circle">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
+        <div>
+          <div class="p-name">{{ current_user.username or 'Your Profile' }}</div>
+          <div class="p-email">{{ current_user.email }}</div>
+        </div>
+      </div>
+
+      {% set pf = [current_user.username, current_user.phone_number, current_user.birth_year, current_user.birth_month, current_user.profile_description, current_user.education_level, current_user.field, current_user.status, current_user.current_province, current_user.current_city, current_user.language, current_user.race, current_user.student_status, current_user.year_in_school, current_user.international_domestic, current_user.experience_tags, current_user.participation_format, current_user.device_type, current_user.income_level, current_user.lifestyle_tags] %}
+      {% set filled = pf | select | list | length %}
+      {% set total = pf | length %}
+      {% set pct = (filled * 100 // total) %}
+
+      <div class="completeness-card">
+        <div class="c-top">
+          <span class="c-label">Profile progress</span>
+          <span class="c-pct">{{ pct }}%</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:{{ pct }}%"></div></div>
+        <div class="c-hint">{{ total - filled }} fields left - better detail means better matching</div>
+      </div>
+
+      <form class="profile-form" method="POST" action="/profile">
+        <input type="hidden" name="return_to" value="/dashboard/mobile?tab=profile">
+        <details class="profile-section" open>
+          <summary>About you</summary>
+          <div class="profile-fields">
+            <div class="profile-field"><label>Display name</label><input name="username" value="{{ current_user.username or '' }}"></div>
+            <div class="profile-field"><label>Email</label><input type="email" name="email" value="{{ current_user.email or '' }}"></div>
+            <div class="profile-field"><label>Phone number</label><input type="tel" name="phone_number" value="{{ current_user.phone_number or '' }}" placeholder="+1 555 123 4567"></div>
+            <div class="profile-field"><label>Born year</label><input type="number" min="1900" max="2010" name="birth_year" value="{{ current_user.birth_year or '' }}" placeholder="2002"></div>
+            <div class="profile-field"><label>Born month</label><select name="birth_month"><option value="">Select month</option>{% for month in ['January','February','March','April','May','June','July','August','September','October','November','December'] %}<option value="{{ loop.index }}" {% if current_user.birth_month|string == loop.index|string %}selected{% endif %}>{{ month }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Description</label><textarea name="profile_description" placeholder="Share details that help us match you with relevant studies.">{{ current_user.profile_description or '' }}</textarea></div>
+          </div>
+        </details>
+
+        <details class="profile-section">
+          <summary>Academic & status</summary>
+          <div class="profile-fields">
+            <div class="profile-field"><label>Education level</label><select name="education_level">{% for option in ['Below High School','High School','Undergraduate','Graduate','PhD','Postdoc'] %}<option value="{{ option }}" {% if current_user.education_level == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Field / major</label><select name="field" data-other-source data-other-target="mobile-field-other"><option value="">Select</option>{% for option in ['Computer Science & Engineering','Data Science / AI','Business & Economics','Marketing / Design','Medicine & Healthcare','Psychology / Neuroscience','Natural Sciences','Social Sciences','Education','Law / Public Policy','Arts & Humanities','Communications / Media','Architecture / Design','Other'] %}<option value="{{ option }}" {% if current_user.field == option or (option == 'Other' and field_other) %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field other-input" id="mobile-field-other"><label>Your field / major</label><input name="field_other" value="{{ field_other }}" placeholder="Type your field"></div>
+            <div class="profile-field"><label>Current status</label><select name="status" data-other-source data-other-target="mobile-status-other"><option value="">Select</option>{% for option in ['High school student','Undergraduate student','Graduate student','PhD student','Postdoc','Full-time employed','Part-time employed','Self-employed / Freelancer','Unemployed','Homemaker / Caregiver','Retired','Other'] %}<option value="{{ option }}" {% if current_user.status == option or (option == 'Other' and status_other) %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field other-input" id="mobile-status-other"><label>Your current status</label><input name="status_other" value="{{ status_other }}" placeholder="Type your status"></div>
+            <div class="profile-field"><label>Race</label><select name="race" data-other-source data-other-value="Prefer to self-describe" data-other-target="mobile-race-other"><option value="">Select</option>{% for option in ['Asian','Black or African American','Hispanic or Latino','Middle Eastern or North African','Native American or Alaska Native','Native Hawaiian or Pacific Islander','White','Multiracial','Prefer to self-describe','Prefer not to say'] %}<option value="{{ option }}" {% if current_user.race == option or current_user.ethnicity == option or (option == 'Prefer to self-describe' and race_other) %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field other-input" id="mobile-race-other"><label>Self describe race</label><input name="race_other" value="{{ race_other }}" placeholder="Type your description"></div>
+            <div class="profile-field"><label>Student status</label><select name="student_status"><option value="">Select</option>{% for option in ['Not a student','Current student','Recent graduate','Returning student','Prospective student'] %}<option value="{{ option }}" {% if current_user.student_status == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Year in school</label><select name="year_in_school"><option value="">Select</option>{% for option in ['Below HS','High school','Freshman','Sophomore','Junior','Senior',"Master's",'PhD','Postdoc','Not applicable'] %}<option value="{{ option }}" {% if current_user.year_in_school == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>International / domestic</label><select name="international_domestic"><option value="">Select</option>{% for option in ['Domestic','International','Exchange / visiting','Not applicable'] %}<option value="{{ option }}" {% if current_user.international_domestic == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Income level</label><select name="income_level"><option value="">Select</option>{% for option in ['Under $25k','$25k-$49k','$50k-$74k','$75k-$99k','$100k-$149k','$150k+','Prefer not to say'] %}<option value="{{ option }}" {% if current_user.income_level == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+          </div>
+        </details>
+
+        <details class="profile-section">
+          <summary>Location</summary>
+          <div class="profile-fields">
+            <div class="profile-field"><label>State you live in now</label><input list="state-options-mobile" name="current_province" value="{{ current_user.current_province or current_user.state or '' }}" placeholder="Search U.S. state"></div>
+            <div class="profile-field"><label>City now</label><input list="city-options-mobile" name="current_city" value="{{ current_user.current_city or '' }}" placeholder="Search city"></div>
+            <div class="profile-field"><label>State you are from</label><input list="state-options-mobile" name="origin_province" value="{{ current_user.origin_province or '' }}" placeholder="Search U.S. state"></div>
+            <div class="profile-field"><label>City from</label><input list="city-options-mobile" name="origin_city" value="{{ current_user.origin_city or '' }}" placeholder="Search city"></div>
+          </div>
+        </details>
+
+        <details class="profile-section">
+          <summary>Languages</summary>
+          <div class="profile-fields"><div class="chip-list">{% for option in ['English','Spanish','Mandarin Chinese','Cantonese','French','Arabic','Hindi','Bengali','Portuguese','Russian','Japanese','Korean','German','Italian','Vietnamese','Tagalog','Urdu','Turkish','Persian','Other'] %}<label class="profile-chip"><input type="checkbox" name="language" value="{{ option }}" {% if option in languages %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="mobile-language-other"{% endif %}><span>{{ option }}</span></label>{% endfor %}</div><div class="profile-field other-input" id="mobile-language-other"><label>Other language</label><input name="language_other" value="{{ language_other }}" placeholder="Type another language"></div></div>
+        </details>
+
+        <details class="profile-section">
+          <summary>Experience</summary>
+          <div class="profile-fields">
+            <div class="chip-list">{% for option in ['First-generation student','International student','Transfer student','Working student','Caregiver','Chronic illness','Disability','Neurodivergent','Mental health experience','Physical health experience','Financial aid','Study abroad','Research participant','Online learning','Campus housing','Commuter','Athlete / fitness','Creator / social media','Gaming','Travel','Food / dining','Sustainability','Other'] %}<label class="profile-chip"><input type="checkbox" name="experience_tags" value="{{ option }}" {% if option in experiences %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="mobile-experience-other"{% endif %}><span>{{ option }}</span></label>{% endfor %}</div>
+            <div class="profile-field other-input" id="mobile-experience-other"><label>Other experience</label><input name="experience_tags_other" value="{{ experience_other }}" placeholder="Type another experience"></div>
+            <div class="profile-field"><label>Mental health diagnosis</label><input list="mental-diagnosis-options-mobile" name="mental_health_diagnosis" value="{{ 'Other' if mental_other else (current_user.mental_health_diagnosis or '') }}" placeholder="Search or type" data-other-source data-other-target="mobile-mental-other"></div>
+            <div class="profile-field other-input" id="mobile-mental-other"><label>Other mental health diagnosis</label><input name="mental_health_diagnosis_other" value="{{ mental_other }}" placeholder="Type diagnosis"></div>
+            <div class="profile-field"><label>Physical health diagnosis</label><input list="physical-diagnosis-options-mobile" name="physical_health_diagnosis" value="{{ 'Other' if physical_other else (current_user.physical_health_diagnosis or '') }}" placeholder="Search or type" data-other-source data-other-target="mobile-physical-other"></div>
+            <div class="profile-field other-input" id="mobile-physical-other"><label>Other physical diagnosis</label><input name="physical_health_diagnosis_other" value="{{ physical_other }}" placeholder="Type diagnosis"></div>
+          </div>
+        </details>
+
+        <details class="profile-section">
+          <summary>Preferences & lifestyle</summary>
+          <div class="profile-fields">
+            <div class="profile-field"><label>Participation format</label><select name="participation_format"><option value="">Select</option>{% for option in ['Online surveys','Phone interview','Video interview','In-person study','Product test','Diary study','Any format'] %}<option value="{{ option }}" {% if current_user.participation_format == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Primary device for taking surveys</label><select name="device_type"><option value="">Select</option>{% for option in ['Phone','Tablet','Laptop','Desktop','Shared public device'] %}<option value="{{ option }}" {% if current_user.device_type == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Smoking</label><select name="smoking"><option value="">Select</option>{% for option in ['No','Yes','Former smoker','Prefer not to say'] %}<option value="{{ option }}" {% if current_user.smoking == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="profile-field"><label>Cannabis use</label><select name="cannabis_use"><option value="">Select</option>{% for option in ['No','Yes','Occasionally','Prefer not to say'] %}<option value="{{ option }}" {% if current_user.cannabis_use == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div><div class="profile-label" style="margin-bottom:8px;">Lifestyle</div><div class="chip-list">{% for option in ['Exercise regularly','Team sports','Outdoor activities','Cooking / foodie','Coffee / tea','Gaming','Streaming','Social media creator','Frequent traveler','Public transit','Drives regularly','Pet owner','Parent / guardian','Vegetarian / vegan','Budget conscious','Early adopter','Night owl','Morning person','Other'] %}<label class="profile-chip"><input type="checkbox" name="lifestyle_tags" value="{{ option }}" {% if option in lifestyles %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="mobile-lifestyle-other"{% endif %}><span>{{ option }}</span></label>{% endfor %}</div></div>
+            <div class="profile-field other-input" id="mobile-lifestyle-other"><label>Other lifestyle</label><input name="lifestyle_tags_other" value="{{ lifestyle_other }}" placeholder="Type another lifestyle"></div>
+          </div>
+        </details>
+
+        <button class="profile-save" type="submit">Save profile</button>
+      </form>
+
+      <a href="/logout" class="btn-logout">
+        <i data-lucide="log-out" style="width:16px;height:16px"></i> Log out
+      </a>
+    </div>
+  </div>

@@ -1,0 +1,104 @@
+  function reviewStatusToAction(status) {
+    const normalized = String(status || 'pending').toLowerCase();
+    if (normalized === 'approved') return 'approve';
+    if (normalized === 'rejected') return 'reject';
+    return 'pending';
+  }
+
+  function reviewSelectClass(action) {
+    if (action === 'approve') return 'status-approved';
+    if (action === 'reject') return 'status-rejected';
+    return 'status-pending';
+  }
+
+  const REVIEW_OPTIONS = [
+    { value: 'approve', label: 'Approve' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'reject', label: 'Reject' },
+  ];
+
+  function reviewActionLabel(action) {
+    const hit = REVIEW_OPTIONS.find(item => item.value === action);
+    return hit ? hit.label : 'Pending';
+  }
+
+  function renderReviewSelect(row) {
+    const action = reviewStatusToAction(row.review_status);
+    const cls = reviewSelectClass(action);
+    const options = REVIEW_OPTIONS.map(item => `
+      <button type="button" class="review-dropdown-option${item.value === action ? ' is-active' : ''}"
+        data-value="${item.value}" onclick="pickReviewOption(event, ${row.id}, '${item.value}')">${item.label}</button>
+    `).join('');
+    return `
+      <div class="review-dropdown ${cls}" data-check-id="${row.id}" data-value="${action}">
+        <button type="button" class="review-dropdown-trigger" onclick="toggleReviewDropdown(event, ${row.id})">
+          <span>${escHtml(reviewActionLabel(action))}</span>
+          <span class="review-dropdown-chevron">▾</span>
+        </button>
+        <div class="review-dropdown-menu">${options}</div>
+      </div>`;
+  }
+
+  function closeAllReviewDropdowns() {
+    document.querySelectorAll('.review-dropdown.open').forEach(el => el.classList.remove('open'));
+  }
+
+  function toggleReviewDropdown(event, checkId) {
+    event.stopPropagation();
+    const root = document.querySelector(`.review-dropdown[data-check-id="${checkId}"]`);
+    if (!root || root.classList.contains('is-loading')) return;
+    const willOpen = !root.classList.contains('open');
+    closeAllReviewDropdowns();
+    if (willOpen) root.classList.add('open');
+  }
+
+  function pickReviewOption(event, checkId, action) {
+    event.stopPropagation();
+    closeAllReviewDropdowns();
+    const root = document.querySelector(`.review-dropdown[data-check-id="${checkId}"]`);
+    if (!root) return;
+    handleReviewChange(checkId, action, root);
+  }
+
+  function apiErrorMessage(data, fallback) {
+    const detail = data && data.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      return detail.map(item => item.msg || item.message || String(item)).join('; ');
+    }
+    return fallback;
+  }
+
+  async function handleReviewChange(checkId, action, rootEl) {
+    const previous = reviewStatusToAction(
+      (qualityRows.find(row => row.id === checkId) || {}).review_status
+    );
+    if (action === previous) return;
+
+    rootEl.classList.add('is-loading');
+    try {
+      const res = await fetch(`/api/quality-checks/${checkId}/review`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok) throw new Error(apiErrorMessage(data, 'Update failed'));
+      updateQualityRowInList(checkId, {
+        review_status: data.review_status,
+        quality_label: data.quality_label,
+        fraud_risk: data.fraud_risk,
+      });
+    } catch (e) {
+      rootEl.dataset.value = previous;
+      rootEl.className = `review-dropdown ${reviewSelectClass(previous)}`;
+      rootEl.querySelector('.review-dropdown-trigger span:first-child').textContent = reviewActionLabel(previous);
+      alert(e.message || 'Update failed');
+    } finally {
+      rootEl.classList.remove('is-loading');
+    }
+  }
+
+  document.addEventListener('click', () => closeAllReviewDropdowns());

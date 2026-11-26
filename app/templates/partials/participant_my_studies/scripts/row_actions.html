@@ -1,0 +1,54 @@
+  function rowActions(s) {
+    const c = classify(s);
+    const studyUrl = escapeHtml(studyPageUrl(s));
+    const detailsAction = `<a class="btn-sm ghost" href="${studyUrl}">View study</a>`;
+    const safeLink  = (s.link || '').replace(/'/g, "\\'");
+    if (s.is_live_study) {
+      if (c === 'completed') return `<div class="row-actions">${detailsAction}</div>`;
+      const googleActions = (s.google_calendar_links || []).map(link => `<a class="btn-sm primary" href="${link.url.replace(/&/g, '&amp;')}" target="_blank" rel="noopener noreferrer">${link.label}</a>`).join('');
+      const calendarAction = googleActions + (s.calendar_url ? `<a class="btn-sm ghost" href="${s.calendar_url}">Add to your calendar (.ics)</a>` : '');
+      if (!safeLink) return `<div class="row-actions">${detailsAction}${calendarAction}</div>`;
+      return `<div class="row-actions">
+        ${detailsAction}
+        ${calendarAction}
+        <button class="btn-sm ghost" onclick="window.open('${safeLink}','_blank','noopener')">
+          <svg viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>${s.status === 'scheduled' ? 'Open meeting link' : 'Open scheduling link'}
+        </button>
+      </div>`;
+    }
+    if (c === 'completed') {
+      return `<div class="row-actions">
+        ${detailsAction}
+        <button class="btn-sm ghost" onclick="doUndo(${s.id})">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Undo
+        </button>
+      </div>`;
+    }
+    if (c === 'skipped') {
+      return `<div class="row-actions">
+        <a class="btn-sm primary" href="${studyUrl}">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Take study
+        </a>
+      </div>`;
+    }
+    return `<div class="row-actions">
+      <a class="btn-sm primary" href="${studyUrl}">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Continue
+      </a>
+      <button class="btn-sm ghost" onclick="doMarkDone(${s.id})">Mark done</button>
+    </div>`;
+  }
+
+  function rowIconBg(s) {
+    const c = classify(s);
+    if (c === 'completed') return 'var(--teal)';
+    if (c === 'skipped')   return 'var(--ink3)';
+    return 'var(--ocean)';
+  }
+
+  function iconSvg(s) {
+    const c = classify(s);
+    if (c === 'completed') return '<svg viewBox="0 0 24 24" width="18" height="18" stroke="#fff" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+    if (c === 'skipped')   return '<svg viewBox="0 0 24 24" width="18" height="18" stroke="#fff" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    return '<svg viewBox="0 0 24 24" width="18" height="18" stroke="#fff" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+  }

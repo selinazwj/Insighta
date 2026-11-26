@@ -1,0 +1,18 @@
+  const SURVEY_ID = {{ survey.id }};
+  let questions = [];
+  let answers = {};  // { question_id: value }
+
+  // ── Load questions ────────────────────────────────────────
+  async function loadQuestions() {
+    try {
+      const res = await fetch(`/surveys/${SURVEY_ID}/questions`, {
+        credentials: 'same-origin'
+      });
+      if (!res.ok) throw new Error('Failed to load');
+      questions = await res.json();
+      renderQuestions();
+    } catch(e) {
+      document.getElementById('questionsList').innerHTML =
+        '<div class="loading-state"><p>Failed to load questions. Please refresh.</p></div>';
+    }
+  }

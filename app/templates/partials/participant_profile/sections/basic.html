@@ -1,0 +1,24 @@
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--teal);"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div class="sh-title">About you</div>
+        </div>
+        <div class="section-body">
+          <div class="form-grid">
+            <label class="form-group"><span class="form-label">Display name</span><input class="form-input" name="username" value="{{ current_user.username or '' }}"></label>
+            <label class="form-group"><span class="form-label">Email</span><input class="form-input" type="email" name="email" value="{{ current_user.email or '' }}"></label>
+            <label class="form-group"><span class="form-label">Phone number</span><input class="form-input" type="tel" name="phone_number" value="{{ current_user.phone_number or '' }}" placeholder="+1 555 123 4567"></label>
+            <label class="form-group"><span class="form-label">Born year</span><input class="form-input" type="number" min="1900" max="2010" name="birth_year" value="{{ current_user.birth_year or '' }}" placeholder="2002"></label>
+            <label class="form-group">
+              <span class="form-label">Born month</span>
+              <select class="form-select" name="birth_month">
+                <option value="">Select month</option>
+                {% for month in ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
+                  <option value="{{ loop.index }}" {% if current_user.birth_month|string == loop.index|string %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group full"><span class="form-label">Description</span><textarea class="form-textarea" name="profile_description" placeholder="Share details that help us match you with relevant research, such as interests, background, communities, or routines.">{{ current_user.profile_description or '' }}</textarea></label>
+          </div>
+        </div>
+      </section>

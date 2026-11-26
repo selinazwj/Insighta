@@ -1,0 +1,73 @@
+  <!-- SURVEYS TAB -->
+  <div id="tab-surveys">
+    {% if surveys|length == 0 %}
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>No surveys yet</h3>
+      <p>Create your first survey and start collecting responses.</p>
+      <button class="create-btn" onclick="openModal()">+ Create Your First Survey</button>
+    </div>
+    {% else %}
+    <div class="survey-list">
+      {% for s in surveys %}
+      {% set completed = completed_map.get(s.id, 0) %}
+      {% set target = s.target_responses or 0 %}
+      {% set pct = (completed * 100 // target) if target > 0 else 0 %}
+      <div class="card">
+        <div class="card-top">
+          <h3>{{ s.title }}</h3>
+          <span class="status-badge status-{{ s.status }}">{{ s.status }}</span>
+        </div>
+        <p class="card-meta">{{ s.category | capitalize }} · ${{ s.reward_amount }} reward</p>
+        <div class="progress-row">
+          <div class="progress-bar"><div class="progress-fill" data-pct="{{ pct }}"></div></div>
+          <div class="progress-text">{{ completed }} / {{ target }}</div>
+        </div>
+        <div class="ai-forecast-card" data-survey-id="{{ s.id }}">
+          <div class="ai-forecast-title">AI Completion Forecast</div>
+          <div class="ai-forecast-body">AI forecast is on-demand. Load it only when you want to use AI.</div>
+          <div class="ai-forecast-actions">
+            <select class="ai-scope" aria-label="AI analysis scope">
+              <option value="quick">Quick · 20 candidates</option>
+              <option value="standard">Standard · 50</option>
+              <option value="full">Full · 120</option>
+            </select>
+            <button type="button" class="ai-small-btn" onclick="loadForecast({{ s.id }})">Load forecast</button>
+            <button type="button" class="ai-small-btn" onclick="refreshForecast({{ s.id }})">Recompute</button>
+            <button type="button" class="ai-small-btn" onclick="showTopRespondents({{ s.id }})">Top candidates</button>
+          </div>
+        </div>
+        <div class="card-actions">
+          {% if s.status == "draft" %}
+            <a href="/publish?{% if s.form_url == '__builtin__' %}builtin=1&{% endif %}survey_id={{ s.id }}&title={{ s.title | urlencode }}&desc={{ s.description | urlencode }}" class="btn btn-primary">Publish</a>
+          {% else %}<button class="btn btn-disabled">Publish</button>{% endif %}
+
+          {% if s.status == "published" %}
+          <form method="post" action="/surveys/{{ s.id }}/close" style="display:inline">
+            <button class="btn">Close</button>
+          </form>
+          {% elif s.status == "closed" %}
+          <form method="post" action="/surveys/{{ s.id }}/reopen" style="display:inline">
+            <button class="btn btn-primary">Reopen</button>
+          </form>
+          {% else %}<button class="btn btn-disabled">Close</button>{% endif %}
+
+          {% if s.form_url == '__builtin__' %}
+          <a href="/surveys/{{ s.id }}/builder" class="btn">Builder</a>
+          <a href="/surveys/{{ s.id }}/results" class="btn">Results</a>
+          {% endif %}
+
+          <button class="btn" type="button" onclick="copyShareLink('/r/{{ s.share_slug }}')">Share link</button>
+          <form method="get" action="/publisher/edit/{{ s.id }}" style="display:inline">
+            <button class="btn">Edit</button>
+          </form>
+          <form method="post" action="/publisher/delete/{{ s.id }}" style="display:inline"
+            onsubmit="return confirm('Delete this survey? This cannot be undone.')">
+            <button class="btn btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>

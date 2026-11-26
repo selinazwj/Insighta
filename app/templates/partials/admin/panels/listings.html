@@ -1,0 +1,11 @@
+  <!-- ── LISTINGS PANEL ── -->
+  <div class="panel" id="panel-listings">
+    <div class="listing-toolbar">
+      <input class="listing-search" id="listingSearch" placeholder="Search listings by title..." onkeydown="if(event.key==='Enter') loadListings()">
+      <button class="btn-run" onclick="loadListings()">Search</button>
+      <button class="btn-refresh" onclick="deleteKnownTestListings()">Delete campus life tests</button>
+    </div>
+    <div id="listingsResults" class="listings-results">
+      <div class="empty"><div class="empty-sub">Open this panel to load listings.</div></div>
+    </div>
+  </div>

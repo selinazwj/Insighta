@@ -10,8 +10,7 @@ from sqlalchemy import engine_from_config, pool
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from app.models import Base  # noqa: E402
-from app.ai_growth import models as _ai_growth_models  # noqa: F401,E402
+from app.model_registry import Base  # noqa: E402
 
 config = context.config
 
@@ -19,7 +18,9 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 database_url = os.environ.get("DATABASE_URL") or "sqlite:///./survey.db"
-config.set_main_option("sqlalchemy.url", database_url)
+# ConfigParser treats '%' as interpolation syntax; escaped database credentials
+# and legitimate SQLite filenames must reach SQLAlchemy unchanged.
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
 

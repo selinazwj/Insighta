@@ -1,0 +1,76 @@
+  // ── PANEL SWITCH ──
+  const PANEL_TITLES = { overview:'Overview', analytics:'Analytics', activity:'Activity log', email:'Email', jobs:'Background jobs', feedback:'Feedback review', support:'Support inbox', trust:'Flagged accounts', blocks:'User blocks', discovery:'Channel discovery', publish:'Demo publishing', listings:'Listings' };
+
+  async function login() {
+    const input = document.getElementById('adminKeyInput');
+    const error = document.getElementById('loginError');
+    const key = input.value.trim();
+    if (!key) return;
+    error.style.display = 'none';
+    try {
+      const res = await fetch('/admin/verify', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: key })
+      });
+      if (res.status === 403) {
+        error.textContent = 'Invalid admin key';
+        error.style.display = 'block';
+        return;
+      }
+      if (!res.ok) throw new Error('Admin verification failed');
+      adminKey = key;
+      sessionStorage.setItem('insighta_admin_key', key);
+      document.body.classList.remove('locked');
+      input.value = '';
+      loadFeedbacks();
+      loadSupportThreads();
+      loadAnalytics();
+      loadTrustReviews();
+      if (supportPollTimer) clearInterval(supportPollTimer);
+      supportPollTimer = setInterval(loadSupportThreads, 8000);
+      if (window.location.hash === '#analytics') switchPanel('analytics');
+      if (window.location.hash === '#activity') switchPanel('activity');
+      if (window.location.hash === '#email') switchPanel('email');
+      if (window.location.hash === '#jobs') switchPanel('jobs');
+      if (window.location.hash === '#listings') switchPanel('listings');
+      if (window.location.hash === '#support') switchPanel('support');
+      if (window.location.hash === '#trust') switchPanel('trust');
+      if (window.location.hash === '#blocks') switchPanel('blocks');
+      if (window.location.hash === '#discovery') switchPanel('discovery');
+      if (window.location.hash === '#publish') switchPanel('publish');
+    } catch {
+      error.textContent = 'Connection error. Try again.';
+      error.style.display = 'block';
+    }
+  }
+
+  function switchPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    document.getElementById('nav-' + id).classList.add('active');
+    document.getElementById('topbar-title').textContent = PANEL_TITLES[id] || id;
+    currentPanel = id;
+    if (id === 'feedback') loadFeedbacks();
+    if (id === 'support')  loadSupportThreads();
+    if (id === 'listings') loadListings();
+    if (id === 'analytics') loadAnalytics();
+    if (id === 'activity') loadActivity(true);
+    if (id === 'jobs') loadBackgroundJobs();
+    if (id === 'trust') loadTrustReviews();
+    if (id === 'blocks') loadBlockedUsers();
+    if (id === 'overview') { loadFeedbacks(); loadSupportThreads(); }
+  }
+
+  function refreshCurrent() {
+    if (currentPanel === 'feedback') loadFeedbacks();
+    else if (currentPanel === 'support') loadSupportThreads();
+    else if (currentPanel === 'listings') loadListings();
+    else if (currentPanel === 'analytics') loadAnalytics();
+    else if (currentPanel === 'activity') loadActivity(true);
+    else if (currentPanel === 'jobs') loadBackgroundJobs();
+    else if (currentPanel === 'trust') loadTrustReviews();
+    else if (currentPanel === 'blocks') loadBlockedUsers();
+    else if (currentPanel === 'overview') { loadFeedbacks(); loadSupportThreads(); }
+  }

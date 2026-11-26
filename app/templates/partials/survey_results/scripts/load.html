@@ -1,0 +1,18 @@
+  const SURVEY_ID = {{ survey_id }};
+  const QUALITY_SCOPE = "{{ 'builtin' if survey.form_url == '__builtin__' else 'excel' }}";
+  let qualityRows = [];
+
+  // ── Load results ──────────────────────────────────────────
+  async function loadResults() {
+    try {
+      const res = await fetch(`/api/surveys/${SURVEY_ID}/results`, {
+        credentials: 'same-origin'
+      });
+      if (!res.ok) throw new Error('Failed to load');
+      const data = await res.json();
+      renderResults(data);
+    } catch(e) {
+      document.getElementById('resultsList').innerHTML =
+        '<div class="loading-state"><p>Failed to load results. Please refresh.</p></div>';
+    }
+  }

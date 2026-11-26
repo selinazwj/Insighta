@@ -1,0 +1,84 @@
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--ocean);"><svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
+          <div class="sh-title">Academic & status</div>
+        </div>
+        <div class="section-body">
+          <div class="form-grid">
+            <label class="form-group">
+              <span class="form-label">Education level</span>
+              <select class="form-select" name="education_level">
+                {% for option in ['Below High School','High School','Undergraduate','Graduate','PhD','Postdoc'] %}
+                  <option value="{{ option }}" {% if current_user.education_level == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Field / major</span>
+              <select class="form-select" name="field" data-other-source data-other-target="field-other">
+                <option value="">Select</option>
+                {% for option in ['Computer Science & Engineering','Data Science / AI','Business & Economics','Marketing / Design','Medicine & Healthcare','Psychology / Neuroscience','Natural Sciences','Social Sciences','Education','Law / Public Policy','Arts & Humanities','Communications / Media','Architecture / Design','Other'] %}
+                  <option value="{{ option }}" {% if current_user.field == option or (option == 'Other' and field_other) %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group other-input" id="field-other"><span class="form-label">Your field / major</span><input class="form-input" name="field_other" value="{{ field_other }}" placeholder="Type your field"></label>
+            <label class="form-group">
+              <span class="form-label">Current status</span>
+              <select class="form-select" name="status" data-other-source data-other-target="status-other">
+                <option value="">Select</option>
+                {% for option in ['High school student','Undergraduate student','Graduate student','PhD student','Postdoc','Full-time employed','Part-time employed','Self-employed / Freelancer','Unemployed','Homemaker / Caregiver','Retired','Other'] %}
+                  <option value="{{ option }}" {% if current_user.status == option or (option == 'Other' and status_other) %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group other-input" id="status-other"><span class="form-label">Your current status</span><input class="form-input" name="status_other" value="{{ status_other }}" placeholder="Type your status"></label>
+            <label class="form-group">
+              <span class="form-label">Race</span>
+              <select class="form-select" name="race" data-other-source data-other-value="Prefer to self-describe" data-other-target="race-other">
+                <option value="">Select</option>
+                {% for option in ['Asian','Black or African American','Hispanic or Latino','Middle Eastern or North African','Native American or Alaska Native','Native Hawaiian or Pacific Islander','White','Multiracial','Prefer to self-describe','Prefer not to say'] %}
+                  <option value="{{ option }}" {% if current_user.race == option or current_user.ethnicity == option or (option == 'Prefer to self-describe' and race_other) %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group other-input" id="race-other"><span class="form-label">Self describe race</span><input class="form-input" name="race_other" value="{{ race_other }}" placeholder="Type your description"></label>
+            <label class="form-group">
+              <span class="form-label">Student status</span>
+              <select class="form-select" name="student_status">
+                <option value="">Select</option>
+                {% for option in ['Not a student','Current student','Recent graduate','Returning student','Prospective student'] %}
+                  <option value="{{ option }}" {% if current_user.student_status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Year in school</span>
+              <select class="form-select" name="year_in_school">
+                <option value="">Select</option>
+                {% for option in ['Below HS','High school','Freshman','Sophomore','Junior','Senior',"Master's",'PhD','Postdoc','Not applicable'] %}
+                  <option value="{{ option }}" {% if current_user.year_in_school == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">International / domestic</span>
+              <select class="form-select" name="international_domestic">
+                <option value="">Select</option>
+                {% for option in ['Domestic','International','Exchange / visiting','Not applicable'] %}
+                  <option value="{{ option }}" {% if current_user.international_domestic == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Income level</span>
+              <select class="form-select" name="income_level">
+                <option value="">Select</option>
+                {% for option in ['Under $25k','$25k-$49k','$50k-$74k','$75k-$99k','$100k-$149k','$150k+','Prefer not to say'] %}
+                  <option value="{{ option }}" {% if current_user.income_level == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+        </div>
+      </section>

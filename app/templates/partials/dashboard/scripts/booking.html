@@ -1,0 +1,94 @@
+  async function startStudy(id, bookingSlot) {
+    const opts = { method:'POST', credentials:'same-origin' };
+    if (bookingSlot) {
+      const slots = Array.isArray(bookingSlot) ? bookingSlot : [bookingSlot];
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify({ booking_slot: slots[0] || '', booking_slots: slots });
+    }
+    return fetch(`/surveys/${id}/start`, opts).catch(()=>null);
+  }
+
+  function slotLabel(slot) {
+    if (!slot) return '';
+    if (slot.label) return slot.label;
+    const date = new Date(slot.date + 'T00:00:00');
+    const dateLabel = Number.isNaN(date.getTime()) ? slot.date : date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    return `${dateLabel}, ${slot.start} - ${slot.end}`;
+  }
+
+  function openSlotModal(study, link, isBuiltIn) {
+    pendingSlotStudy = { study, link, isBuiltIn };
+    const needed = Math.max(parseInt(study.session_count || 1, 10) || 1, 1);
+    const weekly = parseInt(study.sessions_per_week || 0, 10) || 0;
+    document.getElementById('slotModalSub').textContent = `Choose session times for ${study.title}.`;
+    document.getElementById('slotRequirement').textContent = `${needed > 1 ? `Select ${needed} total sessions` : 'Select 1 session'}${weekly ? ` · ${weekly} per week` : ''}.`;
+    const groups = {};
+    study.availability_slots.forEach((slot, idx) => {
+      const dateKey = slot && slot.date ? slot.date : 'Available times';
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push({ slot, idx });
+    });
+    document.getElementById('slotOptions').innerHTML = `<div class="slot-calendar">${Object.entries(groups).map(([dateKey, entries]) => {
+      const date = new Date(dateKey + 'T00:00:00');
+      const title = Number.isNaN(date.getTime()) ? dateKey : date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+      return `<div class="slot-day">
+        <div class="slot-day-title">${escapeHtml(title)}</div>
+        <div class="slot-day-body">${entries.map(({ slot, idx }) => `
+          <label class="slot-check">
+            <input type="checkbox" name="bookingSlot" value="${idx}" onchange="limitSlotSelection(${needed}, this)">
+            <span>${escapeHtml((slot && slot.start && slot.end) ? `${slot.start} - ${slot.end}` : slotLabel(slot))}</span>
+          </label>
+        `).join('')}</div>
+      </div>`;
+    }).join('')}</div>`;
+    document.getElementById('slotModalBg').classList.add('open');
+  }
+
+  function limitSlotSelection(maxCount, changedInput) {
+    const checked = [...document.querySelectorAll('input[name="bookingSlot"]:checked')];
+    if (checked.length > maxCount) {
+      changedInput.checked = false;
+      alert(`Please select ${maxCount} session${maxCount > 1 ? 's' : ''}.`);
+    }
+  }
+
+  function closeSlotModal() {
+    document.getElementById('slotModalBg').classList.remove('open');
+    pendingSlotStudy = null;
+  }
+
+  async function confirmSlotBooking() {
+    if (!pendingSlotStudy) return;
+    const { study, link, isBuiltIn } = pendingSlotStudy;
+    const needed = Math.max(parseInt(study.session_count || 1, 10) || 1, 1);
+    const picked = [...document.querySelectorAll('input[name="bookingSlot"]:checked')];
+    if (picked.length !== needed) {
+      alert(`Please select ${needed} session${needed > 1 ? 's' : ''}.`);
+      return;
+    }
+    const labels = picked.map(input => slotLabel(study.availability_slots[parseInt(input.value, 10)]));
+    const res = await startStudy(study.id, labels);
+    if (!res || !res.ok) {
+      const data = res ? await res.json().catch(() => ({})) : {};
+      if (data.screening_required && data.screening_url) {
+        window.location.href = data.screening_url;
+        return;
+      }
+      if (data.verification_required) {
+        window.location.href = data.verification_url || '/verify';
+        return;
+      }
+      alert(data.detail || data.reason || 'Could not save this time. Please try again.');
+      return;
+    }
+    study.booking_slots = labels;
+    study.booking_slot = labels.join('; ');
+    closeSlotModal();
+    if (study.is_live_study) {
+      window.location.href = '/my-studies';
+      return;
+    }
+    if (isBuiltIn) { window.location.href = `/surveys/${study.id}/take`; }
+    else if (link) { window.open(link, '_blank'); }
+    else { alert('Your time has been saved. The researcher will follow up with details.'); }
+  }

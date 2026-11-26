@@ -1,0 +1,81 @@
+  // ── VALIDATION ──
+  document.getElementById('publishForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    if (currentWizardStep < WIZARD_TITLES.length) {
+      changeWizardStep(1);
+      return;
+    }
+    if (publishPending) return;
+    const errorBox = document.getElementById('publishError');
+    errorBox.hidden = true;
+    syncAdminStudyType();
+    let err = false;
+    this.querySelectorAll('input,select,textarea').forEach(el => {
+      if (el.form !== this || el.disabled || el.type === 'hidden') return;
+      if (!el.checkValidity()) {
+        el.closest('.field')?.classList.add('error');
+        err = true;
+      }
+    });
+    const incentive = document.getElementById('incentiveInput').value;
+    const noPay = incentive === 'raffle' || incentive === 'volunteer';
+    if (!noPay && !document.getElementById('nicheRecruitment')?.checked && (!IS_ADMIN_PUBLISH || adminUsesStripe())) {
+      const pp = parseFloat(ppInput.value) || 0;
+      const tot = parseFloat(totalInput.value) || 0;
+      if (!pp && !tot) {
+        ppInput.closest('.field').classList.add('error');
+        totalInput.closest('.field').classList.add('error');
+        err = true;
+      }
+    }
+    if (err) {
+      const firstError = document.querySelector('.field.error');
+      const errorStep = Number(firstError?.closest('[data-wizard-step]')?.dataset.wizardStep || currentWizardStep);
+      showWizardStep(errorStep, false);
+      firstError?.scrollIntoView({ behavior:'smooth', block:'center' });
+      return;
+    }
+    publishPending = true;
+    const submitBtn = document.getElementById('submitBtn');
+    const label = document.getElementById('submitLabel');
+    const idleLabel = label.textContent;
+    submitBtn.disabled = true;
+    label.textContent = 'Submitting…';
+    if (!IS_ADMIN_PUBLISH) saveDraft({ notify:false });
+    try {
+      const response = await fetch(this.action, {
+        method:'POST', body:new FormData(this), credentials:'same-origin',
+        headers:{ Accept:'application/json' }
+      });
+      if (response.redirected && new URL(response.url).pathname === '/login') {
+        throw new Error('Your session expired. Sign in again; your form entries are saved on this device.');
+      }
+      const result = await response.json().catch(() => ({}));
+      if (result.survey_id) this.elements.existing_survey_id.value = result.survey_id;
+      if (!response.ok || !result.redirect_url) {
+        throw new Error(typeof result.detail === 'string' ? result.detail : 'The listing could not be submitted. Your entries are still here. Please try again.');
+      }
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      window.location.assign(result.redirect_url);
+    } catch (error) {
+      if (!IS_ADMIN_PUBLISH) saveDraft({ notify:false });
+      errorBox.textContent = error.message || 'Connection lost. Your entries are still here. Please try again.';
+      errorBox.hidden = false;
+      errorBox.scrollIntoView({ behavior:'smooth', block:'center' });
+    } finally {
+      publishPending = false;
+      submitBtn.disabled = false;
+      label.textContent = idleLabel;
+    }
+  });
+
+  // clear error styling on input
+  document.querySelectorAll('input,select,textarea').forEach(el => {
+    el.addEventListener('input', () => el.closest('.field')?.classList.remove('error'));
+    el.addEventListener('change', () => el.closest('.field')?.classList.remove('error'));
+  });
+  showWizardStep(1, false);
+  syncAdminStudyType();
+  renderAdminSlots();
+  restoreDraft();
+  syncAdminPaymentMode();

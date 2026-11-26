@@ -1,0 +1,43 @@
+<!-- ── MODAL ── -->
+<div class="modal-bg" id="modalBg" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal">
+
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="modal-title">Welcome to Insighta</div>
+        <div class="modal-sub" id="modal-sub">What brings you here?</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- STEP 1: role pick -->
+      <div id="role-step">
+        <div class="role-grid">
+          <div class="role-card sel" id="card-researcher" onclick="pickRole('researcher')">
+            <div class="role-icon" style="background:var(--green);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+            </div>
+            <div class="role-name">Researcher</div>
+            <div class="role-desc">I need participants for my study</div>
+          </div>
+          <div class="role-card" id="card-participant" onclick="pickRole('participant')">
+            <div class="role-icon" style="background:#0f6e56;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="role-name">Participant</div>
+            <div class="role-desc">I want to contribute and earn</div>
+          </div>
+        </div>
+        <div class="modal-divider"></div>
+      </div>
+
+      <div class="auth-choice-actions">
+        <a href="/login?role=researcher" class="form-submit secondary" id="choice-login">Sign in</a>
+        <a href="/register?role=researcher" class="form-submit" id="choice-register">Create account →</a>
+      </div>
+
+    </div>
+  </div>
+</div>

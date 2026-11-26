@@ -1,0 +1,70 @@
+  // ── Consent modal ─────────────────────────────────────────
+  function requestConsent() {
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm').value;
+    let hasError = false;
+    let firstInvalid = null;
+
+    document.querySelectorAll('#step2 [required]').forEach(el => {
+      if (!el.checkValidity()) {
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+        hasError = true;
+        if (!firstInvalid) firstInvalid = el;
+        el.addEventListener('input', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
+        el.addEventListener('change', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
+      } else {
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+      }
+    });
+    if (hasError) { firstInvalid?.focus(); firstInvalid?.reportValidity(); return; }
+    if (password !== confirm) {
+      const el = document.getElementById('confirm');
+      el.style.borderColor = '#ef4444';
+      el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      checkPasswordMatch();
+      return;
+    }
+    const turnstileContainer = document.getElementById('turnstileWidget');
+    if (turnstileContainer && !turnstileVerified) {
+      setTurnstileStatus('Please complete the security check before creating your account.', 'error');
+      showTurnstileRetry(true);
+      turnstileContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    document.getElementById('consentModal').style.display = 'flex';
+    document.getElementById('consentCheckbox').checked = false;
+    document.getElementById('btnAgree').classList.remove('enabled');
+  }
+
+  function toggleAgree(checkbox) {
+    document.getElementById('btnAgree').classList.toggle('enabled', checkbox.checked);
+  }
+
+  function agreeAndContinue() {
+    document.getElementById('consentModal').style.display = 'none';
+    document.getElementById('registerForm').submit();
+  }
+
+  function closeConsent() {
+    document.getElementById('consentModal').style.display = 'none';
+  }
+
+  // If server returns an error, keep the user on the relevant step.
+  {% if error %}
+  {% if register_step|default(1) == 2 %}
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.add('active');
+  document.getElementById('panelStep1').classList.remove('active');
+  document.getElementById('panelStep1').classList.add('done');
+  document.getElementById('panelStep2').classList.add('active');
+  {% else %}
+  document.getElementById('step1').classList.add('active');
+  document.getElementById('step2').classList.remove('active');
+  {% endif %}
+  {% endif %}
+
+  if (document.getElementById('step2').classList.contains('active')) {
+    window.requestAnimationFrame(renderTurnstileIfNeeded);
+  }

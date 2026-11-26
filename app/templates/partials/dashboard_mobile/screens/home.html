@@ -1,0 +1,22 @@
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    {% include "_didit_verification.html" %}
+    <div class="impact-banner">
+      <div class="impact-icon"><i data-lucide="leaf" style="width:20px;height:20px"></i></div>
+      <div class="impact-text">
+        <strong id="impactMsg">{{ completed_today }} studies completed</strong>
+        <p>Keep your streak going and unlock better matches.</p>
+      </div>
+    </div>
+    <div class="section-row">
+      <div class="section-label">Today's study quests</div>
+      <div class="view-toggle" aria-label="Study layout">
+        <button type="button" id="viewCardsBtn" class="active" onclick="switchView('cards')">Cards</button>
+        <button type="button" id="viewListBtn" onclick="switchView('list')">List</button>
+      </div>
+    </div>
+    <div style="padding: 0 16px;" id="homeContent">
+      <div class="spinner-wrap"><div class="spinner"></div><p style="font-size:14px;color:var(--ink-muted);">Loading...</p></div>
+    </div>
+    <div class="my-studies-hint-mobile">Studies you've started or marked complete will appear in <a class="my-studies-link-mobile" href="/my-studies">My studies</a>.</div>
+  </div>

@@ -1,0 +1,83 @@
+  function startOfDay(date) {
+    const next = new Date(date);
+    next.setHours(0, 0, 0, 0);
+    return next;
+  }
+
+  function pad2(num) {
+    return String(num).padStart(2, '0');
+  }
+
+  function isoDate(date) {
+    return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  }
+
+  function addDays(date, days) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+  }
+
+  function minutesToTime(minutes) {
+    return `${pad2(Math.floor(minutes / 60))}:${pad2(minutes % 60)}`;
+  }
+
+  function addMinutes(time, minutes) {
+    const [h, m] = String(time || '00:00').split(':').map(Number);
+    return minutesToTime((h * 60 + m + minutes) % (24 * 60));
+  }
+
+  function selectedDuration() {
+    return parseInt(document.querySelector('select[name="estimated_time"]').value, 10) || 30;
+  }
+
+  function formatSlotLabel(slot) {
+    const date = new Date(slot.date + 'T00:00:00');
+    const dateLabel = Number.isNaN(date.getTime())
+      ? slot.date
+      : date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return `${dateLabel}, ${slot.start} - ${slot.end}`;
+  }
+
+  function slotKey(slot) {
+    return `${slot.date}|${slot.start}`;
+  }
+
+  function buildSlot(date, start) {
+    const slot = { date, start, end: addMinutes(start, selectedDuration()), label: '', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
+    slot.label = formatSlotLabel(slot);
+    return slot;
+  }
+
+  function rebuildSlotLabels() {
+    availabilitySlots.forEach(slot => {
+      slot.end = addMinutes(slot.start, selectedDuration());
+      slot.label = formatSlotLabel(slot);
+    });
+  }
+
+  function isSlotSelected(date, start) {
+    return availabilitySlots.some(slot => slot.date === date && slot.start === start);
+  }
+
+  function setSlot(date, start, selected) {
+    const idx = availabilitySlots.findIndex(slot => slot.date === date && slot.start === start);
+    if (selected && idx === -1) availabilitySlots.push(buildSlot(date, start));
+    if (!selected && idx !== -1) availabilitySlots.splice(idx, 1);
+    availabilitySlots.sort((a, b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
+    renderSlots();
+    renderAvailabilityCalendar();
+  }
+
+  function toggleCalendarCell(cell) {
+    const date = cell.dataset.date;
+    const start = cell.dataset.start;
+    const shouldSelect = !isSlotSelected(date, start);
+    setSlot(date, start, shouldSelect);
+    dragModeSelect = shouldSelect;
+  }
+
+  function paintCalendarCell(cell) {
+    if (!cell || !cell.classList.contains('cal-cell')) return;
+    setSlot(cell.dataset.date, cell.dataset.start, dragModeSelect);
+  }

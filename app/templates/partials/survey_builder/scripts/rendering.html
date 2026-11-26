@@ -1,0 +1,76 @@
+  // ── RENDER ──
+  function renderAll() {
+    const list = document.getElementById('qList');
+    document.getElementById('qCount').textContent = `${questions.length} question${questions.length !== 1 ? 's' : ''}`;
+    const builderQuestionChip = document.getElementById('builderQuestionChip');
+    if (builderQuestionChip) builderQuestionChip.textContent = `${questions.length} question${questions.length !== 1 ? 's' : ''}`;
+    if (!questions.length) {
+      list.innerHTML = `<div class="empty-q"><div class="empty-q-title">No questions yet</div><div class="empty-q-sub">Add your first question below or use AI to generate a full survey.</div></div>`;
+      return;
+    }
+    list.innerHTML = questions.map((q, i) => renderCard(q, i)).join('');
+    list.querySelectorAll('.q-textarea').forEach(autoResize);
+  }
+
+  function renderCard(q, idx) {
+    const isChoice = ['single','multiple','dropdown'].includes(q.question_type);
+    const opts = q.options || [];
+    let extra = '';
+
+    if (isChoice) {
+      const dc = q.question_type === 'multiple' ? 'opt-dot multi' : 'opt-dot';
+      extra = `<div class="q-options" id="opts-${q.id}">
+        ${opts.map((o, oi) => `
+          <div class="opt-row">
+            <div class="${dc}"></div>
+            <input class="opt-input" type="text" value="${esc(o)}" placeholder="Option ${oi+1}"
+              oninput="updateOpt(${q.id},${oi},this.value)">
+            <button class="opt-rm" onclick="removeOpt(${q.id},${oi})">
+              <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>`).join('')}
+        <button class="add-opt" onclick="addOpt(${q.id})">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add option
+        </button>
+      </div>`;
+    } else if (q.question_type === 'scale') {
+      extra = `<div class="q-scale">${[1,2,3,4,5].map(n=>`<div class="scale-dot">${n}</div>`).join('')}<span class="scale-lbl">1 = Strongly disagree · 5 = Strongly agree</span></div>`;
+    } else if (q.question_type === 'text') {
+      extra = `<div class="q-text-prev"><div class="text-prev-box">Participant types their answer here...</div></div>`;
+    }
+
+    return `<div class="q-card" id="card-${q.id}">
+      <div class="q-top">
+        <div class="q-num">${idx+1}</div>
+        <textarea class="q-textarea" rows="1" placeholder="Type your question here..."
+          oninput="updateText(${q.id},this.value);autoResize(this)"
+        >${esc(q.question_text)}</textarea>
+      </div>
+      <div class="q-meta">
+        <select class="q-type-sel" onchange="updateType(${q.id},this.value)">
+          <option value="single"   ${q.question_type==='single'   ?'selected':''}>Single choice</option>
+          <option value="multiple" ${q.question_type==='multiple' ?'selected':''}>Multiple choice</option>
+          <option value="text"     ${q.question_type==='text'     ?'selected':''}>Text answer</option>
+          <option value="scale"    ${q.question_type==='scale'    ?'selected':''}>Scale 1–5</option>
+          <option value="dropdown" ${q.question_type==='dropdown' ?'selected':''}>Dropdown</option>
+        </select>
+        <label class="q-required">
+          <input type="checkbox" ${q.is_required?'checked':''} onchange="updateReq(${q.id},this.checked)">
+          Required
+        </label>
+        <div class="q-actions">
+          <button class="q-action" onclick="moveUp(${q.id})" title="Move up">
+            <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <button class="q-action" onclick="moveDown(${q.id})" title="Move down">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <button class="q-action del" onclick="deleteQ(${q.id})" title="Delete">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </div>
+      ${extra}
+    </div>`;
+  }

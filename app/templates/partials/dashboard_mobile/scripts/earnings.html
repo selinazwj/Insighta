@@ -1,0 +1,54 @@
+  async function doWithdraw() {
+    const btn = document.getElementById('withdrawBtn');
+    btn.disabled = true; btn.textContent = 'Processing...';
+    try {
+      const res = await fetch('/api/withdraw', { method: 'POST', credentials: 'same-origin' });
+      const d = await res.json();
+      if (!res.ok) { alert(d.detail || 'Withdrawal failed'); btn.disabled = false; btn.innerHTML = '<i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw earnings'; lucide.createIcons(); return; }
+      alert(`✓ $${d.amount.toFixed(2)} transferred to your Stripe account. Bank payout is handled separately by Stripe.`);
+      window.location.reload();
+    } catch { alert('Network error'); btn.disabled = false; btn.innerHTML = '<i data-lucide="banknote" style="width:16px;height:16px"></i> Withdraw earnings'; lucide.createIcons(); }
+  }
+
+  function buildEarningsHistory() {
+    const el = document.getElementById('earningsHistory');
+    const done = allSurveys.filter(s => s.is_completed);
+    if (!done.length) { el.innerHTML = `<div style="padding:20px;text-align:center;font-size:13px;color:var(--ink-muted)">No completed surveys yet.</div>`; return; }
+    el.innerHTML = done.slice(0,10).map(s => `
+      <div class="history-row">
+        <div><div class="h-title">${escapeHtml(s.title)}</div><div class="h-date">Pending approval</div></div>
+        <div class="h-amount pending">${s.reward}</div>
+      </div>`).join('');
+  }
+
+  syncViewToggle();
+  renderHome();
+  updateStats();
+  syncOtherInputs();
+  const initialTab = new URLSearchParams(window.location.search).get('tab');
+  if (['home', 'earnings', 'profile'].includes(initialTab)) switchTab(initialTab);
+  document.addEventListener('input', syncOtherInputs);
+  document.addEventListener('change', syncOtherInputs);
+
+  document.addEventListener('click', e => {
+    const el = e.target.closest('button, .nav-item, .completeness-card, .btn-setup, .btn-logout, .profile-chip');
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    for (let i = 0; i < 8; i++) {
+      const bit = document.createElement('span');
+      bit.className = 'tap-burst';
+      const angle = (Math.PI * 2 * i) / 8;
+      const dist = 18 + Math.random() * 10;
+      bit.style.left = `${cx}px`;
+      bit.style.top = `${cy}px`;
+      bit.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
+      bit.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
+      bit.style.background = i % 3 === 0 ? 'var(--accent-blue)' : i % 3 === 1 ? 'var(--accent-warm)' : 'var(--accent)';
+      document.body.appendChild(bit);
+      setTimeout(() => bit.remove(), 500);
+    }
+  });
+
+  buildEarningsHistory();

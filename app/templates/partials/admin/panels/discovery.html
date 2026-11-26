@@ -1,0 +1,47 @@
+  <!-- ── DISCOVERY PANEL ── -->
+  <div class="panel" id="panel-discovery">
+    <div class="discovery-form">
+      <div class="form-grid">
+        <div class="field full">
+          <label>Population</label>
+          <input type="text" id="dpopulation" value="Boston University students with anxiety" required>
+        </div>
+        <div class="field">
+          <label>Location</label>
+          <input type="text" id="dlocation" value="Boston">
+        </div>
+        <div class="field">
+          <label>Participation</label>
+          <select id="dparticipation">
+            <option value="true">In-person or local</option>
+            <option value="false">Remote / online ok</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Age min</label>
+          <input type="number" id="dageMin" min="0" max="120" value="18">
+        </div>
+        <div class="field">
+          <label>Age max</label>
+          <input type="number" id="dageMax" min="0" max="120" value="30">
+        </div>
+        <div class="field">
+          <label>Sample size</label>
+          <input type="number" id="dsampleSize" min="1" value="100">
+        </div>
+        <div class="field">
+          <label>Study topic</label>
+          <input type="text" id="dtopic" value="student mental health">
+        </div>
+        <div class="field full">
+          <label>Notes</label>
+          <textarea id="dnotes">Prefer campus-adjacent and IRB-friendly channels.</textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <div class="form-rule">Internal only — find public community metadata and trusted gatekeepers. Never scrape individuals or output personal contact info.</div>
+        <button class="btn-run" id="discBtn" onclick="runDiscovery()">Find channels</button>
+      </div>
+    </div>
+    <div id="discoveryResults"></div>
+  </div>

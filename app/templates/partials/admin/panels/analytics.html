@@ -1,0 +1,36 @@
+  <!-- ── ANALYTICS PANEL ── -->
+  <div class="panel" id="panel-analytics">
+    <div class="analytics-grid" id="analyticsCards">
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Total events</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Unique users</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Listing views</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Starts</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Completed</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Start to complete</div></div>
+    </div>
+    <div class="analytics-layout">
+      <div class="analytics-box">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">Listing funnel</div>
+            <div class="analytics-sub">Views, starts, and completions by study over the last 30 days. Starts count as implied views when a view event was missed.</div>
+          </div>
+          <button class="btn-refresh" onclick="loadAnalytics()">Refresh</button>
+        </div>
+        <div id="analyticsFunnel">
+          <div class="empty"><div class="empty-sub">Open this panel to load analytics.</div></div>
+        </div>
+      </div>
+      <div class="analytics-box">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">Recent activity</div>
+            <div class="analytics-sub">Readable user journey events.</div>
+          </div>
+        </div>
+        <div id="analyticsActivity" class="activity-list">
+          <div class="empty"><div class="empty-sub">No activity loaded.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>

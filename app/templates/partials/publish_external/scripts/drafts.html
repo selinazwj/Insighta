@@ -1,0 +1,92 @@
+  // ── LOCAL DRAFT ──
+  function draftFields() {
+    return [...document.querySelectorAll('#publishForm input,#publishForm select,#publishForm textarea')]
+      .filter(el => el.name && el.type !== 'file' && el.type !== 'submit' && el.type !== 'button');
+  }
+
+  function saveDraft({ notify = true } = {}) {
+    const data = {};
+    draftFields().forEach(el => {
+      if (el.type === 'checkbox') {
+        if (!data[el.name]) data[el.name] = [];
+        if (el.checked) data[el.name].push(el.value);
+      } else if (el.type === 'radio') {
+        if (el.checked) data[el.name] = el.value;
+      } else {
+        data[el.name] = el.value;
+      }
+    });
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), data }));
+    } catch {
+      showDraftStatus('Could not save on this device', false);
+      return false;
+    }
+    if (notify) {
+      showDraftStatus('✓ Saved on this device');
+      if (!localStorage.getItem(DRAFT_NOTICE_KEY)) {
+        document.getElementById('draftConfirmation').showModal();
+        localStorage.setItem(DRAFT_NOTICE_KEY, 'seen');
+      }
+    }
+    return true;
+  }
+
+  function restoreDraft() {
+    let raw;
+    try { raw = localStorage.getItem(DRAFT_KEY); } catch { return; }
+    if (!raw) return;
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { return; }
+    if (!parsed?.data) return;
+    if (!confirm('Restore your saved draft for this listing?')) return;
+    Object.entries(parsed.data).forEach(([name, value]) => {
+      const els = draftFields().filter(el => el.name === name);
+      els.forEach(el => {
+        if (el.type === 'checkbox') {
+          el.checked = Array.isArray(value) && value.includes(el.value);
+          syncCheck(el);
+        } else if (el.type === 'radio') {
+          el.checked = el.value === value;
+        } else {
+          el.value = value;
+        }
+      });
+    });
+    const incentiveValue = document.getElementById('incentiveInput').value;
+    const incentive = [...document.querySelectorAll('#incentivePills .pill')].find(el => el.dataset.v === incentiveValue);
+    if (incentive) pickIncentive(incentive);
+    const urgencyValue = document.getElementById('urgencyInput').value;
+    const urgency = [...document.querySelectorAll('#urgencyPills .pill')].find(el => el.dataset.v === urgencyValue);
+    if (urgency) pickUrgency(urgency);
+    const slotsRaw = document.getElementById('availabilitySlotsInput')?.value;
+    if (slotsRaw) {
+      try {
+        const parsedSlots = JSON.parse(slotsRaw);
+        adminSlots = Array.isArray(parsedSlots) ? parsedSlots : [];
+      } catch {
+        adminSlots = [];
+      }
+      renderAdminSlots();
+    }
+    syncAdminStudyType();
+    occDDChanged();
+    togglePublishAutoFilter();
+    updateCommission();
+    showDraftStatus('Restored');
+  }
+
+  let draftStatusTimer;
+  function showDraftStatus(text, saved = true) {
+    clearTimeout(draftStatusTimer);
+    ['draftStatus', 'bottomDraftStatus'].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.remove('saved');
+      void el.offsetWidth;
+      el.classList.toggle('saved', saved);
+      el.textContent = text;
+    });
+    draftStatusTimer = setTimeout(() => {
+      ['draftStatus', 'bottomDraftStatus'].forEach(id => document.getElementById(id).textContent = '');
+    }, 6000);
+  }

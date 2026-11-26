@@ -1,0 +1,35 @@
+  <!-- ── USER BLOCKS PANEL ── -->
+  <div class="panel" id="panel-blocks">
+    <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:24px;margin-bottom:16px;max-width:760px;">
+      <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px;">Block user by email</div>
+      <div style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:18px;">
+        Blocked emails cannot request codes, sign up, sign in, use Google/LinkedIn login, or continue with an existing session.
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="blockEmail" placeholder="person@example.com">
+        </div>
+        <div class="field">
+          <label>Reason</label>
+          <input type="text" id="blockReason" placeholder="Spam, abuse, fraud risk...">
+        </div>
+      </div>
+      <div class="form-actions">
+        <div class="form-rule" id="blockStatus">Use this for clear abuse or fraud risk only.</div>
+        <button class="btn-run" id="blockBtn" onclick="blockUserEmail()">Block user</button>
+      </div>
+    </div>
+    <div class="analytics-box">
+      <div class="analytics-head">
+        <div>
+          <div class="analytics-title">Blocked emails</div>
+          <div class="analytics-sub">Built-in blocks are shipped in code. Database blocks are added from this admin tool or Supabase.</div>
+        </div>
+        <button class="btn-refresh" onclick="loadBlockedUsers()">Refresh</button>
+      </div>
+      <div id="blockedUsersList">
+        <div class="empty"><div class="empty-sub">Open this panel to load blocked users.</div></div>
+      </div>
+    </div>
+  </div>

@@ -1,0 +1,78 @@
+  async function loadNotifications() {
+    try {
+      const res = await fetch('/api/notifications', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      allNotifs = await res.json();
+      renderNotifications();
+    } catch {}
+  }
+
+  function renderNotifications() {
+    const pending = allNotifs.filter(n => n.status === 'pending');
+    const badge = document.getElementById('notifBadge');
+    if (pending.length > 0) { badge.textContent = pending.length; badge.style.display = 'flex'; }
+    else { badge.style.display = 'none'; }
+    const count = document.getElementById('notifCount');
+    if (count) count.textContent = `${allNotifs.length} total`;
+
+    const list = document.getElementById('notifList');
+    if (allNotifs.length === 0) { list.innerHTML = '<div class="notif-empty">🎉 No notifications yet</div>'; return; }
+
+    list.innerHTML = allNotifs.map(n => {
+      const typeClass = (n.task_type === 'interview' || n.task_type === 'in_person') ? 'notif-type-interview' : 'notif-type-survey';
+      const typeLabel = n.task_type_label || (n.task_type === 'in_person' ? 'In-person study' : (n.task_type === 'interview' ? 'Interview' : 'Survey'));
+      const acceptActive = n.status === 'accepted';
+      const rejectActive = n.status === 'rejected';
+      const decided = acceptActive || rejectActive;
+      let verifyHtml = '';
+      if (n.requires_verification) {
+        if (!n.verification_warning) {
+          verifyHtml = `<div class="notif-verify ok">✓ Participant account checks complete</div>`;
+        } else if (n.participant_verification_status === 'verified') {
+          verifyHtml = `<div class="notif-verify warn">⚠ Participant needs an additional study verification</div>`;
+        } else {
+          verifyHtml = `<div class="notif-verify warn">⚠ Participant not verified</div>`;
+        }
+      }
+      const actionHtml = `<div class="notif-actions">
+        <button class="notif-accept ${acceptActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'accept')">
+          ${acceptActive ? '✓ Payout approved' : '✓ Approve payout'}
+        </button>
+        <button class="notif-reject ${rejectActive ? 'active' : decided ? 'inactive' : ''}" onclick="decideNotif(${n.id},'reject')">
+          ${rejectActive ? '✕ Payout rejected' : '✕ Reject payout'}
+        </button>
+      </div>`;
+      return `
+        <div class="notif-item ${n.status !== 'pending' ? n.status : ''}" id="notif-${n.id}">
+          <span class="notif-type-tag ${typeClass}">${typeLabel}</span>
+          <div class="notif-title">${n.survey_title}</div>
+          <div class="notif-email">📧 ${n.participant_email}</div>
+          ${verifyHtml}
+          <div class="notif-time">${n.created_at}</div>
+          ${actionHtml}
+        </div>`;
+    }).join('');
+  }
+
+  async function decideNotif(id, action) {
+    try {
+      const res = await fetch(`/api/notifications/${id}/${action}`, { method: 'POST', credentials: 'same-origin' });
+      if (!res.ok) return;
+      const notif = allNotifs.find(n => n.id === id);
+      if (notif) notif.status = action === 'accept' ? 'accepted' : 'rejected';
+      renderNotifications();
+    } catch {}
+  }
+
+  function toggleNotifPanel() {
+    document.getElementById('notifOverlay').style.display = 'flex';
+    loadNotifications();
+  }
+
+  function closeNotifModal(e) {
+    if (!e || e.target === document.getElementById('notifOverlay'))
+      document.getElementById('notifOverlay').style.display = 'none';
+  }
+
+  loadNotifications();
+  setInterval(loadNotifications, 30000);

@@ -1,0 +1,80 @@
+  function slotLabel(slot) {
+    if (!slot) return '';
+    if (slot.label) return slot.label;
+    const date = new Date(slot.date + 'T00:00:00');
+    const dateLabel = Number.isNaN(date.getTime()) ? slot.date : date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    return `${dateLabel}, ${slot.start} - ${slot.end}`;
+  }
+
+  function pickSlotMobile(study) {
+    if (!Array.isArray(study.availability_slots) || !study.availability_slots.length) return null;
+    const options = study.availability_slots.map((slot, i) => `${i + 1}. ${slotLabel(slot)}`).join('\n');
+    const needed = Math.max(parseInt(study.session_count || 1, 10) || 1, 1);
+    const weekly = parseInt(study.sessions_per_week || 0, 10) || 0;
+    const raw = prompt(`Choose ${needed} session${needed > 1 ? 's' : ''} for ${study.title}${weekly ? ` (${weekly} per week)` : ''}:\n\n${options}\n\nEnter ${needed > 1 ? 'numbers separated by commas' : 'a number'}:`);
+    if (!raw) return null;
+    const indexes = raw.split(',').map(part => parseInt(part.trim(), 10) - 1).filter(idx => Number.isInteger(idx));
+    const uniqueIndexes = [...new Set(indexes)];
+    if (uniqueIndexes.length !== needed || uniqueIndexes.some(idx => idx < 0 || idx >= study.availability_slots.length)) {
+      alert(`Please choose ${needed} valid time${needed > 1 ? 's' : ''}.`);
+      return null;
+    }
+    return uniqueIndexes.map(idx => slotLabel(study.availability_slots[idx]));
+  }
+
+  async function startStudy(id, bookingSlot) {
+    const opts = { method: 'POST', credentials: 'same-origin' };
+    if (bookingSlot) {
+      const slots = Array.isArray(bookingSlot) ? bookingSlot : [bookingSlot];
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify({ booking_slot: slots[0] || '', booking_slots: slots });
+    }
+    return fetch(`/surveys/${id}/start`, opts).catch(()=>null);
+  }
+
+  async function doTake(id, link, isBuiltIn) {
+    const s = activeSurveys.find(x => x.id === id) || allSurveys.find(x => x.id === id);
+    if (s && s.screening_required && !s.screening_passed) {
+      window.location.href = s.screening_url || `/surveys/${id}/screening`;
+      return;
+    }
+    let bookingSlot = null;
+    const hasExternalLink = !!(link && link !== '__builtin__');
+    const format = ((s && s.format) || '').toLowerCase();
+    const typeLabel = ((s && s.type_label) || '').toLowerCase();
+    const isOnlineInterview = s && s.type === 'interview' && (
+      typeLabel.includes('online') ||
+      ['video interview', 'online interview', 'remote live session'].includes(format) ||
+      String(link || '').toLowerCase().includes('calendly.com')
+    );
+    if (s && s.is_live_study && s.has_native_booking && Array.isArray(s.availability_slots) && s.availability_slots.length) {
+      bookingSlot = pickSlotMobile(s);
+      if (!bookingSlot) return;
+      s.booking_slots = Array.isArray(bookingSlot) ? bookingSlot : [bookingSlot];
+      s.booking_slot = s.booking_slots.join('; ');
+    }
+    const res = await startStudy(id, bookingSlot);
+    if (!res || !res.ok) {
+      const data = res ? await res.json().catch(() => ({})) : {};
+      if (data.screening_required && data.screening_url) {
+        window.location.href = data.screening_url;
+        return;
+      }
+      if (data.verification_required) {
+        window.location.href = data.verification_url || '/verify';
+        return;
+      }
+      alert(data.detail || data.reason || 'Could not save this time. Please try again.');
+      return;
+    }
+    if (s && s.is_live_study) {
+      if (link && !bookingSlot) window.open(link, '_blank');
+      window.location.href = '/my-studies';
+      return;
+    }
+    if (isBuiltIn) { window.location.href = `/surveys/${id}/take`; }
+    else {
+      window.open(link, '_blank');
+      setTimeout(() => { if (confirm('Did you finish the survey? Mark as complete?')) doComplete(id); }, 1500);
+    }
+  }

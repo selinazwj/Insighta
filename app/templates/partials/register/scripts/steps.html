@@ -1,0 +1,46 @@
+  // ── Step navigation ───────────────────────────────────────
+  function goToStep2() {
+    const email = document.getElementById('email').value.trim();
+    const code = document.getElementById('verificationCode').value.trim();
+    let hasError = false;
+
+    if (!document.getElementById('email').checkValidity()) {
+      const el = document.getElementById('email');
+      el.style.borderColor = '#ef4444';
+      el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      el.addEventListener('input', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
+      hasError = true;
+    }
+    if (!code) {
+      const el = document.getElementById('verificationCode');
+      el.style.borderColor = '#ef4444';
+      el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
+      el.addEventListener('input', function() { this.style.borderColor = ''; this.style.boxShadow = ''; }, { once: true });
+      hasError = true;
+    }
+    if (hasError) return;
+    if (code.length !== 6) {
+      const hint = document.getElementById('codeHint');
+      hint.textContent = 'Please enter the full 6-digit code.';
+      hint.className = 'code-hint error';
+      return;
+    }
+
+    // Go to step 2
+    document.getElementById('step1').classList.remove('active');
+    document.getElementById('step2').classList.add('active');
+    document.getElementById('panelStep1').classList.remove('active');
+    document.getElementById('panelStep1').classList.add('done');
+    document.getElementById('panelStep2').classList.add('active');
+    window.scrollTo(0, 0);
+    window.requestAnimationFrame(renderTurnstileIfNeeded);
+  }
+
+  function backToStep1() {
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step1').classList.add('active');
+    document.getElementById('panelStep2').classList.remove('active');
+    document.getElementById('panelStep1').classList.remove('done');
+    document.getElementById('panelStep1').classList.add('active');
+    window.scrollTo(0, 0);
+  }

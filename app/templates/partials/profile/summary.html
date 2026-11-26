@@ -1,0 +1,10 @@
+        <aside class="summary-card">
+          <div class="summary-avatar">{{ user.username[0].upper() if user.username else user.email[0].upper() }}</div>
+          <div class="summary-name">{{ user.username or 'Your profile' }}</div>
+          <div class="summary-email">{{ user.email }}</div>
+          <div class="summary-meta">
+            <div class="meta-row"><strong>Field</strong>{{ user.field or 'Not set' }}</div>
+            <div class="meta-row"><strong>Status</strong>{{ user.status or 'Not set' }}</div>
+            <div class="meta-row"><strong>Phone</strong>{{ user.phone_number or 'Not set' }}</div>
+          </div>
+        </aside>

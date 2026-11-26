@@ -1,0 +1,15 @@
+<div class="tour-backdrop" id="tourBackdrop"></div>
+<div class="tour-spotlight" id="tourSpotlight"></div>
+<div class="tour-card" id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+  <div class="tour-step" id="tourStep"></div>
+  <div class="tour-title" id="tourTitle"></div>
+  <div class="tour-body" id="tourBody"></div>
+  <div class="tour-actions">
+    <!-- ive added a skip button so users can bail out of the tour any time -->
+    <button class="tour-btn tour-skip" id="tourSkip" onclick="endResearcherTour()">Skip tour</button>
+    <div class="tour-nav-group">
+      <button class="tour-btn" id="tourPrev" onclick="prevTourStep()">Back</button>
+      <button class="tour-btn primary" id="tourNext" onclick="nextTourStep()">Next</button>
+    </div>
+  </div>
+</div>

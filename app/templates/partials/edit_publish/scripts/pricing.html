@@ -1,0 +1,26 @@
+  function pickIncentive(el) {
+    if ({{ (survey.pricing_snapshot is not none) | tojson }}) return;
+    document.querySelectorAll('#incentivePills .pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    const value = el.dataset.v;
+    document.getElementById('incentiveInput').value = value;
+    const raffleBox = document.getElementById('raffleBox');
+    if (raffleBox) raffleBox.style.display = value === 'raffle' ? 'block' : 'none';
+    const noPayBox = document.getElementById('noPayBox');
+    const rewardField = document.getElementById('rewardField');
+    const rewardInput = document.getElementById('rewardInput');
+    const noPay = value === 'raffle' || value === 'volunteer';
+    if (noPayBox) noPayBox.style.display = noPay ? 'block' : 'none';
+    if (rewardField) rewardField.style.display = noPay ? 'none' : 'block';
+    if (rewardInput) {
+      rewardInput.required = !noPay;
+      if (noPay) rewardInput.value = '0';
+    }
+  }
+
+  function pickUrgency(el) {
+    if ({{ (survey.pricing_snapshot is not none) | tojson }}) return;
+    document.querySelectorAll('#urgencyPills .pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('urgencyInput').value = el.dataset.v;
+  }

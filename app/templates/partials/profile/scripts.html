@@ -1,0 +1,20 @@
+<script>
+  function copyReferral(kind) {
+    const text = kind === 'link'
+      ? (document.getElementById('referralLinkValue')?.textContent || '').trim()
+      : (document.getElementById('referralCodeValue')?.textContent || '').trim();
+    const note = document.getElementById('referralCopied');
+    if (!text) return;
+    const done = () => {
+      if (note) note.textContent = kind === 'link' ? 'Invite link copied.' : 'Referral code copied.';
+      setTimeout(() => { if (note) note.textContent = ''; }, 2000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => {
+        window.prompt('Copy this:', text);
+      });
+    } else {
+      window.prompt('Copy this:', text);
+    }
+  }
+</script>

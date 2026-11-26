@@ -1,0 +1,28 @@
+  function flyOut(dir, cb) {
+    const c = document.getElementById('frontCard');
+    if (!c) { cb(); return; }
+    c.classList.add(dir === 'left' ? 'fly-left' : 'fly-right');
+    setTimeout(cb, 320);
+  }
+
+  function doSkip() { advanceFromCurrent('left'); }
+
+  function openRecruitmentPage(path) {
+    const s = activeSurveys[cardIdx];
+    if (window.insightaTrack && s) {
+      window.insightaTrack('study_click', {
+        target_type: 'survey',
+        target_id: s.id,
+        metadata: {
+          source: 'Dashboard',
+          surface: 'participant_dashboard_mobile',
+          study_title: s.title || '',
+          user_role: 'participant',
+        }
+      });
+    }
+    if (!path) { window.location.href = '/dashboard/mobile'; return; }
+    const url = new URL(path, window.location.origin);
+    url.searchParams.set('from', 'participant');
+    window.location.href = url.toString();
+  }

@@ -1,0 +1,85 @@
+  // ── Managed security check ───────────────────────────────
+  // Step 2 is display:none on initial load. Render Turnstile explicitly only
+  // after the step is visible so the challenge can measure a real viewport.
+  let turnstileWidgetId = null;
+  let turnstileVerified = false;
+
+  function setTurnstileStatus(message, state) {
+    const status = document.getElementById('turnstileStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.className = 'field-note turnstile-status' + (state ? ' ' + state : '');
+  }
+
+  function showTurnstileRetry(show) {
+    const button = document.getElementById('turnstileRetry');
+    if (button) button.hidden = !show;
+  }
+
+  function onTurnstileSuccess() {
+    turnstileVerified = true;
+    setTurnstileStatus('Security check complete.', 'success');
+    showTurnstileRetry(false);
+  }
+
+  function onTurnstileError(errorCode) {
+    turnstileVerified = false;
+    const code = String(errorCode || 'unknown');
+    const family = code.slice(0, 3);
+    if (family === '300' || family === '600') {
+      setTurnstileStatus('We could not confirm this browser. Turn off any VPN or blocker, then try again. (Error ' + code + ')', 'error');
+    } else if (family === '110' || family === '400') {
+      setTurnstileStatus('The security check is temporarily misconfigured. Please contact support. (Error ' + code + ')', 'error');
+    } else {
+      setTurnstileStatus('The security check could not load. Please try again. (Error ' + code + ')', 'error');
+    }
+    showTurnstileRetry(true);
+    return true;
+  }
+
+  function onTurnstileExpired() {
+    turnstileVerified = false;
+    setTurnstileStatus('The security check expired. Please complete it again.', 'error');
+    showTurnstileRetry(true);
+  }
+
+  function renderTurnstileIfNeeded() {
+    const container = document.getElementById('turnstileWidget');
+    const step2 = document.getElementById('step2');
+    if (!container || !step2 || !step2.classList.contains('active')) return;
+    if (!window.turnstile) {
+      setTurnstileStatus('Loading security check…', '');
+      return;
+    }
+    if (turnstileWidgetId !== null) return;
+    try {
+      turnstileWidgetId = window.turnstile.render(container, {
+        sitekey: container.dataset.sitekey,
+        callback: onTurnstileSuccess,
+        'error-callback': onTurnstileError,
+        'expired-callback': onTurnstileExpired,
+        'timeout-callback': onTurnstileExpired,
+        retry: 'auto',
+        'retry-interval': 3000,
+        'refresh-expired': 'auto'
+      });
+    } catch (error) {
+      turnstileWidgetId = null;
+      onTurnstileError('render');
+    }
+  }
+
+  function onTurnstileLoad() {
+    renderTurnstileIfNeeded();
+  }
+
+  function retryTurnstile() {
+    turnstileVerified = false;
+    setTurnstileStatus('Retrying security check…', '');
+    showTurnstileRetry(false);
+    if (window.turnstile && turnstileWidgetId !== null) {
+      window.turnstile.reset(turnstileWidgetId);
+      return;
+    }
+    renderTurnstileIfNeeded();
+  }

@@ -1,0 +1,119 @@
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const compactScreen = window.matchMedia('(max-width: 560px)');
+    const frameDuration = 2400;
+    const duration = frameDuration * 3;
+    const steps = [
+      { key:'audience', title:'Choose your audience', alt:'The actual Insighta audience form',
+        actions:['Start with the people your study needs.','Set an age range.','Choose the location.'],
+        focus:[[50,50,1],[26,55,1.32,0],[77,55,1.32,100]] },
+      { key:'verification', title:'Choose your verification level', alt:'The actual Insighta verification requirements form',
+        actions:['Choose a basic account check.','Choose account and professional checks.','Or choose ID check (Didit) when needed.'],
+        focus:[[50,30,1],[25,30,1.25,0],[25,30,1.25,0]] },
+      { key:'screening', title:'Review your screening questions', alt:'The actual Insighta screening editor and approved version',
+        actions:['Review the questions and qualifying answers.','Edit the wording. The study rule stays locked.','Approve the version participants will see.'],
+        focus:[[50,50,1],[50,38,1.15],[50,78,1.15]] },
+      { key:'review', title:'Review a flagged response', alt:'The actual Insighta response quality review',
+        actions:['Read the quality signals.','Open the manual review options.','Make the review decision yourself.'],
+        focus:[[50,50,1],[90,75,1.18],[90,75,1.18]] }
+    ];
+    let step = 0;
+    let frame = reducedMotion.matches ? 2 : 0;
+    let elapsed = frame * frameDuration;
+    let paused = reducedMotion.matches;
+    let visible = false;
+    let raf = null;
+    let previousTime = 0;
+    let renderId = 0;
+    const onScreen = new Map([[root,false],[player,false]]);
+    const preloaded = new Set();
+    function preload(index) {
+      const key = steps[index].key;
+      if (preloaded.has(key)) return;
+      preloaded.add(key);
+      for (let i=0;i<3;i++) { const item = new Image(); item.src=`/static/landing_walkthrough/${key}-${i}.jpg`; }
+    }
+    function render() {
+      const current = steps[step];
+      tabs.forEach((tab,index) => { tab.setAttribute('aria-selected',String(index===step)); tab.tabIndex=index===step?0:-1; panels[index].hidden=index!==step; });
+      preview.dataset.frame=String(frame);
+      panels.forEach(panel=>panel.querySelectorAll('.journey-copy-option').forEach((option,index)=>option.setAttribute('aria-hidden',String(index!==frame))));
+      document.getElementById('walkthroughCount').textContent=`0${step+1} / 04`;
+      document.getElementById('walkthroughTitle').textContent=current.title;
+      document.getElementById('walkthroughAction').textContent=current.actions[frame];
+      document.getElementById('journeyMobileStage').value=String(step);
+      const src=`/static/landing_walkthrough/${current.key}-${frame}.jpg`;
+      const [x,y,scale,originX=x]=current.focus[frame];
+      const smallScreen=compactScreen.matches;
+      const zoom=smallScreen && frame ? 1.9 : scale;
+      const origin=smallScreen && frame ? (step===0?originX:step===3?100:0) : originX;
+      image.style.transformOrigin=`${origin}% ${y}%`;
+      image.style.transform=`scale(${reducedMotion.matches?1:zoom})`;
+      focus.style.left=`${x}%`;
+      focus.style.top=`${y}%`;
+      focus.style.opacity=frame && !reducedMotion.matches ? '.75' : '0';
+      const requestId=++renderId;
+      const pending=new Image();
+      pending.onload=() => { if(requestId!==renderId) return; image.src=src; image.alt=`${current.alt}: ${current.actions[frame]}`; document.getElementById('walkthroughExpand').href=src; };
+      pending.src=src;
+      preload(step);
+      preload((step+1)%steps.length);
+    }
+    function progress() {
+      const value=`${Math.min(100,elapsed/duration*100)}%`;
+      root.style.setProperty('--journey-progress',value);
+      player.style.setProperty('--journey-progress',value);
+    }
+    function choose(index) {
+      step=(index+steps.length)%steps.length;
+      frame=reducedMotion.matches?2:0;
+      elapsed=frame*frameDuration;
+      previousTime=0;
+      render(); progress();
+    }
+    function selectStage(index) {
+      paused=true;
+      choose(index);
+      syncPlayback();
+    }
+    function tick(now) {
+      if (previousTime) elapsed+=Math.min(now-previousTime,250);
+      previousTime=now;
+      if (elapsed>=duration) { step=(step+1)%steps.length; elapsed=0; frame=0; render(); }
+      const nextFrame=Math.min(2,Math.floor(elapsed/frameDuration));
+      if(nextFrame!==frame) { frame=nextFrame; render(); }
+      progress();
+      raf=requestAnimationFrame(tick);
+    }
+    function syncPlayback() {
+      const running=!paused && visible && !document.hidden;
+      document.querySelector('.journey-floating').classList.toggle('is-paused',!running || !onScreen.get(root));
+      document.querySelectorAll('[data-journey-play]').forEach(button => { button.textContent=paused?'Play':'Pause'; button.setAttribute('aria-label',`${paused?'Play':'Pause'} walkthrough`); });
+      if(running && raf===null) { previousTime=0; raf=requestAnimationFrame(tick); }
+      if(!running && raf!==null) { cancelAnimationFrame(raf); raf=null; previousTime=0; }
+    }
+    document.querySelectorAll('[data-journey-play]').forEach(button => button.addEventListener('click',()=>{ paused=!paused; syncPlayback(); }));
+    tabs.forEach((tab,index)=>{
+      tab.addEventListener('click',()=>selectStage(index));
+      tab.addEventListener('focus',()=>{ paused=true; syncPlayback(); });
+      tab.addEventListener('keydown',event=>{
+        let next;
+        if(event.key==='ArrowRight') next=(index+1)%tabs.length;
+        if(event.key==='ArrowLeft') next=(index-1+tabs.length)%tabs.length;
+        if(event.key==='Home') next=0;
+        if(event.key==='End') next=tabs.length-1;
+        if(next===undefined) return;
+        event.preventDefault(); selectStage(next); tabs[next].focus();
+      });
+    });
+    document.getElementById('journeyPrev').addEventListener('click',()=>selectStage(step-1));
+    document.getElementById('journeyNext').addEventListener('click',()=>selectStage(step+1));
+    document.getElementById('journeyMobileStage').addEventListener('change',event=>selectStage(Number(event.target.value)));
+    document.addEventListener('visibilitychange',syncPlayback);
+    compactScreen.addEventListener('change',render);
+    reducedMotion.addEventListener('change',event=>{ if(event.matches) { paused=true; frame=2; elapsed=frameDuration*2; render(); progress(); } syncPlayback(); });
+    if('IntersectionObserver' in window) {
+      const observer=new IntersectionObserver(entries=>{ entries.forEach(entry=>onScreen.set(entry.target,entry.isIntersecting)); visible=Array.from(onScreen.values()).some(Boolean); syncPlayback(); },{threshold:.15});
+      observer.observe(root); observer.observe(player);
+    } else { visible=true; }
+    render(); progress(); syncPlayback();
+  })();

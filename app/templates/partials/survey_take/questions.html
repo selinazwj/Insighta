@@ -1,0 +1,16 @@
+  <!-- Survey header -->
+  <div class="survey-header">
+    <h1>{{ survey.title }}</h1>
+    <p>{{ survey.description }}</p>
+    <div class="survey-meta">
+      <span class="meta-pill">{{ survey.estimated_time }} min</span>
+      <span class="meta-pill">${{ "%.2f"|format(survey.admin_display_reward_amount if survey.admin_display_reward_amount is not none else survey.reward_amount) }} reward</span>
+    </div>
+  </div>
+
+  <!-- Questions rendered by JS -->
+  <div id="questionsList">
+    <div class="loading-state"><p>Loading questions...</p></div>
+  </div>
+
+</div>

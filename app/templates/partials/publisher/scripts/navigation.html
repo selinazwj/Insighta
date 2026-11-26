@@ -1,0 +1,32 @@
+  document.querySelectorAll('.progress-fill').forEach(el => {
+    el.style.width = (el.dataset.pct || 0) + '%';
+  });
+
+  function switchPubTab(tab, btn) {
+    document.getElementById('tab-surveys').style.display = tab === 'surveys' ? 'block' : 'none';
+    document.getElementById('tab-interviews').style.display = tab === 'interviews' ? 'block' : 'none';
+    document.querySelectorAll('.pub-tab').forEach(t => {
+      t.style.color = 'var(--ink-muted)';
+      t.style.borderBottomColor = 'transparent';
+    });
+    btn.style.color = 'var(--accent)';
+    btn.style.borderBottomColor = 'var(--accent)';
+    localStorage.setItem('publisherActiveTab', tab);
+  }
+
+  (function() {
+    const saved = localStorage.getItem('publisherActiveTab');
+    if (saved === 'interviews') {
+      const tabs = document.querySelectorAll('.pub-tab');
+      switchPubTab('interviews', tabs[1]);
+    }
+  })();
+
+  function openModal() { document.getElementById('newListingModal').style.display = 'flex'; }
+  function closeModal() {
+    const m = document.getElementById('newListingModal');
+    m.style.opacity = '0'; m.style.transition = 'opacity 0.15s';
+    setTimeout(() => { m.style.display = 'none'; m.style.opacity = '1'; m.style.transition = ''; }, 150);
+  }
+  function handleBackdropClick(e) { if (e.target === document.getElementById('newListingModal')) closeModal(); }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });

@@ -1,7 +1,7 @@
 """add growth path indexes
 
 Revision ID: 202607220001
-Revises:
+Revises: 202607210001
 Create Date: 2026-07-22 00:00:00
 """
 
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 
 
 revision: str = "202607220001"
-down_revision: Union[str, None] = None
+down_revision: Union[str, None] = "202607210001"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

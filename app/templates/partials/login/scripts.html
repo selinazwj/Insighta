@@ -1,0 +1,48 @@
+<script>
+  function toggleReset() {
+    const panel = document.getElementById('resetPanel');
+    panel.classList.toggle('open');
+  }
+
+  async function sendResetCode() {
+    const emailInput = document.querySelector('#resetPanel input[name="email"]');
+    const btn = document.getElementById('btnResetCode');
+    const hint = document.getElementById('resetCodeHint');
+    const email = emailInput ? emailInput.value.trim() : '';
+
+    if (!email) { hint.textContent = 'Please enter your email first.'; hint.className = 'code-hint error'; return; }
+
+    btn.disabled = true; btn.textContent = 'Sending...';
+    hint.textContent = ''; hint.className = 'code-hint';
+
+    try {
+      const fd = new FormData();
+      fd.append('email', email); fd.append('purpose', 'reset_password');
+      const res = await fetch('/auth/send-code', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.ok) {
+        if (data.dev_code) {
+          document.getElementById('resetVerificationCode').value = data.dev_code;
+        }
+        hint.textContent = data.message; hint.className = 'code-hint success';
+        let secs = 60;
+        const interval = setInterval(() => {
+          secs--;
+          btn.textContent = `Resend (${secs}s)`;
+          if (secs <= 0) { clearInterval(interval); btn.disabled = false; btn.textContent = 'Resend Code'; }
+        }, 1000);
+      } else {
+        hint.textContent = data.message; hint.className = 'code-hint error';
+        btn.disabled = false; btn.textContent = 'Send Code';
+      }
+    } catch {
+      hint.textContent = 'Network error. Please try again.'; hint.className = 'code-hint error';
+      btn.disabled = false; btn.textContent = 'Send Code';
+    }
+  }
+
+  // Auto open reset panel if server says so
+  {% if reset_open %}
+  document.getElementById('resetPanel').classList.add('open');
+  {% endif %}
+</script>

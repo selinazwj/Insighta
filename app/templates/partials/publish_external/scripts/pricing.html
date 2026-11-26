@@ -1,0 +1,61 @@
+  // ── INCENTIVE ──
+  function pickIncentive(el) {
+    document.querySelectorAll('#incentivePills .pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    const v = el.dataset.v;
+    document.getElementById('incentiveInput').value = v;
+    document.getElementById('raffleBox').style.display    = v === 'raffle'    ? 'block' : 'none';
+    document.getElementById('volunteerBox').style.display = v === 'volunteer' ? 'block' : 'none';
+    document.getElementById('paidFields').style.display   = (v === 'raffle' || v === 'volunteer') ? 'none' : 'block';
+    document.getElementById('submitLabel').textContent    = IS_ADMIN_PUBLISH ? 'Publish demo listing' : 'Pay & Publish';
+    updateCommission();
+  }
+
+  // ── URGENCY ──
+  function pickUrgency(el) {
+    document.querySelectorAll('#urgencyPills .pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('urgencyInput').value = el.dataset.v;
+    updateCommission();
+  }
+
+  // ── COMMISSION CALCULATOR ──
+  const ppInput    = document.getElementById('ppInput');
+  const totalInput = document.getElementById('totalInput');
+  const targetInput = document.getElementById('targetInput');
+  const sessionCountInput = document.getElementById('sessionCountInput');
+
+  const updateCommission = window.InsightaPricing({
+    box: document.getElementById('commBox'),
+    total: totalInput, status: document.getElementById('quoteStatus'),
+    values: {reward: document.getElementById('cPP'), fee: document.getElementById('cFee'),
+              urgency: document.getElementById('cBoost'), total: document.getElementById('cTotal')},
+    input: () => ({study_type: document.getElementById('taskTypeSelect')?.value || 'survey', incentive_type: document.getElementById('incentiveInput').value, per_person: ppInput.value || '0', target_responses: targetInput.value || '0', urgency_level: document.getElementById('urgencyInput').value})
+  });
+
+  document.querySelectorAll('[name="payment_method"], #usePromoCredits').forEach(el => el.addEventListener('change', updateCommission));
+
+  function adminUsesStripe() {
+    return IS_ADMIN_PUBLISH && document.getElementById('adminPaymentMode')?.value === 'stripe';
+  }
+
+  function syncAdminPaymentMode() {
+    if (!IS_ADMIN_PUBLISH) return;
+    const useStripe = adminUsesStripe();
+    const displayField = document.getElementById('adminDisplayRewardField');
+    const demoNote = document.getElementById('adminDemoNote');
+    const stripeNote = document.getElementById('adminStripeNote');
+    const submitLabel = document.getElementById('submitLabel');
+    if (displayField) displayField.style.display = useStripe ? 'none' : '';
+    if (demoNote) demoNote.style.display = useStripe ? 'none' : '';
+    if (stripeNote) stripeNote.style.display = useStripe ? '' : 'none';
+    if (submitLabel) submitLabel.textContent = useStripe ? 'Pay with Stripe & publish' : 'Publish demo listing';
+    updateCommission();
+  }
+
+  ppInput.addEventListener('input', updateCommission);
+  totalInput.addEventListener('input', updateCommission);
+  targetInput.addEventListener('input', updateCommission);
+  sessionCountInput?.addEventListener('input', updateCommission);
+  document.getElementById('taskTypeSelect')?.addEventListener('change', syncAdminStudyType);
+  document.getElementById('adminPaymentMode')?.addEventListener('change', syncAdminPaymentMode);

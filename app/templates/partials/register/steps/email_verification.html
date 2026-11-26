@@ -1,0 +1,56 @@
+      <!-- STEP 1: Email + Verification -->
+      <div class="step {% if register_step|default(1) == 1 %}active{% endif %}" id="step1">
+        <div class="step-header">
+          <span class="step-eyebrow">Step 1 of 2</span>
+          <h1>{% if participant_app %}Join the participant side.{% else %}Verify your email.{% endif %}</h1>
+          <p>Verify your email, then add your basic details and a password to create your account. You can expand your profile after signing in.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email address <span class="badge-required">Required</span></label>
+          <input type="email" name="email" id="email" required placeholder="you@example.com"
+            value="{{ register_email or '' }}" onblur="checkEmailExists(this.value)">
+          <div class="field-note"><strong>Recommended:</strong> use a school or work email when possible. It helps us establish account trust faster.</div>
+          <div id="emailExistsHint" style="display:none; margin-top:6px; font-size:13px; color:#c53030; background:#fff5f5; border:1px solid #fed7d7; border-radius:8px; padding:8px 12px;">
+            This email is already registered. <a href="/login" style="color:#c53030; font-weight:700; text-decoration:underline;">Sign in instead →</a>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="phoneNumber">Phone number <span class="badge-optional">Optional</span></label>
+          <input type="tel" name="phone_number" id="phoneNumber" placeholder="+1 555 123 4567"
+            value="{{ register_phone or '' }}" autocomplete="tel">
+          <div class="field-note">Optional, but useful if we need another way to verify your account.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="referralCode">Referral code <span class="badge-optional">Optional</span></label>
+          <input type="text" name="referral_code" id="referralCode" placeholder="e.g. AB12CD34"
+            value="{{ register_referral or '' }}" autocomplete="off" spellcheck="false"
+            style="text-transform:uppercase;letter-spacing:.08em;">
+          <div class="field-note">Have a friend’s code? Enter it here — or skip if you don’t.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="verificationCode">Verification code <span class="badge-required">Required</span></label>
+          <div class="code-row">
+            <input type="text" name="verification_code" id="verificationCode"
+              placeholder="6-digit code" maxlength="6" autocomplete="one-time-code"
+              value="{{ register_code or '' }}" oninput="autoVerifyCode(this.value)">
+            <button type="button" class="btn-send-code" id="btnSendCode" onclick="sendCode()">
+              Send Code
+            </button>
+          </div>
+          <div class="code-hint" id="codeHint">Enter your email first, then click Send Code.</div>
+        </div>
+
+        <button type="button" class="btn-next" onclick="goToStep2()">Continue →</button>
+        <div class="quick-auth">
+          <div class="quick-auth-note">or</div>
+          <a class="btn-google" href="/auth/google">
+            <span class="google-mark">G</span>
+            Sign in or create account with Google
+          </a>
+        </div>
+        <p class="form-footer">Already have an account, or prefer Google? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in or use Google</a></p>
+      </div>

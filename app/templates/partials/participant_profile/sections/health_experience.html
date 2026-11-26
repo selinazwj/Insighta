@@ -1,0 +1,20 @@
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--baltic);"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div class="sh-title">Experience</div>
+        </div>
+        <div class="section-body">
+          <div class="chip-grid">
+            {% for option in ['First-generation student','International student','Transfer student','Working student','Caregiver','Chronic illness','Disability','Neurodivergent','Mental health experience','Physical health experience','Financial aid','Study abroad','Research participant','Online learning','Campus housing','Commuter','Athlete / fitness','Creator / social media','Gaming','Travel','Food / dining','Sustainability','Other'] %}
+              <label class="chip"><input type="checkbox" name="experience_tags" value="{{ option }}" {% if option in experiences %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="experience-other"{% endif %}><span>{{ option }}</span></label>
+            {% endfor %}
+          </div>
+          <label class="form-group other-input" id="experience-other" style="margin-top:12px;"><span class="form-label">Other experience</span><input class="form-input" name="experience_tags_other" value="{{ experience_other }}" placeholder="Type another experience"></label>
+          <div class="form-grid" style="margin-top:16px;">
+            <label class="form-group"><span class="form-label">Mental health diagnosis</span><input class="form-input" list="mental-diagnosis-options" name="mental_health_diagnosis" value="{{ 'Other' if mental_other else (current_user.mental_health_diagnosis or '') }}" placeholder="Search or type" data-other-source data-other-target="mental-other"></label>
+            <label class="form-group"><span class="form-label">Physical health diagnosis</span><input class="form-input" list="physical-diagnosis-options" name="physical_health_diagnosis" value="{{ 'Other' if physical_other else (current_user.physical_health_diagnosis or '') }}" placeholder="Search or type" data-other-source data-other-target="physical-other"></label>
+            <label class="form-group other-input" id="mental-other"><span class="form-label">Other mental health diagnosis</span><input class="form-input" name="mental_health_diagnosis_other" value="{{ mental_other }}" placeholder="Type diagnosis"></label>
+            <label class="form-group other-input" id="physical-other"><span class="form-label">Other physical diagnosis</span><input class="form-input" name="physical_health_diagnosis_other" value="{{ physical_other }}" placeholder="Type diagnosis"></label>
+          </div>
+        </div>
+      </section>

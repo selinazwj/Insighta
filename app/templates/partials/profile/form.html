@@ -1,0 +1,59 @@
+      <section class="form-card">
+        <form method="POST" action="/profile">
+          <input type="hidden" name="return_to" value="{{ prev_url or '/publisher' }}">
+
+          <div class="section-title">Basic information</div>
+          <div class="section-sub">Used for your workspace identity, support, and account communication.</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Name</label>
+              <input name="username" type="text" placeholder="Your name" value="{{ user.username or '' }}">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input name="email" type="email" required placeholder="you@example.com" value="{{ user.email }}">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Phone number</label>
+            <input name="phone_number" type="tel" placeholder="+1 555 123 4567" value="{{ user.phone_number or '' }}">
+          </div>
+
+          <div class="section-divider"></div>
+
+          <div class="section-title">Researcher identity</div>
+          <div class="section-sub">This helps us understand who is publishing studies, without asking for participant screening details.</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Field / major</label>
+              <select name="field" id="fieldSelect">
+                <option value="" {% if not user.field %}selected{% endif %}>Select</option>
+                {% for field in ['Computer Science & Engineering','Business & Economics','Medicine & Healthcare','Natural Sciences','Social Sciences','Arts & Humanities','Education','Law','Design','Other'] %}
+                <option value="{{ field }}" {% if user.field==field %}selected{% endif %}>{{ field }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Current status</label>
+              <select name="status" id="statusSelect">
+                <option value="" {% if not user.status %}selected{% endif %}>Select</option>
+                {% for status in ['Student researcher','Faculty / PI','Industry researcher','Founder / startup','Product team','Independent researcher','Other'] %}
+                <option value="{{ status }}" {% if user.status==status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Short researcher bio</label>
+            <textarea name="profile_description" placeholder="Optional: one or two lines about your research area, lab, company, or team.">{{ user.profile_description or '' }}</textarea>
+          </div>
+          <div class="form-note">Participant matching details live on the participant side only.</div>
+
+          <div class="actions">
+            <a href="{{ prev_url or '/publisher' }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-submit">Save profile</button>
+          </div>

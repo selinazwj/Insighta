@@ -1,0 +1,8 @@
+    <div class="profile-hero">
+      <div class="profile-avatar">{{ current_user.username[0].upper() if current_user.username else current_user.email[0].upper() }}</div>
+      <div>
+        <div class="profile-name">{{ current_user.username or 'Your profile' }}</div>
+        <div class="profile-email">{{ current_user.email }}</div>
+        <div class="profile-note">Add more detail about yourself so researchers can match you with better studies.</div>
+      </div>
+    </div>

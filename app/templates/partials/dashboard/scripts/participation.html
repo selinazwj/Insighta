@@ -1,0 +1,37 @@
+  async function doComplete(id) {
+    const res = await fetch(`/surveys/${id}/complete`, { method:'POST', credentials:'same-origin' }).catch(()=>null);
+    if (res && res.ok) {
+      // ive added this for phase 4 (participant nudge) — send them to /verify if this
+      // study needed a stronger tier than they currently hold
+      const data = await res.json().catch(() => null);
+      if (data && data.needs_verification) {
+        window.location.href = '/verify?needs_tier=' + encodeURIComponent(data.required_verification_tier || 'tier_3') + (data.required_email_domains ? '&needs_domains=' + encodeURIComponent(data.required_email_domains) : '');
+        return;
+      }
+      // ive changed this — the finished study disappears from home right away
+      // (it still shows up under My Studies)
+      const i = surveys.findIndex(x => x.id === id);
+      if (i >= 0) surveys.splice(i, 1);
+      renderList(); updateStats();
+    }
+  }
+
+  async function doSkip(id, e) {
+    burst(e);
+    const card = document.getElementById('card-' + id);
+    if (card) { card.style.transition = 'opacity .25s, transform .25s'; card.style.opacity = '0'; card.style.transform = 'translateX(-16px)'; }
+    setTimeout(() => {
+      const s = surveys.find(x => x.id === id);
+      if (s) { surveys.splice(surveys.indexOf(s), 1); renderList(); }
+    }, 260);
+  }
+
+  async function doUndo(id, e) {
+    burst(e);
+    const res = await fetch(`/surveys/${id}/modify`, { method:'POST', credentials:'same-origin' }).catch(()=>null);
+    if (res && res.ok) {
+      const s = surveys.find(x => x.id === id);
+      if (s) s.is_completed = false;
+      renderList(); updateStats();
+    }
+  }

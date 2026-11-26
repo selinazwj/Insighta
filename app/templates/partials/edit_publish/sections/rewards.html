@@ -1,0 +1,86 @@
+    <!-- 03 REWARD & RESPONSES -->
+    <div class="form-section">
+      <div class="section-head">
+        <div class="section-num">03</div>
+        <div>
+          <div class="section-title">Budget &amp; timeline</div>
+          <div class="section-sub">Incentive type, target responses, and urgency</div>
+        </div>
+      </div>
+
+      <div class="progress-card">
+        <span class="progress-label">Current progress</span>
+        <span class="progress-value">{{ survey.current_responses }} / {{ survey.target_responses }} responses</span>
+      </div>
+
+      {% set incentive = survey.incentive_type or 'cash' %}
+      <div class="field" style="margin-bottom:18px;">
+        <label>Incentive type</label>
+        <div class="pills" id="incentivePills">
+          <div class="pill {% if incentive == 'cash' %}active{% endif %}" data-v="cash" onclick="pickIncentive(this)">Cash</div>
+          <div class="pill {% if incentive == 'gift_card' %}active{% endif %}" data-v="gift_card" onclick="pickIncentive(this)">Gift card</div>
+          <div class="pill {% if incentive == 'raffle' %}active{% endif %}" data-v="raffle" onclick="pickIncentive(this)">Raffle</div>
+          <div class="pill {% if incentive == 'volunteer' %}active{% endif %}" data-v="volunteer" onclick="pickIncentive(this)">Volunteer</div>
+        </div>
+        <input type="hidden" name="incentive_type" id="incentiveInput" value="{{ incentive }}">
+      </div>
+
+      <div class="info-box" id="raffleBox" style="{% if incentive != 'raffle' %}display:none;{% endif %}">
+        <strong>Raffle reward</strong>
+        <label style="display:inline-flex;align-items:center;gap:7px;margin-right:12px;font-size:13px;">
+          <input type="radio" name="raffle_prize_type" value="gift_card" {% if survey.raffle_prize_type != 'cash' %}checked{% endif %}> Gift card
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:7px;font-size:13px;">
+          <input type="radio" name="raffle_prize_type" value="cash" {% if survey.raffle_prize_type == 'cash' %}checked{% endif %}> Cash
+        </label>
+      </div>
+
+      {% if survey.status == 'published' or survey.pricing_snapshot %}
+      <div class="warn-box">
+        <strong>Reward locked</strong>
+        Reward cannot be changed after publishing to protect participants.
+        Current: <strong style="color:var(--ink);">${{ "%.2f"|format(survey.reward_amount) }} per response</strong>
+      </div>
+      <input type="hidden" name="reward_amount" value="{{ survey.reward_amount }}">
+      {% else %}
+      <div class="info-box" id="noPayBox" style="{% if incentive not in ('raffle','volunteer') %}display:none;{% endif %}">
+        <strong>No per-response payout</strong>
+        Participants are not paid per response for raffle or volunteer listings.
+      </div>
+      <div class="field" id="rewardField" style="max-width:220px;margin-bottom:16px;{% if incentive in ('raffle','volunteer') %}display:none;{% endif %}">
+        <label>Reward per response ($)</label>
+        <input type="number" id="rewardInput" name="reward_amount" value="{{ '%.2f'|format(survey.reward_amount) if incentive not in ('raffle','volunteer') else '0.00' }}" step="0.01" min="0" {% if incentive not in ('raffle','volunteer') %}required{% endif %}>
+      </div>
+      {% endif %}
+
+      <div class="field" style="max-width:220px;">
+        {% if survey.pricing_snapshot %}
+        <p>Your quoted reward, recruitment fee, participant cap, and urgency are fixed. Create a new listing for a new order.</p>
+        {% endif %}
+        <label>Remaining responses needed</label>
+        <div class="field-hint">Added on top of current {{ survey.current_responses }}</div>
+        <input type="number" name="additional_needed" {% if survey.pricing_snapshot %}readonly{% endif %} value="{{ survey.target_responses - survey.current_responses }}" min="0" required>
+      </div>
+
+      {% if is_admin_edit %}
+      <div class="info-box" style="margin-top:18px;">
+        <strong>Admin display reward</strong>
+        This controls the amount participants see on validation listings. It does not charge Stripe.
+      </div>
+      <div class="field" style="max-width:240px;margin-bottom:16px;">
+        <label>Participant-facing reward ($)</label>
+        <input type="number" name="admin_display_reward_amount" value="{{ '%.2f'|format(survey.admin_display_reward_amount if survey.admin_display_reward_amount is not none else survey.reward_amount) }}" step="0.01" min="0">
+      </div>
+      {% endif %}
+
+      <div class="field" style="margin-top:18px;">
+        <label>Recruitment timeline</label>
+        {% set urgency = survey.urgency_level or 'flexible' %}
+        <div class="pills" id="urgencyPills">
+          <div class="pill {% if urgency == 'flexible' %}active{% endif %}" data-v="flexible" onclick="pickUrgency(this)">No deadline</div>
+          <div class="pill {% if urgency == 'within_1_month' %}active{% endif %}" data-v="within_1_month" onclick="pickUrgency(this)">Within 1 month +5%</div>
+          <div class="pill {% if urgency == 'within_1_week' %}active{% endif %}" data-v="within_1_week" onclick="pickUrgency(this)">Within 1 week +10%</div>
+        </div>
+        <input type="hidden" name="urgency_level" id="urgencyInput" value="{{ urgency }}">
+      </div>
+    </div>

@@ -1,0 +1,11 @@
+<script>
+const message=document.getElementById('walletMessage');
+async function walletAction(form,url,body,redirect){
+ const button=form.querySelector('button');button.disabled=true;message.textContent='Processing…';
+ try{const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw new Error(result.detail||'Request failed.');if(redirect&&result.redirect_url){window.location.assign(result.redirect_url);return;}message.textContent='Saved. Updating wallet…';window.location.reload();}
+ catch(error){message.textContent=error.message;button.disabled=false;}
+}
+document.getElementById('topupForm').addEventListener('submit',function(event){event.preventDefault();walletAction(this,'/api/wallet/topups',{amount:document.getElementById('topupAmount').value,token:{{ topup_token|tojson }}},true);});
+document.getElementById('couponForm').addEventListener('submit',function(event){event.preventDefault();walletAction(this,'/api/wallet/redeem',{code:document.getElementById('couponCode').value});});
+document.getElementById('billingForm').addEventListener('submit',function(event){event.preventDefault();walletAction(this,'/api/wallet/billing',{name:document.getElementById('billingName').value,institution:document.getElementById('billingInstitution').value,address:document.getElementById('billingAddress').value});});
+</script>

@@ -1,0 +1,41 @@
+  // ── SAVE ──
+  async function saveQ(id) {
+    const q = questions.find(q=>q.id===id);
+    if(!q) return true;
+    clearTimeout(saveTimers.get(id));
+    saveTimers.delete(id);
+    const body = JSON.stringify({ question_text:q.question_text, question_type:q.question_type, options:q.options, is_required:q.is_required });
+    activeQuestionSaves++;
+    setSaveStatus('saving');
+    const saving = (questionSaves.get(id) || Promise.resolve()).then(async () => {
+      try {
+        const res = await fetch(`/surveys/${SURVEY_ID}/questions/${id}`, {
+          method:'PUT', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body
+        });
+        if (!res.ok) throw new Error('Save failed');
+        failedQuestionSaves.delete(id);
+        return true;
+      } catch {
+        failedQuestionSaves.add(id);
+        return false;
+      } finally {
+        activeQuestionSaves--;
+        setSaveStatus(failedQuestionSaves.size ? 'error' : activeQuestionSaves || saveTimers.size ? 'saving' : 'saved');
+      }
+    });
+    questionSaves.set(id, saving);
+    return saving;
+  }
+  function scheduleSave(id) {
+    clearTimeout(saveTimers.get(id));
+    setSaveStatus('saving');
+    saveTimers.set(id, setTimeout(()=>saveQ(id), 800));
+  }
+  function setSaveStatus(s) {
+    ['saveStatus','bottomSaveStatus'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = 'save-status ' + s;
+      el.textContent = s==='saving'?'Saving…':s==='saved'?'Saved':s==='error'?'Could not save. Please retry.':'';
+    });
+  }

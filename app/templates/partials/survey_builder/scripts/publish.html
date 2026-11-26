@@ -1,0 +1,15 @@
+  // ── PUBLISH ──
+  async function finishAndPublish() {
+    if (publishPending) return;
+    const title = document.getElementById('infoTitle').value.trim();
+    if (!title) { alert('Please add a survey title before continuing.'); document.getElementById('infoTitle').focus(); return; }
+    if (!questions.length) { alert('Please add at least one question before continuing.'); return; }
+    if (document.getElementById('aiBtn').disabled) { showMsg('error', 'Please wait for question generation to finish.'); return; }
+    publishPending = true;
+    const saved = await Promise.all([saveInfo(), ...questions.map(q => saveQ(q.id))]);
+    publishPending = false;
+    if (saved.some(ok => !ok)) { alert('Some changes could not be saved. Please try again before continuing.'); return; }
+    const desc = document.getElementById('infoDescription').value.trim();
+    const p = new URLSearchParams({ builtin:'1', survey_id:String(SURVEY_ID), title, desc });
+    window.location.href = `/publish?${p}`;
+  }

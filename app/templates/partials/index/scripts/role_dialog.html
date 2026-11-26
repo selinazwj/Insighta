@@ -1,0 +1,44 @@
+  function openModal(intent, selectedRole = role) {
+    document.getElementById('modalBg').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    pickRole(selectedRole);
+    if (intent === 'signin') {
+      document.getElementById('modal-title').textContent = 'How do you want to sign in?';
+      document.getElementById('modal-sub').textContent = 'Choose your side first, then continue to the regular login page.';
+    } else {
+      document.getElementById('modal-title').textContent = 'Welcome to Insighta';
+      document.getElementById('modal-sub').textContent = 'Choose your side first, then create your account.';
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('modalBg').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('modalBg')) closeModal();
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  function pickRole(r) {
+    role = r;
+    document.getElementById('choice-login').href = `/login?role=${r}`;
+    document.getElementById('choice-register').href = `/register?role=${r}`;
+    document.getElementById('card-researcher').classList.toggle('sel', r === 'researcher');
+    document.getElementById('card-participant').classList.toggle('sel', r === 'participant');
+  }
+
+  setHomepageMode('researcher', false);
+  // The walkthrough plays local screenshots of the real product with sample data.
+  // It does not call verification, AI, publishing, or payment APIs.
+  (() => {
+    const root = document.querySelector('.journey-aside');
+    const player = document.querySelector('.walkthrough-player');
+    if (!root || !player) return;
+    const tabs = Array.from(document.querySelectorAll('.journey-tab'));
+    const panels = Array.from(document.querySelectorAll('.journey-panel'));
+    const image = document.getElementById('walkthroughImage');
+    const focus = document.querySelector('.walkthrough-focus');
+    const preview = document.querySelector('.journey-preview');

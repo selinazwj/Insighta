@@ -1,0 +1,47 @@
+  function switchTab(tab) {
+    ['overview','actions','ai'].forEach(t => {
+      document.getElementById('panel-' + t).style.display = t === tab ? 'block' : 'none';
+      document.getElementById('tab-'   + t).classList.toggle('active', t === tab);
+    });
+    // Opening/restoring the AI tab must not spend tokens by itself.
+    localStorage.setItem('studyTab_' + SURVEY_ID, tab);
+  }
+
+  // restore last tab
+  const saved = localStorage.getItem('studyTab_' + SURVEY_ID);
+  if (saved && saved !== 'overview') switchTab(saved);
+
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(SHARE_URL);
+      if (window.insightaTrack) {
+        window.insightaTrack('study_shared', {
+          target_type: 'survey',
+          target_id: SURVEY_ID,
+          metadata: { source: 'Study details', surface: 'publisher_study', user_role: 'researcher' }
+        });
+      }
+      alert('Share link copied.');
+    } catch {
+      prompt('Copy this link', SHARE_URL);
+    }
+  }
+
+  async function confirmStudyInterviewComplete(responseId, button) {
+    if (!confirm('Confirm that this interview took place and send it to payout review?')) return;
+    button.disabled = true;
+    const original = button.textContent;
+    button.textContent = 'Saving…';
+    const res = await fetch(`/api/surveys/${SURVEY_ID}/bookings/${responseId}/complete`, {
+      method:'POST', credentials:'same-origin'
+    }).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : {};
+    if (!res || !res.ok) {
+      alert(data.detail || 'Could not confirm this interview.');
+      button.disabled = false;
+      button.textContent = original;
+      return;
+    }
+    button.outerHTML = '<div style="margin-top:6px;color:var(--green);font-size:12px;font-weight:700;">Awaiting payout review</div>';
+    alert('Interview completed. Review the new notification to approve or reject payout.');
+  }

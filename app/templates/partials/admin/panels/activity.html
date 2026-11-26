@@ -1,0 +1,57 @@
+  <!-- ── ACTIVITY PANEL ── -->
+  <div class="panel" id="panel-activity">
+    <div class="activity-controls">
+      <select id="activitySurvey" onchange="loadActivity(true)">
+        <option value="">All studies</option>
+      </select>
+      <select id="activityEvent" onchange="loadActivity(true)">
+        <option value="">All events</option>
+        <option value="page_view">Page View</option>
+        <option value="page_exit">Page Exit</option>
+        <option value="study_impression">Study Impression</option>
+        <option value="study_click">Study Clicked</option>
+        <option value="study_start">Start Clicked</option>
+        <option value="study_complete">Study Completed</option>
+        <option value="sign_up">Sign Up</option>
+        <option value="login">Login</option>
+        <option value="profile_update">Profile Update</option>
+        <option value="study_created">Study Created</option>
+        <option value="study_published">Study Published</option>
+        <option value="participant_approved">Participant Approved</option>
+        <option value="participant_rejected">Participant Rejected</option>
+        <option value="listing_view">Listing View</option>
+        <option value="study_shared">Study Shared</option>
+      </select>
+      <input id="activitySearch" placeholder="Search email, guest ID, or page..." onkeydown="if(event.key==='Enter') loadActivity(true)">
+      <button class="btn-run" onclick="loadActivity(true)">Search</button>
+      <button class="btn-refresh" onclick="resetActivityFilters()">Reset</button>
+    </div>
+    <div class="activity-stack">
+      <div class="analytics-box">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">People by selected study</div>
+            <div class="analytics-sub">Choose one study above to see who opened it, clicked Start, and completed it.</div>
+          </div>
+        </div>
+        <div id="activityPeople">
+          <div class="empty"><div class="empty-sub">Choose a study to see user-level activity.</div></div>
+        </div>
+      </div>
+      <div class="analytics-box">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">Full activity log</div>
+            <div class="analytics-sub">Paginated raw event history. Use Load more to keep older rows visible.</div>
+          </div>
+          <button class="btn-refresh" onclick="loadActivity(true)">Refresh</button>
+        </div>
+        <div id="activityTable">
+          <div class="empty"><div class="empty-sub">Open this panel to load activity.</div></div>
+        </div>
+        <div class="load-more-wrap">
+          <button class="btn-refresh" id="activityMoreBtn" onclick="loadActivity(false)" style="display:none;">Load more</button>
+        </div>
+      </div>
+    </div>
+  </div>

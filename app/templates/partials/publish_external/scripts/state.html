@@ -1,0 +1,8 @@
+  const IS_ADMIN_PUBLISH = {{ 'true' if is_admin_publish else 'false' }};
+  const ADMIN_KEY = {{ (admin_key or '')|tojson if is_admin_publish else 'null' }};
+  const DRAFT_KEY = `insighta_publish_draft_{{ current_user.id }}_{{ 'admin' if is_admin_publish else 'builtin' if builtin else 'external' }}_{{ existing_survey_id or 0 }}`;
+  const DRAFT_NOTICE_KEY = 'insighta_draft_notice_{{ current_user.id }}';
+  const WIZARD_TITLES = ['Basics', 'Target audience', 'Review', 'Budget & timeline', 'Payment & publish'];
+  let currentWizardStep = 1;
+  let adminSlots = [];
+  let publishPending = false;

@@ -1,0 +1,89 @@
+  // ── SUPPORT ──
+  async function loadSupportThreads() {
+    try {
+      const res = await fetch(`/admin/support/threads?admin_key=${encodeURIComponent(adminKey)}&_=${Date.now()}`,{cache:'no-store'});
+      if (!res.ok) throw new Error();
+      supportThreads = await res.json();
+      renderThreads();
+      const unread = supportThreads.reduce((s,t) => s + (t.unread_user_messages||0), 0);
+      const badge = document.getElementById('support-badge');
+      badge.textContent = unread;
+      badge.style.display = unread > 0 ? 'flex' : 'none';
+      document.getElementById('statSupport').textContent = supportThreads.filter(t=>t.status==='open').length;
+      if (selectedThreadId) await loadMessages(selectedThreadId, false);
+    } catch {
+      document.getElementById('threadList').innerHTML = '<div class="empty"><div class="empty-sub">Failed to load threads</div></div>';
+    }
+  }
+
+  function renderThreads() {
+    const list = document.getElementById('threadList');
+    if (!supportThreads.length) { list.innerHTML = '<div class="empty"><div class="empty-sub">No threads yet</div></div>'; return; }
+    list.innerHTML = supportThreads.map(t => `
+      <div class="thread-item ${t.id === selectedThreadId ? 'active' : ''}" onclick="loadMessages(${t.id}, true)">
+        <div class="ti-top">
+          <div class="ti-name">${esc(t.user_name || t.user_email)}${t.unread_user_messages ? `<span class="ti-unread">${t.unread_user_messages}</span>` : ''}</div>
+          <div class="ti-status">${esc(t.status)}</div>
+        </div>
+        <div class="ti-last">${esc(t.last_message || 'No messages yet')}</div>
+      </div>`).join('');
+  }
+
+  async function loadMessages(threadId, focus) {
+    selectedThreadId = threadId;
+    renderThreads();
+    const t = supportThreads.find(x => x.id === threadId);
+    document.getElementById('chatUser').textContent = t ? (t.user_name || t.user_email) : `Thread #${threadId}`;
+    document.getElementById('chatInput').disabled = false;
+    document.getElementById('chatSend').disabled = false;
+    try {
+      const res = await fetch(`/admin/support/threads/${threadId}/messages?admin_key=${encodeURIComponent(adminKey)}&_=${Date.now()}`,{cache:'no-store'});
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      renderMessages(data.messages || []);
+      if (focus) document.getElementById('chatInput').focus();
+    } catch {
+      document.getElementById('chatMsgs').innerHTML = '<div class="empty"><div class="empty-sub">Failed to load messages</div></div>';
+    }
+  }
+
+  function renderMessages(msgs) {
+    const wrap = document.getElementById('chatMsgs');
+    if (!msgs.length) { wrap.innerHTML = '<div class="empty"><div class="empty-sub">No messages yet</div></div>'; return; }
+    wrap.innerHTML = msgs.map(m => {
+      const who = m.sender_type === 'admin' ? 'Support' : m.sender_type === 'user' ? 'User' : 'System';
+      const t = m.created_at ? new Date(m.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+      return `<div class="msg ${esc(m.sender_type)}">${esc(m.body)}<small class="msg-time">${who} · ${t}</small></div>`;
+    }).join('');
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  async function sendReply(e) {
+    e.preventDefault();
+    if (!selectedThreadId) return;
+    const input = document.getElementById('chatInput');
+    const btn   = document.getElementById('chatSend');
+    const body  = input.value.trim();
+    if (!body) return;
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/admin/support/threads/${selectedThreadId}/messages`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, body })
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Failed');
+      input.value = '';
+      await loadSupportThreads();
+      await loadMessages(selectedThreadId, true);
+    } catch(err) { alert(err.message); }
+    finally { btn.disabled = false; }
+  }
+
+  async function closeThread() {
+    if (!selectedThreadId || !confirm('Close this thread?')) return;
+    await fetch(`/admin/support/threads/${selectedThreadId}/status`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ admin_key: adminKey, status:'closed' })
+    });
+    await loadSupportThreads();
+  }

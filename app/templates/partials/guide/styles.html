@@ -1,0 +1,92 @@
+<style>
+        :root {
+            --ink: #1a1a18;
+            --ink-soft: #4a4a44;
+            --ink-muted: #8a8a82;
+            --paper: #faf9f5;
+            --paper-warm: #f3f1ea;
+            --accent: #2d6a4f;
+            --accent-light: #52b788;
+            --accent-warm: #e07a3c;
+            --line: #e0ddd3;
+            --serif: 'DM Serif Display', Georgia, serif;
+            --sans: 'DM Sans', system-ui, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+        .navbar { background: rgba(250, 249, 245, 0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 14px 48px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .navbar-left { display: flex; align-items: center; gap: 16px; }
+        .back-btn { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--ink-muted); text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); transition: all 0.2s; }
+        .back-btn:hover { color: var(--ink); background: var(--paper-warm); }
+        .navbar-brand { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+        .navbar-brand span { color: var(--accent); }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
+
+        .page-header { text-align: center; margin-bottom: 48px; }
+        .page-header h1 { font-family: var(--serif); font-size: clamp(32px, 4vw, 48px); color: var(--ink); letter-spacing: -1px; margin-bottom: 10px; }
+        .page-header h1 em { font-style: italic; color: var(--accent); }
+        .page-header p { font-size: 16px; color: var(--ink-muted); font-weight: 300; }
+
+        .tab-switcher { display: flex; justify-content: center; gap: 4px; background: white; border: 1.5px solid var(--line); border-radius: 12px; padding: 5px; max-width: 380px; margin: 0 auto 48px; }
+        .tab-btn { flex: 1; padding: 10px 20px; font-family: var(--sans); font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--ink-muted); transition: all 0.2s; }
+        .tab-btn.active { background: var(--ink); color: white; }
+        .tab-btn.active.participant { background: var(--accent-warm); }
+
+        .progress-bar-wrap { background: var(--paper-warm); border: 1.5px solid var(--line); border-radius: 12px; padding: 16px 24px; margin-bottom: 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+        .progress-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+        .progress-track { flex: 1; height: 6px; background: var(--line); border-radius: 100px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); transition: width 0.4s ease; }
+        .progress-fill.participant { background: linear-gradient(90deg, var(--accent-warm), #f4a261); }
+        .progress-count { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+        .progress-count.participant { color: var(--accent-warm); }
+
+        .steps-list { display: flex; flex-direction: column; gap: 16px; }
+
+        .step-card { background: white; border: 1.5px solid var(--line); border-radius: 16px; overflow: hidden; transition: all 0.2s; }
+        .step-card:hover { border-color: rgba(45, 106, 79, 0.3); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); }
+        .step-card.completed { border-color: rgba(45, 106, 79, 0.3); background: rgba(45, 106, 79, 0.02); }
+        .step-card.participant-card:hover { border-color: rgba(224, 122, 60, 0.3); box-shadow: 0 4px 20px rgba(224, 122, 60, 0.08); }
+        .step-card.participant-card.completed { border-color: rgba(224, 122, 60, 0.3); background: rgba(224, 122, 60, 0.02); }
+
+        .step-header { display: flex; align-items: center; gap: 16px; padding: 20px 24px; cursor: pointer; }
+        .step-number { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--ink-muted); flex-shrink: 0; transition: all 0.2s; }
+        .step-card.completed .step-number { background: var(--accent); border-color: var(--accent); color: white; }
+        .step-card.participant-card.completed .step-number { background: var(--accent-warm); border-color: var(--accent-warm); color: white; }
+        .step-info { flex: 1; }
+        .step-info h3 { font-family: var(--serif); font-size: 17px; color: var(--ink); margin-bottom: 3px; }
+        .step-info p { font-size: 13px; color: var(--ink-muted); font-weight: 300; }
+        .step-status { display: flex; align-items: center; gap: 10px; }
+        .step-done-badge { font-size: 12px; font-weight: 600; color: var(--accent); background: rgba(45, 106, 79, 0.08); border: 1px solid rgba(45, 106, 79, 0.2); padding: 4px 10px; border-radius: 100px; }
+        .step-done-badge.participant { color: var(--accent-warm); background: rgba(224, 122, 60, 0.08); border-color: rgba(224, 122, 60, 0.2); }
+        .step-toggle { font-size: 18px; color: var(--ink-muted); transition: transform 0.2s; }
+        .step-card.open .step-toggle { transform: rotate(180deg); }
+
+        .step-body { display: none; border-top: 1px solid var(--line); }
+        .step-card.open .step-body { display: block; }
+
+        .step-note { padding: 16px 24px; background: var(--paper-warm); border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink-muted); }
+
+        .step-content { padding: 24px; }
+        .step-description { font-size: 14px; line-height: 1.75; color: var(--ink-soft); margin-bottom: 20px; }
+        .step-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .btn-start { padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: 8px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-start:hover { background: #245c43; transform: translateY(-1px); }
+        .btn-start.participant { background: var(--accent-warm); }
+        .btn-start.participant:hover { background: #c96a2e; }
+        .btn-mark-done { padding: 10px 20px; background: white; color: var(--ink-muted); border: 1.5px solid var(--line); border-radius: 8px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-mark-done:hover { background: var(--paper-warm); border-color: var(--ink-muted); color: var(--ink); }
+        .btn-mark-done.marked { color: var(--accent); border-color: rgba(45, 106, 79, 0.3); background: rgba(45, 106, 79, 0.04); }
+        .btn-mark-done.marked.participant { color: var(--accent-warm); border-color: rgba(224, 122, 60, 0.3); background: rgba(224, 122, 60, 0.04); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        @media (max-width: 640px) {
+            .navbar { padding: 12px 16px; }
+            .container { padding: 32px 16px 60px; }
+            .step-info h3 { font-size: 15px; }
+        }
+    </style>

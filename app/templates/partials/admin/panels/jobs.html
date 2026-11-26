@@ -1,0 +1,27 @@
+  <!-- ── JOBS PANEL ── -->
+  <div class="panel" id="panel-jobs">
+    <div class="analytics-grid" id="jobStats">
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Pending</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Running</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Done</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Failed</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Due now</div></div>
+      <div class="analytics-card"><div class="analytics-num">—</div><div class="analytics-label">Stale running</div></div>
+    </div>
+    <div class="analytics-box">
+      <div class="analytics-head">
+        <div>
+          <div class="analytics-title">Recent background jobs</div>
+          <div class="analytics-sub">Cron runs these jobs outside user requests, so email sends and heavy refreshes do not block the app.</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-run" id="runJobsBtn" onclick="runDueBackgroundJobs()">Run due jobs</button>
+          <button class="btn-refresh" onclick="loadBackgroundJobs()">Refresh</button>
+        </div>
+      </div>
+      <div id="jobsRunStatus" class="warn-box" style="display:none;"></div>
+      <div id="jobsTable">
+        <div class="empty"><div class="empty-sub">Open this panel to load background jobs.</div></div>
+      </div>
+    </div>
+  </div>

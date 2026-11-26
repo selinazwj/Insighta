@@ -1,0 +1,63 @@
+  // ── RESEARCHER TOUR ──
+  const TOUR_KEY = 'insighta_researcher_tour_done_v2';
+  let tourIndex = 0;
+  let currentTourTarget = null;
+  let currentTourLift = null;
+
+  const tourSteps = [
+    {
+      target: 'brand',
+      title: 'Insighta workspace',
+      body: 'This is your researcher dashboard. From here you manage studies, publish new listings, and check participant progress.'
+    },
+    {
+      target: 'my-listings',
+      title: 'My listings',
+      body: 'Your active, draft, and closed research listings all live here. Come back here when you want to check or reopen a study.'
+    },
+    {
+      target: 'sidebar-new',
+      title: 'New listing shortcut',
+      body: 'This sidebar button opens the same creation menu. It stays available while you move around researcher pages.'
+    },
+    {
+      target: 'top-new',
+      title: 'Create a listing',
+      body: 'Use New listing to publish an external survey, build a survey inside Insighta, or recruit for an in-person study.'
+    },
+    {
+      target: 'stats',
+      title: 'Dashboard metrics',
+      body: 'These numbers give you a quick pulse on total responses, active listings, and overall completion.'
+    },
+    {
+      target: 'tabs',
+      title: 'Switch listing type',
+      body: 'Use these tabs to move between survey listings and in-person study listings without leaving the dashboard.'
+    },
+    {
+      target: 'study-list',
+      title: 'Open a study',
+      body: 'Click any listing to view details, edit the study, review quality checks, and track participant results.'
+    },
+    {
+      target: 'schedule',
+      title: 'Schedule',
+      body: 'View upcoming study sessions and manage participant bookings from your schedule.'
+    },
+    {
+      target: 'profile',
+      title: 'Profile',
+      body: 'Your profile area keeps account details and researcher identity settings in one place.'
+    },
+    {
+      target: 'tutorial',
+      title: 'Tutorial',
+      body: 'The tutorial page is the longer help center for setup steps, publishing guidance, and platform rules.'
+    },
+    {
+      target: 'feedback',
+      title: 'Share feedback',
+      body: 'Use this whenever something feels confusing, broken, or worth improving. Feedback helps us tune the product faster.'
+    }
+  ];

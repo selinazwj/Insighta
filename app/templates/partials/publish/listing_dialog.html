@@ -1,0 +1,58 @@
+<!-- NEW LISTING MODAL -->
+<div class="modal-bg" id="newListingModal" onclick="if(event.target===this)closeNewListing()">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-kicker">Create listing</div>
+        <div class="modal-title">Start a <strong>study</strong></div>
+        <div class="modal-sub">Choose the workflow that matches how you want to collect responses.</div>
+      </div>
+      <button class="modal-close" onclick="closeNewListing()" aria-label="Close">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="listing-grid">
+        <a href="/publish" class="listing-type primary">
+          <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+          <div class="lt-content">
+            <div class="lt-title">External survey</div>
+            <div class="lt-desc">Publish a Google Form, Qualtrics, Typeform, or any live survey link.</div>
+          </div>
+          <div class="lt-tag">Fastest</div>
+          <div class="lt-arrow">&gt;</div>
+        </a>
+        <form method="post" action="/surveys/create-builtin" class="listing-form">
+          <button type="submit" class="listing-type">
+            <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M9 11h6"/><path d="M9 15h4"/><path d="M5 4h14v16H5z"/><path d="M8 4V2"/><path d="M16 4V2"/></svg></div>
+            <div class="lt-content">
+              <div class="lt-title">Built-in survey</div>
+              <div class="lt-desc">Build questions inside Insighta, use AI, then publish from the same flow.</div>
+            </div>
+            <div class="lt-tag">Builder</div>
+            <div class="lt-arrow">&gt;</div>
+          </button>
+        </form>
+      </div>
+      <div class="listing-grid">
+        <a href="/publish_interview" class="listing-type">
+          <div class="lt-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1M9 13h1M9 17h1"/></svg></div>
+          <div class="lt-content">
+            <div class="lt-title">In-person study</div>
+            <div class="lt-desc">Recruit participants for lab visits, field studies, or on-site sessions.</div>
+          </div>
+          <div class="lt-tag">On site</div>
+          <div class="lt-arrow">&gt;</div>
+        </a>
+        <a href="/publish_interview?mode=online" class="listing-type">
+          <div class="lt-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M17 9l4-2v10l-4-2"/></svg></div>
+          <div class="lt-content">
+            <div class="lt-title">Online interview</div>
+            <div class="lt-desc">Schedule live remote interviews, video calls, or moderated sessions.</div>
+          </div>
+          <div class="lt-tag">Remote</div>
+          <div class="lt-arrow">&gt;</div>
+        </a>
+      </div>
+    </div>
+  </div>

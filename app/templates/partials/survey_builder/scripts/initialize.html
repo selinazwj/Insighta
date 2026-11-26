@@ -1,0 +1,5 @@
+  // ── UTILS ──
+  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function autoResize(el) { el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+
+  loadQuestions();

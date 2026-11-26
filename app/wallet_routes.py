@@ -146,7 +146,7 @@ def register_wallet_routes(app, templates, get_db, get_current_user, admin_key_m
     async def refund_destination(survey_id:int,request: Request,current_user=Depends(get_current_user),db=Depends(get_db)):
         from app.settlements import lock_study
         body=await json_object(request)
-        if not isinstance(body,dict) or body.get('destination') not in {'wallet','card'}:
+        if not isinstance(body,dict) or not isinstance(body.get('destination'),str) or body['destination'] not in {'wallet','card'}:
             raise HTTPException(400,'Choose wallet or original card.')
         study=lock_study(db,survey_id)
         if not study or study.publisher_id!=current_user.id: raise HTTPException(404,'Study not found')

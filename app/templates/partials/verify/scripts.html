@@ -1,0 +1,38 @@
+<script>
+  // ive added this for verification — request an OTP to the email theyre proving
+  async function sendVerifyCode() {
+    const btn = document.getElementById('btnSendCode');
+    const hint = document.getElementById('codeHint');
+    const emailEl = document.getElementById('verifyEmail');
+    const email = emailEl ? emailEl.value.trim() : '';
+    if (!email) { hint.textContent = 'Please enter an email address first.'; hint.className = 'code-hint error'; return; }
+    // ive added this so the server can reject a wrong-domain email before sending a code
+    const needsDomainsEl = document.getElementById('needsDomains');
+    const needs_domains = needsDomainsEl ? needsDomainsEl.value : '';
+    btn.disabled = true; btn.textContent = 'Sending...';
+    hint.textContent = ''; hint.className = 'code-hint';
+    try {
+      const res = await fetch('/verify/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ email, needs_domains })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        hint.textContent = data.message; hint.className = 'code-hint success';
+        let secs = 60;
+        const interval = setInterval(() => {
+          secs--;
+          btn.textContent = `Resend (${secs}s)`;
+          if (secs <= 0) { clearInterval(interval); btn.disabled = false; btn.textContent = 'Resend Code'; }
+        }, 1000);
+      } else {
+        hint.textContent = data.message; hint.className = 'code-hint error';
+        btn.disabled = false; btn.textContent = 'Send Code';
+      }
+    } catch {
+      hint.textContent = 'Network error. Please try again.'; hint.className = 'code-hint error';
+      btn.disabled = false; btn.textContent = 'Send Code';
+    }
+  }
+</script>

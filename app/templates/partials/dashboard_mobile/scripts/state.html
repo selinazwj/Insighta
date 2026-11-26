@@ -1,0 +1,10 @@
+  const allSurveys = {{ surveys | tojson | safe }};
+  let cardIdx = 0;
+  // completed studies belong in My Studies — the stricter !s.status filter
+  // (from main) also keeps started/skipped out of the fresh card stack
+  let activeSurveys = allSurveys.filter(s => !s.status);
+  let cardHistory = [];
+  let viewMode = localStorage.getItem('participantViewMode') || 'cards';
+  let touchX0 = 0, touchY0 = 0, dragging = false;
+
+  lucide.createIcons();

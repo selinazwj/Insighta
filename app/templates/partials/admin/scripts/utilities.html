@@ -1,0 +1,23 @@
+  // ── UTILS ──
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function escAttr(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function logout() {
+    adminKey = '';
+    allFeedbacks = [];
+    supportThreads = [];
+    analytics = null;
+    activityRows = [];
+    activityState = { offset: 0, limit: 100, total: 0, loading: false };
+    selectedThreadId = null;
+    if (supportPollTimer) clearInterval(supportPollTimer);
+    supportPollTimer = null;
+    sessionStorage.removeItem('insighta_admin_key');
+    document.body.classList.add('locked');
+    document.getElementById('adminKeyInput').value = '';
+  }

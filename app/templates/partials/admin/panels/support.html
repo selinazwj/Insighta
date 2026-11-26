@@ -1,0 +1,24 @@
+  <!-- ── SUPPORT PANEL ── -->
+  <div class="panel" id="panel-support">
+    <div class="support-layout">
+      <div class="thread-list" id="threadList">
+        <div class="empty"><div class="empty-sub">Loading threads...</div></div>
+      </div>
+      <div class="chat-area">
+        <div class="chat-head">
+          <div class="chat-user" id="chatUser">Select a thread</div>
+          <div class="chat-tools">
+            <button class="chat-tool" onclick="loadSupportThreads()">Refresh</button>
+            <button class="chat-tool" onclick="closeThread()">Close thread</button>
+          </div>
+        </div>
+        <div class="chat-msgs" id="chatMsgs">
+          <div class="empty"><div class="empty-sub">No thread selected</div></div>
+        </div>
+        <form class="chat-form" onsubmit="sendReply(event)">
+          <textarea class="chat-input" id="chatInput" placeholder="Reply as Insighta support..." disabled rows="1"></textarea>
+          <button class="chat-send" id="chatSend" type="submit" disabled>Send</button>
+        </form>
+      </div>
+    </div>
+  </div>

@@ -1,0 +1,61 @@
+  function renderAvailabilityCalendar() {
+    const grid = document.getElementById('availabilityGrid');
+    if (!grid) return;
+    const days = Array.from({ length: 7 }, (_, i) => addDays(calendarStart, i));
+    const rangeStart = days[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const rangeEnd = days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    document.getElementById('calendarRange').textContent = `${rangeStart} - ${rangeEnd}`;
+    const starts = [];
+    for (let minutes = 8 * 60; minutes <= 20 * 60; minutes += 30) starts.push(minutesToTime(minutes));
+    let html = '<div class="time-head">Time</div>' + days.map(day => `
+      <div class="cal-head"><strong>${day.toLocaleDateString('en-US', { weekday:'short' })}</strong><span>${day.toLocaleDateString('en-US', { month:'short', day:'numeric' })}</span></div>
+    `).join('');
+    starts.forEach(start => {
+      html += `<div class="time-cell">${start}</div>`;
+      days.forEach(day => {
+        const date = isoDate(day);
+        const selected = isSlotSelected(date, start);
+        html += `<div class="cal-cell ${selected ? 'selected' : ''}" data-date="${date}" data-start="${start}" role="button" aria-label="${date} ${start}"></div>`;
+      });
+    });
+    grid.innerHTML = html;
+  }
+
+  function moveCalendarWeek(days) {
+    calendarStart = addDays(calendarStart, days);
+    renderAvailabilityCalendar();
+  }
+
+  function resetCalendarWeek() {
+    calendarStart = startOfDay(new Date());
+    renderAvailabilityCalendar();
+  }
+
+  function clearSlots() {
+    if (!availabilitySlots.length || confirm('Clear all selected bookable times?')) {
+      availabilitySlots.splice(0, availabilitySlots.length);
+      renderSlots();
+      renderAvailabilityCalendar();
+    }
+  }
+
+  function renderSlots() {
+    const list = document.getElementById('slotList');
+    document.getElementById('availabilitySlots').value = JSON.stringify(availabilitySlots);
+    if (!availabilitySlots.length) {
+      list.innerHTML = '<span class="slot-empty">No bookable times added yet.</span>';
+      return;
+    }
+    list.innerHTML = availabilitySlots.map((slot, idx) => `
+      <span class="slot-chip">
+        ${formatSlotLabel(slot)}
+        <button type="button" onclick="removeSlot(${idx})" aria-label="Remove slot">&times;</button>
+      </span>
+    `).join('');
+  }
+
+  function removeSlot(idx) {
+    availabilitySlots.splice(idx, 1);
+    renderSlots();
+    renderAvailabilityCalendar();
+  }

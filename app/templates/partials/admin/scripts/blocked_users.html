@@ -1,0 +1,69 @@
+  async function loadBlockedUsers() {
+    const wrap = document.getElementById('blockedUsersList');
+    if (!adminKey || !wrap) return;
+    wrap.innerHTML = '<div class="empty"><div class="empty-sub">Loading blocked users...</div></div>';
+    try {
+      const res = await fetch(`/admin/blocked-users?admin_key=${encodeURIComponent(adminKey)}&_=${Date.now()}`, { cache:'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not load blocked users');
+      const rows = data.blocked_users || [];
+      if (!rows.length) {
+        wrap.innerHTML = '<div class="empty"><div class="empty-title">No blocked emails</div><div class="empty-sub">Blocked users will appear here after you add them.</div></div>';
+        return;
+      }
+      wrap.innerHTML = `<div class="table-wrap"><table class="disc-table">
+        <thead><tr><th>Email</th><th>Reason</th><th>Source</th><th>Added</th></tr></thead>
+        <tbody>${rows.map(row => `
+          <tr>
+            <td><div class="listing-title">${esc(row.email || '')}</div></td>
+            <td>${esc(row.reason || '')}</td>
+            <td><span class="${row.source === 'built_in' ? 'rate-good' : 'rate-empty'}">${esc(row.source === 'built_in' ? 'Built-in' : 'Database')}</span></td>
+            <td>${esc(row.created_at ? new Date(row.created_at).toLocaleString() : '—')}</td>
+          </tr>
+        `).join('')}</tbody>
+      </table></div>`;
+    } catch (err) {
+      wrap.innerHTML = `<div class="empty"><div class="empty-sub">${esc(err.message || 'Could not load blocked users')}</div></div>`;
+    }
+  }
+
+  async function blockUserEmail() {
+    if (!adminKey) return;
+    const emailInput = document.getElementById('blockEmail');
+    const reasonInput = document.getElementById('blockReason');
+    const status = document.getElementById('blockStatus');
+    const btn = document.getElementById('blockBtn');
+    const email = (emailInput?.value || '').trim().toLowerCase();
+    const reason = (reasonInput?.value || '').trim() || 'Blocked by admin';
+    if (!email || !email.includes('@')) {
+      status.textContent = 'Please enter a valid email address.';
+      status.style.color = '#b91c1c';
+      return;
+    }
+    if (!confirm(`Block ${email}? This will prevent login, signup, OAuth, and active-session access.`)) return;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Blocking...';
+    status.textContent = 'Blocking user...';
+    status.style.color = 'var(--ink3)';
+    try {
+      const res = await fetch('/admin/blocked-users', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ admin_key: adminKey, email, reason })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not block this user');
+      status.textContent = data.message || 'User blocked.';
+      status.style.color = 'var(--green)';
+      if (emailInput) emailInput.value = '';
+      if (reasonInput) reasonInput.value = '';
+      loadBlockedUsers();
+    } catch (err) {
+      status.textContent = err.message || 'Could not block this user.';
+      status.style.color = '#b91c1c';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }

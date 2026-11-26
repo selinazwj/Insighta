@@ -1,0 +1,20 @@
+<!-- LEFT PANEL -->
+<div class="left-panel">
+  <a href="/" class="panel-logo">
+    <img src="/static/favicon.png" alt="Insighta">
+    <span>Insighta</span>
+  </a>
+  <div class="panel-steps">
+    <div class="panel-step {% if register_step|default(1) == 1 %}active{% else %}done{% endif %}" id="panelStep1">
+      <div class="step-dot">1</div>
+      <div class="step-info"><h4>Verify Email</h4><p>{% if participant_app %}Start your participant space{% else %}Confirm your email address{% endif %}</p></div>
+    </div>
+    <div class="panel-step {% if register_step|default(1) == 2 %}active{% endif %}" id="panelStep2">
+      <div class="step-dot">2</div>
+      <div class="step-info"><h4>Create Password</h4><p>Secure your account</p></div>
+    </div>
+  </div>
+  <div class="panel-footer">
+    <p>Already have an account, or want to use Google? <a href="/login?{% if register_role %}role={{ register_role | urlencode }}{% endif %}{% if register_next %}{% if register_role %}&{% endif %}next={{ register_next | urlencode }}{% endif %}">Sign in or continue with Google →</a></p>
+  </div>
+</div>

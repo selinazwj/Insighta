@@ -1,0 +1,35 @@
+    <!-- 04 QUALITY AUTO-FILTER -->
+    <div class="form-section">
+      <div class="section-head">
+        <div class="section-num">04</div>
+        <div>
+          <div class="section-title">Quality auto-filter</div>
+          <div class="section-sub">Auto-approve responses above your quality threshold</div>
+        </div>
+      </div>
+      <div class="field-hint" style="margin-bottom:12px;">Responses at or above the threshold are auto-approved; below it, they are sent for manual review.</div>
+      <div class="filter-row">
+        <label class="filter-toggle">
+          <input type="checkbox" name="quality_auto_filter_enabled" value="1" id="autoFilterEnabled"
+            {% if survey.quality_auto_filter_enabled %}checked{% endif %}
+            onchange="toggleAutoFilter()">
+          Enable auto-filter
+        </label>
+        <div class="filter-score {% if not survey.quality_auto_filter_enabled %}disabled{% endif %}" id="filterScoreWrap">
+          <span>Scores</span>
+          <input type="number" name="quality_auto_filter_min_score" id="filterMinScore"
+            min="0" max="100" step="1"
+            value="{{ (survey.quality_auto_filter_min_score if survey.quality_auto_filter_min_score is not none else 80) | int }}"
+            {% if not survey.quality_auto_filter_enabled %}disabled{% endif %}>
+          <span>and above auto-approved</span>
+        </div>
+      </div>
+      <div class="tips-box">
+        <strong>Recommended thresholds</strong>
+        <ul>
+          <li><span class="rec">80 (recommended)</span> — balanced default; strong responses auto-approved, borderline cases for manual review.</li>
+          <li><span class="rec">70</span> — more permissive when you need volume.</li>
+          <li><span class="rec">85–90</span> — stricter for paid studies or fraud-sensitive research.</li>
+        </ul>
+      </div>
+    </div>

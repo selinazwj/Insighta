@@ -1,0 +1,22 @@
+    <!-- AI FORECAST -->
+    <div id="panel-ai" style="display:none;">
+      <div class="ai-box" id="ai-box">
+        <div class="ai-loading" id="ai-loading">
+          <span id="ai-loading-text">AI forecast is on-demand and will not run automatically.</span>
+          <select id="ai-scope" class="ai-btn" aria-label="AI analysis scope">
+            <option value="quick">Quick · 20 candidates</option>
+            <option value="standard">Standard · 50</option>
+            <option value="full">Full · 120</option>
+          </select>
+          <button class="ai-btn" style="margin-left:8px;" onclick="loadForecast(false)">Generate forecast</button>
+        </div>
+        <div class="ai-result" id="ai-result" style="display:none;">
+          <div class="ai-stat-row" id="ai-stats"></div>
+          <div class="ai-insight" id="ai-insight"></div>
+          <div class="ai-actions">
+            <button class="ai-btn" onclick="loadForecast(true)">Recompute</button>
+            <button class="ai-btn" onclick="showTopCandidates()">Top candidates</button>
+          </div>
+        </div>
+      </div>
+    </div>

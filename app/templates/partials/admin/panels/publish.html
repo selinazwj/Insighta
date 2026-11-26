@@ -1,0 +1,13 @@
+  <!-- ── PUBLISH PANEL ── -->
+  <div class="panel" id="panel-publish">
+    <div style="background:var(--bg);border:0.5px solid var(--line);border-radius:10px;padding:24px;max-width:720px;">
+      <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px;">Publish validation listing</div>
+      <div style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:18px;">
+        Use the same survey publishing form as researchers, plus one admin-only field for the reward amount participants see. This skips Stripe and marks the listing as an admin demo.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-run" onclick="openAdminPublish()">Create demo listing</button>
+        <button class="btn-refresh" id="resetResearchDemoBtn" onclick="resetResearchParticipationDemo()">Reset research participation demo</button>
+      </div>
+    </div>
+  </div>

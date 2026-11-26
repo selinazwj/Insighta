@@ -1,0 +1,15 @@
+  <!-- ── FEEDBACK PANEL ── -->
+  <div class="panel" id="panel-feedback">
+    <div class="filter-tabs" id="filterTabs">
+      <button class="f-tab active" onclick="filterFeedback('all',this)">All</button>
+      <button class="f-tab" onclick="filterFeedback('pending',this)">Pending</button>
+      <button class="f-tab" onclick="filterFeedback('credited',this)">Credited</button>
+      <button class="f-tab" onclick="filterFeedback('rejected',this)">Rejected</button>
+      <button class="f-tab" onclick="filterFeedback('bug',this)">Bug</button>
+      <button class="f-tab" onclick="filterFeedback('feature_request',this)">Feature</button>
+      <button class="f-tab" onclick="filterFeedback('ux',this)">UX</button>
+    </div>
+    <div class="feedback-list" id="feedbackList">
+      <div class="empty"><div class="empty-title">Loading...</div></div>
+    </div>
+  </div>

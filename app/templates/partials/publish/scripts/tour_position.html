@@ -1,0 +1,77 @@
+  function findTourTarget(name) {
+    const targets = Array.from(document.querySelectorAll(`[data-tour="${name}"]`));
+    return targets.find(el => {
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    }) || targets[0] || null;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function getSpotlightRect(target) {
+    if (!target) return null;
+    const rect = target.getBoundingClientRect();
+    const sidebar = target.closest('.sidebar');
+    const sidebarRect = sidebar ? sidebar.getBoundingClientRect() : null;
+    // Keep sidebar outlines inside their item and sidebar, away from adjacent rows.
+    const padding = sidebar ? 0 : 6;
+    const left = Math.max(8, sidebarRect ? sidebarRect.left + 8 : 8, rect.left - padding);
+    const top = Math.max(8, rect.top - padding);
+    const right = Math.min(window.innerWidth - 8, sidebarRect ? sidebarRect.right - 8 : window.innerWidth - 8, rect.right + padding);
+    const bottom = Math.min(window.innerHeight - 8, rect.bottom + padding);
+    return {
+      left,
+      top,
+      width: Math.max(0, right - left),
+      height: Math.max(0, bottom - top)
+    };
+  }
+
+  function positionTourSpotlight(target) {
+    const spotlight = document.getElementById('tourSpotlight');
+    const rect = getSpotlightRect(target);
+    if (!rect) {
+      spotlight.classList.remove('open');
+      return;
+    }
+    spotlight.style.left = `${Math.round(rect.left)}px`;
+    spotlight.style.top = `${Math.round(rect.top)}px`;
+    spotlight.style.width = `${Math.round(rect.width)}px`;
+    spotlight.style.height = `${Math.round(rect.height)}px`;
+    spotlight.classList.add('open');
+  }
+
+  function positionTourCard(target) {
+    const card = document.getElementById('tourCard');
+    const gap = 16;
+    const margin = 16;
+    const cardRect = card.getBoundingClientRect();
+
+    if (!target) {
+      card.style.left = `${Math.round((window.innerWidth - cardRect.width) / 2)}px`;
+      card.style.top = `${Math.round((window.innerHeight - cardRect.height) / 2)}px`;
+      return;
+    }
+
+    const rect = target.getBoundingClientRect();
+    let left = rect.right + gap;
+    let top = rect.top + (rect.height - cardRect.height) / 2;
+
+    if (left + cardRect.width > window.innerWidth - margin) {
+      left = rect.left - cardRect.width - gap;
+    }
+    if (left < margin) {
+      left = rect.left;
+      top = rect.bottom + gap;
+    }
+    if (top + cardRect.height > window.innerHeight - margin) {
+      top = window.innerHeight - cardRect.height - margin;
+    }
+    if (top < margin) top = margin;
+
+    card.style.left = `${Math.round(clamp(left, margin, window.innerWidth - cardRect.width - margin))}px`;
+    card.style.top = `${Math.round(clamp(top, margin, window.innerHeight - cardRect.height - margin))}px`;
+  }

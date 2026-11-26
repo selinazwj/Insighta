@@ -1,0 +1,97 @@
+    <!-- TARGET PARTICIPANTS -->
+    <div class="form-section" data-wizard-step="3" hidden>
+      <div class="section-header">
+        <div class="section-icon">03</div>
+        <div><h2>Target Participants</h2><p>Leave a field as all to allow all matching participants</p></div>
+      </div>
+
+      <div class="filter-group-label">Demographics</div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group"><label>Age Range</label><input type="text" name="target_age_range" placeholder="All ages, 18-30, 25+, under 40"><div class="label-desc">Type a custom range, or leave blank for all ages.</div></div>
+        <div class="form-group"><label>State</label><select name="target_state"><option value="all" selected>All states</option>{% for v in ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','Washington DC','West Virginia','Wisconsin','Wyoming','Other'] %}<option value="{{ v }}">{{ v }}</option>{% endfor %}</select><div class="label-desc">Use the participant's current U.S. state.</div></div>
+      </div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group"><label>Language</label><select name="target_language"><option value="all" selected>All languages</option><option>English</option><option>Mandarin Chinese</option><option>Spanish</option><option>French</option><option>Arabic</option><option>Hindi</option><option>Bengali</option><option>Portuguese</option><option>Russian</option><option>Japanese</option><option>Korean</option><option>German</option><option>Italian</option><option>Vietnamese</option><option>Other</option></select></div>
+        <div class="form-group"><label>Race</label><select name="target_ethnicity"><option value="all" selected>All</option><option>Asian</option><option>Black or African American</option><option>Hispanic or Latino</option><option>Middle Eastern or North African</option><option>Native American or Alaska Native</option><option>Native Hawaiian or Pacific Islander</option><option>White</option><option>Two or more races</option><option>Prefer to self-describe</option><option>Prefer not to say</option></select></div>
+      </div>
+
+      <div class="filter-group-label">Academic Background</div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group"><label>Student Status</label><select name="target_student_status"><option value="all" selected>All</option><option>High school student</option><option>Undergraduate student</option><option>Graduate student</option><option>PhD student</option><option>Postdoc</option><option>Not currently a student</option></select></div>
+        <div class="form-group"><label>International / Domestic</label><select name="target_international_domestic"><option value="all" selected>All</option><option value="Domestic">Domestic</option><option value="International">International</option></select></div>
+      </div>
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group"><label>Field / Major</label><select name="target_field"><option value="all" selected>All fields</option><option>Computer Science & Engineering</option><option>Data Science / AI</option><option>Business & Economics</option><option>Psychology</option><option>Medicine & Healthcare</option><option>Public Health</option><option>Natural Sciences</option><option>Social Sciences</option><option>Arts & Humanities</option><option>Education</option><option>Law</option><option>Design / HCI</option><option>Communications / Media</option><option>Other</option></select></div>
+        <div class="form-group"><label>Current Status</label><select name="target_status"><option value="all" selected>All</option><option>Student</option><option>Employed full-time</option><option>Employed part-time</option><option>Self-employed</option><option>Intern</option><option>Researcher</option><option>Caregiver</option><option>Unemployed / between roles</option><option>Retired</option><option>Other</option></select></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Min Education</label><select name="target_education_min"><option value="">No limit</option><option value="0">Below high school</option><option value="1">High school</option><option value="2">Undergraduate</option><option value="3">Graduate</option><option value="4">PhD</option><option value="5">Postdoc</option></select></div>
+        <div class="form-group"><label>Max Education</label><select name="target_education_max"><option value="">No limit</option><option value="0">Below high school</option><option value="1">High school</option><option value="2">Undergraduate</option><option value="3">Graduate</option><option value="4">PhD</option><option value="5">Postdoc</option></select></div>
+        <div class="form-group"><label>Income Level</label><select name="target_income_level"><option value="all" selected>All income levels</option><option>Under $25,000</option><option>$25,000-$49,999</option><option>$50,000-$74,999</option><option>$75,000-$99,999</option><option>$100,000-$149,999</option><option>$150,000+</option><option>Prefer not to say</option></select></div>
+      </div>
+
+      <div class="filter-group-label">Participant Experience <span style="font-weight:300; text-transform:none; letter-spacing:0;">(select all that apply)</span></div>
+      <div class="label-desc" style="margin-bottom: 10px;">Participants only need to match one selected tag</div>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Startup / product experience" onchange="updateCheckbox(this)"> Startup / product experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Leadership / club experience" onchange="updateCheckbox(this)"> Leadership / club experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Healthcare experience" onchange="updateCheckbox(this)"> Healthcare experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Caregiving experience" onchange="updateCheckbox(this)"> Caregiving experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Mental health experience" onchange="updateCheckbox(this)"> Mental health experience</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_experience_tags" value="Prior research participation" onchange="updateCheckbox(this)"> Prior research participation</label>
+      </div>
+
+      <div class="filter-group-label">Lifestyle <span style="font-weight:300; text-transform:none; letter-spacing:0;">(select all that apply)</span></div>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Commuter" onchange="updateCheckbox(this)"> Commuter</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Lives on campus" onchange="updateCheckbox(this)"> Lives on campus</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Remote worker" onchange="updateCheckbox(this)"> Remote worker</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Parent / caregiver" onchange="updateCheckbox(this)"> Parent / caregiver</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Frequent traveler" onchange="updateCheckbox(this)"> Frequent traveler</label>
+        <label class="checkbox-item"><input type="checkbox" name="target_lifestyle_tags" value="Athlete / active lifestyle" onchange="updateCheckbox(this)"> Athlete / active lifestyle</label>
+      </div>
+
+      <details style="margin-top: 24px;">
+        <summary class="advanced-toggle"><span id="advArrow">+</span> Advanced targeting</summary>
+        <div class="advanced-body">
+          <div class="form-row">
+            <div class="form-group"><label>Sexual Orientation</label><select name="target_sexual_orientation"><option value="all" selected>All</option><option>Straight / heterosexual</option><option>Gay or lesbian</option><option>Bisexual</option><option>Pansexual</option><option>Asexual</option><option>Queer</option><option>Questioning</option><option>Prefer to self-describe</option><option>Prefer not to say</option></select></div>
+            <div class="form-group"><label>Primary study device</label><select name="target_device"><option value="any" selected>Any device</option><option value="laptop">Laptop / desktop</option><option value="mobile">Mobile phone</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Mental health diagnosis</label><select name="target_mental_health_diagnosis"><option value="all" selected>All</option><option>ADHD</option><option>Anxiety disorder</option><option>Autism spectrum disorder</option><option>Bipolar disorder</option><option>Depression</option><option>Eating disorder</option><option>OCD</option><option>PTSD / trauma-related disorder</option><option>Substance use disorder</option><option>None</option><option>Prefer not to say</option><option>Other</option></select></div>
+            <div class="form-group"><label>Physical health diagnosis</label><select name="target_physical_health_diagnosis"><option value="all" selected>All</option><option>Asthma</option><option>Autoimmune condition</option><option>Cancer history</option><option>Chronic pain</option><option>Diabetes</option><option>Heart condition</option><option>Hypertension</option><option>Migraine</option><option>Mobility impairment</option><option>Neurological condition</option><option>None</option><option>Prefer not to say</option><option>Other</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Smoking</label><select name="target_smoking"><option value="all" selected>All</option><option>Never</option><option>Former</option><option>Occasional</option><option>Current daily</option><option>Prefer not to say</option></select></div>
+            <div class="form-group"><label>Cannabis use</label><select name="target_cannabis_use"><option value="all" selected>All</option><option>Never</option><option>Former</option><option>Occasional</option><option>Regular</option><option>Medical use</option><option>Prefer not to say</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Sport type</label><select name="target_sport_type"><option value="all" selected>All</option><option>Team sports</option><option>Individual sports</option><option>Gym / fitness</option><option>Running</option><option>Cycling</option><option>Swimming</option><option>Esports</option><option>None</option><option>Other</option></select></div>
+            <div class="form-group"><label>Sport frequency</label><select name="target_sport_frequency"><option value="all" selected>All</option><option>Never</option><option>Less than weekly</option><option>1-2 times / week</option><option>3-5 times / week</option><option>Daily</option></select></div>
+          </div>
+        </div>
+      </details>
+
+      <div class="form-group" style="margin-top: 24px;">
+        <label>Any niche requirements?</label>
+        <div class="label-desc">Add any very specific criteria we should consider during review or manual matching.</div>
+        <textarea name="target_niche_requirements" placeholder="e.g. First-generation college students in California who have used budgeting apps in the past 6 months."></textarea>
+      </div>
+      <div class="form-group" style="margin-top: 18px;">
+        <label>Additional participant benefits</label>
+        <div class="label-desc">Besides payment, what might participants value? These will appear on the participant-facing study card.</div>
+        <div class="checkbox-group">
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Free trial / product access" onchange="updateCheckbox(this)"> Free trial / product access</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Social impact" onchange="updateCheckbox(this)"> Social impact</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Networking" onchange="updateCheckbox(this)"> Networking</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Learn about yourself" onchange="updateCheckbox(this)"> Learn about yourself</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Early access to a new tool" onchange="updateCheckbox(this)"> Early access to a new tool</label>
+          <label class="checkbox-item"><input type="checkbox" name="participant_benefits" value="Contribute to science" onchange="updateCheckbox(this)"> Contribute to science</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Other benefit <span style="font-weight:400;color:var(--ink-muted);">(optional)</span></label>
+        <input type="text" name="participant_benefits_other" placeholder="e.g. Free coaching session, certificate, community invite">
+      </div>
+    </div>

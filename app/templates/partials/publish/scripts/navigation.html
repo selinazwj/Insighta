@@ -1,0 +1,13 @@
+  // ── TABS ──
+  function switchTab(tab) {
+    document.getElementById('panel-surveys').style.display   = tab === 'surveys'   ? 'block' : 'none';
+    document.getElementById('panel-interviews').style.display = tab === 'interviews' ? 'block' : 'none';
+    document.getElementById('tab-surveys').classList.toggle('active',   tab === 'surveys');
+    document.getElementById('tab-interviews').classList.toggle('active', tab === 'interviews');
+    localStorage.setItem('publisherTab', tab);
+  }
+  (function(){ const t = localStorage.getItem('publisherTab'); if (t === 'interviews') switchTab('interviews'); })();
+
+  // ── NEW LISTING MODAL ──
+  function openNewListing()  { document.getElementById('newListingModal').classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeNewListing() { document.getElementById('newListingModal').classList.remove('open'); document.body.style.overflow = ''; }

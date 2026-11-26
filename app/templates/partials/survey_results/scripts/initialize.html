@@ -1,0 +1,13 @@
+  // ── Helper ────────────────────────────────────────────────
+  function escHtml(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function escClass(value) {
+    return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  }
+
+  // ── Init ──────────────────────────────────────────────────
+  loadResults();
+  loadQualityResults();

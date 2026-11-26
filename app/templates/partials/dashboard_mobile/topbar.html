@@ -1,0 +1,9 @@
+<div class="topbar">
+  <div class="topbar-logo">Insight<span>a</span></div>
+  <div class="topbar-right">
+    <a class="researcher-note" href="{{ researcher_desktop_url }}">
+      <strong>Researcher?</strong><br>Use desktop: {{ researcher_desktop_host }}
+    </a>
+    <div class="earnings-pill" id="earningsPill">${{ "%.2f"|format(pending_earnings) }} earned</div>
+  </div>
+</div>

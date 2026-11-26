@@ -1,0 +1,55 @@
+      <section class="profile-section">
+        <div class="section-header">
+          <div class="sh-icon" style="background:var(--em);"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></div>
+          <div class="sh-title">Survey preferences & lifestyle</div>
+        </div>
+        <div class="section-body">
+          <div class="form-grid">
+            <label class="form-group">
+              <span class="form-label">Participation format</span>
+              <select class="form-select" name="participation_format">
+                <option value="">Select</option>
+                {% for option in ['Online surveys','Phone interview','Video interview','In-person study','Product test','Diary study','Any format'] %}
+                  <option value="{{ option }}" {% if current_user.participation_format == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Primary device for taking surveys</span>
+              <select class="form-select" name="device_type">
+                <option value="">Select</option>
+                {% for option in ['Phone','Tablet','Laptop','Desktop','Shared public device'] %}
+                  <option value="{{ option }}" {% if current_user.device_type == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Smoking</span>
+              <select class="form-select" name="smoking">
+                <option value="">Select</option>
+                {% for option in ['No','Yes','Former smoker','Prefer not to say'] %}
+                  <option value="{{ option }}" {% if current_user.smoking == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-group">
+              <span class="form-label">Cannabis use</span>
+              <select class="form-select" name="cannabis_use">
+                <option value="">Select</option>
+                {% for option in ['No','Yes','Occasionally','Prefer not to say'] %}
+                  <option value="{{ option }}" {% if current_user.cannabis_use == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+          <div class="form-group full" style="margin-top:16px;">
+            <span class="form-label">Lifestyle</span>
+            <div class="chip-grid">
+              {% for option in ['Exercise regularly','Team sports','Outdoor activities','Cooking / foodie','Coffee / tea','Gaming','Streaming','Social media creator','Frequent traveler','Public transit','Drives regularly','Pet owner','Parent / guardian','Vegetarian / vegan','Budget conscious','Early adopter','Night owl','Morning person','Other'] %}
+                <label class="chip"><input type="checkbox" name="lifestyle_tags" value="{{ option }}" {% if option in lifestyles %}checked{% endif %} {% if option == 'Other' %}data-other-source data-other-target="lifestyle-other"{% endif %}><span>{{ option }}</span></label>
+              {% endfor %}
+            </div>
+            <label class="form-group other-input" id="lifestyle-other" style="margin-top:12px;"><span class="form-label">Other lifestyle</span><input class="form-input" name="lifestyle_tags_other" value="{{ lifestyle_other }}" placeholder="Type another lifestyle"></label>
+          </div>
+        </div>
+      </section>

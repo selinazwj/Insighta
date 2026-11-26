@@ -1,0 +1,54 @@
+  // ── Format pills ─────────────────────────────────────────
+  function selectFormat(el) {
+    document.querySelectorAll('.format-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    const val = el.dataset.value;
+    document.getElementById('formatInput').value = val;
+    document.getElementById('locationRow').style.display = val === 'in_person' ? 'block' : 'none';
+    const onlineRow = document.getElementById('onlineLinkRow');
+    if (onlineRow) onlineRow.style.display = val === 'online' ? 'block' : 'none';
+  }
+
+  // ── Incentive → show/hide budget ─────────────────────────
+  function selectIncentive(el) {
+    document.querySelectorAll('.incentive-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    const val = el.dataset.value;
+    document.getElementById('incentiveInput').value = val;
+    const isRaffle = val === 'raffle';
+    const isVolunteer = val === 'volunteer';
+    document.getElementById('budgetSection').style.display = 'block';
+    document.getElementById('paidBudgetFields').style.display = (isVolunteer || isRaffle) ? 'none' : 'block';
+    document.getElementById('raffleBox').style.display = isRaffle ? 'block' : 'none';
+    document.getElementById('volunteerBox').style.display = isVolunteer ? 'block' : 'none';
+    document.getElementById('submitBtn').textContent = 'Pay & Publish';
+    document.getElementById('perPersonInput').disabled = isVolunteer || isRaffle;
+    updateCommission();
+  }
+
+  // ── Commission calculator ─────────────────────────────────
+  const perPersonInput = document.getElementById('perPersonInput');
+  const totalBudgetInput = document.getElementById('totalBudgetInput');
+
+  const updateCommission = window.InsightaPricing({
+    box: document.getElementById('commissionBox'),
+    total: totalBudgetInput, status: document.getElementById('quoteStatus'),
+    values: {reward: document.getElementById('dispPerPerson'), fee: document.getElementById('dispFee'),
+              urgency: document.getElementById('dispTimelineBoost'), total: document.getElementById('dispTotal')},
+    input: () => ({study_type: {{ ('interview' if is_online_interview else 'in_person') | tojson }}, incentive_type: document.getElementById('incentiveInput').value, per_person: perPersonInput.value || '0', target_responses: document.querySelector('input[name="target_responses"]').value || '0', urgency_level: document.getElementById('urgencyInput').value})
+  });
+
+  document.querySelectorAll('[name="payment_method"], #usePromoCredits').forEach(el => el.addEventListener('change', updateCommission));
+
+  perPersonInput.addEventListener('input', updateCommission);
+  totalBudgetInput.addEventListener('input', updateCommission);
+  document.querySelector('input[name="target_responses"]').addEventListener('input', updateCommission);
+  document.querySelector('input[name="session_count"]').addEventListener('input', updateCommission);
+
+  // ── Urgency ───────────────────────────────────────────────
+  function selectUrgency(el) {
+    document.querySelectorAll('.urgency-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('urgencyInput').value = el.dataset.value;
+    updateCommission();
+  }

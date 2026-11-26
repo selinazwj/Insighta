@@ -1,0 +1,16 @@
+  function switchTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('screen-' + tab).classList.add('active');
+    document.getElementById('nav-' + tab).classList.add('active');
+  }
+
+  function syncOtherInputs() {
+    document.querySelectorAll('[data-other-source]').forEach(source => {
+      const target = document.getElementById(source.dataset.otherTarget);
+      if (!target) return;
+      const otherValue = source.dataset.otherValue || 'Other';
+      const isVisible = source.type === 'checkbox' ? source.checked : source.value === otherValue;
+      target.classList.toggle('is-visible', isVisible);
+    });
+  }
